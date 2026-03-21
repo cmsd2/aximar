@@ -4,6 +4,7 @@ import { VariablePanel } from "./components/VariablePanel";
 import { Notebook } from "./components/Notebook";
 import { CommandPalette } from "./components/CommandPalette";
 import { TemplateChooser } from "./components/TemplateChooser";
+import { SettingsModal } from "./components/SettingsModal";
 import { useMaxima } from "./hooks/useMaxima";
 import { useTheme } from "./hooks/useTheme";
 import {
@@ -11,6 +12,7 @@ import {
   setHasSeenWelcome,
   getTemplate,
 } from "./lib/notebooks-client";
+import { getConfig } from "./lib/config-client";
 import { useNotebookStore } from "./store/notebookStore";
 import "./styles/global.css";
 
@@ -19,12 +21,26 @@ function App() {
   useTheme();
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [templateChooserOpen, setTemplateChooserOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [variablesOpen, setVariablesOpen] = useState(false);
   const loadNotebook = useNotebookStore((s) => s.loadNotebook);
 
   useEffect(() => {
     initSession();
   }, [initSession]);
+
+  // Load config on mount: apply font size and variables_open default
+  useEffect(() => {
+    getConfig()
+      .then((cfg) => {
+        document.documentElement.style.setProperty(
+          "--font-size-mono",
+          `${cfg.font_size}px`
+        );
+        setVariablesOpen(cfg.variables_open);
+      })
+      .catch(() => {});
+  }, []);
 
   // First-launch: load welcome notebook
   useEffect(() => {
@@ -57,6 +73,7 @@ function App() {
     <div className="app">
       <Toolbar
         onOpenTemplates={() => setTemplateChooserOpen(true)}
+        onOpenSettings={() => setSettingsOpen(true)}
         variablesOpen={variablesOpen}
         onToggleVariables={() => setVariablesOpen((o) => !o)}
       />
@@ -67,6 +84,9 @@ function App() {
       )}
       {templateChooserOpen && (
         <TemplateChooser onClose={() => setTemplateChooserOpen(false)} />
+      )}
+      {settingsOpen && (
+        <SettingsModal onClose={() => setSettingsOpen(false)} onSetVariablesOpen={setVariablesOpen} />
       )}
     </div>
   );

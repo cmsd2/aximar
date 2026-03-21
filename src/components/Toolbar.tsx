@@ -1,30 +1,17 @@
-import { useNotebookStore, type Theme } from "../store/notebookStore";
+import { useNotebookStore } from "../store/notebookStore";
 import { useMaxima } from "../hooks/useMaxima";
-
-const themeLabels: Record<Theme, string> = {
-  auto: "Auto",
-  light: "Light",
-  dark: "Dark",
-};
-
-const nextTheme: Record<Theme, Theme> = {
-  auto: "light",
-  light: "dark",
-  dark: "auto",
-};
 
 interface ToolbarProps {
   onOpenTemplates: () => void;
+  onOpenSettings: () => void;
   variablesOpen: boolean;
   onToggleVariables: () => void;
 }
 
-export function Toolbar({ onOpenTemplates, variablesOpen, onToggleVariables }: ToolbarProps) {
+export function Toolbar({ onOpenTemplates, onOpenSettings, variablesOpen, onToggleVariables }: ToolbarProps) {
   const addCell = useNotebookStore((s) => s.addCell);
   const cells = useNotebookStore((s) => s.cells);
   const sessionStatus = useNotebookStore((s) => s.sessionStatus);
-  const theme = useNotebookStore((s) => s.theme);
-  const setTheme = useNotebookStore((s) => s.setTheme);
   const { executeCell, restartSession } = useMaxima();
 
   const runAll = async () => {
@@ -70,12 +57,8 @@ export function Toolbar({ onOpenTemplates, variablesOpen, onToggleVariables }: T
         </button>
       </div>
       <div className="toolbar-right">
-        <button
-          className="theme-btn"
-          onClick={() => setTheme(nextTheme[theme])}
-          title={`Theme: ${themeLabels[theme]}`}
-        >
-          {themeLabels[theme]}
+        <button className="toolbar-btn" onClick={onOpenSettings}>
+          Settings
         </button>
         <span className={`session-status ${statusClass}`}>{statusText}</span>
       </div>

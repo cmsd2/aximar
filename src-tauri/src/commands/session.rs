@@ -1,16 +1,18 @@
 use tauri::State;
 
+use crate::commands::config::read_maxima_path;
 use crate::error::AppError;
 use crate::maxima::process::MaximaProcess;
 use crate::maxima::types::SessionStatus;
 use crate::state::AppState;
 
 #[tauri::command]
-pub async fn start_session(state: State<'_, AppState>) -> Result<SessionStatus, AppError> {
+pub async fn start_session(app: tauri::AppHandle, state: State<'_, AppState>) -> Result<SessionStatus, AppError> {
+    let maxima_path = read_maxima_path(&app);
     let mut status = state.status.lock().await;
     *status = SessionStatus::Starting;
 
-    match MaximaProcess::spawn().await {
+    match MaximaProcess::spawn(maxima_path).await {
         Ok(process) => {
             let mut guard = state.process.lock().await;
             *guard = Some(process);
@@ -39,7 +41,9 @@ pub async fn stop_session(state: State<'_, AppState>) -> Result<SessionStatus, A
 }
 
 #[tauri::command]
-pub async fn restart_session(state: State<'_, AppState>) -> Result<SessionStatus, AppError> {
+pub async fn restart_session(app: tauri::AppHandle, state: State<'_, AppState>) -> Result<SessionStatus, AppError> {
+    let maxima_path = read_maxima_path(&app);
+
     // Kill existing process
     {
         let mut guard = state.process.lock().await;
@@ -53,7 +57,7 @@ pub async fn restart_session(state: State<'_, AppState>) -> Result<SessionStatus
     let mut status = state.status.lock().await;
     *status = SessionStatus::Starting;
 
-    match MaximaProcess::spawn().await {
+    match MaximaProcess::spawn(maxima_path).await {
         Ok(process) => {
             let mut guard = state.process.lock().await;
             *guard = Some(process);

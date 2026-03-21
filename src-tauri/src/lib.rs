@@ -30,6 +30,8 @@ pub fn run() {
             commands::notebooks::get_template,
             commands::config::get_has_seen_welcome,
             commands::config::set_has_seen_welcome,
+            commands::config::get_config,
+            commands::config::set_config,
             commands::variables::list_variables,
             commands::variables::kill_variable,
             commands::variables::kill_all_variables,

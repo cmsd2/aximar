@@ -9,7 +9,6 @@ use crate::maxima::types::EvalResult;
 const EVAL_SENTINEL: &str = "__AXIMAR_EVAL_END__";
 const VARS_SENTINEL: &str = "__AXIMAR_VARS_END__";
 const VARS_START: &str = "__AXIMAR_VARS__";
-const EVAL_TIMEOUT_SECS: u64 = 30;
 const VARS_TIMEOUT_SECS: u64 = 5;
 
 pub async fn evaluate(
@@ -17,6 +16,7 @@ pub async fn evaluate(
     cell_id: &str,
     expression: &str,
     catalog: &Catalog,
+    eval_timeout_secs: u64,
 ) -> Result<EvalResult, AppError> {
     let start = Instant::now();
 
@@ -37,11 +37,11 @@ pub async fn evaluate(
     process.write_stdin(&input).await?;
 
     let lines = tokio::time::timeout(
-        std::time::Duration::from_secs(EVAL_TIMEOUT_SECS),
+        std::time::Duration::from_secs(eval_timeout_secs),
         process.read_until_sentinel(EVAL_SENTINEL),
     )
     .await
-    .map_err(|_| AppError::Timeout(EVAL_TIMEOUT_SECS))??;
+    .map_err(|_| AppError::Timeout(eval_timeout_secs))??;
 
     let duration_ms = start.elapsed().as_millis() as u64;
 

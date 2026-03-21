@@ -17,6 +17,7 @@
   --success-color: #2d8a4e;
   --running-color: #b8860b;
   --gutter-width: 56px;
+  --font-size-mono: 14px;
 
   font-family:
     -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu,
@@ -218,7 +219,7 @@
   color: var(--text-primary);
   font-family: "JetBrains Mono", "Fira Code", "SF Mono", Menlo, Consolas,
     monospace;
-  font-size: 14px;
+  font-size: var(--font-size-mono);
   line-height: 1.5;
   resize: none;
   outline: none;
@@ -321,7 +322,7 @@
 .text-output {
   font-family: "JetBrains Mono", "Fira Code", "SF Mono", Menlo, Consolas,
     monospace;
-  font-size: 13px;
+  font-size: calc(var(--font-size-mono) - 1px);
   color: var(--text-secondary);
   white-space: pre-wrap;
   word-break: break-word;
@@ -858,4 +859,133 @@
   white-space: pre-wrap;
   word-break: break-word;
   margin-top: 4px;
+}
+
+/* Settings Modal */
+.settings-modal {
+  width: 480px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.2);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.settings-header {
+  padding: 20px 20px 12px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.settings-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.settings-body {
+  padding: 12px 20px;
+  overflow-y: auto;
+}
+
+.settings-section {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.settings-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.settings-label {
+  font-size: 13px;
+  color: var(--text-primary);
+  flex-shrink: 0;
+}
+
+.settings-control {
+  display: flex;
+  align-items: center;
+}
+
+.settings-input {
+  width: 200px;
+  padding: 6px 10px;
+  background: var(--bg-input);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  color: var(--text-primary);
+  font-size: 13px;
+  font-family: "JetBrains Mono", "Fira Code", "SF Mono", Menlo, Consolas, monospace;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.settings-input::placeholder {
+  color: var(--text-placeholder);
+}
+
+.settings-input:focus {
+  border-color: var(--accent);
+}
+
+.settings-select {
+  padding: 6px 10px;
+  background: var(--bg-input);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  color: var(--text-primary);
+  font-size: 13px;
+  outline: none;
+  cursor: pointer;
+}
+
+.settings-checkbox {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.settings-theme-group {
+  display: flex;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.settings-theme-btn {
+  padding: 6px 14px;
+  background: transparent;
+  border: none;
+  border-right: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.settings-theme-btn:last-child {
+  border-right: none;
+}
+
+.settings-theme-btn:hover {
+  background: var(--bg-cell);
+}
+
+.settings-theme-btn.active {
+  background: var(--accent);
+  color: var(--bg-primary);
+}
+
+.settings-footer {
+  padding: 12px 20px;
+  border-top: 1px solid var(--border-color);
+  text-align: center;
 }

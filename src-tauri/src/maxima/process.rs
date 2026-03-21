@@ -15,8 +15,10 @@ pub struct MaximaProcess {
 }
 
 impl MaximaProcess {
-    pub async fn spawn() -> Result<Self, AppError> {
-        let maxima_path = find_maxima_binary();
+    pub async fn spawn(custom_path: Option<String>) -> Result<Self, AppError> {
+        let maxima_path = custom_path
+            .filter(|p| !p.is_empty())
+            .unwrap_or_else(find_maxima_binary);
 
         let mut child = Command::new(&maxima_path)
             .arg("--very-quiet")
