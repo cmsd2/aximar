@@ -1,0 +1,274 @@
+@import "katex/dist/katex.min.css";
+
+:root {
+  --bg-primary: #1e1e2e;
+  --bg-secondary: #282840;
+  --bg-cell: #2a2a3e;
+  --bg-input: #1a1a2e;
+  --text-primary: #cdd6f4;
+  --text-secondary: #a6adc8;
+  --text-placeholder: #6c7086;
+  --border-color: #45475a;
+  --accent: #89b4fa;
+  --accent-hover: #74c7ec;
+  --error-color: #f38ba8;
+  --error-bg: #2e1a1e;
+  --success-color: #a6e3a1;
+  --running-color: #f9e2af;
+  --gutter-width: 40px;
+
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu,
+    Cantarell, sans-serif;
+  font-size: 15px;
+  color: var(--text-primary);
+  background-color: var(--bg-primary);
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* Toolbar */
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 16px;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-color);
+  flex-shrink: 0;
+}
+
+.toolbar-left {
+  display: flex;
+  gap: 8px;
+}
+
+.toolbar-btn {
+  padding: 6px 14px;
+  background: transparent;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  color: var(--text-primary);
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.toolbar-btn:hover {
+  background: var(--bg-cell);
+}
+
+.session-status {
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: 12px;
+}
+
+.status-ready {
+  color: var(--success-color);
+  background: rgba(166, 227, 161, 0.1);
+}
+
+.status-starting {
+  color: var(--running-color);
+  background: rgba(249, 226, 175, 0.1);
+}
+
+.status-error {
+  color: var(--error-color);
+  background: rgba(243, 139, 168, 0.1);
+}
+
+/* Notebook */
+.notebook {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+}
+
+/* Cell */
+.cell {
+  margin-bottom: 8px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--bg-cell);
+  overflow: hidden;
+}
+
+.cell.running {
+  border-color: var(--running-color);
+}
+
+.cell.error {
+  border-color: var(--error-color);
+}
+
+.cell.success {
+  border-color: var(--border-color);
+}
+
+.cell-input-area {
+  display: flex;
+  align-items: flex-start;
+}
+
+.cell-gutter {
+  width: var(--gutter-width);
+  min-width: var(--gutter-width);
+  padding: 10px 4px;
+  text-align: right;
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 600;
+  user-select: none;
+}
+
+.cell-indicator.running {
+  color: var(--running-color);
+  animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
+  }
+}
+
+.cell-input {
+  flex: 1;
+  padding: 10px 0;
+  background: transparent;
+  border: none;
+  color: var(--text-primary);
+  font-family: "JetBrains Mono", "Fira Code", "SF Mono", Menlo, Consolas,
+    monospace;
+  font-size: 14px;
+  line-height: 1.5;
+  resize: none;
+  outline: none;
+  overflow: hidden;
+}
+
+.cell-input::placeholder {
+  color: var(--text-placeholder);
+}
+
+.cell-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.cell:hover .cell-actions {
+  opacity: 1;
+}
+
+.cell-btn {
+  width: 26px;
+  height: 26px;
+  background: transparent;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s;
+}
+
+.cell-btn:hover {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+}
+
+.run-btn:hover {
+  color: var(--success-color);
+  border-color: var(--success-color);
+}
+
+.delete-btn:hover {
+  color: var(--error-color);
+  border-color: var(--error-color);
+}
+
+/* Cell Output */
+.cell-output-area {
+  display: flex;
+  align-items: flex-start;
+  border-top: 1px solid var(--border-color);
+  background: rgba(0, 0, 0, 0.15);
+}
+
+.cell-output {
+  flex: 1;
+  min-width: 0;
+  width: 100%;
+  padding: 12px 12px 12px 0;
+  overflow-x: auto;
+}
+
+.katex-output {
+  padding: 8px 0;
+  color: var(--text-primary);
+}
+
+.katex-output .katex-display {
+  margin: 0 !important;
+  text-align: left !important;
+}
+
+.katex-output .katex {
+  color: var(--text-primary);
+  text-align: left;
+}
+
+.empty-output {
+  color: var(--text-placeholder);
+  font-style: italic;
+}
+
+.text-output {
+  font-family: "JetBrains Mono", "Fira Code", "SF Mono", Menlo, Consolas,
+    monospace;
+  font-size: 13px;
+  color: var(--text-secondary);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.error-output {
+  flex: 1;
+  padding: 12px 12px 12px 0;
+}
+
+.error-output pre {
+  font-family: "JetBrains Mono", "Fira Code", "SF Mono", Menlo, Consolas,
+    monospace;
+  font-size: 13px;
+  color: var(--error-color);
+  background: var(--error-bg);
+  padding: 10px;
+  border-radius: 4px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}

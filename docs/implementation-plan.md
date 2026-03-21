@@ -178,49 +178,37 @@ Maxima's `tex()` output needs preprocessing for KaTeX compatibility:
 
 ## Implementation Phases
 
-### Phase 1: Scaffolding + Backend Foundation
+### Phase 1: MVP — Working Notebook with Math Rendering
 
-**Goal**: Tauri app launches, Maxima process spawns and evaluates a hardcoded expression.
+**Goal**: A usable app where you can type Maxima expressions, execute them, and see beautifully rendered math output with KaTeX.
 
-1. Scaffold project: `npm create tauri-app@latest`
+**Backend (Rust):**
+1. Scaffold project: `npm create tauri-app@latest` (react-ts template)
 2. Add Rust deps to `Cargo.toml`: tokio (full), regex, thiserror, tempfile
-3. Add npm deps: katex, codemirror packages, zustand, nanoid
-4. Implement Maxima subprocess management (`process.rs`)
-5. Implement sentinel protocol (`protocol.rs`)
-6. Implement output parser (`parser.rs`)
-7. Implement Tauri commands (`evaluate.rs`, `session.rs`)
+3. Add npm deps: katex, zustand, nanoid
+4. Implement Maxima subprocess management (`maxima/process.rs`)
+5. Implement sentinel protocol (`maxima/protocol.rs`)
+6. Implement output parser (`maxima/parser.rs`)
+7. Implement Tauri commands (`commands/evaluate.rs`, `commands/session.rs`)
 8. Register commands, configure window (1200x800, min 800x600)
 
-**Verify**: `npm run tauri dev` opens window, console shows EvalResult JSON.
+**Frontend (React + TypeScript):**
+9. Create TypeScript types (`types/notebook.ts`, `types/maxima.ts`)
+10. Create Zustand store (`store/notebookStore.ts`)
+11. Create Tauri invoke wrappers (`lib/maxima-client.ts`)
+12. Build Notebook → Cell → Input/Output component hierarchy
+13. Cell input uses plain `<textarea>` (CodeMirror deferred to Phase 2)
+14. Cell output renders LaTeX via KaTeX (`KatexOutput.tsx`)
+15. Error output component (`ErrorOutput.tsx`)
+16. LaTeX preprocessing for KaTeX compatibility (`lib/katex-helpers.ts`)
+17. Build Toolbar (Add Cell, Run All, Restart)
+18. Shift+Enter to execute cells
+19. Add/delete cell operations
+20. Basic CSS layout and styling
 
-### Phase 2: Notebook UI with Basic Cells
+**Verify**: `npm run tauri dev` → type `integrate(x^2, x);` → Shift+Enter → see rendered math.
 
-**Goal**: Working notebook with textarea inputs and plain text output.
-
-1. Create TypeScript types for cells and Maxima results
-2. Create Zustand store for notebook state
-3. Create Tauri invoke wrappers
-4. Build Notebook → Cell → Input/Output component hierarchy
-5. Build Toolbar (Add Cell, Run All, Restart)
-6. Wire Shift+Enter to execute cells
-7. Implement add/delete cell operations
-8. Basic CSS layout (centered column, cell cards)
-
-**Verify**: Type `integrate(x^2,x);`, Shift+Enter, see plain text result.
-
-### Phase 3: Rich Math Rendering
-
-**Goal**: LaTeX renders as beautiful typeset math via KaTeX.
-
-1. Build KatexOutput component
-2. Build ErrorOutput component (red, clear formatting)
-3. Build CellOutput dispatcher
-4. Implement LaTeX preprocessing for KaTeX compatibility
-5. Import KaTeX CSS, style output cells
-
-**Verify**: `integrate(x^2, x)` shows x³/3 as proper math typography.
-
-### Phase 4: CodeMirror Editor
+### Phase 2: CodeMirror Editor
 
 **Goal**: Syntax-highlighted Maxima editing replaces textarea.
 
@@ -235,7 +223,7 @@ Maxima's `tex()` output needs preprocessing for KaTeX compatibility:
 
 **Verify**: Syntax coloring works, Shift+Enter executes, editor feels responsive.
 
-### Phase 5: Plot Support
+### Phase 3: Plot Support
 
 **Goal**: `plot2d(sin(x), [x, -3, 3])` renders inline SVG.
 
@@ -246,9 +234,9 @@ Maxima's `tex()` output needs preprocessing for KaTeX compatibility:
 
 **Verify**: Plot commands produce visible inline graphs.
 
-### Phase 6: Polish
+### Phase 4: Polish + Persistence
 
-**Goal**: Production-quality UX.
+**Goal**: Production-quality UX with file save/load.
 
 1. Cell reorder (move up/down)
 2. In[N] / Out[N] execution labels
@@ -260,24 +248,12 @@ Maxima's `tex()` output needs preprocessing for KaTeX compatibility:
    - `Escape` — blur editor
 6. Clear All Outputs, Run All
 7. Responsive layout at various window sizes
+8. Define `.axm` JSON notebook format
+9. Save/Load commands with native file picker dialog
+10. Ctrl+S / Ctrl+O shortcuts
+11. Unsaved changes warning on close
 
-### Phase 7: File Persistence
-
-**Goal**: Save and load notebooks.
-
-1. Define `.axm` JSON notebook format:
-   ```json
-   {
-     "version": 1,
-     "title": "My Notebook",
-     "cells": [{ "type": "code", "source": "..." }]
-   }
-   ```
-2. Save/Load commands with native file picker dialog
-3. Ctrl+S / Ctrl+O shortcuts
-4. Unsaved changes warning on close
-
-### Phase 8: Cross-Platform Distribution
+### Phase 5: Cross-Platform Distribution
 
 **Goal**: Distributable app for macOS, Linux, Windows.
 
