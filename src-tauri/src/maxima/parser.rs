@@ -19,6 +19,9 @@ fn is_junk_latex(inner: &str) -> bool {
     JUNK_LATEX.iter().any(|j| inner == *j)
         || inner.contains("__AXIMAR_")
         || inner.contains("AXIMAR")
+        // String results: tex() wraps them in \mbox{...} which KaTeX can't
+        // render well — fall back to text output instead
+        || (inner.starts_with("\\mbox{") && inner.ends_with('}'))
 }
 
 pub fn parse_output(cell_id: &str, lines: &[String], duration_ms: u64, catalog: &Catalog) -> EvalResult {

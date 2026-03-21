@@ -15,71 +15,121 @@
   },
   "cells": [
     {
+      "cell_type": "markdown",
+      "source": "## Derivatives",
+      "metadata": {}
+    },
+    {
       "cell_type": "code",
-      "source": "/* === Derivatives === */\ndiff(x^3 * sin(x), x)",
+      "source": "diff(x^3 * sin(x), x)",
       "metadata": {},
       "execution_count": null,
       "outputs": []
     },
     {
+      "cell_type": "markdown",
+      "source": "Second derivative",
+      "metadata": {}
+    },
+    {
       "cell_type": "code",
-      "source": "/* Second derivative */\ndiff(log(x^2 + 1), x, 2)",
+      "source": "diff(log(x^2 + 1), x, 2)",
       "metadata": {},
       "execution_count": null,
       "outputs": []
     },
     {
+      "cell_type": "markdown",
+      "source": "Partial derivatives",
+      "metadata": {}
+    },
+    {
       "cell_type": "code",
-      "source": "/* Partial derivatives */\ndiff(x^2*y + y^3, x)",
+      "source": "diff(x^2*y + y^3, x)",
       "metadata": {},
       "execution_count": null,
       "outputs": []
     },
     {
+      "cell_type": "markdown",
+      "source": "## Integrals",
+      "metadata": {}
+    },
+    {
       "cell_type": "code",
-      "source": "/* === Integrals === */\nintegrate(1/(x^2 + 1), x)",
+      "source": "integrate(1/(x^2 + 1), x)",
       "metadata": {},
       "execution_count": null,
       "outputs": []
     },
     {
+      "cell_type": "markdown",
+      "source": "Definite integral",
+      "metadata": {}
+    },
+    {
       "cell_type": "code",
-      "source": "/* Definite integral */\nintegrate(exp(-x^2), x, 0, inf)",
+      "source": "integrate(exp(-x^2), x, 0, inf)",
       "metadata": {},
       "execution_count": null,
       "outputs": []
     },
     {
+      "cell_type": "markdown",
+      "source": "## Limits",
+      "metadata": {}
+    },
+    {
       "cell_type": "code",
-      "source": "/* === Limits === */\nlimit(sin(x)/x, x, 0)",
+      "source": "limit(sin(x)/x, x, 0)",
       "metadata": {},
       "execution_count": null,
       "outputs": []
     },
     {
+      "cell_type": "markdown",
+      "source": "One-sided limit",
+      "metadata": {}
+    },
+    {
       "cell_type": "code",
-      "source": "/* One-sided limit */\nlimit(1/x, x, 0, plus)",
+      "source": "limit(1/x, x, 0, plus)",
       "metadata": {},
       "execution_count": null,
       "outputs": []
     },
     {
+      "cell_type": "markdown",
+      "source": "## Taylor Series",
+      "metadata": {}
+    },
+    {
       "cell_type": "code",
-      "source": "/* === Taylor Series === */\ntaylor(cos(x), x, 0, 8)",
+      "source": "taylor(cos(x), x, 0, 8)",
       "metadata": {},
       "execution_count": null,
       "outputs": []
     },
     {
+      "cell_type": "markdown",
+      "source": "## Sums",
+      "metadata": {}
+    },
+    {
       "cell_type": "code",
-      "source": "/* === Sums === */\nsum(1/k^2, k, 1, inf), simpsum",
+      "source": "sum(1/k^2, k, 1, inf), simpsum",
       "metadata": {},
       "execution_count": null,
       "outputs": []
     },
     {
+      "cell_type": "markdown",
+      "source": "## Differential Equations",
+      "metadata": {}
+    },
+    {
       "cell_type": "code",
-      "source": "/* === Differential Equations === */\node2('diff(y,x,2) + y = 0, y, x)",
+      "source": "ode2('diff(y,x,2) + y = 0, y, x)",
       "metadata": {},
       "execution_count": null,
       "outputs": []

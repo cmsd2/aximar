@@ -10,12 +10,14 @@ export function KatexOutput({ latex }: KatexOutputProps) {
   const html = useMemo(() => {
     try {
       const processed = preprocessLatex(latex);
+      console.debug("[KaTeX] raw:", latex, "→ processed:", processed);
       return katex.renderToString(processed, {
         displayMode: true,
         throwOnError: false,
         trust: true,
       });
-    } catch {
+    } catch (e) {
+      console.warn("[KaTeX] render failed:", e, "raw:", latex);
       return `<span>LaTeX render error: ${latex}</span>`;
     }
   }, [latex]);

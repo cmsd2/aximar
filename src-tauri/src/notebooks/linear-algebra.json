@@ -15,71 +15,121 @@
   },
   "cells": [
     {
+      "cell_type": "markdown",
+      "source": "## Matrices",
+      "metadata": {}
+    },
+    {
       "cell_type": "code",
-      "source": "/* Create a matrix */\nA: matrix([1, 2, 3], [4, 5, 6], [7, 8, 10])",
+      "source": "A: matrix([1, 2, 3], [4, 5, 6], [7, 8, 10])",
       "metadata": {},
       "execution_count": null,
       "outputs": []
     },
     {
+      "cell_type": "markdown",
+      "source": "Determinant",
+      "metadata": {}
+    },
+    {
       "cell_type": "code",
-      "source": "/* Determinant */\ndeterminant(A)",
+      "source": "determinant(A)",
       "metadata": {},
       "execution_count": null,
       "outputs": []
     },
     {
+      "cell_type": "markdown",
+      "source": "Inverse",
+      "metadata": {}
+    },
+    {
       "cell_type": "code",
-      "source": "/* Inverse */\ninvert(A)",
+      "source": "invert(A)",
       "metadata": {},
       "execution_count": null,
       "outputs": []
     },
     {
+      "cell_type": "markdown",
+      "source": "Verify: $A \\cdot A^{-1} = I$",
+      "metadata": {}
+    },
+    {
       "cell_type": "code",
-      "source": "/* Verify: A * A^(-1) = I */\nratsimp(A . invert(A))",
+      "source": "ratsimp(A . invert(A))",
       "metadata": {},
       "execution_count": null,
       "outputs": []
     },
     {
+      "cell_type": "markdown",
+      "source": "Transpose",
+      "metadata": {}
+    },
+    {
       "cell_type": "code",
-      "source": "/* Transpose */\ntranspose(A)",
+      "source": "transpose(A)",
       "metadata": {},
       "execution_count": null,
       "outputs": []
     },
     {
+      "cell_type": "markdown",
+      "source": "## Eigenvalues",
+      "metadata": {}
+    },
+    {
       "cell_type": "code",
-      "source": "/* Eigenvalues */\neigenvalues(matrix([2, 1], [1, 2]))",
+      "source": "eigenvalues(matrix([2, 1], [1, 2]))",
       "metadata": {},
       "execution_count": null,
       "outputs": []
     },
     {
+      "cell_type": "markdown",
+      "source": "Characteristic polynomial",
+      "metadata": {}
+    },
+    {
       "cell_type": "code",
-      "source": "/* Characteristic polynomial */\ncharpoly(matrix([2, 1], [1, 2]), lambda)",
+      "source": "charpoly(matrix([2, 1], [1, 2]), lambda)",
       "metadata": {},
       "execution_count": null,
       "outputs": []
     },
     {
+      "cell_type": "markdown",
+      "source": "## Linear Systems\n\nSolve $x + 2y = 5$, $3x + 4y = 11$",
+      "metadata": {}
+    },
+    {
       "cell_type": "code",
-      "source": "/* Solve a linear system: x+2y=5, 3x+4y=11 */\nlinsolve([x + 2*y = 5, 3*x + 4*y = 11], [x, y])",
+      "source": "linsolve([x + 2*y = 5, 3*x + 4*y = 11], [x, y])",
       "metadata": {},
       "execution_count": null,
       "outputs": []
     },
     {
+      "cell_type": "markdown",
+      "source": "## Special Matrices\n\nIdentity matrix",
+      "metadata": {}
+    },
+    {
       "cell_type": "code",
-      "source": "/* Identity and zero matrices */\nident(3)",
+      "source": "ident(3)",
       "metadata": {},
       "execution_count": null,
       "outputs": []
     },
     {
+      "cell_type": "markdown",
+      "source": "Row echelon form",
+      "metadata": {}
+    },
+    {
       "cell_type": "code",
-      "source": "/* Row echelon form */\nechelon(matrix([1, 2, 3], [4, 5, 6], [7, 8, 9]))",
+      "source": "echelon(matrix([1, 2, 3], [4, 5, 6], [7, 8, 9]))",
       "metadata": {},
       "execution_count": null,
       "outputs": []

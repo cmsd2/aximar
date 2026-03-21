@@ -15,64 +15,109 @@
   },
   "cells": [
     {
+      "cell_type": "markdown",
+      "source": "## Functions",
+      "metadata": {}
+    },
+    {
       "cell_type": "code",
-      "source": "/* Define a function */\nf(x) := x^2 + 2*x + 1;\nf(5)",
+      "source": "f(x) := x^2 + 2*x + 1;\nf(5)",
       "metadata": {},
       "execution_count": null,
       "outputs": []
     },
     {
+      "cell_type": "markdown",
+      "source": "Piecewise function using `if`/`then`/`else`",
+      "metadata": {}
+    },
+    {
       "cell_type": "code",
-      "source": "/* Piecewise function */\ng(x) := if x >= 0 then sqrt(x) else -sqrt(-x);\n[g(4), g(-9)]",
+      "source": "g(x) := if x >= 0 then sqrt(x) else -sqrt(-x);\n[g(4), g(-9)]",
       "metadata": {},
       "execution_count": null,
       "outputs": []
     },
     {
+      "cell_type": "markdown",
+      "source": "## Loops and Blocks\n\nUse `block()` for local variables and sequential statements.",
+      "metadata": {}
+    },
+    {
       "cell_type": "code",
-      "source": "/* Block with local variables */\nblock([s: 0],\n  for i: 1 thru 100 do s: s + i,\n  s)",
+      "source": "block([s: 0],\n  for i: 1 thru 100 do s: s + i,\n  s)",
       "metadata": {},
       "execution_count": null,
       "outputs": []
     },
     {
+      "cell_type": "markdown",
+      "source": "## List Operations",
+      "metadata": {}
+    },
+    {
       "cell_type": "code",
-      "source": "/* Create a list */\nmakelist(i^2, i, 1, 10)",
+      "source": "makelist(i^2, i, 1, 10)",
       "metadata": {},
       "execution_count": null,
       "outputs": []
     },
     {
+      "cell_type": "markdown",
+      "source": "Map a function over a list",
+      "metadata": {}
+    },
+    {
       "cell_type": "code",
-      "source": "/* Map a function over a list */\nmap(lambda([x], x^3), [1, 2, 3, 4, 5])",
+      "source": "map(lambda([x], x^3), [1, 2, 3, 4, 5])",
       "metadata": {},
       "execution_count": null,
       "outputs": []
     },
     {
+      "cell_type": "markdown",
+      "source": "Filter a list with `sublist()`",
+      "metadata": {}
+    },
+    {
       "cell_type": "code",
-      "source": "/* Filter a list */\nsublist(makelist(i, i, 1, 20), primep)",
+      "source": "sublist(makelist(i, i, 1, 20), primep)",
       "metadata": {},
       "execution_count": null,
       "outputs": []
     },
     {
+      "cell_type": "markdown",
+      "source": "Sum a list with `apply()`",
+      "metadata": {}
+    },
+    {
       "cell_type": "code",
-      "source": "/* Apply: sum a list */\napply(\"+\", [1, 2, 3, 4, 5])",
+      "source": "apply(\"+\", [1, 2, 3, 4, 5])",
       "metadata": {},
       "execution_count": null,
       "outputs": []
     },
     {
+      "cell_type": "markdown",
+      "source": "## Recursion\n\nFibonacci sequence",
+      "metadata": {}
+    },
+    {
       "cell_type": "code",
-      "source": "/* Recursive function: Fibonacci */\nfib(n) := if n <= 1 then n else fib(n-1) + fib(n-2);\nmakelist(fib(i), i, 0, 12)",
+      "source": "fib(n) := if n <= 1 then n else fib(n-1) + fib(n-2);\nmakelist(fib(i), i, 0, 12)",
       "metadata": {},
       "execution_count": null,
       "outputs": []
     },
     {
+      "cell_type": "markdown",
+      "source": "## String Operations",
+      "metadata": {}
+    },
+    {
       "cell_type": "code",
-      "source": "/* String operations */\nconcat(\"Result is: \", string(integrate(x^2, x)))",
+      "source": "concat(\"Result is: \", string(integrate(x^2, x)))",
       "metadata": {},
       "execution_count": null,
       "outputs": []
