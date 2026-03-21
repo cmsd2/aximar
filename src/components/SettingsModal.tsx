@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { getConfig, setConfig, type AppConfig } from "../lib/config-client";
-import { useNotebookStore, type Theme } from "../store/notebookStore";
+import { useNotebookStore, type Theme, type CellStyle } from "../store/notebookStore";
 
 interface SettingsModalProps {
   onClose: () => void;
@@ -10,13 +10,15 @@ interface SettingsModalProps {
 const FONT_SIZES = [12, 13, 14, 15, 16];
 const EVAL_TIMEOUTS = [10, 30, 60, 120];
 const THEMES: Theme[] = ["auto", "light", "dark"];
+const CELL_STYLES: CellStyle[] = ["card", "bracket"];
 
 export function SettingsModal({ onClose, onSetVariablesOpen }: SettingsModalProps) {
   const [config, setLocalConfig] = useState<AppConfig | null>(null);
   const setTheme = useNotebookStore((s) => s.setTheme);
+  const setCellStyle = useNotebookStore((s) => s.setCellStyle);
 
   useEffect(() => {
-    getConfig().then(setLocalConfig).catch(() => {});
+    getConfig().then((resp) => setLocalConfig(resp.config)).catch(() => {});
   }, []);
 
   const update = useCallback(
@@ -29,6 +31,10 @@ export function SettingsModal({ onClose, onSetVariablesOpen }: SettingsModalProp
       if (updates.theme) {
         setTheme(updates.theme as Theme);
       }
+      if (updates.cell_style) {
+        setCellStyle(updates.cell_style as CellStyle);
+        document.documentElement.dataset.cellStyle = updates.cell_style;
+      }
       if (updates.variables_open !== undefined) {
         onSetVariablesOpen(updates.variables_open);
       }
@@ -39,7 +45,7 @@ export function SettingsModal({ onClose, onSetVariablesOpen }: SettingsModalProp
         );
       }
     },
-    [config, setTheme, onSetVariablesOpen]
+    [config, setTheme, setCellStyle, onSetVariablesOpen]
   );
 
   if (!config) return null;
@@ -63,6 +69,23 @@ export function SettingsModal({ onClose, onSetVariablesOpen }: SettingsModalProp
                       onClick={() => update({ theme: t })}
                     >
                       {t.charAt(0).toUpperCase() + t.slice(1)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="settings-row">
+              <label className="settings-label">Cell style</label>
+              <div className="settings-control">
+                <div className="settings-theme-group">
+                  {CELL_STYLES.map((s) => (
+                    <button
+                      key={s}
+                      className={`settings-theme-btn${config.cell_style === s ? " active" : ""}`}
+                      onClick={() => update({ cell_style: s })}
+                    >
+                      {s.charAt(0).toUpperCase() + s.slice(1)}
                     </button>
                   ))}
                 </div>

@@ -23,6 +23,7 @@ export function Cell({ cell }: CellProps) {
 
   const autocomplete = useAutocomplete(textareaRef);
   const [, setAutocompleteIndex] = useState(0);
+  const [outputCollapsed, setOutputCollapsed] = useState(false);
 
   // Auto-resize textarea when input changes (including initial load from templates)
   useEffect(() => {
@@ -53,12 +54,11 @@ export function Cell({ cell }: CellProps) {
       if (e.key === "Enter" && e.shiftKey) {
         e.preventDefault();
         const idx = cells.findIndex((c) => c.id === cell.id);
-        const nextCell = cells[idx + 1];
-        const needsNewCell = !nextCell || nextCell.input.trim() !== "";
+        const isLastCell = idx === cells.length - 1;
 
         executeCell(cell.id, cell.input).then((success) => {
           if (!success) return;
-          if (needsNewCell) {
+          if (isLastCell) {
             addCell(cell.id);
           }
           requestAnimationFrame(focusNextCell);
@@ -84,8 +84,16 @@ export function Cell({ cell }: CellProps) {
   const execNum = cell.output?.executionCount ?? null;
 
   return (
-    <div className={`cell ${cell.status}`}>
+    <>
+    <div className={`cell ${cell.status}${outputCollapsed ? " output-collapsed" : ""}`}>
       <div className="cell-input-area">
+        {cell.output && (
+          <button
+            className="bracket-toggle"
+            onClick={() => setOutputCollapsed((c) => !c)}
+            title={outputCollapsed ? "Expand output" : "Collapse output"}
+          />
+        )}
         <div className="cell-gutter">
           {cell.status === "running" ? (
             <span className="cell-indicator running">*</span>
@@ -98,6 +106,7 @@ export function Cell({ cell }: CellProps) {
         <textarea
           ref={textareaRef}
           className="cell-input"
+          data-cell-id={cell.id}
           value={cell.input}
           onChange={handleChange}
           onKeyDown={handleKeyDown}
@@ -138,17 +147,18 @@ export function Cell({ cell }: CellProps) {
         }}
         onHover={(i) => setAutocompleteIndex(i)}
       />
-      {cell.output && (
+      {cell.output && !outputCollapsed && (
         <div className="cell-output-area">
           <div className="cell-gutter">
             <span className="cell-indicator">
-              {execNum ? `[${execNum}]` : "Out"}
+              {execNum ? `Out [${execNum}]` : "Out"}
             </span>
           </div>
           <CellOutput output={cell.output} cellId={cell.id} />
         </div>
       )}
-      <CellSuggestions cell={cell} />
     </div>
+    <CellSuggestions cell={cell} />
+    </>
   );
 }

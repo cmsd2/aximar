@@ -6,10 +6,16 @@ export interface AppConfig {
   font_size: number;
   eval_timeout: number;
   variables_open: boolean;
+  cell_style: string;
 }
 
-export async function getConfig(): Promise<AppConfig> {
-  return invoke<AppConfig>("get_config");
+export interface ConfigResponse {
+  config: AppConfig;
+  warnings: string[];
+}
+
+export async function getConfig(): Promise<ConfigResponse> {
+  return invoke<ConfigResponse>("get_config");
 }
 
 export async function setConfig(updates: Partial<AppConfig>): Promise<void> {
