@@ -3,6 +3,38 @@ import { useNotebookStore } from "../store/notebookStore";
 import { evaluateExpression, startSession, restartSession } from "../lib/maxima-client";
 import type { CellOutput } from "../types/notebook";
 
+/**
+ * Build a map from display execution count → real Maxima output label.
+ * Used to translate user-facing %o1, %o2 into the real %o6, %o10 etc.
+ */
+function buildLabelMap(): Map<number, string> {
+  const cells = useNotebookStore.getState().cells;
+  const map = new Map<number, string>();
+  for (const cell of cells) {
+    const ec = cell.output?.executionCount;
+    const label = cell.output?.outputLabel;
+    if (ec != null && label != null) {
+      map.set(ec, label);
+    }
+  }
+  return map;
+}
+
+/**
+ * Rewrite %oN and %iN references in an expression so the display execution
+ * numbers map to real Maxima output/input labels.
+ */
+function rewriteLabels(input: string, labelMap: Map<number, string>): string {
+  return input.replace(/%([oi])(\d+)/g, (match, kind: string, numStr: string) => {
+    const num = parseInt(numStr, 10);
+    const realLabel = labelMap.get(num);
+    if (!realLabel) return match; // no mapping, leave as-is
+    // realLabel is e.g. "%o6"; extract the number and rebuild with correct kind
+    const realNum = realLabel.replace("%o", "");
+    return `%${kind}${realNum}`;
+  });
+}
+
 export function useMaxima() {
   const setCellStatus = useNotebookStore((s) => s.setCellStatus);
   const setCellOutput = useNotebookStore((s) => s.setCellOutput);
@@ -14,15 +46,22 @@ export function useMaxima() {
 
       setCellStatus(cellId, "running");
 
+      // Translate display %oN/%iN to real Maxima labels before evaluation
+      const labelMap = buildLabelMap();
+      const rewritten = rewriteLabels(input, labelMap);
+
       try {
-        const result = await evaluateExpression(cellId, input);
+        const result = await evaluateExpression(cellId, rewritten);
         const output: CellOutput = {
           textOutput: result.text_output,
           latex: result.latex,
           plotSvg: result.plot_svg,
           error: result.error,
+          errorInfo: result.error_info,
           isError: result.is_error,
           durationMs: result.duration_ms,
+          outputLabel: result.output_label,
+          executionCount: null, // stamped by store
         };
         setCellOutput(cellId, output);
         return !result.is_error;
@@ -32,8 +71,11 @@ export function useMaxima() {
           latex: null,
           plotSvg: null,
           error: String(err),
+          errorInfo: null,
           isError: true,
           durationMs: 0,
+          outputLabel: null,
+          executionCount: null, // stamped by store
         };
         setCellOutput(cellId, output);
         return false;

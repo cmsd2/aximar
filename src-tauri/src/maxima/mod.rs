@@ -1,3 +1,4 @@
+pub mod errors;
 pub mod parser;
 pub mod process;
 pub mod protocol;

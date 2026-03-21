@@ -13,7 +13,13 @@ const nextTheme: Record<Theme, Theme> = {
   dark: "auto",
 };
 
-export function Toolbar() {
+interface ToolbarProps {
+  onOpenTemplates: () => void;
+  variablesOpen: boolean;
+  onToggleVariables: () => void;
+}
+
+export function Toolbar({ onOpenTemplates, variablesOpen, onToggleVariables }: ToolbarProps) {
   const addCell = useNotebookStore((s) => s.addCell);
   const cells = useNotebookStore((s) => s.cells);
   const sessionStatus = useNotebookStore((s) => s.sessionStatus);
@@ -52,6 +58,15 @@ export function Toolbar() {
         </button>
         <button className="toolbar-btn" onClick={restartSession}>
           Restart
+        </button>
+        <button className="toolbar-btn" onClick={onOpenTemplates}>
+          Templates
+        </button>
+        <button
+          className={`toolbar-btn${variablesOpen ? " toolbar-btn-active" : ""}`}
+          onClick={onToggleVariables}
+        >
+          Variables
         </button>
       </div>
       <div className="toolbar-right">

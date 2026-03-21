@@ -1,8 +1,11 @@
-import { useRef, useCallback } from "react";
+import { useRef, useCallback, useState, useEffect } from "react";
 import type { Cell as CellType } from "../types/notebook";
 import { useNotebookStore } from "../store/notebookStore";
 import { useMaxima } from "../hooks/useMaxima";
+import { useAutocomplete } from "../hooks/useAutocomplete";
 import { CellOutput } from "./CellOutput";
+import { CellSuggestions } from "./CellSuggestions";
+import { AutocompletePopup } from "./AutocompletePopup";
 
 interface CellProps {
   cell: CellType;
@@ -15,7 +18,20 @@ export function Cell({ cell }: CellProps) {
   const addCell = useNotebookStore((s) => s.addCell);
   const cells = useNotebookStore((s) => s.cells);
   const cellCount = cells.length;
+  const setActiveCellId = useNotebookStore((s) => s.setActiveCellId);
   const { executeCell } = useMaxima();
+
+  const autocomplete = useAutocomplete(textareaRef);
+  const [, setAutocompleteIndex] = useState(0);
+
+  // Auto-resize textarea when input changes (including initial load from templates)
+  useEffect(() => {
+    const textarea = textareaRef.current;
+    if (textarea) {
+      textarea.style.height = "auto";
+      textarea.style.height = textarea.scrollHeight + "px";
+    }
+  }, [cell.input]);
 
   const focusNextCell = useCallback(() => {
     const allInputs = Array.from(
@@ -29,6 +45,11 @@ export function Cell({ cell }: CellProps) {
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+      // Let autocomplete handle keys first
+      if (autocomplete.handleKeyDown(e)) {
+        return;
+      }
+
       if (e.key === "Enter" && e.shiftKey) {
         e.preventDefault();
         const idx = cells.findIndex((c) => c.id === cell.id);
@@ -40,12 +61,11 @@ export function Cell({ cell }: CellProps) {
           if (needsNewCell) {
             addCell(cell.id);
           }
-          // Focus next cell after React renders the new/existing cell
           requestAnimationFrame(focusNextCell);
         });
       }
     },
-    [cell.id, cell.input, cells, executeCell, addCell, focusNextCell]
+    [cell.id, cell.input, cells, executeCell, addCell, focusNextCell, autocomplete]
   );
 
   const handleChange = useCallback(
@@ -55,9 +75,13 @@ export function Cell({ cell }: CellProps) {
       const textarea = e.target;
       textarea.style.height = "auto";
       textarea.style.height = textarea.scrollHeight + "px";
+      // Trigger autocomplete
+      autocomplete.handleInput();
     },
-    [cell.id, updateCellInput]
+    [cell.id, updateCellInput, autocomplete]
   );
+
+  const execNum = cell.output?.executionCount ?? null;
 
   return (
     <div className={`cell ${cell.status}`}>
@@ -66,7 +90,9 @@ export function Cell({ cell }: CellProps) {
           {cell.status === "running" ? (
             <span className="cell-indicator running">*</span>
           ) : (
-            <span className="cell-indicator">In</span>
+            <span className="cell-indicator">
+              {execNum ? `In [${execNum}]` : "In"}
+            </span>
           )}
         </div>
         <textarea
@@ -75,6 +101,11 @@ export function Cell({ cell }: CellProps) {
           value={cell.input}
           onChange={handleChange}
           onKeyDown={handleKeyDown}
+          onFocus={() => setActiveCellId(cell.id)}
+          onBlur={() => {
+            // Delay dismiss so popup click can fire
+            setTimeout(() => autocomplete.dismiss(), 150);
+          }}
           placeholder="Enter Maxima expression... (Shift+Enter to evaluate)"
           rows={1}
           spellCheck={false}
@@ -98,14 +129,26 @@ export function Cell({ cell }: CellProps) {
           )}
         </div>
       </div>
+      <AutocompletePopup
+        state={autocomplete.state}
+        textareaRef={textareaRef}
+        onSelect={(i) => {
+          setAutocompleteIndex(i);
+          autocomplete.accept();
+        }}
+        onHover={(i) => setAutocompleteIndex(i)}
+      />
       {cell.output && (
         <div className="cell-output-area">
           <div className="cell-gutter">
-            <span className="cell-indicator">Out</span>
+            <span className="cell-indicator">
+              {execNum ? `[${execNum}]` : "Out"}
+            </span>
           </div>
-          <CellOutput output={cell.output} />
+          <CellOutput output={cell.output} cellId={cell.id} />
         </div>
       )}
+      <CellSuggestions cell={cell} />
     </div>
   );
 }

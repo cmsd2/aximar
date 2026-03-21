@@ -16,5 +16,5 @@ pub async fn evaluate_expression(
         .as_mut()
         .ok_or(AppError::ProcessNotRunning)?;
 
-    protocol::evaluate(process, &cell_id, &expression).await
+    protocol::evaluate(process, &cell_id, &expression, &state.catalog).await
 }

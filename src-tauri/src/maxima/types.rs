@@ -7,8 +7,21 @@ pub struct EvalResult {
     pub latex: Option<String>,
     pub plot_svg: Option<String>,
     pub error: Option<String>,
+    pub error_info: Option<ErrorInfo>,
     pub is_error: bool,
     pub duration_ms: u64,
+    /// Maxima output label (e.g. "%o6") for stable back-references
+    pub output_label: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ErrorInfo {
+    pub title: String,
+    pub explanation: String,
+    pub suggestion: Option<String>,
+    pub example: Option<String>,
+    pub did_you_mean: Vec<String>,
+    pub correct_signatures: Vec<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]

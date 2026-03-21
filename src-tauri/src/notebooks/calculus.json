@@ -1,0 +1,88 @@
+{
+  "nbformat": 4,
+  "nbformat_minor": 0,
+  "metadata": {
+    "kernelspec": {
+      "name": "maxima",
+      "display_name": "Maxima",
+      "language": "maxima"
+    },
+    "aximar": {
+      "template_id": "calculus",
+      "title": "Calculus",
+      "description": "Derivatives, integrals, limits, and Taylor series."
+    }
+  },
+  "cells": [
+    {
+      "cell_type": "code",
+      "source": "/* === Derivatives === */\ndiff(x^3 * sin(x), x)",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": "/* Second derivative */\ndiff(log(x^2 + 1), x, 2)",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": "/* Partial derivatives */\ndiff(x^2*y + y^3, x)",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": "/* === Integrals === */\nintegrate(1/(x^2 + 1), x)",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": "/* Definite integral */\nintegrate(exp(-x^2), x, 0, inf)",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": "/* === Limits === */\nlimit(sin(x)/x, x, 0)",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": "/* One-sided limit */\nlimit(1/x, x, 0, plus)",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": "/* === Taylor Series === */\ntaylor(cos(x), x, 0, 8)",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": "/* === Sums === */\nsum(1/k^2, k, 1, inf), simpsum",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": "/* === Differential Equations === */\node2('diff(y,x,2) + y = 0, y, x)",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    }
+  ]
+}

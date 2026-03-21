@@ -145,10 +145,6 @@ impl MaximaProcess {
         }
     }
 
-    pub fn is_running(&mut self) -> bool {
-        matches!(self.child.try_wait(), Ok(None))
-    }
-
     pub async fn kill(&mut self) -> Result<(), AppError> {
         self.child.kill().await.map_err(AppError::Io)
     }

@@ -1,0 +1,1769 @@
+[
+  {
+    "name": "diff",
+    "signatures": ["diff(expr, x)", "diff(expr, x, n)"],
+    "description": "Differentiate expr with respect to x. Optional n-th derivative.",
+    "category": "Calculus",
+    "examples": [
+      {"input": "diff(x^3, x)", "description": "Basic derivative"},
+      {"input": "diff(sin(x), x, 2)", "description": "Second derivative"}
+    ],
+    "see_also": ["integrate", "taylor"]
+  },
+  {
+    "name": "integrate",
+    "signatures": ["integrate(expr, x)", "integrate(expr, x, a, b)"],
+    "description": "Integrate expr with respect to x. With limits a,b for definite integral.",
+    "category": "Calculus",
+    "examples": [
+      {"input": "integrate(x^2, x)", "description": "Indefinite integral"},
+      {"input": "integrate(sin(x), x, 0, %pi)", "description": "Definite integral"}
+    ],
+    "see_also": ["diff", "changevar"]
+  },
+  {
+    "name": "limit",
+    "signatures": ["limit(expr, x, val)", "limit(expr, x, val, plus)", "limit(expr, x, val, minus)"],
+    "description": "Compute the limit of expr as x approaches val. Use plus/minus for one-sided limits.",
+    "category": "Calculus",
+    "examples": [
+      {"input": "limit(sin(x)/x, x, 0)", "description": "Classic limit"},
+      {"input": "limit(1/x, x, 0, plus)", "description": "Right-sided limit"}
+    ],
+    "see_also": ["diff", "taylor"]
+  },
+  {
+    "name": "taylor",
+    "signatures": ["taylor(expr, x, a, n)"],
+    "description": "Taylor series expansion of expr around x=a to order n.",
+    "category": "Calculus",
+    "examples": [
+      {"input": "taylor(sin(x), x, 0, 5)", "description": "Taylor series of sin(x)"},
+      {"input": "taylor(exp(x), x, 0, 4)", "description": "Taylor series of e^x"}
+    ],
+    "see_also": ["diff", "powerseries"]
+  },
+  {
+    "name": "sum",
+    "signatures": ["sum(expr, i, low, high)"],
+    "description": "Sum expr for i from low to high.",
+    "category": "Calculus",
+    "examples": [
+      {"input": "sum(i^2, i, 1, 10)", "description": "Sum of squares"},
+      {"input": "sum(1/i^2, i, 1, inf)", "description": "Infinite series"}
+    ],
+    "see_also": ["product", "simpsum"]
+  },
+  {
+    "name": "product",
+    "signatures": ["product(expr, i, low, high)"],
+    "description": "Product of expr for i from low to high.",
+    "category": "Calculus",
+    "examples": [
+      {"input": "product(i, i, 1, 5)", "description": "5! = 120"}
+    ],
+    "see_also": ["sum"]
+  },
+  {
+    "name": "laplace",
+    "signatures": ["laplace(expr, t, s)"],
+    "description": "Laplace transform of expr from variable t to s.",
+    "category": "Calculus",
+    "examples": [
+      {"input": "laplace(exp(-t), t, s)", "description": "Laplace transform of e^(-t)"}
+    ],
+    "see_also": ["ilt", "integrate"]
+  },
+  {
+    "name": "ilt",
+    "signatures": ["ilt(expr, s, t)"],
+    "description": "Inverse Laplace transform of expr from variable s to t.",
+    "category": "Calculus",
+    "examples": [
+      {"input": "ilt(1/(s+1), s, t)", "description": "Inverse Laplace of 1/(s+1)"}
+    ],
+    "see_also": ["laplace"]
+  },
+  {
+    "name": "residue",
+    "signatures": ["residue(expr, z, z0)"],
+    "description": "Compute the residue of expr at z = z0.",
+    "category": "Calculus",
+    "examples": [
+      {"input": "residue(1/(z^2+1), z, %i)", "description": "Residue at z=i"}
+    ],
+    "see_also": ["integrate"]
+  },
+  {
+    "name": "changevar",
+    "signatures": ["changevar(expr, f(x,y), y, x)"],
+    "description": "Change of variable in an integral.",
+    "category": "Calculus",
+    "examples": [
+      {"input": "changevar(integrate(sqrt(1-x^2), x), x-sin(u), u, x)", "description": null}
+    ],
+    "see_also": ["integrate"]
+  },
+  {
+    "name": "ldefint",
+    "signatures": ["ldefint(expr, x, a, b)"],
+    "description": "Definite integration using Laplace transforms.",
+    "category": "Calculus",
+    "examples": [
+      {"input": "ldefint(exp(-x)*sin(x), x, 0, inf)", "description": null}
+    ],
+    "see_also": ["integrate", "laplace"]
+  },
+  {
+    "name": "simpsum",
+    "signatures": ["simpsum"],
+    "description": "Flag: when true, sum tries to produce a closed-form result.",
+    "category": "Calculus",
+    "examples": [
+      {"input": "simpsum: true$ sum(1/i^2, i, 1, inf);", "description": "Closed-form sum"}
+    ],
+    "see_also": ["sum"]
+  },
+  {
+    "name": "gradef",
+    "signatures": ["gradef(f(x), df_dx)"],
+    "description": "Define the derivative of a function f.",
+    "category": "Calculus",
+    "examples": [
+      {"input": "gradef(f(x), g(x))", "description": "Set f'(x) = g(x)"}
+    ],
+    "see_also": ["diff", "depends"]
+  },
+  {
+    "name": "depends",
+    "signatures": ["depends(f, x)", "depends([f,g], [x,y])"],
+    "description": "Declare that f depends on x for implicit differentiation.",
+    "category": "Calculus",
+    "examples": [
+      {"input": "depends(y, x)$ diff(y^2, x);", "description": "Implicit differentiation"}
+    ],
+    "see_also": ["diff", "gradef"]
+  },
+  {
+    "name": "desolve",
+    "signatures": ["desolve(ode, y(x))", "desolve([ode1,ode2], [y1(x),y2(x)])"],
+    "description": "Solve ordinary differential equations using Laplace transforms.",
+    "category": "Calculus",
+    "examples": [
+      {"input": "desolve(diff(y(x),x,2)+y(x)=0, y(x))", "description": "Solve y''+y=0"}
+    ],
+    "see_also": ["ode2", "laplace"]
+  },
+  {
+    "name": "expand",
+    "signatures": ["expand(expr)", "expand(expr, p, q)"],
+    "description": "Expand products and powers in expr.",
+    "category": "Algebra",
+    "examples": [
+      {"input": "expand((x+1)^3)", "description": "Expand cubic"},
+      {"input": "expand((a+b)*(c+d))", "description": "Expand product"}
+    ],
+    "see_also": ["factor", "ratexpand"]
+  },
+  {
+    "name": "factor",
+    "signatures": ["factor(expr)"],
+    "description": "Factor expr over the integers.",
+    "category": "Algebra",
+    "examples": [
+      {"input": "factor(x^2-1)", "description": "Factor difference of squares"},
+      {"input": "factor(x^4-1)", "description": "Factor over integers"}
+    ],
+    "see_also": ["expand", "gfactor"]
+  },
+  {
+    "name": "subst",
+    "signatures": ["subst(a, b, expr)", "subst([a=b, c=d], expr)"],
+    "description": "Substitute a for b in expr. Or apply multiple substitutions.",
+    "category": "Algebra",
+    "examples": [
+      {"input": "subst(2, x, x^2+x+1)", "description": "Evaluate at x=2"},
+      {"input": "subst([x=1, y=2], x+y)", "description": "Multiple substitutions"}
+    ],
+    "see_also": ["ev", "ratsubst"]
+  },
+  {
+    "name": "ev",
+    "signatures": ["ev(expr, arg1, arg2, ...)"],
+    "description": "Evaluate expr with specified flags or substitutions.",
+    "category": "Algebra",
+    "examples": [
+      {"input": "ev(x+y, x=1, y=2)", "description": "Evaluate with substitutions"},
+      {"input": "ev(diff(x^2,x), diff)", "description": "Force differentiation"}
+    ],
+    "see_also": ["subst"]
+  },
+  {
+    "name": "ratsimp",
+    "signatures": ["ratsimp(expr)"],
+    "description": "Simplify expr by putting over a common denominator and cancelling.",
+    "category": "Simplification",
+    "examples": [
+      {"input": "ratsimp(1/x + 1/(x+1))", "description": "Combine fractions"},
+      {"input": "ratsimp((x^2-1)/(x-1))", "description": "Cancel common factors"}
+    ],
+    "see_also": ["simplify", "radcan"]
+  },
+  {
+    "name": "simplify",
+    "signatures": ["simplify(expr)"],
+    "description": "Apply general simplification heuristics to expr. Loads the simplify_sum package.",
+    "category": "Simplification",
+    "examples": [
+      {"input": "simplify(sin(x)^2 + cos(x)^2)", "description": null}
+    ],
+    "see_also": ["ratsimp", "trigsimp"]
+  },
+  {
+    "name": "radcan",
+    "signatures": ["radcan(expr)"],
+    "description": "Simplify expr containing logs, exponentials, and radicals.",
+    "category": "Simplification",
+    "examples": [
+      {"input": "radcan(sqrt(x^2))", "description": "Simplify radical"},
+      {"input": "radcan(exp(log(x)))", "description": "Simplify exp(log(x))"}
+    ],
+    "see_also": ["ratsimp", "logcontract"]
+  },
+  {
+    "name": "fullratsimp",
+    "signatures": ["fullratsimp(expr)"],
+    "description": "Repeatedly apply ratsimp until expression stops changing.",
+    "category": "Simplification",
+    "examples": [
+      {"input": "fullratsimp((x^2-1)/(x^3-x))", "description": "Full rational simplification"}
+    ],
+    "see_also": ["ratsimp"]
+  },
+  {
+    "name": "trigsimp",
+    "signatures": ["trigsimp(expr)"],
+    "description": "Simplify trigonometric expressions using sin^2+cos^2=1.",
+    "category": "Simplification",
+    "examples": [
+      {"input": "trigsimp(sin(x)^2 + cos(x)^2)", "description": "Pythagorean identity"}
+    ],
+    "see_also": ["trigexpand", "trigreduce"]
+  },
+  {
+    "name": "trigexpand",
+    "signatures": ["trigexpand(expr)"],
+    "description": "Expand trig functions of sums and multiple angles.",
+    "category": "Simplification",
+    "examples": [
+      {"input": "trigexpand(sin(x+y))", "description": "Angle addition formula"},
+      {"input": "trigexpand(sin(2*x))", "description": "Double angle formula"}
+    ],
+    "see_also": ["trigsimp", "trigreduce"]
+  },
+  {
+    "name": "trigreduce",
+    "signatures": ["trigreduce(expr)"],
+    "description": "Reduce products of trig functions to sums.",
+    "category": "Simplification",
+    "examples": [
+      {"input": "trigreduce(sin(x)*cos(x))", "description": "Product to sum"}
+    ],
+    "see_also": ["trigsimp", "trigexpand"]
+  },
+  {
+    "name": "logcontract",
+    "signatures": ["logcontract(expr)"],
+    "description": "Contract logarithmic expressions: log(a)+log(b) -> log(a*b).",
+    "category": "Simplification",
+    "examples": [
+      {"input": "logcontract(log(x) + log(y))", "description": "Combine logs"}
+    ],
+    "see_also": ["logexpand", "radcan"]
+  },
+  {
+    "name": "logexpand",
+    "signatures": ["logexpand"],
+    "description": "Flag controlling expansion of log(a*b) -> log(a)+log(b). Values: true, false, all, super.",
+    "category": "Simplification",
+    "examples": [
+      {"input": "logexpand: super$ log(x*y);", "description": null}
+    ],
+    "see_also": ["logcontract"]
+  },
+  {
+    "name": "rectform",
+    "signatures": ["rectform(expr)"],
+    "description": "Put complex expression into rectangular form a + b*%i.",
+    "category": "Simplification",
+    "examples": [
+      {"input": "rectform(exp(%i*x))", "description": "Euler's formula"}
+    ],
+    "see_also": ["polarform", "realpart", "imagpart"]
+  },
+  {
+    "name": "polarform",
+    "signatures": ["polarform(expr)"],
+    "description": "Put complex expression into polar form r*exp(%i*theta).",
+    "category": "Simplification",
+    "examples": [
+      {"input": "polarform(1 + %i)", "description": "Polar form of 1+i"}
+    ],
+    "see_also": ["rectform", "cabs", "carg"]
+  },
+  {
+    "name": "solve",
+    "signatures": ["solve(expr, x)", "solve([eq1,eq2], [x,y])"],
+    "description": "Solve equation(s) for variable(s). Returns list of solutions.",
+    "category": "Solving",
+    "examples": [
+      {"input": "solve(x^2-3*x+2=0, x)", "description": "Quadratic equation"},
+      {"input": "solve([x+y=3, x-y=1], [x,y])", "description": "System of equations"}
+    ],
+    "see_also": ["algsys", "linsolve", "find_root"]
+  },
+  {
+    "name": "algsys",
+    "signatures": ["algsys([eq1,eq2,...], [x,y,...])"],
+    "description": "Solve a system of algebraic equations. More powerful than solve for some systems.",
+    "category": "Solving",
+    "examples": [
+      {"input": "algsys([x^2+y^2=1, x-y=0], [x,y])", "description": "Nonlinear system"}
+    ],
+    "see_also": ["solve", "linsolve"]
+  },
+  {
+    "name": "linsolve",
+    "signatures": ["linsolve([eq1,eq2,...], [x,y,...])"],
+    "description": "Solve a system of linear equations.",
+    "category": "Solving",
+    "examples": [
+      {"input": "linsolve([x+y=3, 2*x-y=0], [x,y])", "description": "Linear system"}
+    ],
+    "see_also": ["solve", "algsys"]
+  },
+  {
+    "name": "find_root",
+    "signatures": ["find_root(expr, x, a, b)"],
+    "description": "Find a numerical root of expr in the interval [a, b].",
+    "category": "Solving",
+    "examples": [
+      {"input": "find_root(cos(x)-x, x, 0, 1)", "description": "Numerical root finding"}
+    ],
+    "see_also": ["solve", "newton"]
+  },
+  {
+    "name": "ode2",
+    "signatures": ["ode2(ode, y, x)"],
+    "description": "Solve a first or second order ODE.",
+    "category": "Solving",
+    "examples": [
+      {"input": "ode2('diff(y,x)+y=0, y, x)", "description": "Simple ODE"},
+      {"input": "ode2('diff(y,x,2)+y=0, y, x)", "description": "Second order ODE"}
+    ],
+    "see_also": ["ic1", "ic2", "desolve"]
+  },
+  {
+    "name": "ic1",
+    "signatures": ["ic1(sol, x=x0, y=y0)"],
+    "description": "Apply initial condition to first-order ODE solution.",
+    "category": "Solving",
+    "examples": [
+      {"input": "ic1(ode2('diff(y,x)+y=0,y,x), x=0, y=1)", "description": null}
+    ],
+    "see_also": ["ode2", "ic2"]
+  },
+  {
+    "name": "ic2",
+    "signatures": ["ic2(sol, x=x0, y=y0, 'diff(y,x)=dy0)"],
+    "description": "Apply initial conditions to second-order ODE solution.",
+    "category": "Solving",
+    "examples": [
+      {"input": "ic2(ode2('diff(y,x,2)+y=0,y,x), x=0, y=0, 'diff(y,x)=1)", "description": null}
+    ],
+    "see_also": ["ode2", "ic1"]
+  },
+  {
+    "name": "eliminate",
+    "signatures": ["eliminate([eq1,eq2,...], [x,...])"],
+    "description": "Eliminate variables from a system of equations.",
+    "category": "Solving",
+    "examples": [
+      {"input": "eliminate([x+y=1, x-y=3], [y])", "description": "Eliminate y"}
+    ],
+    "see_also": ["solve"]
+  },
+  {
+    "name": "assume",
+    "signatures": ["assume(pred)", "assume(pred1, pred2, ...)"],
+    "description": "Declare assumptions about variables (e.g. x>0) for simplification.",
+    "category": "Solving",
+    "examples": [
+      {"input": "assume(x>0)$ integrate(x^n, x);", "description": "Assume x is positive"},
+      {"input": "assume(n>0, n<1);", "description": "Multiple assumptions"}
+    ],
+    "see_also": ["forget", "facts"]
+  },
+  {
+    "name": "forget",
+    "signatures": ["forget(pred)"],
+    "description": "Remove a previously declared assumption.",
+    "category": "Solving",
+    "examples": [
+      {"input": "forget(x>0)", "description": "Remove assumption"}
+    ],
+    "see_also": ["assume", "facts"]
+  },
+  {
+    "name": "matrix",
+    "signatures": ["matrix([r1c1,r1c2,...], [r2c1,r2c2,...], ...)"],
+    "description": "Create a matrix from row lists.",
+    "category": "LinearAlgebra",
+    "examples": [
+      {"input": "matrix([1,2],[3,4])", "description": "2x2 matrix"},
+      {"input": "matrix([1,0,0],[0,1,0],[0,0,1])", "description": "3x3 identity"}
+    ],
+    "see_also": ["determinant", "invert", "transpose"]
+  },
+  {
+    "name": "determinant",
+    "signatures": ["determinant(M)"],
+    "description": "Compute the determinant of matrix M.",
+    "category": "LinearAlgebra",
+    "examples": [
+      {"input": "determinant(matrix([1,2],[3,4]))", "description": "2x2 determinant"}
+    ],
+    "see_also": ["matrix", "invert"]
+  },
+  {
+    "name": "invert",
+    "signatures": ["invert(M)"],
+    "description": "Compute the inverse of matrix M.",
+    "category": "LinearAlgebra",
+    "examples": [
+      {"input": "invert(matrix([1,2],[3,4]))", "description": "Matrix inverse"}
+    ],
+    "see_also": ["matrix", "determinant"]
+  },
+  {
+    "name": "transpose",
+    "signatures": ["transpose(M)"],
+    "description": "Transpose matrix M.",
+    "category": "LinearAlgebra",
+    "examples": [
+      {"input": "transpose(matrix([1,2],[3,4]))", "description": "Transpose"}
+    ],
+    "see_also": ["matrix"]
+  },
+  {
+    "name": "eigenvalues",
+    "signatures": ["eigenvalues(M)"],
+    "description": "Compute eigenvalues of matrix M. Returns [values, multiplicities].",
+    "category": "LinearAlgebra",
+    "examples": [
+      {"input": "eigenvalues(matrix([1,2],[3,4]))", "description": "Find eigenvalues"}
+    ],
+    "see_also": ["eigenvectors", "matrix"]
+  },
+  {
+    "name": "eigenvectors",
+    "signatures": ["eigenvectors(M)"],
+    "description": "Compute eigenvectors and eigenvalues of matrix M.",
+    "category": "LinearAlgebra",
+    "examples": [
+      {"input": "eigenvectors(matrix([1,0],[0,2]))", "description": "Find eigenvectors"}
+    ],
+    "see_also": ["eigenvalues", "matrix"]
+  },
+  {
+    "name": "rank",
+    "signatures": ["rank(M)"],
+    "description": "Compute the rank of matrix M.",
+    "category": "LinearAlgebra",
+    "examples": [
+      {"input": "rank(matrix([1,2],[2,4]))", "description": "Rank of singular matrix"}
+    ],
+    "see_also": ["matrix", "determinant"]
+  },
+  {
+    "name": "adjoint",
+    "signatures": ["adjoint(M)"],
+    "description": "Compute the adjoint (classical adjugate) of matrix M.",
+    "category": "LinearAlgebra",
+    "examples": [
+      {"input": "adjoint(matrix([1,2],[3,4]))", "description": null}
+    ],
+    "see_also": ["matrix", "invert"]
+  },
+  {
+    "name": "mattrace",
+    "signatures": ["mattrace(M)"],
+    "description": "Compute the trace of matrix M (sum of diagonal elements).",
+    "category": "LinearAlgebra",
+    "examples": [
+      {"input": "mattrace(matrix([1,2],[3,4]))", "description": "Trace = 5"}
+    ],
+    "see_also": ["matrix"]
+  },
+  {
+    "name": "charpoly",
+    "signatures": ["charpoly(M, x)"],
+    "description": "Compute the characteristic polynomial of matrix M in variable x.",
+    "category": "LinearAlgebra",
+    "examples": [
+      {"input": "charpoly(matrix([1,2],[3,4]), x)", "description": "Characteristic polynomial"}
+    ],
+    "see_also": ["eigenvalues", "matrix"]
+  },
+  {
+    "name": "echelon",
+    "signatures": ["echelon(M)"],
+    "description": "Compute the echelon (row-reduced) form of matrix M.",
+    "category": "LinearAlgebra",
+    "examples": [
+      {"input": "echelon(matrix([1,2,3],[4,5,6],[7,8,9]))", "description": null}
+    ],
+    "see_also": ["matrix", "rank"]
+  },
+  {
+    "name": "ident",
+    "signatures": ["ident(n)"],
+    "description": "Create an n x n identity matrix.",
+    "category": "LinearAlgebra",
+    "examples": [
+      {"input": "ident(3)", "description": "3x3 identity matrix"}
+    ],
+    "see_also": ["matrix", "zeromatrix"]
+  },
+  {
+    "name": "zeromatrix",
+    "signatures": ["zeromatrix(m, n)"],
+    "description": "Create an m x n matrix of zeros.",
+    "category": "LinearAlgebra",
+    "examples": [
+      {"input": "zeromatrix(2, 3)", "description": "2x3 zero matrix"}
+    ],
+    "see_also": ["matrix", "ident"]
+  },
+  {
+    "name": "plot2d",
+    "signatures": ["plot2d(expr, [x, a, b])", "plot2d([expr1,expr2], [x, a, b])"],
+    "description": "Plot one or more expressions in 2D.",
+    "category": "Plotting",
+    "examples": [
+      {"input": "plot2d(sin(x), [x, -%pi, %pi])", "description": "Plot sine"},
+      {"input": "plot2d([sin(x),cos(x)], [x, 0, 2*%pi])", "description": "Plot multiple"}
+    ],
+    "see_also": ["plot3d"]
+  },
+  {
+    "name": "plot3d",
+    "signatures": ["plot3d(expr, [x, a, b], [y, c, d])"],
+    "description": "Plot an expression as a 3D surface.",
+    "category": "Plotting",
+    "examples": [
+      {"input": "plot3d(sin(x)*cos(y), [x,-%pi,%pi], [y,-%pi,%pi])", "description": "3D surface"}
+    ],
+    "see_also": ["plot2d"]
+  },
+  {
+    "name": "draw2d",
+    "signatures": ["draw2d(graphic_object, ...)"],
+    "description": "Create 2D plots using the draw package (more control than plot2d).",
+    "category": "Plotting",
+    "examples": [
+      {"input": "load(draw)$ draw2d(explicit(sin(x), x, -%pi, %pi))", "description": "Draw sine"}
+    ],
+    "see_also": ["plot2d", "draw3d"]
+  },
+  {
+    "name": "draw3d",
+    "signatures": ["draw3d(graphic_object, ...)"],
+    "description": "Create 3D plots using the draw package.",
+    "category": "Plotting",
+    "examples": [
+      {"input": "load(draw)$ draw3d(explicit(sin(x)*cos(y), x,-%pi,%pi, y,-%pi,%pi))", "description": null}
+    ],
+    "see_also": ["plot3d", "draw2d"]
+  },
+  {
+    "name": "contour_plot",
+    "signatures": ["contour_plot(expr, [x,a,b], [y,c,d])"],
+    "description": "Plot contour lines of a 2-variable expression.",
+    "category": "Plotting",
+    "examples": [
+      {"input": "contour_plot(x^2+y^2, [x,-3,3], [y,-3,3])", "description": "Contour plot"}
+    ],
+    "see_also": ["plot3d"]
+  },
+  {
+    "name": "sin",
+    "signatures": ["sin(x)"],
+    "description": "Sine function.",
+    "category": "Trigonometry",
+    "examples": [
+      {"input": "sin(%pi/6)", "description": "sin(30 degrees)"}
+    ],
+    "see_also": ["cos", "tan", "asin"]
+  },
+  {
+    "name": "cos",
+    "signatures": ["cos(x)"],
+    "description": "Cosine function.",
+    "category": "Trigonometry",
+    "examples": [
+      {"input": "cos(%pi/3)", "description": "cos(60 degrees)"}
+    ],
+    "see_also": ["sin", "tan", "acos"]
+  },
+  {
+    "name": "tan",
+    "signatures": ["tan(x)"],
+    "description": "Tangent function.",
+    "category": "Trigonometry",
+    "examples": [
+      {"input": "tan(%pi/4)", "description": "tan(45 degrees) = 1"}
+    ],
+    "see_also": ["sin", "cos", "atan"]
+  },
+  {
+    "name": "asin",
+    "signatures": ["asin(x)"],
+    "description": "Inverse sine (arcsin).",
+    "category": "Trigonometry",
+    "examples": [
+      {"input": "asin(1/2)", "description": "arcsin(1/2) = pi/6"}
+    ],
+    "see_also": ["sin", "acos", "atan"]
+  },
+  {
+    "name": "acos",
+    "signatures": ["acos(x)"],
+    "description": "Inverse cosine (arccos).",
+    "category": "Trigonometry",
+    "examples": [
+      {"input": "acos(1/2)", "description": "arccos(1/2) = pi/3"}
+    ],
+    "see_also": ["cos", "asin", "atan"]
+  },
+  {
+    "name": "atan",
+    "signatures": ["atan(x)"],
+    "description": "Inverse tangent (arctan).",
+    "category": "Trigonometry",
+    "examples": [
+      {"input": "atan(1)", "description": "arctan(1) = pi/4"}
+    ],
+    "see_also": ["tan", "atan2"]
+  },
+  {
+    "name": "atan2",
+    "signatures": ["atan2(y, x)"],
+    "description": "Two-argument arctangent, giving the angle of the point (x,y).",
+    "category": "Trigonometry",
+    "examples": [
+      {"input": "atan2(1, 1)", "description": "Angle of (1,1) = pi/4"}
+    ],
+    "see_also": ["atan"]
+  },
+  {
+    "name": "sinh",
+    "signatures": ["sinh(x)"],
+    "description": "Hyperbolic sine.",
+    "category": "Trigonometry",
+    "examples": [
+      {"input": "sinh(1)", "description": null}
+    ],
+    "see_also": ["cosh", "tanh"]
+  },
+  {
+    "name": "cosh",
+    "signatures": ["cosh(x)"],
+    "description": "Hyperbolic cosine.",
+    "category": "Trigonometry",
+    "examples": [
+      {"input": "cosh(0)", "description": "cosh(0) = 1"}
+    ],
+    "see_also": ["sinh", "tanh"]
+  },
+  {
+    "name": "gcd",
+    "signatures": ["gcd(a, b)"],
+    "description": "Greatest common divisor of a and b.",
+    "category": "NumberTheory",
+    "examples": [
+      {"input": "gcd(12, 18)", "description": "GCD of 12 and 18 = 6"}
+    ],
+    "see_also": ["lcm", "ifactors"]
+  },
+  {
+    "name": "lcm",
+    "signatures": ["lcm(a, b)"],
+    "description": "Least common multiple of a and b.",
+    "category": "NumberTheory",
+    "examples": [
+      {"input": "lcm(12, 18)", "description": "LCM of 12 and 18 = 36"}
+    ],
+    "see_also": ["gcd"]
+  },
+  {
+    "name": "primep",
+    "signatures": ["primep(n)"],
+    "description": "Test if n is prime. Returns true or false.",
+    "category": "NumberTheory",
+    "examples": [
+      {"input": "primep(17)", "description": "17 is prime"},
+      {"input": "primep(100)", "description": "100 is not prime"}
+    ],
+    "see_also": ["ifactors", "next_prime"]
+  },
+  {
+    "name": "ifactors",
+    "signatures": ["ifactors(n)"],
+    "description": "Return the prime factorization of integer n as [[p1,e1],[p2,e2],...].",
+    "category": "NumberTheory",
+    "examples": [
+      {"input": "ifactors(60)", "description": "60 = 2^2 * 3 * 5"}
+    ],
+    "see_also": ["factor", "primep"]
+  },
+  {
+    "name": "next_prime",
+    "signatures": ["next_prime(n)"],
+    "description": "Return the smallest prime greater than n.",
+    "category": "NumberTheory",
+    "examples": [
+      {"input": "next_prime(10)", "description": "Next prime after 10 = 11"}
+    ],
+    "see_also": ["primep", "prev_prime"]
+  },
+  {
+    "name": "prev_prime",
+    "signatures": ["prev_prime(n)"],
+    "description": "Return the largest prime less than n.",
+    "category": "NumberTheory",
+    "examples": [
+      {"input": "prev_prime(10)", "description": "Previous prime before 10 = 7"}
+    ],
+    "see_also": ["primep", "next_prime"]
+  },
+  {
+    "name": "mod",
+    "signatures": ["mod(a, b)"],
+    "description": "Remainder of a divided by b.",
+    "category": "NumberTheory",
+    "examples": [
+      {"input": "mod(17, 5)", "description": "17 mod 5 = 2"}
+    ],
+    "see_also": ["quotient", "gcd"]
+  },
+  {
+    "name": "quotient",
+    "signatures": ["quotient(a, b)"],
+    "description": "Integer quotient of a divided by b.",
+    "category": "NumberTheory",
+    "examples": [
+      {"input": "quotient(17, 5)", "description": "17 / 5 = 3"}
+    ],
+    "see_also": ["mod"]
+  },
+  {
+    "name": "totient",
+    "signatures": ["totient(n)"],
+    "description": "Euler's totient function: count of integers <= n coprime to n.",
+    "category": "NumberTheory",
+    "examples": [
+      {"input": "totient(12)", "description": "phi(12) = 4"}
+    ],
+    "see_also": ["gcd", "primep"]
+  },
+  {
+    "name": "coeff",
+    "signatures": ["coeff(expr, x, n)", "coeff(expr, x)"],
+    "description": "Extract the coefficient of x^n in expr. Default n=1.",
+    "category": "Polynomials",
+    "examples": [
+      {"input": "coeff(3*x^2+2*x+1, x, 2)", "description": "Coefficient of x^2 = 3"},
+      {"input": "coeff(3*x^2+2*x+1, x)", "description": "Coefficient of x = 2"}
+    ],
+    "see_also": ["degree", "ratcoef"]
+  },
+  {
+    "name": "degree",
+    "signatures": ["degree(poly, x)"],
+    "description": "Degree of polynomial poly in variable x.",
+    "category": "Polynomials",
+    "examples": [
+      {"input": "degree(x^3+2*x+1, x)", "description": "Degree is 3"}
+    ],
+    "see_also": ["coeff", "hipow"]
+  },
+  {
+    "name": "divide",
+    "signatures": ["divide(p, q, x)"],
+    "description": "Polynomial division of p by q in variable x. Returns [quotient, remainder].",
+    "category": "Polynomials",
+    "examples": [
+      {"input": "divide(x^3-1, x-1, x)", "description": "Polynomial long division"}
+    ],
+    "see_also": ["remainder", "gcd"]
+  },
+  {
+    "name": "gfactor",
+    "signatures": ["gfactor(expr)"],
+    "description": "Factor expr over the Gaussian integers (allowing complex factors).",
+    "category": "Polynomials",
+    "examples": [
+      {"input": "gfactor(x^2+1)", "description": "Factor over Gaussian integers"}
+    ],
+    "see_also": ["factor"]
+  },
+  {
+    "name": "remainder",
+    "signatures": ["remainder(p, q, x)"],
+    "description": "Polynomial remainder of p divided by q in variable x.",
+    "category": "Polynomials",
+    "examples": [
+      {"input": "remainder(x^3+1, x+1, x)", "description": null}
+    ],
+    "see_also": ["divide", "quotient"]
+  },
+  {
+    "name": "resultant",
+    "signatures": ["resultant(p, q, x)"],
+    "description": "Compute the resultant of polynomials p and q with respect to x.",
+    "category": "Polynomials",
+    "examples": [
+      {"input": "resultant(x^2-1, x^2-4, x)", "description": null}
+    ],
+    "see_also": ["eliminate"]
+  },
+  {
+    "name": "ratexpand",
+    "signatures": ["ratexpand(expr)"],
+    "description": "Expand expr, putting it in canonical rational form.",
+    "category": "Polynomials",
+    "examples": [
+      {"input": "ratexpand((x+1)^2/(x+1))", "description": null}
+    ],
+    "see_also": ["expand", "ratsimp"]
+  },
+  {
+    "name": "hipow",
+    "signatures": ["hipow(expr, x)"],
+    "description": "Highest power of x in expr.",
+    "category": "Polynomials",
+    "examples": [
+      {"input": "hipow(x^3+x+1, x)", "description": "Highest power is 3"}
+    ],
+    "see_also": ["lopow", "degree"]
+  },
+  {
+    "name": "lopow",
+    "signatures": ["lopow(expr, x)"],
+    "description": "Lowest power of x in expr.",
+    "category": "Polynomials",
+    "examples": [
+      {"input": "lopow(x^3+x, x)", "description": "Lowest power is 1"}
+    ],
+    "see_also": ["hipow"]
+  },
+  {
+    "name": "ratsubst",
+    "signatures": ["ratsubst(a, b, expr)"],
+    "description": "Rational substitution: substitute a for b in expr, treating expr as rational function.",
+    "category": "Polynomials",
+    "examples": [
+      {"input": "ratsubst(u, x+1, x^2+2*x+1)", "description": null}
+    ],
+    "see_also": ["subst"]
+  },
+  {
+    "name": "powerseries",
+    "signatures": ["powerseries(expr, x, a)"],
+    "description": "Power series expansion of expr around x=a.",
+    "category": "Series",
+    "examples": [
+      {"input": "powerseries(exp(x), x, 0)", "description": "Power series of e^x"}
+    ],
+    "see_also": ["taylor"]
+  },
+  {
+    "name": "niceindices",
+    "signatures": ["niceindices(expr)"],
+    "description": "Rename indices in a power series to standard form.",
+    "category": "Series",
+    "examples": [
+      {"input": "niceindices(powerseries(sin(x), x, 0))", "description": null}
+    ],
+    "see_also": ["powerseries"]
+  },
+  {
+    "name": "nusum",
+    "signatures": ["nusum(expr, i, low, high)"],
+    "description": "Compute closed form of a summation using the Nu algorithm.",
+    "category": "Series",
+    "examples": [
+      {"input": "load(nusum)$ nusum(i^2, i, 1, n)", "description": null}
+    ],
+    "see_also": ["sum"]
+  },
+  {
+    "name": "unsum",
+    "signatures": ["unsum(f, n)"],
+    "description": "Indefinite summation (anti-difference): find F such that F(n+1)-F(n)=f(n).",
+    "category": "Series",
+    "examples": [
+      {"input": "load(nusum)$ unsum(n^2, n)", "description": null}
+    ],
+    "see_also": ["sum", "nusum"]
+  },
+  {
+    "name": "binomial",
+    "signatures": ["binomial(n, k)"],
+    "description": "Binomial coefficient: n choose k.",
+    "category": "Combinatorics",
+    "examples": [
+      {"input": "binomial(10, 3)", "description": "10 choose 3 = 120"}
+    ],
+    "see_also": ["factorial"]
+  },
+  {
+    "name": "factorial",
+    "signatures": ["factorial(n)", "n!"],
+    "description": "Factorial of n.",
+    "category": "Combinatorics",
+    "examples": [
+      {"input": "factorial(10)", "description": "10! = 3628800"},
+      {"input": "10!", "description": "Same using ! syntax"}
+    ],
+    "see_also": ["binomial", "gamma"]
+  },
+  {
+    "name": "gamma",
+    "signatures": ["gamma(x)"],
+    "description": "Gamma function. For positive integers, gamma(n) = (n-1)!.",
+    "category": "Combinatorics",
+    "examples": [
+      {"input": "gamma(5)", "description": "gamma(5) = 4! = 24"},
+      {"input": "gamma(1/2)", "description": "gamma(1/2) = sqrt(pi)"}
+    ],
+    "see_also": ["factorial", "beta"]
+  },
+  {
+    "name": "beta",
+    "signatures": ["beta(a, b)"],
+    "description": "Beta function: B(a,b) = gamma(a)*gamma(b)/gamma(a+b).",
+    "category": "Combinatorics",
+    "examples": [
+      {"input": "beta(2, 3)", "description": "B(2,3) = 1/12"}
+    ],
+    "see_also": ["gamma"]
+  },
+  {
+    "name": "permutations",
+    "signatures": ["permutations(list)"],
+    "description": "Generate all permutations of a list.",
+    "category": "Combinatorics",
+    "examples": [
+      {"input": "permutations([a,b,c])", "description": "All permutations of [a,b,c]"}
+    ],
+    "see_also": ["binomial"]
+  },
+  {
+    "name": "block",
+    "signatures": ["block([v1,v2,...], expr1, expr2, ...)"],
+    "description": "Block with local variables. Returns value of last expression.",
+    "category": "Programming",
+    "examples": [
+      {"input": "block([s:0], for i:1 thru 10 do s:s+i, s)", "description": "Sum 1 to 10"}
+    ],
+    "see_also": ["if", "for"]
+  },
+  {
+    "name": "if",
+    "signatures": ["if cond then expr1 else expr2", "if cond then expr1 elseif cond2 then expr2 else expr3"],
+    "description": "Conditional expression.",
+    "category": "Programming",
+    "examples": [
+      {"input": "if x>0 then x else -x", "description": "Absolute value"},
+      {"input": "f(x) := if x>0 then sqrt(x) else 0", "description": "Piecewise function"}
+    ],
+    "see_also": ["block"]
+  },
+  {
+    "name": "for",
+    "signatures": ["for i:start thru end do body", "for i:start step s thru end do body"],
+    "description": "For loop. Can use step for non-unit increments.",
+    "category": "Programming",
+    "examples": [
+      {"input": "for i:1 thru 5 do print(i)", "description": "Print 1 to 5"},
+      {"input": "for i:0 step 2 thru 10 do print(i)", "description": "Even numbers"}
+    ],
+    "see_also": ["while", "block"]
+  },
+  {
+    "name": "while",
+    "signatures": ["while cond do body"],
+    "description": "While loop.",
+    "category": "Programming",
+    "examples": [
+      {"input": "block([i:1], while i<10 do i:i*2, i)", "description": "Doubling loop"}
+    ],
+    "see_also": ["for", "block"]
+  },
+  {
+    "name": "print",
+    "signatures": ["print(expr1, expr2, ...)"],
+    "description": "Print expressions to the console.",
+    "category": "Programming",
+    "examples": [
+      {"input": "print(\"Hello\", 42)", "description": "Print values"}
+    ],
+    "see_also": ["display"]
+  },
+  {
+    "name": "display",
+    "signatures": ["display(expr1, expr2, ...)"],
+    "description": "Display labeled expressions (shows name = value).",
+    "category": "Programming",
+    "examples": [
+      {"input": "x:42$ display(x)", "description": "Show x = 42"}
+    ],
+    "see_also": ["print"]
+  },
+  {
+    "name": "define",
+    "signatures": ["define(f(x), expr)"],
+    "description": "Define a function. Unlike :=, this evaluates expr at definition time.",
+    "category": "Programming",
+    "examples": [
+      {"input": "define(f(x), diff(x^3, x))", "description": "f(x) = 3*x^2"}
+    ],
+    "see_also": ["lambda"]
+  },
+  {
+    "name": "lambda",
+    "signatures": ["lambda([x,y,...], body)"],
+    "description": "Create an anonymous function.",
+    "category": "Programming",
+    "examples": [
+      {"input": "f: lambda([x], x^2)$ f(3);", "description": "Anonymous square function"}
+    ],
+    "see_also": ["define", "apply"]
+  },
+  {
+    "name": "apply",
+    "signatures": ["apply(f, [arg1, arg2, ...])"],
+    "description": "Apply function f to a list of arguments.",
+    "category": "Programming",
+    "examples": [
+      {"input": "apply(\"+\", [1,2,3,4])", "description": "Sum a list"}
+    ],
+    "see_also": ["map", "lambda"]
+  },
+  {
+    "name": "map",
+    "signatures": ["map(f, list)", "map(f, list1, list2)"],
+    "description": "Apply f to each element of list (or corresponding elements of lists).",
+    "category": "Programming",
+    "examples": [
+      {"input": "map(lambda([x], x^2), [1,2,3,4])", "description": "Square each element"},
+      {"input": "map(rhs, solve(x^2-3*x+2, x))", "description": "Extract solution values"}
+    ],
+    "see_also": ["apply", "lambda"]
+  },
+  {
+    "name": "makelist",
+    "signatures": ["makelist(expr, i, start, end)", "makelist(expr, i, list)"],
+    "description": "Create a list by evaluating expr for each value of i.",
+    "category": "Programming",
+    "examples": [
+      {"input": "makelist(i^2, i, 1, 10)", "description": "List of squares"},
+      {"input": "makelist(random(10), i, 1, 5)", "description": "5 random numbers"}
+    ],
+    "see_also": ["map", "create_list"]
+  },
+  {
+    "name": "create_list",
+    "signatures": ["create_list(expr, i, list)", "create_list(expr, [i, start, end])"],
+    "description": "Similar to makelist but with slightly different syntax.",
+    "category": "Programming",
+    "examples": [
+      {"input": "create_list(x^i, i, [1,2,3])", "description": null}
+    ],
+    "see_also": ["makelist"]
+  },
+  {
+    "name": "describe",
+    "signatures": ["describe(name)", "describe(name, exact)", "describe(name, inexact)"],
+    "description": "Show documentation for a Maxima function or variable.",
+    "category": "Other",
+    "examples": [
+      {"input": "describe(integrate)", "description": "Help on integrate"},
+      {"input": "describe(\"factor\", exact)", "description": "Exact match"}
+    ],
+    "see_also": ["example", "apropos"]
+  },
+  {
+    "name": "example",
+    "signatures": ["example(name)"],
+    "description": "Show usage examples for a Maxima function.",
+    "category": "Other",
+    "examples": [
+      {"input": "example(integrate)", "description": "Show integration examples"}
+    ],
+    "see_also": ["describe", "apropos"]
+  },
+  {
+    "name": "apropos",
+    "signatures": ["apropos(\"string\")"],
+    "description": "Search for Maxima functions/variables matching a string pattern.",
+    "category": "Other",
+    "examples": [
+      {"input": "apropos(\"trig\")", "description": "Find trig-related functions"}
+    ],
+    "see_also": ["describe"]
+  },
+  {
+    "name": "kill",
+    "signatures": ["kill(name)", "kill(all)", "kill(allbut(a,b))"],
+    "description": "Remove a variable/function binding, or clear all bindings.",
+    "category": "Other",
+    "examples": [
+      {"input": "kill(x)", "description": "Unbind x"},
+      {"input": "kill(all)", "description": "Clear everything"}
+    ],
+    "see_also": ["remvalue", "reset"]
+  },
+  {
+    "name": "load",
+    "signatures": ["load(\"package\")"],
+    "description": "Load a Maxima package or file.",
+    "category": "Other",
+    "examples": [
+      {"input": "load(draw)", "description": "Load the draw package"},
+      {"input": "load(\"eigen\")", "description": "Load eigen package"}
+    ],
+    "see_also": ["describe"]
+  },
+  {
+    "name": "float",
+    "signatures": ["float(expr)"],
+    "description": "Convert exact numbers to floating point.",
+    "category": "Other",
+    "examples": [
+      {"input": "float(1/3)", "description": "0.333..."},
+      {"input": "float(%pi)", "description": "3.14159..."}
+    ],
+    "see_also": ["bfloat", "rationalize"]
+  },
+  {
+    "name": "bfloat",
+    "signatures": ["bfloat(expr)"],
+    "description": "Convert to arbitrary-precision floating point. Control precision with fpprec.",
+    "category": "Other",
+    "examples": [
+      {"input": "fpprec:50$ bfloat(%pi)", "description": "Pi to 50 digits"}
+    ],
+    "see_also": ["float", "fpprec"]
+  },
+  {
+    "name": "rationalize",
+    "signatures": ["rationalize(expr)"],
+    "description": "Convert floating point numbers to exact rationals.",
+    "category": "Other",
+    "examples": [
+      {"input": "rationalize(0.333)", "description": "Convert to 333/1000"}
+    ],
+    "see_also": ["float"]
+  },
+  {
+    "name": "abs",
+    "signatures": ["abs(x)"],
+    "description": "Absolute value of x.",
+    "category": "Other",
+    "examples": [
+      {"input": "abs(-5)", "description": "5"},
+      {"input": "abs(3+4*%i)", "description": "Complex magnitude = 5"}
+    ],
+    "see_also": ["cabs", "signum"]
+  },
+  {
+    "name": "sqrt",
+    "signatures": ["sqrt(x)"],
+    "description": "Square root of x.",
+    "category": "Other",
+    "examples": [
+      {"input": "sqrt(16)", "description": "4"},
+      {"input": "sqrt(2)", "description": "Kept symbolic"}
+    ],
+    "see_also": ["exp", "log"]
+  },
+  {
+    "name": "exp",
+    "signatures": ["exp(x)"],
+    "description": "Exponential function e^x.",
+    "category": "Other",
+    "examples": [
+      {"input": "exp(1)", "description": "%e"},
+      {"input": "exp(%i*%pi)", "description": "Euler's identity: -1"}
+    ],
+    "see_also": ["log", "sqrt"]
+  },
+  {
+    "name": "log",
+    "signatures": ["log(x)"],
+    "description": "Natural logarithm (base e).",
+    "category": "Other",
+    "examples": [
+      {"input": "log(%e)", "description": "1"},
+      {"input": "log(exp(x))", "description": "x"}
+    ],
+    "see_also": ["exp", "logcontract", "logexpand"]
+  },
+  {
+    "name": "numer",
+    "signatures": ["numer"],
+    "description": "Flag: when true, mathematical functions evaluate to floats where possible.",
+    "category": "Other",
+    "examples": [
+      {"input": "numer: true$ sin(%pi/7);", "description": "Numeric evaluation"}
+    ],
+    "see_also": ["float"]
+  },
+  {
+    "name": "radians",
+    "signatures": ["radians"],
+    "description": "Maxima always uses radians for trigonometric functions.",
+    "category": "Other",
+    "examples": [],
+    "see_also": ["sin", "cos"]
+  },
+  {
+    "name": "realpart",
+    "signatures": ["realpart(expr)"],
+    "description": "Real part of a complex expression.",
+    "category": "Other",
+    "examples": [
+      {"input": "realpart(3+4*%i)", "description": "3"}
+    ],
+    "see_also": ["imagpart", "rectform"]
+  },
+  {
+    "name": "imagpart",
+    "signatures": ["imagpart(expr)"],
+    "description": "Imaginary part of a complex expression.",
+    "category": "Other",
+    "examples": [
+      {"input": "imagpart(3+4*%i)", "description": "4"}
+    ],
+    "see_also": ["realpart", "rectform"]
+  },
+  {
+    "name": "cabs",
+    "signatures": ["cabs(expr)"],
+    "description": "Complex absolute value (modulus).",
+    "category": "Other",
+    "examples": [
+      {"input": "cabs(3+4*%i)", "description": "5"}
+    ],
+    "see_also": ["abs", "carg"]
+  },
+  {
+    "name": "carg",
+    "signatures": ["carg(expr)"],
+    "description": "Complex argument (angle/phase) of a complex number.",
+    "category": "Other",
+    "examples": [
+      {"input": "carg(1+%i)", "description": "pi/4"}
+    ],
+    "see_also": ["cabs", "polarform"]
+  },
+  {
+    "name": "conjugate",
+    "signatures": ["conjugate(expr)"],
+    "description": "Complex conjugate of expr.",
+    "category": "Other",
+    "examples": [
+      {"input": "conjugate(3+4*%i)", "description": "3-4*i"}
+    ],
+    "see_also": ["realpart", "imagpart"]
+  },
+  {
+    "name": "signum",
+    "signatures": ["signum(x)"],
+    "description": "Sign function: -1, 0, or 1.",
+    "category": "Other",
+    "examples": [
+      {"input": "signum(-5)", "description": "-1"}
+    ],
+    "see_also": ["abs"]
+  },
+  {
+    "name": "max",
+    "signatures": ["max(a, b, ...)"],
+    "description": "Maximum of arguments.",
+    "category": "Other",
+    "examples": [
+      {"input": "max(1, 5, 3)", "description": "5"}
+    ],
+    "see_also": ["min"]
+  },
+  {
+    "name": "min",
+    "signatures": ["min(a, b, ...)"],
+    "description": "Minimum of arguments.",
+    "category": "Other",
+    "examples": [
+      {"input": "min(1, 5, 3)", "description": "1"}
+    ],
+    "see_also": ["max"]
+  },
+  {
+    "name": "floor",
+    "signatures": ["floor(x)"],
+    "description": "Floor function: largest integer <= x.",
+    "category": "Other",
+    "examples": [
+      {"input": "floor(3.7)", "description": "3"}
+    ],
+    "see_also": ["ceiling", "round"]
+  },
+  {
+    "name": "ceiling",
+    "signatures": ["ceiling(x)"],
+    "description": "Ceiling function: smallest integer >= x.",
+    "category": "Other",
+    "examples": [
+      {"input": "ceiling(3.2)", "description": "4"}
+    ],
+    "see_also": ["floor", "round"]
+  },
+  {
+    "name": "round",
+    "signatures": ["round(x)"],
+    "description": "Round x to the nearest integer.",
+    "category": "Other",
+    "examples": [
+      {"input": "round(3.5)", "description": "4"}
+    ],
+    "see_also": ["floor", "ceiling"]
+  },
+  {
+    "name": "random",
+    "signatures": ["random(n)"],
+    "description": "Random integer from 0 to n-1 (if n is integer) or random float from 0 to n.",
+    "category": "Other",
+    "examples": [
+      {"input": "random(10)", "description": "Random 0-9"},
+      {"input": "random(1.0)", "description": "Random float 0-1"}
+    ],
+    "see_also": ["makelist"]
+  },
+  {
+    "name": "length",
+    "signatures": ["length(list)"],
+    "description": "Number of elements in a list.",
+    "category": "Other",
+    "examples": [
+      {"input": "length([a,b,c])", "description": "3"}
+    ],
+    "see_also": ["first", "last", "rest"]
+  },
+  {
+    "name": "first",
+    "signatures": ["first(list)"],
+    "description": "First element of a list.",
+    "category": "Other",
+    "examples": [
+      {"input": "first([a,b,c])", "description": "a"}
+    ],
+    "see_also": ["last", "rest", "length"]
+  },
+  {
+    "name": "last",
+    "signatures": ["last(list)"],
+    "description": "Last element of a list.",
+    "category": "Other",
+    "examples": [
+      {"input": "last([a,b,c])", "description": "c"}
+    ],
+    "see_also": ["first", "rest"]
+  },
+  {
+    "name": "rest",
+    "signatures": ["rest(list)", "rest(list, n)"],
+    "description": "All but the first element (or first n elements) of a list.",
+    "category": "Other",
+    "examples": [
+      {"input": "rest([a,b,c])", "description": "[b,c]"},
+      {"input": "rest([a,b,c,d], 2)", "description": "[c,d]"}
+    ],
+    "see_also": ["first", "last"]
+  },
+  {
+    "name": "append",
+    "signatures": ["append(list1, list2, ...)"],
+    "description": "Concatenate lists.",
+    "category": "Other",
+    "examples": [
+      {"input": "append([1,2], [3,4])", "description": "[1,2,3,4]"}
+    ],
+    "see_also": ["cons", "length"]
+  },
+  {
+    "name": "cons",
+    "signatures": ["cons(elem, list)"],
+    "description": "Prepend an element to a list.",
+    "category": "Other",
+    "examples": [
+      {"input": "cons(0, [1,2,3])", "description": "[0,1,2,3]"}
+    ],
+    "see_also": ["append", "first"]
+  },
+  {
+    "name": "reverse",
+    "signatures": ["reverse(list)"],
+    "description": "Reverse a list.",
+    "category": "Other",
+    "examples": [
+      {"input": "reverse([1,2,3])", "description": "[3,2,1]"}
+    ],
+    "see_also": ["sort"]
+  },
+  {
+    "name": "sort",
+    "signatures": ["sort(list)", "sort(list, pred)"],
+    "description": "Sort a list. Optional predicate for comparison.",
+    "category": "Other",
+    "examples": [
+      {"input": "sort([3,1,4,1,5])", "description": "[1,1,3,4,5]"},
+      {"input": "sort([3,1,4], \">\")", "description": "[4,3,1]"}
+    ],
+    "see_also": ["reverse"]
+  },
+  {
+    "name": "lhs",
+    "signatures": ["lhs(eq)"],
+    "description": "Left-hand side of an equation.",
+    "category": "Other",
+    "examples": [
+      {"input": "lhs(x=5)", "description": "x"}
+    ],
+    "see_also": ["rhs"]
+  },
+  {
+    "name": "rhs",
+    "signatures": ["rhs(eq)"],
+    "description": "Right-hand side of an equation.",
+    "category": "Other",
+    "examples": [
+      {"input": "rhs(x=5)", "description": "5"},
+      {"input": "map(rhs, solve(x^2-1, x))", "description": "Extract solution values"}
+    ],
+    "see_also": ["lhs", "solve"]
+  },
+  {
+    "name": "string",
+    "signatures": ["string(expr)"],
+    "description": "Convert expression to a string.",
+    "category": "IO",
+    "examples": [
+      {"input": "string(x^2+1)", "description": "\"x^2+1\""}
+    ],
+    "see_also": ["print"]
+  },
+  {
+    "name": "concat",
+    "signatures": ["concat(a, b, ...)"],
+    "description": "Concatenate atoms/strings into a new atom.",
+    "category": "IO",
+    "examples": [
+      {"input": "concat(\"x\", 1)", "description": "x1"}
+    ],
+    "see_also": ["string"]
+  },
+  {
+    "name": "tex",
+    "signatures": ["tex(expr)", "tex(expr, file)"],
+    "description": "Output expr in LaTeX format.",
+    "category": "IO",
+    "examples": [
+      {"input": "tex(integrate(x^2, x))", "description": "LaTeX output"}
+    ],
+    "see_also": ["string"]
+  },
+  {
+    "name": "save",
+    "signatures": ["save(\"file\", name1, name2, ...)"],
+    "description": "Save variables/functions to a file.",
+    "category": "IO",
+    "examples": [
+      {"input": "save(\"mywork.mac\", f, g)", "description": null}
+    ],
+    "see_also": ["load"]
+  },
+  {
+    "name": "read",
+    "signatures": ["read(\"prompt\")"],
+    "description": "Read input from the user with a prompt.",
+    "category": "IO",
+    "examples": [
+      {"input": "x: read(\"Enter x: \")", "description": null}
+    ],
+    "see_also": ["print"]
+  },
+  {
+    "name": "lsum",
+    "signatures": ["lsum(expr, i, list)"],
+    "description": "Sum expr for i over elements of a list.",
+    "category": "Other",
+    "examples": [
+      {"input": "lsum(i^2, i, [1,2,3,4])", "description": "Sum of squares over list"}
+    ],
+    "see_also": ["sum", "map"]
+  },
+  {
+    "name": "partfrac",
+    "signatures": ["partfrac(expr, x)"],
+    "description": "Partial fraction decomposition of expr in variable x.",
+    "category": "Algebra",
+    "examples": [
+      {"input": "partfrac(1/(x^2-1), x)", "description": "Partial fractions"}
+    ],
+    "see_also": ["ratsimp", "factor"]
+  },
+  {
+    "name": "nroots",
+    "signatures": ["nroots(poly, low, high)"],
+    "description": "Number of real roots of polynomial in interval (low, high).",
+    "category": "Polynomials",
+    "examples": [
+      {"input": "nroots(x^3-x, -10, 10)", "description": "3 roots in (-10,10)"}
+    ],
+    "see_also": ["solve", "find_root"]
+  },
+  {
+    "name": "newton",
+    "signatures": ["newton(expr, x, x0, eps)"],
+    "description": "Newton's method to find root of expr starting at x0 within tolerance eps.",
+    "category": "Solving",
+    "examples": [
+      {"input": "load(newton1)$ newton(cos(x)-x, x, 1, 1e-10)", "description": null}
+    ],
+    "see_also": ["find_root", "solve"]
+  },
+  {
+    "name": "facts",
+    "signatures": ["facts()", "facts(x)"],
+    "description": "List current assumptions, optionally about variable x.",
+    "category": "Other",
+    "examples": [
+      {"input": "assume(x>0)$ facts();", "description": "Show all assumptions"}
+    ],
+    "see_also": ["assume", "forget"]
+  },
+  {
+    "name": "remvalue",
+    "signatures": ["remvalue(x)", "remvalue(all)"],
+    "description": "Remove value binding from variable x.",
+    "category": "Other",
+    "examples": [
+      {"input": "remvalue(x)", "description": "Unbind x"}
+    ],
+    "see_also": ["kill"]
+  },
+  {
+    "name": "reset",
+    "signatures": ["reset()"],
+    "description": "Reset all option variables to their default values.",
+    "category": "Other",
+    "examples": [
+      {"input": "reset()", "description": "Reset all options"}
+    ],
+    "see_also": ["kill"]
+  },
+  {
+    "name": "ratcoef",
+    "signatures": ["ratcoef(expr, x, n)"],
+    "description": "Coefficient of x^n in expr, using rational canonical form.",
+    "category": "Polynomials",
+    "examples": [
+      {"input": "ratcoef(x^2+2*x+1, x, 1)", "description": "2"}
+    ],
+    "see_also": ["coeff"]
+  },
+  {
+    "name": "flatten",
+    "signatures": ["flatten(expr)"],
+    "description": "Remove nested lists one level deep.",
+    "category": "Other",
+    "examples": [
+      {"input": "flatten([[1,2],[3,[4,5]]])", "description": "[1,2,3,[4,5]]"}
+    ],
+    "see_also": ["append"]
+  },
+  {
+    "name": "sublist",
+    "signatures": ["sublist(list, pred)"],
+    "description": "Filter list elements satisfying predicate pred.",
+    "category": "Other",
+    "examples": [
+      {"input": "sublist([1,-2,3,-4], lambda([x], x>0))", "description": "[1,3]"}
+    ],
+    "see_also": ["map", "makelist"]
+  },
+  {
+    "name": "unique",
+    "signatures": ["unique(list)"],
+    "description": "Remove duplicate elements from a list.",
+    "category": "Other",
+    "examples": [
+      {"input": "unique([1,2,2,3,3,3])", "description": "[1,2,3]"}
+    ],
+    "see_also": ["sort"]
+  },
+  {
+    "name": "assoc",
+    "signatures": ["assoc(key, alist)", "assoc(key, alist, default)"],
+    "description": "Look up key in association list. Returns value or default.",
+    "category": "Programming",
+    "examples": [
+      {"input": "assoc(b, [[a,1],[b,2],[c,3]])", "description": "2"}
+    ],
+    "see_also": ["first", "map"]
+  },
+  {
+    "name": "at",
+    "signatures": ["at(expr, [x=val, y=val, ...])"],
+    "description": "Evaluate expr at specific values. Often used with derivatives.",
+    "category": "Algebra",
+    "examples": [
+      {"input": "at(diff(x^3, x), x=2)", "description": "Derivative at x=2 = 12"},
+      {"input": "at(x^2+y^2, [x=1, y=2])", "description": "5"}
+    ],
+    "see_also": ["subst", "ev"]
+  },
+  {
+    "name": "listp",
+    "signatures": ["listp(expr)"],
+    "description": "Test if expr is a list.",
+    "category": "Other",
+    "examples": [
+      {"input": "listp([1,2,3])", "description": "true"}
+    ],
+    "see_also": ["matrixp", "numberp"]
+  },
+  {
+    "name": "matrixp",
+    "signatures": ["matrixp(expr)"],
+    "description": "Test if expr is a matrix.",
+    "category": "LinearAlgebra",
+    "examples": [
+      {"input": "matrixp(matrix([1,2],[3,4]))", "description": "true"}
+    ],
+    "see_also": ["matrix", "listp"]
+  },
+  {
+    "name": "numberp",
+    "signatures": ["numberp(expr)"],
+    "description": "Test if expr is a number (integer or float).",
+    "category": "Other",
+    "examples": [
+      {"input": "numberp(42)", "description": "true"},
+      {"input": "numberp(x)", "description": "false"}
+    ],
+    "see_also": ["integerp", "floatnump"]
+  },
+  {
+    "name": "integerp",
+    "signatures": ["integerp(expr)"],
+    "description": "Test if expr is an integer.",
+    "category": "Other",
+    "examples": [
+      {"input": "integerp(42)", "description": "true"}
+    ],
+    "see_also": ["numberp"]
+  },
+  {
+    "name": "ratdisrep",
+    "signatures": ["ratdisrep(expr)"],
+    "description": "Convert canonical rational expression (CRE) to general form.",
+    "category": "Algebra",
+    "examples": [
+      {"input": "ratdisrep(rat(x^2+1))", "description": null}
+    ],
+    "see_also": ["rat"]
+  },
+  {
+    "name": "rat",
+    "signatures": ["rat(expr)"],
+    "description": "Convert expr to canonical rational expression (CRE) form.",
+    "category": "Algebra",
+    "examples": [
+      {"input": "rat(x^2+2*x+1)", "description": null}
+    ],
+    "see_also": ["ratdisrep", "ratsimp"]
+  },
+  {
+    "name": "num",
+    "signatures": ["num(expr)"],
+    "description": "Numerator of a rational expression.",
+    "category": "Algebra",
+    "examples": [
+      {"input": "num(x/(x+1))", "description": "x"}
+    ],
+    "see_also": ["denom"]
+  },
+  {
+    "name": "denom",
+    "signatures": ["denom(expr)"],
+    "description": "Denominator of a rational expression.",
+    "category": "Algebra",
+    "examples": [
+      {"input": "denom(x/(x+1))", "description": "x+1"}
+    ],
+    "see_also": ["num"]
+  },
+  {
+    "name": "multthru",
+    "signatures": ["multthru(expr)"],
+    "description": "Distribute multiplication over addition without full expansion.",
+    "category": "Algebra",
+    "examples": [
+      {"input": "multthru((x+1)/x)", "description": "1 + 1/x"}
+    ],
+    "see_also": ["expand"]
+  },
+  {
+    "name": "collectterms",
+    "signatures": ["collectterms(expr, x)"],
+    "description": "Collect terms by powers of x.",
+    "category": "Algebra",
+    "examples": [
+      {"input": "collectterms(expand((x+1)*(x+2)), x)", "description": null}
+    ],
+    "see_also": ["coeff"]
+  },
+  {
+    "name": "xthru",
+    "signatures": ["xthru(expr)"],
+    "description": "Cancel common factors in sums of fractions.",
+    "category": "Simplification",
+    "examples": [
+      {"input": "xthru((x^2-1)/(x-1))", "description": null}
+    ],
+    "see_also": ["ratsimp"]
+  },
+  {
+    "name": "combine",
+    "signatures": ["combine(expr)"],
+    "description": "Combine fractions over a common denominator.",
+    "category": "Simplification",
+    "examples": [
+      {"input": "combine(1/x + 1/y)", "description": null}
+    ],
+    "see_also": ["ratsimp"]
+  }
+]

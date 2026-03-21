@@ -9,6 +9,8 @@ use crate::error::AppError;
 struct AppConfig {
     #[serde(default = "default_theme")]
     theme: String,
+    #[serde(default)]
+    has_seen_welcome: bool,
 }
 
 fn default_theme() -> String {
@@ -52,6 +54,20 @@ pub async fn get_theme(app: tauri::AppHandle) -> Result<String, AppError> {
 pub async fn set_theme(app: tauri::AppHandle, theme: String) -> Result<(), AppError> {
     let mut config = read_config(&app)?;
     config.theme = theme;
+    write_config(&app, &config)?;
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn get_has_seen_welcome(app: tauri::AppHandle) -> Result<bool, AppError> {
+    let config = read_config(&app)?;
+    Ok(config.has_seen_welcome)
+}
+
+#[tauri::command]
+pub async fn set_has_seen_welcome(app: tauri::AppHandle) -> Result<(), AppError> {
+    let mut config = read_config(&app)?;
+    config.has_seen_welcome = true;
     write_config(&app, &config)?;
     Ok(())
 }

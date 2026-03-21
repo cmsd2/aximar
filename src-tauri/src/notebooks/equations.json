@@ -1,0 +1,81 @@
+{
+  "nbformat": 4,
+  "nbformat_minor": 0,
+  "metadata": {
+    "kernelspec": {
+      "name": "maxima",
+      "display_name": "Maxima",
+      "language": "maxima"
+    },
+    "aximar": {
+      "template_id": "equations",
+      "title": "Solving Equations",
+      "description": "Algebraic equations, systems, numerical roots, and ODEs."
+    }
+  },
+  "cells": [
+    {
+      "cell_type": "code",
+      "source": "/* Quadratic equation */\nsolve(x^2 - 5*x + 6 = 0, x)",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": "/* Cubic equation */\nsolve(x^3 - 6*x^2 + 11*x - 6 = 0, x)",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": "/* System of equations */\nsolve([x + y = 10, x - y = 4], [x, y])",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": "/* Nonlinear system */\nalgsys([x^2 + y^2 = 25, x*y = 12], [x, y])",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": "/* Numerical root finding */\nfind_root(cos(x) - x, x, 0, 2)",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": "/* Extract solution values */\nsols: solve(x^2 - 7*x + 12 = 0, x);\nmap(rhs, sols)",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": "/* Using assumptions */\nassume(a > 0);\nsolve(a*x^2 + b*x + c = 0, x)",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": "/* First-order ODE */\node2('diff(y,x) + 2*y = exp(-x), y, x)",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": "/* Second-order ODE with initial conditions */\nsol: ode2('diff(y,x,2) + y = 0, y, x);\nic2(sol, x=0, y=1, 'diff(y,x)=0)",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    }
+  ]
+}

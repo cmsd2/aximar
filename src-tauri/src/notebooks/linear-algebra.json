@@ -1,0 +1,88 @@
+{
+  "nbformat": 4,
+  "nbformat_minor": 0,
+  "metadata": {
+    "kernelspec": {
+      "name": "maxima",
+      "display_name": "Maxima",
+      "language": "maxima"
+    },
+    "aximar": {
+      "template_id": "linear-algebra",
+      "title": "Linear Algebra",
+      "description": "Matrices, determinants, eigenvalues, and linear systems."
+    }
+  },
+  "cells": [
+    {
+      "cell_type": "code",
+      "source": "/* Create a matrix */\nA: matrix([1, 2, 3], [4, 5, 6], [7, 8, 10])",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": "/* Determinant */\ndeterminant(A)",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": "/* Inverse */\ninvert(A)",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": "/* Verify: A * A^(-1) = I */\nratsimp(A . invert(A))",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": "/* Transpose */\ntranspose(A)",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": "/* Eigenvalues */\neigenvalues(matrix([2, 1], [1, 2]))",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": "/* Characteristic polynomial */\ncharpoly(matrix([2, 1], [1, 2]), lambda)",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": "/* Solve a linear system: x+2y=5, 3x+4y=11 */\nlinsolve([x + 2*y = 5, 3*x + 4*y = 11], [x, y])",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": "/* Identity and zero matrices */\nident(3)",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": "/* Row echelon form */\nechelon(matrix([1, 2, 3], [4, 5, 6], [7, 8, 9]))",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    }
+  ]
+}

@@ -1,5 +1,7 @@
 use regex::Regex;
 
+use crate::catalog::search::Catalog;
+use crate::maxima::errors;
 use crate::maxima::types::EvalResult;
 
 /// LaTeX values that indicate tex(%) had no real result (e.g. after an error)
@@ -19,8 +21,8 @@ fn is_junk_latex(inner: &str) -> bool {
         || inner.contains("AXIMAR")
 }
 
-pub fn parse_output(cell_id: &str, lines: &[String], duration_ms: u64) -> EvalResult {
-    let latex_re = Regex::new(r"^\$\$.*\$\$$").unwrap();
+pub fn parse_output(cell_id: &str, lines: &[String], duration_ms: u64, catalog: &Catalog) -> EvalResult {
+    let label_re = Regex::new(r"__AXIMAR_LABEL__\s+(\d+)").unwrap();
     let error_patterns = [
         " -- an error.",
         "incorrect syntax:",
@@ -36,12 +38,48 @@ pub fn parse_output(cell_id: &str, lines: &[String], duration_ms: u64) -> EvalRe
     let mut text_lines: Vec<String> = Vec::new();
     let mut skip_next_false = false;
     let mut in_error = false;
+    let mut output_label: Option<String> = None;
+    // Accumulator for multi-line LaTeX (tex() wraps long output)
+    let mut latex_buf: Option<String> = None;
 
     for line in lines {
         let trimmed = line.trim();
 
+        // Accumulate multi-line LaTeX: started with $$ but not yet closed
+        if let Some(ref mut buf) = latex_buf {
+            buf.push_str(trimmed);
+            if trimmed.ends_with("$$") {
+                // Complete LaTeX block — strip $$ delimiters
+                let full = buf.clone();
+                latex_buf = None;
+                let inner = &full[2..full.len() - 2];
+                if !is_junk_latex(inner) {
+                    latex = Some(inner.to_string());
+                }
+                skip_next_false = true;
+            }
+            continue;
+        }
+
         // Always skip sentinel lines (including LaTeX-escaped versions with \_)
-        if trimmed.contains("__AXIMAR_") || trimmed.contains("AXIMAR_EVAL_END") || trimmed.contains("AXIMAR_READY") {
+        if trimmed.contains("AXIMAR_EVAL_END") || trimmed.contains("AXIMAR_READY") {
+            continue;
+        }
+
+        // Extract output label from __AXIMAR_LABEL__ N
+        // linenum reports the current expression's own line number, so:
+        //   expression = N-2, tex(%) = N-1, print(label) = N
+        if let Some(caps) = label_re.captures(trimmed) {
+            if let Ok(n) = caps[1].parse::<u64>() {
+                if n >= 2 {
+                    output_label = Some(format!("%o{}", n - 2));
+                }
+            }
+            continue;
+        }
+
+        // Skip other __AXIMAR_ sentinel lines
+        if trimmed.contains("__AXIMAR_") {
             continue;
         }
 
@@ -53,14 +91,19 @@ pub fn parse_output(cell_id: &str, lines: &[String], duration_ms: u64) -> EvalRe
             }
         }
 
-        // Check for LaTeX output
-        if latex_re.is_match(trimmed) {
-            let inner = &trimmed[2..trimmed.len() - 2];
-            // Discard junk LaTeX that appears after errors
-            if !is_junk_latex(inner) {
-                latex = Some(inner.to_string());
+        // Check for LaTeX output (may be single-line or start of multi-line)
+        if trimmed.starts_with("$$") {
+            if trimmed.ends_with("$$") && trimmed.len() > 4 {
+                // Single-line LaTeX
+                let inner = &trimmed[2..trimmed.len() - 2];
+                if !is_junk_latex(inner) {
+                    latex = Some(inner.to_string());
+                }
+                skip_next_false = true;
+            } else {
+                // Start of multi-line LaTeX
+                latex_buf = Some(trimmed.to_string());
             }
-            skip_next_false = true;
             continue;
         }
 
@@ -115,20 +158,33 @@ pub fn parse_output(cell_id: &str, lines: &[String], duration_ms: u64) -> EvalRe
     // If error, discard any junk latex that came from tex(%) on the error state
     let latex = if has_error { None } else { latex };
 
+    let error_info = error
+        .as_ref()
+        .and_then(|e| errors::enhance_error(e, catalog));
+
+    // Don't expose an output label for errors (no %oN was assigned)
+    let output_label = if has_error { None } else { output_label };
+
     EvalResult {
         cell_id: cell_id.to_string(),
         text_output,
         latex,
         plot_svg: None,
         error: error.clone(),
+        error_info,
         is_error: has_error,
         duration_ms,
+        output_label,
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn catalog() -> Catalog {
+        Catalog::load()
+    }
 
     #[test]
     fn test_parse_basic_output() {
@@ -139,7 +195,7 @@ mod tests {
             "__AXIMAR_EVAL_END__".to_string(),
         ];
 
-        let result = parse_output("cell-1", &lines, 100);
+        let result = parse_output("cell-1", &lines, 100, &catalog());
         assert!(!result.is_error);
         assert_eq!(result.latex, Some("{{x^3}\\over{3}}".to_string()));
         assert!(result.error.is_none());
@@ -155,10 +211,13 @@ mod tests {
             "__AXIMAR_EVAL_END__".to_string(),
         ];
 
-        let result = parse_output("cell-1", &lines, 100);
+        let result = parse_output("cell-1", &lines, 100, &catalog());
         assert!(result.is_error);
         assert!(result.error.is_some());
         assert!(result.latex.is_none());
+        // Should have enhanced error info
+        assert!(result.error_info.is_some());
+        assert_eq!(result.error_info.unwrap().title, "Division by Zero");
     }
 
     #[test]
@@ -172,13 +231,71 @@ mod tests {
             "__AXIMAR_EVAL_END__".to_string(),
         ];
 
-        let result = parse_output("cell-1", &lines, 100);
+        let result = parse_output("cell-1", &lines, 100, &catalog());
         assert!(result.is_error);
         assert!(result.error.is_some());
         assert!(result.latex.is_none());
         let err = result.error.unwrap();
         assert!(err.contains("incorrect syntax"));
         assert!(err.contains("^"));
+        assert!(result.error_info.is_some());
+    }
+
+    #[test]
+    fn test_parse_output_label() {
+        let lines = vec![
+            "2*x".to_string(),
+            "$$2\\,x$$".to_string(),
+            "false".to_string(),
+            "__AXIMAR_LABEL__ 7".to_string(),
+            "__AXIMAR_EVAL_END__".to_string(),
+        ];
+
+        let result = parse_output("cell-1", &lines, 100, &catalog());
+        assert!(!result.is_error);
+        // linenum 7 = print's own line; expression = 7-2 = %o5
+        assert_eq!(result.output_label, Some("%o5".to_string()));
+    }
+
+    #[test]
+    fn test_error_has_no_output_label() {
+        let lines = vec![
+            "expt: undefined: 0 to a negative exponent.".to_string(),
+            " -- an error. To debug this try: debugmode(true);".to_string(),
+            "$$\\mathbf{false}$$".to_string(),
+            "false".to_string(),
+            "__AXIMAR_LABEL__ 7".to_string(),
+            "__AXIMAR_EVAL_END__".to_string(),
+        ];
+
+        let result = parse_output("cell-1", &lines, 100, &catalog());
+        assert!(result.is_error);
+        // Errors should NOT have an output label
+        assert_eq!(result.output_label, None);
+    }
+
+    #[test]
+    fn test_parse_multiline_latex() {
+        // Maxima wraps long tex() output across lines
+        let lines = vec![
+            "-(%e^x*sin(x)^2)+%e^x*cos(x)*sin(x)+%e^x*cos(x)^2".to_string(),
+            "$$-\\left(e^{x}\\,\\sin ^2x\\right)+e^{x}\\,\\cos x\\,\\sin x+e^{x}\\".to_string(),
+            "\\,\\cos ^2x$$".to_string(),
+            "false".to_string(),
+            "__AXIMAR_LABEL__ 8".to_string(),
+            "__AXIMAR_EVAL_END__".to_string(),
+        ];
+
+        let result = parse_output("cell-1", &lines, 100, &catalog());
+        assert!(!result.is_error);
+        assert!(result.latex.is_some());
+        let latex = result.latex.unwrap();
+        assert!(latex.starts_with("-\\left("));
+        assert!(latex.ends_with("\\cos ^2x"));
+        assert!(!latex.contains("$$"));
+        // Text output should NOT contain the LaTeX lines
+        assert!(!result.text_output.contains("$$"));
+        assert!(!result.text_output.contains("\\left("));
     }
 
     #[test]
@@ -188,7 +305,7 @@ mod tests {
             "\"__AXIMAR_EVAL_END__\"".to_string(),
         ];
 
-        let result = parse_output("cell-1", &lines, 100);
+        let result = parse_output("cell-1", &lines, 100, &catalog());
         assert!(!result.text_output.contains("__AXIMAR_EVAL_END__"));
         assert!(result.error.is_none() || !result.error.unwrap().contains("__AXIMAR_EVAL_END__"));
     }
