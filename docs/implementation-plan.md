@@ -262,6 +262,21 @@ Maxima's `tex()` output needs preprocessing for KaTeX compatibility:
 3. App icons (Tauri icon generator)
 4. Build config for .dmg / .AppImage / .deb / .msi
 
+### CI/CD
+
+**Goal**: Automated builds on every push to `master`.
+
+A GitHub Actions workflow (`.github/workflows/build.yml`) builds the app across macOS, Linux, and Windows using a matrix strategy. Each job:
+
+1. Checks out the repo
+2. Installs Rust stable + cargo cache (`Swatinem/rust-cache`)
+3. Installs system deps (Linux only: GTK3, WebKit2GTK 4.1, appindicator, librsvg, patchelf, OpenSSL)
+4. Sets up Node 22 LTS with npm cache
+5. Runs `npm ci` → `npm run build` (typecheck + Vite bundle) → `npx tauri build`
+6. Uploads platform bundles as artifacts (.dmg/.app, .deb/.AppImage, .msi/.exe)
+
+Maxima is **not** required at build time — it's a runtime-only dependency.
+
 ---
 
 ## Key Design Decisions
