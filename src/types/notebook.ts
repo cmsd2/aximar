@@ -16,8 +16,11 @@ export interface CellOutput {
 
 export type CellStatus = "idle" | "running" | "queued" | "error" | "success";
 
+export type CellType = "code" | "markdown";
+
 export interface Cell {
   id: string;
+  cellType: CellType;
   input: string;
   output: CellOutput | null;
   status: CellStatus;

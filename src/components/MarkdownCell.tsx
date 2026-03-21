@@ -1,0 +1,108 @@
+import { useState, useRef, useEffect, useCallback } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkMath from "remark-math";
+import rehypeKatex from "rehype-katex";
+import type { Cell as CellType } from "../types/notebook";
+import { useNotebookStore } from "../store/notebookStore";
+
+interface MarkdownCellProps {
+  cell: CellType;
+}
+
+export function MarkdownCell({ cell }: MarkdownCellProps) {
+  const [editing, setEditing] = useState(false);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const updateCellInput = useNotebookStore((s) => s.updateCellInput);
+  const deleteCell = useNotebookStore((s) => s.deleteCell);
+  const cells = useNotebookStore((s) => s.cells);
+  const cellCount = cells.length;
+
+  useEffect(() => {
+    if (editing && textareaRef.current) {
+      const ta = textareaRef.current;
+      ta.focus();
+      ta.style.height = "auto";
+      ta.style.height = ta.scrollHeight + "px";
+    }
+  }, [editing]);
+
+  const handleBlur = useCallback(() => {
+    setEditing(false);
+  }, []);
+
+  const handleChange = useCallback(
+    (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+      updateCellInput(cell.id, e.target.value);
+      const ta = e.target;
+      ta.style.height = "auto";
+      ta.style.height = ta.scrollHeight + "px";
+    },
+    [cell.id, updateCellInput]
+  );
+
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        setEditing(false);
+      }
+    },
+    []
+  );
+
+  return (
+    <div className={`cell markdown-cell${editing ? " editing" : ""}`}>
+      {editing ? (
+        <div className="markdown-cell-edit">
+          <textarea
+            ref={textareaRef}
+            className="markdown-cell-textarea"
+            value={cell.input}
+            onChange={handleChange}
+            onBlur={handleBlur}
+            onKeyDown={handleKeyDown}
+            placeholder="Enter markdown..."
+            rows={3}
+          />
+        </div>
+      ) : (
+        <div
+          className="markdown-cell-view"
+          onDoubleClick={() => setEditing(true)}
+        >
+          {cell.input.trim() ? (
+            <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
+              {cell.input}
+            </ReactMarkdown>
+          ) : (
+            <p className="markdown-cell-placeholder">
+              Double-click to edit markdown...
+            </p>
+          )}
+        </div>
+      )}
+      <div className="cell-actions">
+        <button
+          className={`cell-btn ${editing ? "run-btn" : "edit-btn"}`}
+          onMouseDown={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setEditing(!editing);
+          }}
+          title={editing ? "Done editing (Escape)" : "Edit markdown"}
+        >
+          {editing ? "\u2713" : "\u270E"}
+        </button>
+        {cellCount > 1 && (
+          <button
+            className="cell-btn delete-btn"
+            onClick={() => deleteCell(cell.id)}
+            title="Delete cell"
+          >
+            &times;
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}

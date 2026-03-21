@@ -64,15 +64,6 @@ pub enum CellSource {
     Lines(Vec<String>),
 }
 
-impl CellSource {
-    pub fn as_string(&self) -> String {
-        match self {
-            CellSource::String(s) => s.clone(),
-            CellSource::Lines(lines) => lines.join(""),
-        }
-    }
-}
-
 impl Default for NotebookMetadata {
     fn default() -> Self {
         NotebookMetadata {
@@ -82,17 +73,6 @@ impl Default for NotebookMetadata {
                 language: Some("maxima".into()),
             },
             aximar: None,
-        }
-    }
-}
-
-impl Notebook {
-    pub fn new_empty() -> Self {
-        Notebook {
-            nbformat: 4,
-            nbformat_minor: 0,
-            metadata: NotebookMetadata::default(),
-            cells: Vec::new(),
         }
     }
 }

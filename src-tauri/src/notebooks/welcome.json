@@ -15,74 +15,112 @@
   },
   "cells": [
     {
+      "cell_type": "markdown",
+      "source": "# Welcome to Aximar!\n\nPress **Shift+Enter** to run each code cell.",
+      "metadata": {}
+    },
+    {
       "cell_type": "code",
-      "source": "/* Welcome to Aximar! Press Shift+Enter to run each cell. */\n2 + 3 * 5",
+      "source": "2 + 3 * 5",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## Variables and assignment\n\nUse `:` to assign values to variables.",
+      "metadata": {}
+    },
+    {
+      "cell_type": "code",
+      "source": "n: 42;\nn^2 + n + 1",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "Clear a variable with `kill()` when you're done with it. It becomes symbolic again.",
+      "metadata": {}
+    },
+    {
+      "cell_type": "code",
+      "source": "kill(n)$\nn + 1",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## Symbolic algebra",
+      "metadata": {}
+    },
+    {
+      "cell_type": "code",
+      "source": "expand((x + y)^3)",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## Calculus\n\nDifferentiation and integration:",
+      "metadata": {}
+    },
+    {
+      "cell_type": "code",
+      "source": "diff(sin(x) * exp(x), x)",
       "metadata": {},
       "execution_count": null,
       "outputs": []
     },
     {
       "cell_type": "code",
-      "source": "/* Variables and assignment */\nn: 42;\nn^2 + n + 1",
+      "source": "integrate(x^2 * exp(-x), x)",
       "metadata": {},
       "execution_count": null,
       "outputs": []
     },
     {
+      "cell_type": "markdown",
+      "source": "## Solving equations",
+      "metadata": {}
+    },
+    {
       "cell_type": "code",
-      "source": "/* Clear a variable when you're done with it */\nkill(n)$\n/* n is now symbolic again */\nn + 1",
+      "source": "solve(x^2 - 5*x + 6 = 0, x)",
       "metadata": {},
       "execution_count": null,
       "outputs": []
     },
     {
+      "cell_type": "markdown",
+      "source": "## Matrices",
+      "metadata": {}
+    },
+    {
       "cell_type": "code",
-      "source": "/* Symbolic algebra */\nexpand((x + y)^3)",
+      "source": "A: matrix([1, 2], [3, 4]);\ndeterminant(A)",
       "metadata": {},
       "execution_count": null,
       "outputs": []
     },
     {
+      "cell_type": "markdown",
+      "source": "## Simplification",
+      "metadata": {}
+    },
+    {
       "cell_type": "code",
-      "source": "/* Calculus: differentiation */\ndiff(sin(x) * exp(x), x)",
+      "source": "trigsimp(sin(x)^2 + cos(x)^2)",
       "metadata": {},
       "execution_count": null,
       "outputs": []
     },
     {
-      "cell_type": "code",
-      "source": "/* Calculus: integration */\nintegrate(x^2 * exp(-x), x)",
-      "metadata": {},
-      "execution_count": null,
-      "outputs": []
-    },
-    {
-      "cell_type": "code",
-      "source": "/* Solve equations */\nsolve(x^2 - 5*x + 6 = 0, x)",
-      "metadata": {},
-      "execution_count": null,
-      "outputs": []
-    },
-    {
-      "cell_type": "code",
-      "source": "/* Matrices */\nA: matrix([1, 2], [3, 4]);\ndeterminant(A)",
-      "metadata": {},
-      "execution_count": null,
-      "outputs": []
-    },
-    {
-      "cell_type": "code",
-      "source": "/* Simplification */\ntrigsimp(sin(x)^2 + cos(x)^2)",
-      "metadata": {},
-      "execution_count": null,
-      "outputs": []
-    },
-    {
-      "cell_type": "code",
-      "source": "/* Try Cmd+K (or Ctrl+K) to open the function browser! */\n/* Tip: Click suggestion chips below outputs for next steps. */",
-      "metadata": {},
-      "execution_count": null,
-      "outputs": []
+      "cell_type": "markdown",
+      "source": "## Tips\n\n- Press **Cmd+K** (or **Ctrl+K**) to open the function browser\n- Click **suggestion chips** below outputs for next steps\n- Use `$x^2$` in markdown cells for inline math: $x^2 + y^2 = r^2$",
+      "metadata": {}
     }
   ]
 }

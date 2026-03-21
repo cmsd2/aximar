@@ -1,13 +1,14 @@
 import { create } from "zustand";
 import { nanoid } from "nanoid";
-import type { Cell, CellOutput, CellStatus } from "../types/notebook";
+import type { Cell, CellOutput, CellStatus, CellType } from "../types/notebook";
 import type { SessionStatus } from "../types/maxima";
 import type { NotebookCell } from "../types/notebooks";
 import { cellSourceText } from "../types/notebooks";
 
-function createCell(): Cell {
+function createCell(cellType: CellType = "code"): Cell {
   return {
     id: nanoid(),
+    cellType,
     input: "",
     output: null,
     status: "idle",
@@ -15,15 +16,18 @@ function createCell(): Cell {
 }
 
 export type Theme = "auto" | "light" | "dark";
+export type CellStyle = "card" | "bracket";
 
 interface NotebookState {
   cells: Cell[];
   sessionStatus: SessionStatus;
   theme: Theme;
+  cellStyle: CellStyle;
   activeCellId: string | null;
   executionCounter: number;
 
   addCell: (afterId?: string) => void;
+  addMarkdownCell: (afterId?: string) => void;
   addCellWithInput: (afterId: string, input: string) => string;
   deleteCell: (id: string) => void;
   updateCellInput: (id: string, input: string) => void;
@@ -31,8 +35,10 @@ interface NotebookState {
   setCellOutput: (id: string, output: CellOutput) => void;
   setSessionStatus: (status: SessionStatus) => void;
   setTheme: (theme: Theme) => void;
+  setCellStyle: (style: CellStyle) => void;
   setActiveCellId: (id: string | null) => void;
   insertTextInActiveCell: (text: string) => void;
+  toggleCellType: (id: string) => void;
   loadNotebook: (cells: NotebookCell[]) => void;
 }
 
@@ -40,12 +46,28 @@ export const useNotebookStore = create<NotebookState>((set) => ({
   cells: [createCell()],
   sessionStatus: "Stopped",
   theme: "auto",
+  cellStyle: "card",
   activeCellId: null,
   executionCounter: 0,
 
   addCell: (afterId?: string) =>
     set((state) => {
       const newCell = createCell();
+      if (!afterId) {
+        return { cells: [...state.cells, newCell] };
+      }
+      const index = state.cells.findIndex((c) => c.id === afterId);
+      if (index === -1) {
+        return { cells: [...state.cells, newCell] };
+      }
+      const cells = [...state.cells];
+      cells.splice(index + 1, 0, newCell);
+      return { cells };
+    }),
+
+  addMarkdownCell: (afterId?: string) =>
+    set((state) => {
+      const newCell = createCell("markdown");
       if (!afterId) {
         return { cells: [...state.cells, newCell] };
       }
@@ -104,6 +126,8 @@ export const useNotebookStore = create<NotebookState>((set) => ({
 
   setTheme: (theme: Theme) => set({ theme }),
 
+  setCellStyle: (cellStyle: CellStyle) => set({ cellStyle }),
+
   setActiveCellId: (id: string | null) => set({ activeCellId: id }),
 
   insertTextInActiveCell: (text: string) =>
@@ -118,13 +142,22 @@ export const useNotebookStore = create<NotebookState>((set) => ({
       };
     }),
 
+  toggleCellType: (id: string) =>
+    set((state) => ({
+      cells: state.cells.map((c) =>
+        c.id === id
+          ? { ...c, cellType: c.cellType === "code" ? "markdown" : "code", output: null, status: "idle" }
+          : c
+      ),
+    })),
+
   loadNotebook: (newCells: NotebookCell[]) =>
     set(() => ({
       executionCounter: 0,
       cells: newCells
-        .filter((c) => c.cell_type === "code")
+        .filter((c) => c.cell_type !== "raw")
         .map((c) => ({
-          ...createCell(),
+          ...createCell(c.cell_type === "markdown" ? "markdown" : "code"),
           input: cellSourceText(c.source),
         })),
     })),

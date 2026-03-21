@@ -83,9 +83,12 @@ mod tests {
         let nb = get_template("welcome").unwrap();
         assert_eq!(nb.metadata.kernelspec.name, "maxima");
         assert!(nb.metadata.aximar.is_some());
-        // All cells should be code cells
+        // Cells should be code or markdown
         for cell in &nb.cells {
-            assert_eq!(cell.cell_type, crate::notebooks::types::CellType::Code);
+            assert!(
+                cell.cell_type == crate::notebooks::types::CellType::Code
+                    || cell.cell_type == crate::notebooks::types::CellType::Markdown,
+            );
         }
     }
 }

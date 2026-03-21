@@ -44,12 +44,25 @@ export function CommandPalette({ onClose }: CommandPaletteProps) {
     }
   }, [query]);
 
+  const activeCellId = useNotebookStore((s) => s.activeCellId);
+
   const insertFunction = useCallback(
     (name: string) => {
       insertTextInActiveCell(`${name}()`);
       onClose();
+      requestAnimationFrame(() => {
+        if (!activeCellId) return;
+        const textarea = document.querySelector<HTMLTextAreaElement>(
+          `textarea[data-cell-id="${activeCellId}"]`
+        );
+        if (textarea) {
+          textarea.focus();
+          const pos = textarea.value.length - 1;
+          textarea.setSelectionRange(pos, pos);
+        }
+      });
     },
-    [insertTextInActiveCell, onClose]
+    [insertTextInActiveCell, onClose, activeCellId]
   );
 
   // Flat list for category browse mode
