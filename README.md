@@ -4,6 +4,8 @@ A modern, cross-platform desktop GUI for the [Maxima](https://maxima.sourceforge
 
 Built with [Tauri v2](https://tauri.app/) (Rust backend) and React + TypeScript (frontend).
 
+![Aximar screenshot — calculus template with rendered LaTeX output](assets/screenshot.png)
+
 ## Features
 
 - **Notebook interface** — multiple cells, add/delete freely
@@ -92,56 +94,6 @@ Build artifacts are placed in `src-tauri/target/release/bundle/`:
 - Windows: `.msi` installer
 
 ## Development
-
-### Project structure
-
-```
-aximar/
-├── src/                          # React frontend
-│   ├── App.tsx                   # Root component, starts Maxima session
-│   ├── main.tsx                  # Entry point
-│   ├── components/
-│   │   ├── Notebook.tsx          # Renders list of cells
-│   │   ├── Cell.tsx              # Input textarea + output display
-│   │   ├── CellOutput.tsx        # Dispatches to KaTeX or error view
-│   │   ├── KatexOutput.tsx       # KaTeX rendering
-│   │   ├── ErrorOutput.tsx       # Error display
-│   │   └── Toolbar.tsx           # Add Cell, Run All, Restart, status
-│   ├── hooks/
-│   │   └── useMaxima.ts          # Cell execution and session logic
-│   ├── lib/
-│   │   ├── maxima-client.ts      # Tauri invoke wrappers
-│   │   └── katex-helpers.ts      # LaTeX preprocessing for KaTeX
-│   ├── store/
-│   │   └── notebookStore.ts      # Zustand state (cells, session status)
-│   ├── types/
-│   │   ├── notebook.ts           # Cell, Notebook, CellOutput types
-│   │   └── maxima.ts             # EvalResult, SessionStatus types
-│   └── styles/
-│       └── global.css            # Layout and dark theme
-├── src-tauri/                    # Rust backend
-│   ├── src/
-│   │   ├── main.rs               # Entry point
-│   │   ├── lib.rs                # Command registration and setup
-│   │   ├── state.rs              # AppState (Maxima process handle)
-│   │   ├── error.rs              # Error types
-│   │   ├── maxima/
-│   │   │   ├── process.rs        # Spawn/kill Maxima subprocess
-│   │   │   ├── protocol.rs       # Sentinel-based send/receive
-│   │   │   ├── parser.rs         # Parse LaTeX and errors from output
-│   │   │   └── types.rs          # EvalResult, SessionStatus structs
-│   │   └── commands/
-│   │       ├── evaluate.rs       # evaluate_expression command
-│   │       └── session.rs        # start/stop/restart session commands
-│   ├── Cargo.toml
-│   └── tauri.conf.json
-├── docs/
-│   ├── implementation-plan.md    # Architecture and phased plan
-│   └── maxima-protocol.md        # Maxima communication protocol details
-├── package.json
-├── vite.config.ts
-└── tsconfig.json
-```
 
 ### Architecture
 
