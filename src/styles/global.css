@@ -159,6 +159,50 @@
   padding: 16px;
 }
 
+/* Insert Bar */
+.insert-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 24px;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.insert-bar:hover {
+  opacity: 1;
+}
+
+.insert-bar-line {
+  flex: 1;
+  height: 1px;
+  background: var(--border-color);
+}
+
+.insert-bar-buttons {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.insert-bar-btn {
+  padding: 2px 10px;
+  background: transparent;
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  color: var(--text-secondary);
+  font-size: 11px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  white-space: nowrap;
+}
+
+.insert-bar-btn:hover {
+  background: var(--accent);
+  color: var(--bg-primary);
+  border-color: var(--accent);
+}
+
 /* Cell */
 .cell {
   margin-bottom: 8px;
@@ -188,7 +232,7 @@
 .cell-gutter {
   width: var(--gutter-width);
   min-width: var(--gutter-width);
-  padding: 10px 4px;
+  padding: 6px 4px;
   text-align: right;
   color: var(--text-secondary);
   font-size: 11px;
@@ -213,7 +257,7 @@
 
 .cell-input {
   flex: 1;
-  padding: 10px 0;
+  padding: 6px 0;
   background: transparent;
   border: none;
   color: var(--text-primary);
@@ -232,7 +276,7 @@
 
 .cell-actions {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   gap: 2px;
   padding: 6px;
   opacity: 0;
@@ -296,7 +340,7 @@
   flex: 1;
   min-width: 0;
   width: 100%;
-  padding: 12px 12px 12px 0;
+  padding: 6px 12px 6px 0;
   overflow-x: auto;
 }
 
@@ -930,7 +974,7 @@
 .markdown-cell-view {
   flex: 1;
   min-width: 0;
-  padding: 12px 16px;
+  padding: 4px 16px;
   cursor: text;
   font-size: 14px;
   line-height: 1.6;
@@ -1018,7 +1062,7 @@
 
 .markdown-cell-textarea {
   width: 100%;
-  padding: 12px 16px;
+  padding: 4px 16px;
   background: transparent;
   border: none;
   color: var(--text-primary);
@@ -1232,8 +1276,8 @@
   right: 7px;
   width: 0;
   height: 0;
-  border-top: 6px solid var(--border-color);
-  border-left: 6px solid transparent;
+  border-top: 8px solid var(--border-color);
+  border-left: 8px solid transparent;
 }
 
 [data-cell-style="bracket"] .bracket-toggle::after {
@@ -1243,8 +1287,8 @@
   right: 7px;
   width: 0;
   height: 0;
-  border-top: 4px solid var(--bg-primary);
-  border-left: 4px solid transparent;
+  border-top: 6px solid var(--bg-primary);
+  border-left: 6px solid transparent;
 }
 
 [data-cell-style="bracket"] .cell:has(.bracket-toggle)::after {
