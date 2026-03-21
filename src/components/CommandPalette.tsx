@@ -5,10 +5,11 @@ import type { SearchResult, CategoryGroup } from "../types/catalog";
 
 interface CommandPaletteProps {
   onClose: () => void;
+  initialQuery?: string;
 }
 
-export function CommandPalette({ onClose }: CommandPaletteProps) {
-  const [query, setQuery] = useState("");
+export function CommandPalette({ onClose, initialQuery }: CommandPaletteProps) {
+  const [query, setQuery] = useState(initialQuery ?? "");
   const [results, setResults] = useState<SearchResult[]>([]);
   const [categories, setCategories] = useState<CategoryGroup[]>([]);
   const [selectedIndex, setSelectedIndex] = useState(0);

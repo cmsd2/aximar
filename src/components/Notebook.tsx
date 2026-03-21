@@ -22,7 +22,11 @@ function InsertBar({ afterId }: { afterId?: string }) {
   );
 }
 
-export function Notebook() {
+interface NotebookProps {
+  onViewDocs?: (name: string) => void;
+}
+
+export function Notebook({ onViewDocs }: NotebookProps) {
   const cells = useNotebookStore((s) => s.cells);
 
   return (
@@ -33,7 +37,7 @@ export function Notebook() {
           {cell.cellType === "markdown" ? (
             <MarkdownCell cell={cell} />
           ) : (
-            <Cell cell={cell} />
+            <Cell cell={cell} onViewDocs={onViewDocs} />
           )}
           <InsertBar afterId={cell.id} />
         </div>

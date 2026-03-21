@@ -22,6 +22,9 @@ function App() {
   const { initSession } = useMaxima();
   useTheme();
   const [paletteOpen, setPaletteOpen] = useState(false);
+  const [paletteQuery, setPaletteQuery] = useState<string | undefined>(
+    undefined
+  );
   const [templateChooserOpen, setTemplateChooserOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [variablesOpen, setVariablesOpen] = useState(false);
@@ -67,9 +70,15 @@ function App() {
       .catch(() => {});
   }, [loadNotebook]);
 
+  const openPaletteWithQuery = useCallback((query: string) => {
+    setPaletteQuery(query);
+    setPaletteOpen(true);
+  }, []);
+
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
     if ((e.metaKey || e.ctrlKey) && e.key === "k") {
       e.preventDefault();
+      setPaletteQuery(undefined);
       setPaletteOpen((open) => !open);
     }
   }, []);
@@ -91,10 +100,16 @@ function App() {
         logUnreadCount={logUnreadCount}
       />
       <VariablePanel open={variablesOpen} />
-      <Notebook />
+      <Notebook onViewDocs={openPaletteWithQuery} />
       <LogPanel open={logOpen} />
       {paletteOpen && (
-        <CommandPalette onClose={() => setPaletteOpen(false)} />
+        <CommandPalette
+          onClose={() => {
+            setPaletteOpen(false);
+            setPaletteQuery(undefined);
+          }}
+          initialQuery={paletteQuery}
+        />
       )}
       {templateChooserOpen && (
         <TemplateChooser onClose={() => setTemplateChooserOpen(false)} />

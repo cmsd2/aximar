@@ -3,15 +3,18 @@ import type { Cell as CellType } from "../types/notebook";
 import { useNotebookStore } from "../store/notebookStore";
 import { useMaxima } from "../hooks/useMaxima";
 import { useAutocomplete } from "../hooks/useAutocomplete";
+import { useHoverTooltip } from "../hooks/useHoverTooltip";
 import { CellOutput } from "./CellOutput";
 import { CellSuggestions } from "./CellSuggestions";
 import { AutocompletePopup } from "./AutocompletePopup";
+import { HoverTooltip } from "./HoverTooltip";
 
 interface CellProps {
   cell: CellType;
+  onViewDocs?: (name: string) => void;
 }
 
-export function Cell({ cell }: CellProps) {
+export function Cell({ cell, onViewDocs }: CellProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const updateCellInput = useNotebookStore((s) => s.updateCellInput);
   const deleteCell = useNotebookStore((s) => s.deleteCell);
@@ -22,6 +25,7 @@ export function Cell({ cell }: CellProps) {
   const { executeCell } = useMaxima();
 
   const autocomplete = useAutocomplete(textareaRef);
+  const hoverTooltip = useHoverTooltip(textareaRef, autocomplete.state.visible);
   const [, setAutocompleteIndex] = useState(0);
   const [outputCollapsed, setOutputCollapsed] = useState(false);
 
@@ -77,8 +81,10 @@ export function Cell({ cell }: CellProps) {
       textarea.style.height = textarea.scrollHeight + "px";
       // Trigger autocomplete
       autocomplete.handleInput();
+      // Hide hover tooltip on typing
+      hoverTooltip.hide();
     },
-    [cell.id, updateCellInput, autocomplete]
+    [cell.id, updateCellInput, autocomplete, hoverTooltip]
   );
 
   const execNum = cell.output?.executionCount ?? null;
@@ -115,6 +121,8 @@ export function Cell({ cell }: CellProps) {
             // Delay dismiss so popup click can fire
             setTimeout(() => autocomplete.dismiss(), 150);
           }}
+          onMouseMove={hoverTooltip.onMouseMove}
+          onMouseLeave={hoverTooltip.onMouseLeave}
           placeholder="Enter Maxima expression... (Shift+Enter to evaluate)"
           rows={1}
           spellCheck={false}
@@ -147,6 +155,16 @@ export function Cell({ cell }: CellProps) {
         }}
         onHover={(i) => setAutocompleteIndex(i)}
       />
+      {hoverTooltip.state.visible && hoverTooltip.state.func && onViewDocs && (
+        <HoverTooltip
+          func={hoverTooltip.state.func}
+          x={hoverTooltip.state.x}
+          y={hoverTooltip.state.y}
+          onViewDocs={onViewDocs}
+          onMouseEnter={hoverTooltip.cancelHide}
+          onMouseLeave={hoverTooltip.scheduleHide}
+        />
+      )}
       {cell.output && !outputCollapsed && (
         <div className="cell-output-area">
           <div className="cell-gutter">
