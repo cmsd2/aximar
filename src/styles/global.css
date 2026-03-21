@@ -292,11 +292,54 @@
 }
 
 .cell-output {
+  position: relative;
   flex: 1;
   min-width: 0;
   width: 100%;
   padding: 12px 12px 12px 0;
   overflow-x: auto;
+}
+
+.copy-actions {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  display: flex;
+  gap: 4px;
+  opacity: 0;
+  transition: opacity 0.15s;
+  z-index: 1;
+}
+
+.cell-output:hover .copy-actions {
+  opacity: 1;
+}
+
+.copy-btn {
+  width: auto;
+  min-width: 26px;
+  height: 26px;
+  padding: 0 6px;
+  background: var(--bg-cell);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  color: var(--text-secondary);
+  font-size: 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.copy-btn:hover {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+}
+
+.copy-btn.copied {
+  color: var(--success-color);
+  border-color: var(--success-color);
 }
 
 .katex-output {
@@ -859,6 +902,132 @@
   white-space: pre-wrap;
   word-break: break-word;
   margin-top: 4px;
+}
+
+/* Markdown Cell */
+.markdown-cell {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  background: transparent;
+  border-color: transparent;
+}
+
+.markdown-cell.editing {
+  border-color: var(--border-color);
+}
+
+.markdown-cell .cell-actions {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+}
+
+.markdown-cell-view {
+  flex: 1;
+  min-width: 0;
+  padding: 12px 16px;
+  cursor: text;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--text-primary);
+}
+
+.markdown-cell-view h1,
+.markdown-cell-view h2,
+.markdown-cell-view h3,
+.markdown-cell-view h4,
+.markdown-cell-view h5,
+.markdown-cell-view h6 {
+  margin-top: 0.6em;
+  margin-bottom: 0.4em;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.markdown-cell-view h1 { font-size: 1.5em; }
+.markdown-cell-view h2 { font-size: 1.25em; }
+.markdown-cell-view h3 { font-size: 1.1em; }
+
+.markdown-cell-view h1:first-child,
+.markdown-cell-view h2:first-child,
+.markdown-cell-view h3:first-child {
+  margin-top: 0;
+}
+
+.markdown-cell-view p {
+  margin: 0.4em 0;
+}
+
+.markdown-cell-view ul,
+.markdown-cell-view ol {
+  margin: 0.4em 0;
+  padding-left: 1.5em;
+}
+
+.markdown-cell-view li {
+  margin: 0.2em 0;
+}
+
+.markdown-cell-view code {
+  font-family: "JetBrains Mono", "Fira Code", "SF Mono", Menlo, Consolas, monospace;
+  font-size: 0.9em;
+  background: var(--bg-secondary);
+  padding: 1px 5px;
+  border-radius: 3px;
+}
+
+.markdown-cell-view pre {
+  background: var(--bg-secondary);
+  padding: 10px;
+  border-radius: 6px;
+  overflow-x: auto;
+  margin: 0.5em 0;
+}
+
+.markdown-cell-view pre code {
+  background: transparent;
+  padding: 0;
+}
+
+.markdown-cell-view strong {
+  font-weight: 700;
+}
+
+.markdown-cell-view blockquote {
+  border-left: 3px solid var(--border-color);
+  margin: 0.5em 0;
+  padding: 0.25em 0 0.25em 12px;
+  color: var(--text-secondary);
+}
+
+.markdown-cell-placeholder {
+  color: var(--text-placeholder);
+  font-style: italic;
+  margin: 0;
+}
+
+.markdown-cell-edit {
+  flex: 1;
+  min-width: 0;
+}
+
+.markdown-cell-textarea {
+  width: 100%;
+  padding: 12px 16px;
+  background: transparent;
+  border: none;
+  color: var(--text-primary);
+  font-family: "JetBrains Mono", "Fira Code", "SF Mono", Menlo, Consolas, monospace;
+  font-size: var(--font-size-mono);
+  line-height: 1.5;
+  resize: none;
+  outline: none;
+  overflow: hidden;
+}
+
+.markdown-cell-textarea::placeholder {
+  color: var(--text-placeholder);
 }
 
 /* Settings Modal */
