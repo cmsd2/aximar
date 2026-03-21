@@ -2,10 +2,12 @@ import { useEffect } from "react";
 import { Toolbar } from "./components/Toolbar";
 import { Notebook } from "./components/Notebook";
 import { useMaxima } from "./hooks/useMaxima";
+import { useTheme } from "./hooks/useTheme";
 import "./styles/global.css";
 
 function App() {
   const { initSession } = useMaxima();
+  useTheme();
 
   useEffect(() => {
     initSession();

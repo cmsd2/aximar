@@ -1,10 +1,24 @@
-import { useNotebookStore } from "../store/notebookStore";
+import { useNotebookStore, type Theme } from "../store/notebookStore";
 import { useMaxima } from "../hooks/useMaxima";
+
+const themeLabels: Record<Theme, string> = {
+  auto: "Auto",
+  light: "Light",
+  dark: "Dark",
+};
+
+const nextTheme: Record<Theme, Theme> = {
+  auto: "light",
+  light: "dark",
+  dark: "auto",
+};
 
 export function Toolbar() {
   const addCell = useNotebookStore((s) => s.addCell);
   const cells = useNotebookStore((s) => s.cells);
   const sessionStatus = useNotebookStore((s) => s.sessionStatus);
+  const theme = useNotebookStore((s) => s.theme);
+  const setTheme = useNotebookStore((s) => s.setTheme);
   const { executeCell, restartSession } = useMaxima();
 
   const runAll = async () => {
@@ -41,6 +55,13 @@ export function Toolbar() {
         </button>
       </div>
       <div className="toolbar-right">
+        <button
+          className="theme-btn"
+          onClick={() => setTheme(nextTheme[theme])}
+          title={`Theme: ${themeLabels[theme]}`}
+        >
+          {themeLabels[theme]}
+        </button>
         <span className={`session-status ${statusClass}`}>{statusText}</span>
       </div>
     </div>

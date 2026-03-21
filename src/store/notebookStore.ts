@@ -12,9 +12,12 @@ function createCell(): Cell {
   };
 }
 
+export type Theme = "auto" | "light" | "dark";
+
 interface NotebookState {
   cells: Cell[];
   sessionStatus: SessionStatus;
+  theme: Theme;
 
   addCell: (afterId?: string) => void;
   deleteCell: (id: string) => void;
@@ -22,11 +25,13 @@ interface NotebookState {
   setCellStatus: (id: string, status: CellStatus) => void;
   setCellOutput: (id: string, output: CellOutput) => void;
   setSessionStatus: (status: SessionStatus) => void;
+  setTheme: (theme: Theme) => void;
 }
 
 export const useNotebookStore = create<NotebookState>((set) => ({
   cells: [createCell()],
   sessionStatus: "Stopped",
+  theme: "auto",
 
   addCell: (afterId?: string) =>
     set((state) => {
@@ -67,4 +72,6 @@ export const useNotebookStore = create<NotebookState>((set) => ({
     })),
 
   setSessionStatus: (status: SessionStatus) => set({ sessionStatus: status }),
+
+  setTheme: (theme: Theme) => set({ theme }),
 }));

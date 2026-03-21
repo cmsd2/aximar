@@ -9,8 +9,8 @@ export function useMaxima() {
   const setSessionStatus = useNotebookStore((s) => s.setSessionStatus);
 
   const executeCell = useCallback(
-    async (cellId: string, input: string) => {
-      if (!input.trim()) return;
+    async (cellId: string, input: string): Promise<boolean> => {
+      if (!input.trim()) return false;
 
       setCellStatus(cellId, "running");
 
@@ -25,6 +25,7 @@ export function useMaxima() {
           durationMs: result.duration_ms,
         };
         setCellOutput(cellId, output);
+        return !result.is_error;
       } catch (err) {
         const output: CellOutput = {
           textOutput: "",
@@ -35,6 +36,7 @@ export function useMaxima() {
           durationMs: 0,
         };
         setCellOutput(cellId, output);
+        return false;
       }
     },
     [setCellStatus, setCellOutput]

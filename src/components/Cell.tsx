@@ -13,18 +13,39 @@ export function Cell({ cell }: CellProps) {
   const updateCellInput = useNotebookStore((s) => s.updateCellInput);
   const deleteCell = useNotebookStore((s) => s.deleteCell);
   const addCell = useNotebookStore((s) => s.addCell);
-  const cellCount = useNotebookStore((s) => s.cells.length);
+  const cells = useNotebookStore((s) => s.cells);
+  const cellCount = cells.length;
   const { executeCell } = useMaxima();
+
+  const focusNextCell = useCallback(() => {
+    const allInputs = Array.from(
+      document.querySelectorAll<HTMLTextAreaElement>(".cell-input")
+    );
+    const currentIdx = allInputs.indexOf(textareaRef.current!);
+    if (currentIdx !== -1 && currentIdx + 1 < allInputs.length) {
+      allInputs[currentIdx + 1].focus();
+    }
+  }, []);
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
       if (e.key === "Enter" && e.shiftKey) {
         e.preventDefault();
-        executeCell(cell.id, cell.input);
-        addCell(cell.id);
+        const idx = cells.findIndex((c) => c.id === cell.id);
+        const nextCell = cells[idx + 1];
+        const needsNewCell = !nextCell || nextCell.input.trim() !== "";
+
+        executeCell(cell.id, cell.input).then((success) => {
+          if (!success) return;
+          if (needsNewCell) {
+            addCell(cell.id);
+          }
+          // Focus next cell after React renders the new/existing cell
+          requestAnimationFrame(focusNextCell);
+        });
       }
     },
-    [cell.id, cell.input, executeCell, addCell]
+    [cell.id, cell.input, cells, executeCell, addCell, focusNextCell]
   );
 
   const handleChange = useCallback(
