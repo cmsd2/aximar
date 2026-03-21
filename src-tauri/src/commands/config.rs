@@ -18,7 +18,7 @@ fn default_eval_timeout() -> u64 {
 }
 
 fn default_cell_style() -> String {
-    "card".to_string()
+    "bracket".to_string()
 }
 
 #[derive(Debug, Serialize, Deserialize)]

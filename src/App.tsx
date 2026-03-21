@@ -46,7 +46,7 @@ function App() {
           "--font-size-mono",
           `${cfg.font_size}px`
         );
-        document.documentElement.dataset.cellStyle = cfg.cell_style || "card";
+        document.documentElement.dataset.cellStyle = cfg.cell_style || "bracket";
         setVariablesOpen(cfg.variables_open);
         for (const w of warnings) {
           addLogEntry("warning", w, "config");
