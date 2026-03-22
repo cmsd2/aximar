@@ -1,5 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { listen } from "@tauri-apps/api/event";
+import { getCurrentWindow } from "@tauri-apps/api/window";
+import { ask } from "@tauri-apps/plugin-dialog";
 import { Toolbar } from "./components/Toolbar";
 import { VariablePanel } from "./components/VariablePanel";
 import { Notebook } from "./components/Notebook";
@@ -108,13 +110,29 @@ function App() {
   }, []);
 
   const handleOpen = useCallback(async () => {
+    const { isDirty } = useNotebookStore.getState();
+    if (isDirty) {
+      const confirmed = await ask("You have unsaved changes. Discard them?", {
+        title: "Unsaved Changes",
+        kind: "warning",
+      });
+      if (!confirmed) return;
+    }
     const result = await openNotebook();
     if (result) {
       loadNotebook(result.notebook.cells, result.path);
     }
   }, [loadNotebook]);
 
-  const handleNew = useCallback(() => {
+  const handleNew = useCallback(async () => {
+    const { isDirty } = useNotebookStore.getState();
+    if (isDirty) {
+      const confirmed = await ask("You have unsaved changes. Discard them?", {
+        title: "Unsaved Changes",
+        kind: "warning",
+      });
+      if (!confirmed) return;
+    }
     newNotebook();
   }, [newNotebook]);
 
@@ -141,6 +159,27 @@ function App() {
       unlisten.then((fn) => fn());
     };
   }, [handleNew, handleOpen, handleSave, handleSaveAs]);
+
+  // --- Warn on close with unsaved changes ---
+
+  useEffect(() => {
+    const unlisten = getCurrentWindow().onCloseRequested(async (event) => {
+      const { isDirty } = useNotebookStore.getState();
+      if (isDirty) {
+        event.preventDefault();
+        const confirmed = await ask(
+          "You have unsaved changes. Close without saving?",
+          { title: "Unsaved Changes", kind: "warning" }
+        );
+        if (confirmed) {
+          getCurrentWindow().destroy();
+        }
+      }
+    });
+    return () => {
+      unlisten.then((fn) => fn());
+    };
+  }, []);
 
   // --- Keyboard shortcut: Cmd+K for command palette ---
 
