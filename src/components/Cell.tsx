@@ -18,6 +18,7 @@ export function Cell({ cell, onViewDocs }: CellProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const updateCellInput = useNotebookStore((s) => s.updateCellInput);
   const deleteCell = useNotebookStore((s) => s.deleteCell);
+  const moveCell = useNotebookStore((s) => s.moveCell);
   const addCell = useNotebookStore((s) => s.addCell);
   const cells = useNotebookStore((s) => s.cells);
   const cellCount = cells.length;
@@ -67,6 +68,12 @@ export function Cell({ cell, onViewDocs }: CellProps) {
           }
           requestAnimationFrame(focusNextCell);
         });
+      } else if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+        e.preventDefault();
+        executeCell(cell.id, cell.input);
+      } else if (e.key === "Escape") {
+        e.preventDefault();
+        textareaRef.current?.blur();
       }
     },
     [cell.id, cell.input, cells, executeCell, addCell, focusNextCell, autocomplete]
@@ -128,6 +135,26 @@ export function Cell({ cell, onViewDocs }: CellProps) {
           spellCheck={false}
         />
         <div className="cell-actions">
+          {cellCount > 1 && (
+            <>
+              <button
+                className="cell-btn move-btn"
+                onClick={() => moveCell(cell.id, "up")}
+                title="Move cell up"
+                disabled={cells[0]?.id === cell.id}
+              >
+                &#9650;
+              </button>
+              <button
+                className="cell-btn move-btn"
+                onClick={() => moveCell(cell.id, "down")}
+                title="Move cell down"
+                disabled={cells[cells.length - 1]?.id === cell.id}
+              >
+                &#9660;
+              </button>
+            </>
+          )}
           <button
             className="cell-btn run-btn"
             onClick={() => executeCell(cell.id, cell.input)}

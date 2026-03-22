@@ -32,6 +32,7 @@ interface NotebookState {
   addMarkdownCell: (afterId?: string) => void;
   addCellWithInput: (afterId: string, input: string) => string;
   deleteCell: (id: string) => void;
+  moveCell: (id: string, direction: "up" | "down") => void;
   updateCellInput: (id: string, input: string) => void;
   setCellStatus: (id: string, status: CellStatus) => void;
   setCellOutput: (id: string, output: CellOutput) => void;
@@ -105,6 +106,17 @@ export const useNotebookStore = create<NotebookState>((set) => ({
     set((state) => {
       if (state.cells.length <= 1) return state;
       return { cells: state.cells.filter((c) => c.id !== id), isDirty: true };
+    }),
+
+  moveCell: (id: string, direction: "up" | "down") =>
+    set((state) => {
+      const index = state.cells.findIndex((c) => c.id === id);
+      if (index === -1) return state;
+      const target = direction === "up" ? index - 1 : index + 1;
+      if (target < 0 || target >= state.cells.length) return state;
+      const cells = [...state.cells];
+      [cells[index], cells[target]] = [cells[target], cells[index]];
+      return { cells, isDirty: true };
     }),
 
   updateCellInput: (id: string, input: string) =>

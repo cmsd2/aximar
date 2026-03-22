@@ -345,6 +345,12 @@
   border-color: var(--error-color);
 }
 
+.cell-btn:disabled {
+  opacity: 0.3;
+  cursor: default;
+  pointer-events: none;
+}
+
 /* Cell Output */
 .cell-output-area {
   display: flex;
