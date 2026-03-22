@@ -9,9 +9,11 @@ interface ToolbarProps {
   logOpen: boolean;
   onToggleLog: () => void;
   logUnreadCount: number;
+  docsOpen: boolean;
+  onToggleDocs: () => void;
 }
 
-export function Toolbar({ onOpenTemplates, onOpenSettings, variablesOpen, onToggleVariables, logOpen, onToggleLog, logUnreadCount }: ToolbarProps) {
+export function Toolbar({ onOpenTemplates, onOpenSettings, variablesOpen, onToggleVariables, logOpen, onToggleLog, logUnreadCount, docsOpen, onToggleDocs }: ToolbarProps) {
   const addCell = useNotebookStore((s) => s.addCell);
   const addMarkdownCell = useNotebookStore((s) => s.addMarkdownCell);
   const cells = useNotebookStore((s) => s.cells);
@@ -76,6 +78,12 @@ export function Toolbar({ onOpenTemplates, onOpenSettings, variablesOpen, onTogg
             <span className="log-badge">{logUnreadCount}</span>
           )}
         </div>
+        <button
+          className={`toolbar-btn${docsOpen ? " toolbar-btn-active" : ""}`}
+          onClick={onToggleDocs}
+        >
+          Docs
+        </button>
       </div>
       <div className="toolbar-right">
         <button className="toolbar-btn" onClick={onOpenSettings}>

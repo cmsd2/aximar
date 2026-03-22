@@ -1,10 +1,10 @@
 # Catalog Generator Tool
 
-`catalog-gen` is a standalone Rust tool that generates `catalog.json` from Maxima's official Texinfo documentation.
+`catalog-gen` is a standalone Rust tool that generates `catalog.json` and `docs.json` from Maxima's official Texinfo documentation.
 
 ## Overview
 
-The function catalog (`src-tauri/src/catalog/catalog.json`) is embedded at compile time and provides autocomplete, hover tooltips, and search. The catalog-gen tool parses Maxima's comprehensive Texinfo docs to extract function definitions, signatures, descriptions, examples, and categories — producing a much larger catalog than hand-writing.
+The function catalog (`src-tauri/src/catalog/catalog.json`) is embedded at compile time and provides autocomplete, hover tooltips, and search. The full documentation (`src-tauri/src/catalog/docs.json`) is also embedded and powers the Docs panel with rich Markdown content including code examples, math, cross-references, and figures. The catalog-gen tool parses Maxima's comprehensive Texinfo docs to extract function definitions, signatures, descriptions, examples, and categories — producing a much larger catalog than hand-writing.
 
 ## Prerequisites
 
@@ -54,10 +54,13 @@ Options:
   --maxima-src <PATH>      Path to existing Maxima source checkout (skips clone/fetch)
   --git-ref <REF>          Git ref to checkout when cloning/fetching [default: master]
   -o, --output <PATH>      Output path for catalog.json [default: src-tauri/src/catalog/catalog.json]
+  --docs-output <PATH>     Output path for docs.json [default: src-tauri/src/catalog/docs.json]
   --merge                  Merge with existing catalog at output path (hand-written entries take priority)
   -q, --quiet              Suppress informational output (e.g. unmapped category warnings)
   --min-description <N>    Skip entries with descriptions shorter than N chars [default: 10]
 ```
+
+The `generate` command also copies PNG figures from the Maxima source (`doc/info/figures/`) into `src-tauri/src/catalog/figures/` for use in the documentation browser.
 
 ### `catalog-gen from-xml`
 
@@ -69,6 +72,7 @@ Arguments:
 
 Options:
   -o, --output <PATH>      Output path for catalog.json [default: src-tauri/src/catalog/catalog.json]
+  --docs-output <PATH>     Output path for docs.json [default: src-tauri/src/catalog/docs.json]
   --merge                  Merge with existing catalog at output path (hand-written entries take priority)
   -q, --quiet              Suppress informational output (e.g. unmapped category warnings)
   --min-description <N>    Skip entries with descriptions shorter than N chars [default: 10]
@@ -82,6 +86,36 @@ When `--merge` is provided, the tool reads the existing catalog at the output pa
 
 Maxima uses fine-grained categories (e.g., "Differential calculus", "Integral calculus"). The tool maps these to the `FunctionCategory` enum used by the app. Unmapped categories are logged to stderr by default (suppress with `--quiet`), then update `mapping.rs` as needed.
 
+## Outputs
+
+The tool produces two JSON files and optionally copies figure images:
+
+- **`catalog.json`** — Lean function catalog with short descriptions, signatures, categories, and examples. Used for autocomplete, hover tooltips, and search.
+- **`docs.json`** — Full Markdown documentation per function (2000+ entries). Maps function names to Markdown strings with code blocks, math, cross-references, lists, tables, and figure images. Used by the Docs panel.
+- **`figures/`** — PNG figures from Maxima's documentation, copied during `generate`.
+
+### docs.json format
+
+```json
+{
+  "diff": "Returns the derivative or differential of *expr*...\n\n```maxima\n(%i1) diff(x^3, x);\n```\n\nSee also: [depends](fn:depends), [del](fn:del)\n",
+  "integrate": "..."
+}
+```
+
+### Markdown features in docs.json
+
+| Feature | Syntax |
+|---|---|
+| Code blocks | ` ```maxima ``` ` |
+| Inline math | `$...$` |
+| Display math | `$$...$$` |
+| Cross-references | `[name](fn:name)` |
+| Figures | `![desc](figures/name.png)` |
+| Bold/italic/code | Standard Markdown |
+| Lists | `- ` and `1. ` |
+| Tables | Pipe tables |
+
 ## Architecture
 
 ```
@@ -91,10 +125,11 @@ Maxima source (doc/info/*.texi)
    maxima.xml (~10-20MB)
         |
         v  XML parsing           (automated by `generate` / `from-xml`)
-   catalog.json (500+ functions)
+   ├── catalog.json (2500+ functions, lean)
+   └── docs.json    (2500+ entries, full Markdown)
         |
         v  include_str!()        (at compile time)
    Embedded in aximar binary
 ```
 
-The generated `catalog.json` is checked into the repo. The tool is run manually when updating to a new Maxima version — it is NOT part of the regular build.
+The generated files are checked into the repo. The tool is run manually when updating to a new Maxima version — it is NOT part of the regular build.

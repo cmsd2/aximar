@@ -25,6 +25,7 @@ pub fn run() {
             commands::catalog::complete_function,
             commands::catalog::get_function,
             commands::catalog::list_categories,
+            commands::catalog::get_function_docs,
             commands::suggestions::get_suggestions,
             commands::notebooks::list_templates,
             commands::notebooks::get_template,

@@ -27,3 +27,9 @@ export async function getFunction(
 export async function listCategories(): Promise<CategoryGroup[]> {
   return invoke<CategoryGroup[]>("list_categories");
 }
+
+export async function getFunctionDocs(
+  name: string
+): Promise<string | null> {
+  return invoke<string | null>("get_function_docs", { name });
+}

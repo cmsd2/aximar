@@ -1,4 +1,5 @@
 mod mapping;
+mod markdown;
 mod parser;
 
 use std::collections::HashMap;
@@ -12,6 +13,8 @@ use clap::{Parser, Subcommand};
 const MAXIMA_GIT_URL: &str = "https://git.code.sf.net/p/maxima/code";
 const MAXIMA_TEXI_REL: &str = "doc/info/maxima.texi";
 const CATALOG_REL: &str = "src-tauri/src/catalog/catalog.json";
+const DOCS_REL: &str = "src-tauri/src/catalog/docs.json";
+const FIGURES_REL: &str = "src-tauri/src/catalog/figures";
 
 /// Generate Maxima function catalog from official documentation.
 #[derive(Parser)]
@@ -37,6 +40,10 @@ enum Commands {
         #[arg(short, long)]
         output: Option<PathBuf>,
 
+        /// Output path for docs.json [default: <workspace>/src-tauri/src/catalog/docs.json]
+        #[arg(long)]
+        docs_output: Option<PathBuf>,
+
         /// Merge with an existing catalog (hand-written entries take priority).
         /// Uses the output path as the merge source.
         #[arg(long)]
@@ -59,6 +66,10 @@ enum Commands {
         /// Output path for catalog.json [default: <workspace>/src-tauri/src/catalog/catalog.json]
         #[arg(short, long)]
         output: Option<PathBuf>,
+
+        /// Output path for docs.json [default: <workspace>/src-tauri/src/catalog/docs.json]
+        #[arg(long)]
+        docs_output: Option<PathBuf>,
 
         /// Merge with an existing catalog (hand-written entries take priority).
         /// Uses the output path as the merge source.
@@ -83,11 +94,13 @@ fn main() {
             maxima_src,
             git_ref,
             output,
+            docs_output,
             merge,
             quiet,
             min_description,
         } => {
-            let output = resolve_output(output);
+            let output = resolve_output(output, CATALOG_REL);
+            let docs_output = resolve_output(docs_output, DOCS_REL);
             let log_unmapped = !quiet;
             let merge_path = if merge { Some(output.clone()) } else { None };
 
@@ -122,26 +135,41 @@ fn main() {
             let xml_path = texi_path.with_extension("xml");
             run_makeinfo(&texi_path, &xml_path);
 
-            // Parse and write
+            // Parse and write catalog
             let xml = read_file(&xml_path);
             let functions = parse_and_merge(&xml, merge_path.as_deref(), log_unmapped, min_description);
             write_catalog(&functions, &output);
+
+            // Generate docs.json
+            let docs = parser::parse_xml_docs(&xml);
+            write_docs(&docs, &docs_output);
+
+            // Copy figures
+            let figures_src = src_dir.join("doc/info/figures");
+            let figures_dest = resolve_output(None, FIGURES_REL);
+            copy_figures(&figures_src, &figures_dest);
         }
 
         Commands::FromXml {
             input,
             output,
+            docs_output,
             merge,
             quiet,
             min_description,
         } => {
-            let output = resolve_output(output);
+            let output = resolve_output(output, CATALOG_REL);
+            let docs_output = resolve_output(docs_output, DOCS_REL);
             let log_unmapped = !quiet;
             let merge_path = if merge { Some(output.clone()) } else { None };
 
             let xml = read_file(&input);
             let functions = parse_and_merge(&xml, merge_path.as_deref(), log_unmapped, min_description);
             write_catalog(&functions, &output);
+
+            // Generate docs.json
+            let docs = parser::parse_xml_docs(&xml);
+            write_docs(&docs, &docs_output);
         }
     }
 }
@@ -424,6 +452,51 @@ fn write_catalog(functions: &[MaximaFunction], output: &Path) {
     eprintln!("Wrote {} functions to {}", functions.len(), output.display());
 }
 
+fn write_docs(docs: &HashMap<String, String>, output: &Path) {
+    // Sort keys for stable output
+    let mut sorted: std::collections::BTreeMap<&str, &str> = std::collections::BTreeMap::new();
+    for (k, v) in docs {
+        sorted.insert(k.as_str(), v.as_str());
+    }
+    let json = serde_json::to_string_pretty(&sorted).expect("failed to serialize docs");
+    fs::write(output, &json).unwrap_or_else(|e| {
+        fatal(&format!("Error writing {}: {e}", output.display()));
+    });
+    eprintln!("Wrote {} doc entries to {}", docs.len(), output.display());
+}
+
+fn copy_figures(src: &Path, dest: &Path) {
+    if !src.exists() {
+        eprintln!("Warning: figures directory not found at {}", src.display());
+        return;
+    }
+
+    fs::create_dir_all(dest).unwrap_or_else(|e| {
+        fatal(&format!("Error creating {}: {e}", dest.display()));
+    });
+
+    let mut count = 0;
+    let entries = fs::read_dir(src).unwrap_or_else(|e| {
+        fatal(&format!("Cannot read {}: {e}", src.display()));
+    });
+
+    for entry in entries {
+        let entry = entry.unwrap();
+        let path = entry.path();
+        if let Some(ext) = path.extension() {
+            if ext == "png" {
+                let dest_path = dest.join(entry.file_name());
+                if let Err(e) = fs::copy(&path, &dest_path) {
+                    eprintln!("Warning: failed to copy {}: {e}", path.display());
+                }
+                count += 1;
+            }
+        }
+    }
+
+    eprintln!("Copied {count} figure PNG files to {}", dest.display());
+}
+
 // --- Helpers ---
 
 fn read_file(path: &Path) -> String {
@@ -488,13 +561,13 @@ fn merge_catalogs(
     result
 }
 
-/// Resolve the output path, defaulting to `<workspace_root>/src-tauri/src/catalog/catalog.json`.
-fn resolve_output(explicit: Option<PathBuf>) -> PathBuf {
+/// Resolve the output path, defaulting to `<workspace_root>/<default_rel>`.
+fn resolve_output(explicit: Option<PathBuf>, default_rel: &str) -> PathBuf {
     if let Some(path) = explicit {
         return path;
     }
     let root = find_workspace_root();
-    root.join(CATALOG_REL)
+    root.join(default_rel)
 }
 
 /// Walk up from the current directory to find the workspace root (contains `Cargo.toml` with [workspace]).

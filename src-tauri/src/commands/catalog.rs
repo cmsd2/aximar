@@ -22,3 +22,8 @@ pub fn get_function(state: State<AppState>, name: String) -> Option<MaximaFuncti
 pub fn list_categories(state: State<AppState>) -> Vec<CategoryGroup> {
     state.catalog.by_category()
 }
+
+#[tauri::command]
+pub fn get_function_docs(state: State<AppState>, name: String) -> Option<String> {
+    state.docs.get(&name).map(|s| s.to_string())
+}

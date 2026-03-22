@@ -6,6 +6,7 @@ import { CommandPalette } from "./components/CommandPalette";
 import { TemplateChooser } from "./components/TemplateChooser";
 import { SettingsModal } from "./components/SettingsModal";
 import { LogPanel } from "./components/LogPanel";
+import { DocsPanel } from "./components/DocsPanel";
 import { useMaxima } from "./hooks/useMaxima";
 import { useTheme } from "./hooks/useTheme";
 import {
@@ -28,6 +29,9 @@ function App() {
   const [templateChooserOpen, setTemplateChooserOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [variablesOpen, setVariablesOpen] = useState(false);
+  const [docsOpen, setDocsOpen] = useState(false);
+  const [docsFunctionName, setDocsFunctionName] = useState<string | undefined>(undefined);
+  const [docsRequestId, setDocsRequestId] = useState(0);
   const loadNotebook = useNotebookStore((s) => s.loadNotebook);
   const logOpen = useLogStore((s) => s.logOpen);
   const toggleLog = useLogStore((s) => s.toggleLog);
@@ -70,9 +74,10 @@ function App() {
       .catch(() => {});
   }, [loadNotebook]);
 
-  const openPaletteWithQuery = useCallback((query: string) => {
-    setPaletteQuery(query);
-    setPaletteOpen(true);
+  const openDocsFor = useCallback((name: string) => {
+    setDocsFunctionName(name);
+    setDocsRequestId((n) => n + 1);
+    setDocsOpen(true);
   }, []);
 
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
@@ -98,9 +103,19 @@ function App() {
         logOpen={logOpen}
         onToggleLog={toggleLog}
         logUnreadCount={logUnreadCount}
+        docsOpen={docsOpen}
+        onToggleDocs={() => setDocsOpen((o) => !o)}
       />
       <VariablePanel open={variablesOpen} />
-      <Notebook onViewDocs={openPaletteWithQuery} />
+      <div className="main-content">
+        <Notebook onViewDocs={openDocsFor} />
+        <DocsPanel
+          open={docsOpen}
+          functionName={docsFunctionName}
+          requestId={docsRequestId}
+          onClose={() => setDocsOpen(false)}
+        />
+      </div>
       <LogPanel open={logOpen} />
       {paletteOpen && (
         <CommandPalette

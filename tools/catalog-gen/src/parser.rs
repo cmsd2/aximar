@@ -1,7 +1,10 @@
+use std::collections::HashMap;
+
 use aximar_lib::catalog::types::{FunctionCategory, FunctionExample, MaximaFunction};
 use roxmltree::{Document, Node, ParsingOptions};
 
 use crate::mapping::map_category;
+use crate::markdown;
 
 /// Parse a Maxima Texinfo XML document and extract function/variable definitions.
 pub fn parse_xml(xml: &str, log_unmapped: bool, min_description: usize) -> Vec<MaximaFunction> {
@@ -26,6 +29,51 @@ pub fn parse_xml(xml: &str, log_unmapped: bool, min_description: usize) -> Vec<M
     functions.sort_by(|a, b| a.name.to_lowercase().cmp(&b.name.to_lowercase()));
 
     functions
+}
+
+/// Parse a Maxima Texinfo XML document and extract full Markdown documentation per function.
+///
+/// Returns a map of function name → Markdown string.
+pub fn parse_xml_docs(xml: &str) -> HashMap<String, String> {
+    let xml = replace_texinfo_entities(xml);
+    let opts = ParsingOptions {
+        allow_dtd: true,
+        ..ParsingOptions::default()
+    };
+    let doc = Document::parse_with_options(&xml, opts).expect("failed to parse XML");
+    let root = doc.root_element();
+
+    let mut docs = HashMap::new();
+    collect_docs(root, &mut docs);
+    docs
+}
+
+fn collect_docs(node: Node, docs: &mut HashMap<String, String>) {
+    for child in node.children() {
+        if child.is_element() {
+            let tag = child.tag_name().name();
+            match tag {
+                "deffn" | "defvr" => {
+                    if let Some(name) = extract_name(child, tag) {
+                        let key = name.to_lowercase();
+                        // Only keep the first (primary) definition
+                        if !docs.contains_key(&key) {
+                            if let Some(item) = find_element(child, "definitionitem") {
+                                let md = markdown::definition_to_markdown(item);
+                                let trimmed = md.trim().to_string();
+                                if !trimmed.is_empty() {
+                                    docs.insert(name, trimmed);
+                                }
+                            }
+                        }
+                    }
+                }
+                _ => {
+                    collect_docs(child, docs);
+                }
+            }
+        }
+    }
 }
 
 fn collect_definitions(
