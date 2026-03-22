@@ -452,7 +452,8 @@
   overflow: hidden;
 }
 
-.plot-output svg {
+.plot-output svg,
+.plot-output img {
   max-width: 100%;
   height: auto;
 }

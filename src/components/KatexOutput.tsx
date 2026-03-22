@@ -14,7 +14,7 @@ export function KatexOutput({ latex }: KatexOutputProps) {
       return katex.renderToString(processed, {
         displayMode: true,
         throwOnError: false,
-        trust: true,
+        trust: false,
       });
     } catch (e) {
       console.warn("[KaTeX] render failed:", e, "raw:", latex);

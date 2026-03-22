@@ -1,5 +1,6 @@
 use regex::Regex;
 use std::fs;
+use std::path::Path;
 
 use crate::catalog::search::Catalog;
 use crate::maxima::errors;
@@ -23,6 +24,32 @@ fn is_junk_latex(inner: &str) -> bool {
         // String results: tex() wraps them in \mbox{...} which KaTeX can't
         // render well — fall back to text output instead
         || (inner.starts_with("\\mbox{") && inner.ends_with('}'))
+}
+
+/// Check that an SVG path is safe to read: it must have a `.svg` extension and
+/// reside within the system temp directory. This prevents crafted Maxima output
+/// from reading arbitrary files.
+fn is_safe_svg_path(path_str: &str) -> bool {
+    let path = Path::new(path_str);
+
+    // Must have .svg extension
+    if path.extension().and_then(|e| e.to_str()) != Some("svg") {
+        return false;
+    }
+
+    // Canonicalize to resolve symlinks and ..
+    let canonical = match fs::canonicalize(path) {
+        Ok(p) => p,
+        Err(_) => return false,
+    };
+
+    let temp_dir = std::env::temp_dir();
+    let canonical_temp = match fs::canonicalize(&temp_dir) {
+        Ok(p) => p,
+        Err(_) => temp_dir,
+    };
+
+    canonical.starts_with(&canonical_temp)
 }
 
 pub fn parse_output(cell_id: &str, lines: &[String], duration_ms: u64, catalog: &Catalog) -> EvalResult {
@@ -168,8 +195,10 @@ pub fn parse_output(cell_id: &str, lines: &[String], duration_ms: u64, catalog: 
     let text_output = if !has_error {
         if let Some(caps) = svg_path_re.captures(&text_output) {
             let svg_path = &caps[1];
-            if let Ok(svg_content) = fs::read_to_string(svg_path) {
-                plot_svg = Some(svg_content);
+            if is_safe_svg_path(svg_path) {
+                if let Ok(svg_content) = fs::read_to_string(svg_path) {
+                    plot_svg = Some(svg_content);
+                }
             }
             // Strip the file path line from text output
             let cleaned: Vec<&str> = text_output

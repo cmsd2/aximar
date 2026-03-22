@@ -28,7 +28,7 @@ export function MathText({ text, className }: MathTextProps) {
           const html = katex.renderToString(part.content, {
             displayMode,
             throwOnError: false,
-            trust: true,
+            trust: false,
           });
           return (
             <span

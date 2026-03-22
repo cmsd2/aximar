@@ -1,7 +1,8 @@
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useMemo } from "react";
 import type { CellOutput as CellOutputType } from "../types/notebook";
 import { KatexOutput } from "./KatexOutput";
 import { EnhancedErrorOutput } from "./EnhancedErrorOutput";
+import { sanitizeSvg } from "../lib/sanitize-svg";
 
 interface CellOutputProps {
   output: CellOutputType;
@@ -37,6 +38,21 @@ export function CellOutput({ output, cellId }: CellOutputProps) {
   const hasText = output.textOutput !== "";
   const hasPlot = output.plotSvg !== null && output.plotSvg !== undefined && output.plotSvg !== "";
 
+  const plotBlobUrl = useMemo(() => {
+    if (!hasPlot) return "";
+    const sanitized = sanitizeSvg(output.plotSvg!);
+    if (!sanitized) return "";
+    const blob = new Blob([sanitized], { type: "image/svg+xml" });
+    return URL.createObjectURL(blob);
+  }, [hasPlot, output.plotSvg]);
+
+  // Revoke previous blob URL on unmount or when it changes
+  const prevBlobUrl = useRef<string>("");
+  if (prevBlobUrl.current && prevBlobUrl.current !== plotBlobUrl) {
+    URL.revokeObjectURL(prevBlobUrl.current);
+  }
+  prevBlobUrl.current = plotBlobUrl;
+
   return (
     <div className="cell-output">
       {(hasLatex || hasText || hasPlot) && (
@@ -61,11 +77,10 @@ export function CellOutput({ output, cellId }: CellOutputProps) {
           )}
         </div>
       )}
-      {hasPlot && (
-        <div
-          className="plot-output"
-          dangerouslySetInnerHTML={{ __html: output.plotSvg! }}
-        />
+      {hasPlot && plotBlobUrl && (
+        <div className="plot-output">
+          <img src={plotBlobUrl} alt="Plot output" />
+        </div>
       )}
       {hasLatex && <KatexOutput latex={output.latex!} />}
       {hasText && !hasLatex && !hasPlot && (
