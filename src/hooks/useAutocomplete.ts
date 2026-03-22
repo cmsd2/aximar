@@ -14,8 +14,14 @@ export interface AutocompleteState {
   wordStart: number;
 }
 
+export interface AcceptResult {
+  funcName: string;
+  insertPosition: number;
+}
+
 export function useAutocomplete(
-  textareaRef: React.RefObject<HTMLTextAreaElement | null>
+  textareaRef: React.RefObject<HTMLTextAreaElement | null>,
+  onAccept?: (result: AcceptResult) => void
 ) {
   const [state, setState] = useState<AutocompleteState>({
     completions: [],
@@ -60,7 +66,7 @@ export function useAutocomplete(
     }, DEBOUNCE_MS);
   }, []);
 
-  const accept = useCallback(() => {
+  const accept = useCallback((): AcceptResult | false => {
     const textarea = textareaRef.current;
     if (!textarea || !state.visible || state.completions.length === 0) return false;
 
@@ -83,9 +89,13 @@ export function useAutocomplete(
     const cursorPos = before.length + insertText.length - 1;
     textarea.setSelectionRange(cursorPos, cursorPos);
 
+    const insertPosition = before.length + completion.name.length;
+    const result: AcceptResult = { funcName: completion.name, insertPosition };
+
     dismiss();
-    return true;
-  }, [textareaRef, state, dismiss]);
+    onAccept?.(result);
+    return result;
+  }, [textareaRef, state, dismiss, onAccept]);
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLTextAreaElement>) => {

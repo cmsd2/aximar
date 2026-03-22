@@ -7,6 +7,7 @@ export interface AppConfig {
   eval_timeout: number;
   variables_open: boolean;
   cell_style: string;
+  autocomplete_mode: string;
 }
 
 export interface ConfigResponse {

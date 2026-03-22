@@ -516,6 +516,59 @@
   text-overflow: ellipsis;
 }
 
+/* Signature Hint Popup */
+.signature-hint {
+  position: fixed;
+  z-index: 55;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  padding: 6px 10px;
+  max-width: 420px;
+  font-family: "JetBrains Mono", "Fira Code", "SF Mono", Menlo, Consolas, monospace;
+  font-size: 12px;
+}
+
+.signature-hint-line {
+  padding: 2px 0;
+  white-space: nowrap;
+  color: var(--text-primary);
+}
+
+.signature-hint-name {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.signature-hint-parens {
+  color: var(--text-secondary);
+}
+
+.signature-hint-param {
+  color: var(--text-secondary);
+}
+
+.signature-hint-comma {
+  color: var(--text-secondary);
+}
+
+.sig-hint-active {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.sig-hint-overflow {
+  opacity: 0.4;
+}
+
+.signature-hint-more {
+  padding: 2px 0;
+  color: var(--text-placeholder);
+  font-style: italic;
+  font-size: 11px;
+}
+
 /* Suggestion Chips */
 .cell-suggestions {
   display: flex;

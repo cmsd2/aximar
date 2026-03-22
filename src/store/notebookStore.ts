@@ -17,12 +17,14 @@ function createCell(cellType: CellType = "code"): Cell {
 
 export type Theme = "auto" | "light" | "dark";
 export type CellStyle = "card" | "bracket";
+export type AutocompleteMode = "hint" | "snippet" | "active-hint";
 
 interface NotebookState {
   cells: Cell[];
   sessionStatus: SessionStatus;
   theme: Theme;
   cellStyle: CellStyle;
+  autocompleteMode: AutocompleteMode;
   activeCellId: string | null;
   executionCounter: number;
   filePath: string | null;
@@ -39,6 +41,7 @@ interface NotebookState {
   setSessionStatus: (status: SessionStatus) => void;
   setTheme: (theme: Theme) => void;
   setCellStyle: (style: CellStyle) => void;
+  setAutocompleteMode: (mode: AutocompleteMode) => void;
   setActiveCellId: (id: string | null) => void;
   insertTextInActiveCell: (text: string) => void;
   toggleCellType: (id: string) => void;
@@ -53,6 +56,7 @@ export const useNotebookStore = create<NotebookState>((set) => ({
   sessionStatus: "Stopped",
   theme: "auto",
   cellStyle: "card",
+  autocompleteMode: "active-hint",
   activeCellId: null,
   executionCounter: 0,
   filePath: null,
@@ -147,6 +151,8 @@ export const useNotebookStore = create<NotebookState>((set) => ({
   setTheme: (theme: Theme) => set({ theme }),
 
   setCellStyle: (cellStyle: CellStyle) => set({ cellStyle }),
+
+  setAutocompleteMode: (autocompleteMode: AutocompleteMode) => set({ autocompleteMode }),
 
   setActiveCellId: (id: string | null) => set({ activeCellId: id }),
 

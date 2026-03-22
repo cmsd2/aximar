@@ -21,6 +21,10 @@ fn default_cell_style() -> String {
     "bracket".to_string()
 }
 
+fn default_autocomplete_mode() -> String {
+    "active-hint".to_string()
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 struct AppConfig {
     #[serde(default = "default_theme")]
@@ -37,6 +41,8 @@ struct AppConfig {
     variables_open: bool,
     #[serde(default = "default_cell_style")]
     cell_style: String,
+    #[serde(default = "default_autocomplete_mode")]
+    autocomplete_mode: String,
 }
 
 impl Default for AppConfig {
@@ -49,6 +55,7 @@ impl Default for AppConfig {
             eval_timeout: default_eval_timeout(),
             variables_open: false,
             cell_style: default_cell_style(),
+            autocomplete_mode: default_autocomplete_mode(),
         }
     }
 }
@@ -88,6 +95,14 @@ impl AppConfig {
             ));
             self.cell_style = default_cell_style();
         }
+        if !matches!(self.autocomplete_mode.as_str(), "hint" | "snippet" | "active-hint") {
+            warnings.push(format!(
+                "Invalid autocomplete_mode '{}', reset to '{}'",
+                self.autocomplete_mode,
+                default_autocomplete_mode()
+            ));
+            self.autocomplete_mode = default_autocomplete_mode();
+        }
         (self, warnings)
     }
 }
@@ -101,6 +116,7 @@ pub struct PublicConfig {
     pub eval_timeout: u64,
     pub variables_open: bool,
     pub cell_style: String,
+    pub autocomplete_mode: String,
 }
 
 /// Config response with validation warnings
@@ -119,6 +135,7 @@ pub struct ConfigUpdate {
     pub eval_timeout: Option<u64>,
     pub variables_open: Option<bool>,
     pub cell_style: Option<String>,
+    pub autocomplete_mode: Option<String>,
 }
 
 fn config_path(app: &tauri::AppHandle) -> Result<PathBuf, AppError> {
@@ -189,6 +206,7 @@ pub async fn get_config(app: tauri::AppHandle) -> Result<ConfigResponse, AppErro
             eval_timeout: config.eval_timeout,
             variables_open: config.variables_open,
             cell_style: config.cell_style,
+            autocomplete_mode: config.autocomplete_mode,
         },
         warnings,
     })
@@ -214,6 +232,9 @@ pub async fn set_config(app: tauri::AppHandle, updates: ConfigUpdate) -> Result<
     }
     if let Some(cell_style) = updates.cell_style {
         config.cell_style = cell_style;
+    }
+    if let Some(autocomplete_mode) = updates.autocomplete_mode {
+        config.autocomplete_mode = autocomplete_mode;
     }
     write_config(&app, &config)?;
     Ok(())

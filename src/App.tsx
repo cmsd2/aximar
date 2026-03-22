@@ -58,6 +58,11 @@ function App() {
           `${cfg.font_size}px`
         );
         document.documentElement.dataset.cellStyle = cfg.cell_style || "bracket";
+        if (cfg.autocomplete_mode) {
+          useNotebookStore.getState().setAutocompleteMode(
+            cfg.autocomplete_mode as "hint" | "snippet" | "active-hint"
+          );
+        }
         setVariablesOpen(cfg.variables_open);
         for (const w of warnings) {
           addLogEntry("warning", w, "config");

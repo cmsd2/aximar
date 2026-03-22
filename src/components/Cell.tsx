@@ -4,10 +4,14 @@ import { useNotebookStore } from "../store/notebookStore";
 import { useMaxima } from "../hooks/useMaxima";
 import { useAutocomplete } from "../hooks/useAutocomplete";
 import { useHoverTooltip } from "../hooks/useHoverTooltip";
+import { useSignatureHint } from "../hooks/useSignatureHint";
+import { useSnippet } from "../hooks/useSnippet";
+import { findEnclosingCall } from "../lib/param-tracker";
 import { CellOutput } from "./CellOutput";
 import { CellSuggestions } from "./CellSuggestions";
 import { AutocompletePopup } from "./AutocompletePopup";
 import { HoverTooltip } from "./HoverTooltip";
+import { SignatureHint } from "./SignatureHint";
 
 interface CellProps {
   cell: CellType;
@@ -23,10 +27,33 @@ export function Cell({ cell, onViewDocs }: CellProps) {
   const cells = useNotebookStore((s) => s.cells);
   const cellCount = cells.length;
   const setActiveCellId = useNotebookStore((s) => s.setActiveCellId);
+  const autocompleteMode = useNotebookStore((s) => s.autocompleteMode);
   const { executeCell } = useMaxima();
 
-  const autocomplete = useAutocomplete(textareaRef);
-  const hoverTooltip = useHoverTooltip(textareaRef, autocomplete.state.visible);
+  const signatureHint = useSignatureHint(
+    textareaRef,
+    autocompleteMode === "active-hint" ? "active-hint" : "hint"
+  );
+  const snippet = useSnippet(textareaRef);
+
+  const handleAcceptCompletion = useCallback(
+    ({ funcName, insertPosition }: { funcName: string; insertPosition: number }) => {
+      signatureHint.dismiss();
+      snippet.exit();
+      if (autocompleteMode === "snippet") {
+        snippet.activate(funcName, insertPosition);
+      } else {
+        signatureHint.show(funcName, insertPosition);
+      }
+    },
+    [autocompleteMode, signatureHint, snippet]
+  );
+
+  const autocomplete = useAutocomplete(textareaRef, handleAcceptCompletion);
+  const hoverTooltip = useHoverTooltip(
+    textareaRef,
+    autocomplete.state.visible || signatureHint.state.visible || snippet.state.active
+  );
   const [, setAutocompleteIndex] = useState(0);
   const [outputCollapsed, setOutputCollapsed] = useState(false);
 
@@ -38,6 +65,12 @@ export function Cell({ cell, onViewDocs }: CellProps) {
       textarea.style.height = textarea.scrollHeight + "px";
     }
   }, [cell.input]);
+
+  // Dismiss hint/snippet when mode changes
+  useEffect(() => {
+    signatureHint.dismiss();
+    snippet.exit();
+  }, [autocompleteMode]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const focusNextCell = useCallback(() => {
     const allInputs = Array.from(
@@ -51,13 +84,26 @@ export function Cell({ cell, onViewDocs }: CellProps) {
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-      // Let autocomplete handle keys first
+      // 1. Let autocomplete handle keys first
       if (autocomplete.handleKeyDown(e)) {
         return;
       }
 
+      // 2. Snippet Tab/Shift+Tab/Escape
+      if (snippet.state.active && snippet.handleKeyDown(e)) {
+        return;
+      }
+
+      // 3. Signature hint Escape
+      if (signatureHint.state.visible && signatureHint.handleKeyDown(e)) {
+        return;
+      }
+
+      // 4. Cell shortcuts
       if (e.key === "Enter" && e.shiftKey) {
         e.preventDefault();
+        signatureHint.dismiss();
+        snippet.exit();
         const idx = cells.findIndex((c) => c.id === cell.id);
         const isLastCell = idx === cells.length - 1;
 
@@ -70,13 +116,15 @@ export function Cell({ cell, onViewDocs }: CellProps) {
         });
       } else if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
         e.preventDefault();
+        signatureHint.dismiss();
+        snippet.exit();
         executeCell(cell.id, cell.input);
       } else if (e.key === "Escape") {
         e.preventDefault();
         textareaRef.current?.blur();
       }
     },
-    [cell.id, cell.input, cells, executeCell, addCell, focusNextCell, autocomplete]
+    [cell.id, cell.input, cells, executeCell, addCell, focusNextCell, autocomplete, snippet, signatureHint]
   );
 
   const handleChange = useCallback(
@@ -88,10 +136,43 @@ export function Cell({ cell, onViewDocs }: CellProps) {
       textarea.style.height = textarea.scrollHeight + "px";
       // Trigger autocomplete
       autocomplete.handleInput();
+      // Update snippet placeholders
+      snippet.handleInput();
+
+      const text = textarea.value;
+      const cursorPos = textarea.selectionStart;
+
+      // Detect "(" typed after an identifier → trigger argument help
+      if (
+        cursorPos > 1 &&
+        text[cursorPos - 1] === "(" &&
+        !signatureHint.state.visible &&
+        !snippet.state.active
+      ) {
+        const call = findEnclosingCall(text, cursorPos);
+        if (call) {
+          if (autocompleteMode === "snippet") {
+            snippet.activate(call.funcName, call.openParenPos);
+          } else {
+            signatureHint.show(call.funcName, call.openParenPos);
+          }
+        }
+      }
+
+      // Update signature hint (active-hint tracks cursor)
+      if (signatureHint.state.visible && autocompleteMode === "active-hint") {
+        signatureHint.update();
+      }
+      // For hint mode, dismiss on ")" typed
+      if (signatureHint.state.visible && autocompleteMode === "hint") {
+        if (cursorPos > 0 && text[cursorPos - 1] === ")") {
+          signatureHint.dismiss();
+        }
+      }
       // Hide hover tooltip on typing
       hoverTooltip.hide();
     },
-    [cell.id, updateCellInput, autocomplete, hoverTooltip]
+    [cell.id, updateCellInput, autocomplete, hoverTooltip, snippet, signatureHint, autocompleteMode]
   );
 
   const execNum = cell.output?.executionCount ?? null;
@@ -126,7 +207,11 @@ export function Cell({ cell, onViewDocs }: CellProps) {
           onFocus={() => setActiveCellId(cell.id)}
           onBlur={() => {
             // Delay dismiss so popup click can fire
-            setTimeout(() => autocomplete.dismiss(), 150);
+            setTimeout(() => {
+              autocomplete.dismiss();
+              signatureHint.dismiss();
+              snippet.exit();
+            }, 150);
           }}
           onMouseMove={hoverTooltip.onMouseMove}
           onMouseLeave={hoverTooltip.onMouseLeave}
@@ -182,6 +267,7 @@ export function Cell({ cell, onViewDocs }: CellProps) {
         }}
         onHover={(i) => setAutocompleteIndex(i)}
       />
+      <SignatureHint state={signatureHint.state} textareaRef={textareaRef} />
       {hoverTooltip.state.visible && hoverTooltip.state.func && onViewDocs && (
         <HoverTooltip
           func={hoverTooltip.state.func}
