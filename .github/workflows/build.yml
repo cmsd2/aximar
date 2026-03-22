@@ -21,6 +21,7 @@ jobs:
             artifact-name: aximar-linux
             artifact-path: |
               src-tauri/target/release/bundle/deb/*.deb
+              src-tauri/target/release/bundle/rpm/*.rpm
               src-tauri/target/release/bundle/appimage/*.AppImage
           - os: windows-latest
             artifact-name: aximar-windows
@@ -51,7 +52,8 @@ jobs:
             libappindicator3-dev \
             librsvg2-dev \
             patchelf \
-            libssl-dev
+            libssl-dev \
+            rpm
 
       - name: Setup Node 22
         uses: actions/setup-node@v4
