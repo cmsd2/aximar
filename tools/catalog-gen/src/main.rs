@@ -14,7 +14,7 @@ const MAXIMA_GIT_URL: &str = "https://git.code.sf.net/p/maxima/code";
 const MAXIMA_TEXI_REL: &str = "doc/info/maxima.texi";
 const CATALOG_REL: &str = "src-tauri/src/catalog/catalog.json";
 const DOCS_REL: &str = "src-tauri/src/catalog/docs.json";
-const FIGURES_REL: &str = "src-tauri/src/catalog/figures";
+const FIGURES_REL: &str = "public/figures";
 
 /// Generate Maxima function catalog from official documentation.
 #[derive(Parser)]

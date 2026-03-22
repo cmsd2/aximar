@@ -4,7 +4,6 @@ import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
 import { getFunctionDocs, getFunction, searchFunctions } from "../lib/catalog-client";
 import type { MaximaFunction, SearchResult } from "../types/catalog";
-import { convertFileSrc } from "@tauri-apps/api/core";
 
 interface DocsPanelProps {
   open: boolean;
@@ -225,14 +224,8 @@ export function DocsPanel({ open, functionName, requestId, onClose }: DocsPanelP
                       );
                     },
                     img: ({ src, alt, ...props }) => {
-                      let imgSrc = src || "";
-                      if (imgSrc.startsWith("figures/")) {
-                        try {
-                          imgSrc = convertFileSrc(imgSrc, "asset");
-                        } catch {
-                          // Fallback: keep original src
-                        }
-                      }
+                      // figures/ paths are served from public/figures/ by Vite
+                      const imgSrc = src?.startsWith("figures/") ? `/${src}` : src || "";
                       return <img {...props} src={imgSrc} alt={alt || ""} className="docs-figure" />;
                     },
                   }}
