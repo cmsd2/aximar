@@ -4,7 +4,7 @@ A modern, cross-platform desktop GUI for the [Maxima](https://maxima.sourceforge
 
 Built with [Tauri v2](https://tauri.app/) (Rust backend) and React + TypeScript (frontend).
 
-![Aximar screenshot — calculus template with rendered LaTeX output](assets/screenshot.png)
+![Aximar screenshot — 2D plot rendered inline](assets/screenshot-2d-plot.png)
 
 ## Features
 

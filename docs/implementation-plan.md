@@ -66,56 +66,93 @@ Aximar provides a notebook-style interface (like Jupyter/Mathematica) for Maxima
 ```
 aximar/
 ├── docs/
-│   └── implementation-plan.md
 ├── package.json
 ├── vite.config.ts
 ├── index.html
 ├── src/                              # Frontend
 │   ├── main.tsx
-│   ├── App.tsx
+│   ├── App.tsx                      # Top-level layout, menu event listener, file ops
 │   ├── types/
-│   │   ├── notebook.ts              # Cell, Notebook types
-│   │   └── maxima.ts                # EvalResult, SessionStatus
+│   │   ├── notebook.ts              # Cell, CellOutput, Notebook types
+│   │   ├── notebooks.ts             # Jupyter nbformat types (NotebookCell, etc.)
+│   │   ├── maxima.ts                # EvalResult, SessionStatus, ErrorInfo
+│   │   └── suggestions.ts           # Suggestion type (with optional action)
 │   ├── store/
-│   │   └── notebookStore.ts         # Zustand notebook state
+│   │   ├── notebookStore.ts         # Zustand: cells, filePath, isDirty, save/load
+│   │   └── logStore.ts              # Log panel state
 │   ├── components/
 │   │   ├── Notebook.tsx
 │   │   ├── Cell.tsx
-│   │   ├── CellInput.tsx            # CodeMirror editor wrapper
-│   │   ├── CellOutput.tsx           # Dispatches to KaTeX/Plot/Error
+│   │   ├── CellOutput.tsx           # Renders KaTeX, plot SVG, or text
+│   │   ├── CellSuggestions.tsx      # Suggestion chips (eval + actions like Save SVG)
 │   │   ├── KatexOutput.tsx
-│   │   ├── PlotOutput.tsx
-│   │   ├── ErrorOutput.tsx
-│   │   ├── Toolbar.tsx
-│   │   └── StatusBar.tsx
+│   │   ├── EnhancedErrorOutput.tsx  # Rich error display with did-you-mean
+│   │   ├── HoverTooltip.tsx         # Function hover docs
+│   │   ├── Toolbar.tsx              # Toolbar with filename/dirty indicator
+│   │   ├── CommandPalette.tsx       # Cmd+K function browser
+│   │   ├── TemplateChooser.tsx      # Template selection modal
+│   │   ├── SettingsModal.tsx
+│   │   ├── VariablePanel.tsx
+│   │   ├── DocsPanel.tsx
+│   │   └── LogPanel.tsx
 │   ├── hooks/
-│   │   └── useMaxima.ts             # Cell execution logic
+│   │   ├── useMaxima.ts             # Cell execution logic
+│   │   ├── useAutocomplete.ts       # Autocomplete popup logic
+│   │   ├── useHoverTooltip.ts       # Function hover detection
+│   │   └── useTheme.ts
 │   ├── lib/
 │   │   ├── maxima-client.ts         # Tauri invoke wrappers
-│   │   ├── katex-helpers.ts         # LaTeX preprocessing
-│   │   └── codemirror-maxima.ts     # Maxima syntax highlighting
+│   │   ├── notebooks-client.ts      # Save/open/template client (uses dialog plugin)
+│   │   ├── catalog-client.ts        # Search/complete/get functions
+│   │   ├── suggestions-client.ts
+│   │   ├── config-client.ts
+│   │   └── textarea-caret.ts
 │   └── styles/
 │       └── global.css
 └── src-tauri/                        # Rust backend
     ├── Cargo.toml
     ├── tauri.conf.json
-    ├── capabilities/default.json
+    ├── capabilities/default.json     # core, opener, dialog permissions
     └── src/
         ├── main.rs
-        ├── lib.rs                    # Command registration
-        ├── state.rs                  # AppState (Maxima handle)
+        ├── lib.rs                    # Plugin + command registration, setup
+        ├── menu.rs                   # Native menu bar (File, Edit, Window)
+        ├── state.rs                  # AppState (Maxima handle, catalog)
         ├── error.rs
         ├── maxima/
         │   ├── mod.rs
         │   ├── process.rs            # Spawn/kill/restart subprocess
         │   ├── protocol.rs           # Sentinel-based send/receive
-        │   ├── parser.rs             # Parse LaTeX, errors, plots
-        │   └── types.rs              # EvalResult, SessionStatus
+        │   ├── parser.rs             # Parse LaTeX, errors, SVG plots
+        │   ├── errors.rs             # Error pattern matching + enhancement
+        │   └── types.rs              # EvalResult, SessionStatus, ErrorInfo
+        ├── catalog/
+        │   ├── search.rs             # Function catalog search + completion
+        │   └── catalog.json          # Embedded function metadata
+        ├── notebooks/
+        │   ├── mod.rs
+        │   ├── data.rs               # Embedded template loading
+        │   ├── io.rs                 # Read/write notebook files
+        │   ├── types.rs              # Notebook, NotebookCell (nbformat 4)
+        │   ├── welcome.json
+        │   ├── calculus.json
+        │   ├── linear-algebra.json
+        │   ├── equations.json
+        │   ├── programming.json
+        │   └── plotting.json         # 2D/3D/parametric plot examples
+        ├── suggestions/
+        │   ├── types.rs              # Suggestion (with optional action field)
+        │   └── rules.rs              # Context-aware suggestion generation
         └── commands/
             ├── mod.rs
-            ├── evaluate.rs           # evaluate_expression
-            ├── session.rs            # start/stop/restart session
-            └── plots.rs              # Plot SVG serving
+            ├── evaluate.rs
+            ├── session.rs
+            ├── config.rs
+            ├── catalog.rs
+            ├── suggestions.rs
+            ├── notebooks.rs          # list/get templates, save/open notebooks
+            ├── variables.rs
+            └── plot.rs               # write_plot_svg command
 ```
 
 ---
@@ -223,35 +260,38 @@ Maxima's `tex()` output needs preprocessing for KaTeX compatibility:
 
 **Verify**: Syntax coloring works, Shift+Enter executes, editor feels responsive.
 
-### Phase 3: Plot Support
+### Phase 3: Plot Support ✅
 
 **Goal**: `plot2d(sin(x), [x, -3, 3])` renders inline SVG.
 
-1. Set unique `gnuplot_out_file` per cell in protocol
-2. Detect and read SVG files after evaluation
-3. Build PlotOutput component (inline SVG rendering)
-4. Handle plot sizing and centering
+1. ~~Set unique `gnuplot_out_file` per cell in protocol~~ (Maxima writes to its own temp file)
+2. ✅ Parser detects SVG file path pattern in Maxima output via regex, reads SVG content, strips path from text output
+3. ✅ `CellOutput` renders `plotSvg` inline via `dangerouslySetInnerHTML` (trusted local content)
+4. ✅ `.plot-output` CSS: centered, responsive, light background
+5. ✅ Plotting template with 2D, 3D, parametric, and Lissajous examples
+6. ✅ "Save SVG" suggestion chip for plot outputs (opens native save dialog)
 
-**Verify**: Plot commands produce visible inline graphs.
+**Verify**: Plot commands produce visible inline graphs. ✅
 
-### Phase 4: Polish + Persistence
+### Phase 4: Polish + Persistence (partially complete)
 
 **Goal**: Production-quality UX with file save/load.
 
 1. Cell reorder (move up/down)
-2. In[N] / Out[N] execution labels
-3. Status bar (session status, Maxima version)
-4. Loading spinner during evaluation
+2. ✅ In[N] / Out[N] execution labels (`output_label` and `executionCount`)
+3. ✅ Status bar (session status)
+4. ✅ Loading spinner during evaluation
 5. Keyboard shortcuts:
-   - `Shift+Enter` — run cell, advance to next
+   - ✅ `Shift+Enter` — run cell, advance to next
    - `Ctrl/Cmd+Enter` — run cell in place
    - `Escape` — blur editor
-6. Clear All Outputs, Run All
-7. Responsive layout at various window sizes
-8. Define `.axm` JSON notebook format
-9. Save/Load commands with native file picker dialog
-10. Ctrl+S / Ctrl+O shortcuts
+6. ✅ Run All
+7. ✅ Responsive layout at various window sizes
+8. ✅ `.axm` / `.ipynb` JSON notebook format (Jupyter nbformat 4)
+9. ✅ Save/Load commands with native file picker dialog (`tauri-plugin-dialog`)
+10. ✅ Native macOS menu bar with File menu (New, Open, Save, Save As) + accelerators
 11. Unsaved changes warning on close
+12. ✅ Dirty state tracking — toolbar shows filename and `*` indicator
 
 ### Phase 5: Cross-Platform Distribution
 
@@ -309,6 +349,8 @@ Focused UI with few components. CSS Modules provide scoping without class-name v
 
 ```toml
 tauri = { version = "2", features = [] }
+tauri-plugin-opener = "2"
+tauri-plugin-dialog = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 tokio = { version = "1", features = ["full"] }
@@ -320,11 +362,10 @@ tempfile = "3"
 ### npm
 
 ```
+@tauri-apps/api @tauri-apps/plugin-opener @tauri-apps/plugin-dialog
 katex @types/katex
-codemirror @codemirror/view @codemirror/state @codemirror/language
-@codemirror/commands @codemirror/autocomplete @codemirror/theme-one-dark
-zustand
-nanoid
+zustand nanoid
+react-markdown rehype-katex remark-math
 ```
 
-(React, TypeScript, Vite, @tauri-apps/cli, @tauri-apps/api come from the template.)
+(React, TypeScript, Vite, @tauri-apps/cli come from the template.)

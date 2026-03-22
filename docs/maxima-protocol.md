@@ -100,7 +100,7 @@ Given the collected lines (before and including sentinel):
    - The line `false` immediately after a LaTeX line (return value of `tex()`)
    - Lines containing `__AXIMAR_EVAL_END__` (sentinel)
    - Lines containing `"__AXIMAR_EVAL_END__"` (print return value)
-4. **Plot detection**: After parsing, check if `<plot_dir>/<cell_id>.svg` file exists with recent modification time → read SVG content
+4. **Plot detection**: After parsing, scan `text_output` for SVG file path patterns matching `["/path/to/file.svg"]`. Extract the first `.svg` path, read the file, populate `plot_svg`, and strip the path line from `text_output`. Also suppress any LaTeX that just wraps the file path.
 5. **Remaining lines**: plain text result
 
 ## Parsed Result Structure
@@ -108,12 +108,14 @@ Given the collected lines (before and including sentinel):
 ```rust
 pub struct EvalResult {
     pub cell_id: String,
-    pub text_output: String,        // Filtered text lines
-    pub latex: Option<String>,      // LaTeX without $$ delimiters
-    pub plot_svg: Option<String>,   // SVG file content if plot was produced
-    pub error: Option<String>,      // Error message if detected
+    pub text_output: String,            // Filtered text lines
+    pub latex: Option<String>,          // LaTeX without $$ delimiters
+    pub plot_svg: Option<String>,       // SVG file content if plot was produced
+    pub error: Option<String>,          // Raw error message if detected
+    pub error_info: Option<ErrorInfo>,  // Structured error (title, explanation, did-you-mean)
     pub is_error: bool,
     pub duration_ms: u64,
+    pub output_label: Option<String>,   // Maxima output label (e.g. "%o6")
 }
 ```
 

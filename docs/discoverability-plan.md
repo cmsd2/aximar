@@ -353,6 +353,7 @@ pub struct Suggestion {
     pub label: String,        // "Simplify"
     pub template: String,     // "ratsimp(%)"
     pub description: String,  // tooltip text
+    pub action: Option<String>,  // When set, triggers a frontend action (e.g. "save_svg")
 }
 ```
 
@@ -375,8 +376,9 @@ pub fn suggestions_for_output(input: &str, output: &EvalResult) -> Vec<Suggestio
 | Trig in output | `trigsimp(%)`, `trigexpand(%)` |
 | Numeric result | `float(%)`, `bfloat(%)` |
 | After `solve()` | `map(rhs, %)` |
+| Plot output (`plot_svg` present) | "Save SVG" (action, not eval) |
 
-Return max 5 suggestions, most relevant first.
+Return max 5 suggestions, most relevant first. When `plot_svg` is present, only plot-specific action suggestions are returned (math suggestions are suppressed since residual text from Maxima's plot return value would trigger false matches like Length/Sort).
 
 #### Tauri command: `src-tauri/src/commands/suggestions.rs`
 
@@ -492,6 +494,7 @@ Embed notebook templates using `include_str!` from JSON files:
 | `notebooks/linear-algebra.json` | Matrices, determinants, eigenvalues |
 | `notebooks/equations.json` | solve(), algsys(), find_root(), ode2() |
 | `notebooks/programming.json` | Functions, loops, conditionals |
+| `notebooks/plotting.json` | 2D, 3D, parametric plots |
 
 #### Tauri commands: `src-tauri/src/commands/notebooks.rs`
 
@@ -529,6 +532,7 @@ Add `loadNotebook(cells: { input: string }[])` action.
 | Create | `src-tauri/src/notebooks/linear-algebra.json` |
 | Create | `src-tauri/src/notebooks/equations.json` |
 | Create | `src-tauri/src/notebooks/programming.json` |
+| Create | `src-tauri/src/notebooks/io.rs` |
 | Create | `src-tauri/src/commands/notebooks.rs` |
 | Create | `src/components/TemplateChooser.tsx` |
 | Create | `src/lib/notebooks-client.ts` |
