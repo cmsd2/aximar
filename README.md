@@ -130,4 +130,4 @@ Each cell evaluation sends the user's expression plus `tex(%);` to get LaTeX out
 
 ## License
 
-MIT
+GPL-3.0-or-later
