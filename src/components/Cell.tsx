@@ -206,7 +206,26 @@ export function Cell({ cell, onViewDocs }: CellProps) {
           value={cell.input}
           onChange={handleChange}
           onKeyDown={handleKeyDown}
-          onFocus={() => setActiveCellId(cell.id)}
+          onFocus={() => {
+            setActiveCellId(cell.id);
+            // Detect if cursor lands inside a function call (e.g. from command palette insert)
+            requestAnimationFrame(() => {
+              const textarea = textareaRef.current;
+              if (!textarea || signatureHint.state.visible || snippet.state.active) return;
+              const text = textarea.value;
+              const cursorPos = textarea.selectionStart;
+              if (cursorPos > 1) {
+                const call = findEnclosingCall(text, cursorPos);
+                if (call) {
+                  if (autocompleteMode === "snippet") {
+                    snippet.activate(call.funcName, call.openParenPos);
+                  } else {
+                    signatureHint.show(call.funcName, call.openParenPos);
+                  }
+                }
+              }
+            });
+          }}
           onBlur={() => {
             // Delay dismiss so popup click can fire
             setTimeout(() => {

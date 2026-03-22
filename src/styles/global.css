@@ -681,6 +681,39 @@
   letter-spacing: 0.05em;
 }
 
+.palette-category-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  cursor: pointer;
+  transition: background 0.1s;
+}
+
+.palette-category-item.selected {
+  background: var(--accent);
+  color: var(--bg-primary);
+}
+
+.palette-category-item-label {
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.palette-category-item-count {
+  font-size: 12px;
+  color: var(--text-secondary);
+  background: var(--bg-secondary);
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-weight: 500;
+}
+
+.palette-category-item.selected .palette-category-item-count {
+  color: inherit;
+  background: rgba(255, 255, 255, 0.2);
+}
+
 .palette-item {
   padding: 8px 16px;
   cursor: pointer;
