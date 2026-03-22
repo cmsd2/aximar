@@ -4,6 +4,7 @@ import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
 import type { Cell as CellType } from "../types/notebook";
 import { useNotebookStore } from "../store/notebookStore";
+import { useFindStore } from "../store/findStore";
 
 interface MarkdownCellProps {
   cell: CellType;
@@ -16,6 +17,7 @@ export function MarkdownCell({ cell }: MarkdownCellProps) {
   const deleteCell = useNotebookStore((s) => s.deleteCell);
   const cells = useNotebookStore((s) => s.cells);
   const cellCount = cells.length;
+  const hasFindMatch = useFindStore((s) => s.matches.some((m) => m.cellId === cell.id));
 
   useEffect(() => {
     if (editing && textareaRef.current) {
@@ -51,7 +53,7 @@ export function MarkdownCell({ cell }: MarkdownCellProps) {
   );
 
   return (
-    <div className={`cell markdown-cell${editing ? " editing" : ""}`}>
+    <div className={`cell markdown-cell${editing ? " editing" : ""}${hasFindMatch ? " has-find-match" : ""}`}>
       {editing ? (
         <div className="markdown-cell-edit">
           <textarea

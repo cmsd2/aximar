@@ -10,6 +10,8 @@ import { TemplateChooser } from "./components/TemplateChooser";
 import { SettingsModal } from "./components/SettingsModal";
 import { LogPanel } from "./components/LogPanel";
 import { DocsPanel } from "./components/DocsPanel";
+import { FindBar } from "./components/FindBar";
+import { ShortcutHints } from "./components/ShortcutHints";
 import { useMaxima } from "./hooks/useMaxima";
 import { useTheme } from "./hooks/useTheme";
 import {
@@ -23,6 +25,7 @@ import {
 import { getConfig } from "./lib/config-client";
 import { useNotebookStore } from "./store/notebookStore";
 import { useLogStore } from "./store/logStore";
+import { useFindStore } from "./store/findStore";
 import "./styles/global.css";
 
 function App() {
@@ -201,6 +204,57 @@ function App() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [handleKeyDown]);
 
+  // --- Notebook keyboard shortcuts ---
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      const mod = e.metaKey || e.ctrlKey;
+      if (!mod) return;
+
+      // Skip when focus is inside a modal
+      const target = e.target as Element | null;
+      if (target?.closest(".palette-overlay, .settings-modal, .template-modal")) {
+        return;
+      }
+
+      const key = e.key.toLowerCase();
+
+      if (key === "z" && !e.shiftKey) {
+        e.preventDefault();
+        useNotebookStore.getState().undo();
+      } else if (key === "z" && e.shiftKey) {
+        e.preventDefault();
+        useNotebookStore.getState().redo();
+      } else if (key === "y") {
+        e.preventDefault();
+        useNotebookStore.getState().redo();
+      } else if (key === "f" && !e.shiftKey) {
+        e.preventDefault();
+        useFindStore.getState().open(false);
+      } else if (key === "f" && e.shiftKey) {
+        e.preventDefault();
+        useFindStore.getState().open(true);
+      } else if (key === "d") {
+        e.preventDefault();
+        const { activeCellId, cells, deleteCell } = useNotebookStore.getState();
+        if (activeCellId && cells.length > 1) {
+          deleteCell(activeCellId);
+        }
+      } else if (e.shiftKey && key === "arrowup") {
+        e.preventDefault();
+        const { activeCellId, moveCell } = useNotebookStore.getState();
+        if (activeCellId) moveCell(activeCellId, "up");
+      } else if (e.shiftKey && key === "arrowdown") {
+        e.preventDefault();
+        const { activeCellId, moveCell } = useNotebookStore.getState();
+        if (activeCellId) moveCell(activeCellId, "down");
+      }
+    };
+
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, []);
+
   return (
     <div className="app">
       <Toolbar
@@ -214,6 +268,7 @@ function App() {
         docsOpen={docsOpen}
         onToggleDocs={() => setDocsOpen((o) => !o)}
       />
+      <FindBar />
       <VariablePanel open={variablesOpen} />
       <div className="main-content">
         <Notebook onViewDocs={openDocsFor} />
@@ -225,6 +280,7 @@ function App() {
         />
       </div>
       <LogPanel open={logOpen} />
+      <ShortcutHints />
       {paletteOpen && (
         <CommandPalette
           onClose={() => {

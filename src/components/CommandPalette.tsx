@@ -1,6 +1,5 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { searchFunctions, listCategories } from "../lib/catalog-client";
-import { MathText } from "./MathText";
 import { useNotebookStore } from "../store/notebookStore";
 import type { SearchResult, CategoryGroup } from "../types/catalog";
 
@@ -67,15 +66,22 @@ export function CommandPalette({ onClose, initialQuery }: CommandPaletteProps) {
     [insertTextInActiveCell, onClose, activeCellId]
   );
 
-  // Flat list for category browse mode
-  const categoryItems = categories.flatMap((g) =>
-    g.functions.map((f) => ({
-      function: f,
-      score: 0,
-    }))
-  );
+  // Cap displayed results to avoid freezing the UI
+  const MAX_DISPLAY = 50;
+  const categoryItems: SearchResult[] = useMemo(() => {
+    const items: SearchResult[] = [];
+    for (const g of categories) {
+      for (const f of g.functions) {
+        items.push({ function: f, score: 0 });
+        if (items.length >= MAX_DISPLAY) return items;
+      }
+    }
+    return items;
+  }, [categories]);
 
-  const displayItems = query.trim() ? results : categoryItems;
+  const displayItems = query.trim()
+    ? results.slice(0, MAX_DISPLAY)
+    : categoryItems;
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
@@ -106,7 +112,6 @@ export function CommandPalette({ onClose, initialQuery }: CommandPaletteProps) {
     }
   }, [selectedIndex]);
 
-  // Current category header tracking for browse mode
   let lastCategory = "";
 
   return (
@@ -153,9 +158,7 @@ export function CommandPalette({ onClose, initialQuery }: CommandPaletteProps) {
                   <div className="palette-item-sig">
                     {f.signatures[0] || ""}
                   </div>
-                  <div className="palette-item-desc">
-                    <MathText text={f.description} />
-                  </div>
+                  <div className="palette-item-desc">{f.description}</div>
                 </div>
               </div>
             );

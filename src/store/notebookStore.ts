@@ -19,6 +19,11 @@ export type Theme = "auto" | "light" | "dark";
 export type CellStyle = "card" | "bracket";
 export type AutocompleteMode = "hint" | "snippet" | "active-hint";
 
+type UndoableSnapshot = { cells: Cell[] };
+
+const MAX_UNDO = 50;
+const INPUT_DEBOUNCE_MS = 500;
+
 interface NotebookState {
   cells: Cell[];
   sessionStatus: SessionStatus;
@@ -29,6 +34,12 @@ interface NotebookState {
   executionCounter: number;
   filePath: string | null;
   isDirty: boolean;
+
+  // Undo/redo
+  _undoPast: UndoableSnapshot[];
+  _undoFuture: UndoableSnapshot[];
+  _lastInputSnapshotTime: number;
+  _forceNextInputSnapshot: boolean;
 
   addCell: (afterId?: string) => string;
   addMarkdownCell: (afterId?: string) => string;
@@ -49,6 +60,19 @@ interface NotebookState {
   newNotebook: () => void;
   setFilePath: (path: string | null) => void;
   markClean: () => void;
+  undo: () => void;
+  redo: () => void;
+  forceInputSnapshot: () => void;
+}
+
+function snapshotCells(cells: Cell[]): Cell[] {
+  return structuredClone(cells);
+}
+
+function pushSnapshot(past: UndoableSnapshot[], cells: Cell[]): UndoableSnapshot[] {
+  const next = [...past, { cells: snapshotCells(cells) }];
+  if (next.length > MAX_UNDO) next.shift();
+  return next;
 }
 
 export const useNotebookStore = create<NotebookState>((set) => ({
@@ -62,19 +86,25 @@ export const useNotebookStore = create<NotebookState>((set) => ({
   filePath: null,
   isDirty: false,
 
+  _undoPast: [],
+  _undoFuture: [],
+  _lastInputSnapshotTime: 0,
+  _forceNextInputSnapshot: false,
+
   addCell: (afterId?: string) => {
     const newCell = createCell();
     set((state) => {
+      const past = pushSnapshot(state._undoPast, state.cells);
       if (!afterId) {
-        return { cells: [...state.cells, newCell], isDirty: true };
+        return { cells: [...state.cells, newCell], isDirty: true, _undoPast: past, _undoFuture: [] };
       }
       const index = state.cells.findIndex((c) => c.id === afterId);
       if (index === -1) {
-        return { cells: [...state.cells, newCell], isDirty: true };
+        return { cells: [...state.cells, newCell], isDirty: true, _undoPast: past, _undoFuture: [] };
       }
       const cells = [...state.cells];
       cells.splice(index + 1, 0, newCell);
-      return { cells, isDirty: true };
+      return { cells, isDirty: true, _undoPast: past, _undoFuture: [] };
     });
     return newCell.id;
   },
@@ -82,16 +112,17 @@ export const useNotebookStore = create<NotebookState>((set) => ({
   addMarkdownCell: (afterId?: string) => {
     const newCell = createCell("markdown");
     set((state) => {
+      const past = pushSnapshot(state._undoPast, state.cells);
       if (!afterId) {
-        return { cells: [...state.cells, newCell], isDirty: true };
+        return { cells: [...state.cells, newCell], isDirty: true, _undoPast: past, _undoFuture: [] };
       }
       const index = state.cells.findIndex((c) => c.id === afterId);
       if (index === -1) {
-        return { cells: [...state.cells, newCell], isDirty: true };
+        return { cells: [...state.cells, newCell], isDirty: true, _undoPast: past, _undoFuture: [] };
       }
       const cells = [...state.cells];
       cells.splice(index + 1, 0, newCell);
-      return { cells, isDirty: true };
+      return { cells, isDirty: true, _undoPast: past, _undoFuture: [] };
     });
     return newCell.id;
   },
@@ -99,13 +130,14 @@ export const useNotebookStore = create<NotebookState>((set) => ({
   addCellWithInput: (afterId: string, input: string) => {
     const newCell: Cell = { ...createCell(), input };
     set((state) => {
+      const past = pushSnapshot(state._undoPast, state.cells);
       const index = state.cells.findIndex((c) => c.id === afterId);
       if (index === -1) {
-        return { cells: [...state.cells, newCell], isDirty: true };
+        return { cells: [...state.cells, newCell], isDirty: true, _undoPast: past, _undoFuture: [] };
       }
       const cells = [...state.cells];
       cells.splice(index + 1, 0, newCell);
-      return { cells, isDirty: true };
+      return { cells, isDirty: true, _undoPast: past, _undoFuture: [] };
     });
     return newCell.id;
   },
@@ -113,7 +145,8 @@ export const useNotebookStore = create<NotebookState>((set) => ({
   deleteCell: (id: string) =>
     set((state) => {
       if (state.cells.length <= 1) return state;
-      return { cells: state.cells.filter((c) => c.id !== id), isDirty: true };
+      const past = pushSnapshot(state._undoPast, state.cells);
+      return { cells: state.cells.filter((c) => c.id !== id), isDirty: true, _undoPast: past, _undoFuture: [] };
     }),
 
   moveCell: (id: string, direction: "up" | "down") =>
@@ -122,16 +155,37 @@ export const useNotebookStore = create<NotebookState>((set) => ({
       if (index === -1) return state;
       const target = direction === "up" ? index - 1 : index + 1;
       if (target < 0 || target >= state.cells.length) return state;
+      const past = pushSnapshot(state._undoPast, state.cells);
       const cells = [...state.cells];
       [cells[index], cells[target]] = [cells[target], cells[index]];
-      return { cells, isDirty: true };
+      return { cells, isDirty: true, _undoPast: past, _undoFuture: [] };
     }),
 
   updateCellInput: (id: string, input: string) =>
-    set((state) => ({
-      cells: state.cells.map((c) => (c.id === id ? { ...c, input } : c)),
-      isDirty: true,
-    })),
+    set((state) => {
+      const now = Date.now();
+      const elapsed = now - state._lastInputSnapshotTime;
+      const shouldSnapshot = state._forceNextInputSnapshot || elapsed >= INPUT_DEBOUNCE_MS;
+
+      let past = state._undoPast;
+      let lastTime = state._lastInputSnapshotTime;
+      let force = state._forceNextInputSnapshot;
+
+      if (shouldSnapshot) {
+        past = pushSnapshot(past, state.cells);
+        lastTime = now;
+        force = false;
+      }
+
+      return {
+        cells: state.cells.map((c) => (c.id === id ? { ...c, input } : c)),
+        isDirty: true,
+        _undoPast: past,
+        _undoFuture: [],
+        _lastInputSnapshotTime: lastTime,
+        _forceNextInputSnapshot: force,
+      };
+    }),
 
   setCellStatus: (id: string, status: CellStatus) =>
     set((state) => ({
@@ -163,6 +217,7 @@ export const useNotebookStore = create<NotebookState>((set) => ({
   insertTextInActiveCell: (text: string) =>
     set((state) => {
       if (!state.activeCellId) return state;
+      const past = pushSnapshot(state._undoPast, state.cells);
       return {
         cells: state.cells.map((c) =>
           c.id === state.activeCellId
@@ -170,18 +225,25 @@ export const useNotebookStore = create<NotebookState>((set) => ({
             : c
         ),
         isDirty: true,
+        _undoPast: past,
+        _undoFuture: [],
       };
     }),
 
   toggleCellType: (id: string) =>
-    set((state) => ({
-      cells: state.cells.map((c) =>
-        c.id === id
-          ? { ...c, cellType: c.cellType === "code" ? "markdown" : "code", output: null, status: "idle" }
-          : c
-      ),
-      isDirty: true,
-    })),
+    set((state) => {
+      const past = pushSnapshot(state._undoPast, state.cells);
+      return {
+        cells: state.cells.map((c) =>
+          c.id === id
+            ? { ...c, cellType: c.cellType === "code" ? "markdown" : "code", output: null, status: "idle" }
+            : c
+        ),
+        isDirty: true,
+        _undoPast: past,
+        _undoFuture: [],
+      };
+    }),
 
   loadNotebook: (newCells: NotebookCell[], filePath?: string | null) =>
     set(() => ({
@@ -194,6 +256,10 @@ export const useNotebookStore = create<NotebookState>((set) => ({
           ...createCell(c.cell_type === "markdown" ? "markdown" : "code"),
           input: cellSourceText(c.source),
         })),
+      _undoPast: [],
+      _undoFuture: [],
+      _lastInputSnapshotTime: 0,
+      _forceNextInputSnapshot: false,
     })),
 
   newNotebook: () =>
@@ -202,9 +268,43 @@ export const useNotebookStore = create<NotebookState>((set) => ({
       executionCounter: 0,
       filePath: null,
       isDirty: false,
+      _undoPast: [],
+      _undoFuture: [],
+      _lastInputSnapshotTime: 0,
+      _forceNextInputSnapshot: false,
     })),
 
   setFilePath: (path: string | null) => set({ filePath: path }),
 
   markClean: () => set({ isDirty: false }),
+
+  undo: () =>
+    set((state) => {
+      if (state._undoPast.length === 0) return state;
+      const past = [...state._undoPast];
+      const snapshot = past.pop()!;
+      const future = [{ cells: snapshotCells(state.cells) }, ...state._undoFuture];
+      return {
+        cells: snapshot.cells,
+        _undoPast: past,
+        _undoFuture: future,
+        isDirty: true,
+      };
+    }),
+
+  redo: () =>
+    set((state) => {
+      if (state._undoFuture.length === 0) return state;
+      const future = [...state._undoFuture];
+      const snapshot = future.shift()!;
+      const past = [...state._undoPast, { cells: snapshotCells(state.cells) }];
+      return {
+        cells: snapshot.cells,
+        _undoPast: past,
+        _undoFuture: future,
+        isDirty: true,
+      };
+    }),
+
+  forceInputSnapshot: () => set({ _forceNextInputSnapshot: true }),
 }));

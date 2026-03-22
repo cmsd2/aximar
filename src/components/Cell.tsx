@@ -1,6 +1,7 @@
 import { useRef, useCallback, useState, useEffect } from "react";
 import type { Cell as CellType } from "../types/notebook";
 import { useNotebookStore } from "../store/notebookStore";
+import { useFindStore } from "../store/findStore";
 import { useMaxima } from "../hooks/useMaxima";
 import { useAutocomplete } from "../hooks/useAutocomplete";
 import { useHoverTooltip } from "../hooks/useHoverTooltip";
@@ -56,6 +57,7 @@ export function Cell({ cell, onViewDocs }: CellProps) {
   );
   const [, setAutocompleteIndex] = useState(0);
   const [outputCollapsed, setOutputCollapsed] = useState(false);
+  const hasFindMatch = useFindStore((s) => s.matches.some((m) => m.cellId === cell.id));
 
   // Auto-resize textarea when input changes (including initial load from templates)
   useEffect(() => {
@@ -179,7 +181,7 @@ export function Cell({ cell, onViewDocs }: CellProps) {
 
   return (
     <>
-    <div className={`cell ${cell.status}${outputCollapsed ? " output-collapsed" : ""}`}>
+    <div className={`cell ${cell.status}${outputCollapsed ? " output-collapsed" : ""}${hasFindMatch ? " has-find-match" : ""}`}>
       <div className="cell-input-area">
         {cell.output && (
           <button

@@ -21,6 +21,10 @@ export function Toolbar({ onOpenTemplates, onOpenSettings, variablesOpen, onTogg
   const sessionStatus = useNotebookStore((s) => s.sessionStatus);
   const filePath = useNotebookStore((s) => s.filePath);
   const isDirty = useNotebookStore((s) => s.isDirty);
+  const undo = useNotebookStore((s) => s.undo);
+  const redo = useNotebookStore((s) => s.redo);
+  const canUndo = useNotebookStore((s) => s._undoPast.length > 0);
+  const canRedo = useNotebookStore((s) => s._undoFuture.length > 0);
   const { executeCell, restartSession } = useMaxima();
 
   const runAll = async () => {
@@ -74,6 +78,13 @@ export function Toolbar({ onOpenTemplates, onOpenSettings, variablesOpen, onTogg
         </button>
         <button className="toolbar-btn" onClick={restartSession}>
           Restart
+        </button>
+        <div className="toolbar-separator" />
+        <button className="toolbar-btn" onClick={undo} disabled={!canUndo} title="Undo (Cmd+Z)">
+          Undo
+        </button>
+        <button className="toolbar-btn" onClick={redo} disabled={!canRedo} title="Redo (Cmd+Shift+Z)">
+          Redo
         </button>
         <div className="toolbar-separator" />
         <button className="toolbar-btn" onClick={onOpenTemplates}>
