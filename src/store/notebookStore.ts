@@ -34,6 +34,7 @@ interface NotebookState {
   executionCounter: number;
   filePath: string | null;
   isDirty: boolean;
+  pendingCursorMove: { cellId: string; pos: number } | null;
 
   // Undo/redo
   _undoPast: UndoableSnapshot[];
@@ -63,6 +64,8 @@ interface NotebookState {
   undo: () => void;
   redo: () => void;
   forceInputSnapshot: () => void;
+  setPendingCursorMove: (move: { cellId: string; pos: number }) => void;
+  clearPendingCursorMove: () => void;
 }
 
 function snapshotCells(cells: Cell[]): Cell[] {
@@ -85,6 +88,7 @@ export const useNotebookStore = create<NotebookState>((set) => ({
   executionCounter: 0,
   filePath: null,
   isDirty: false,
+  pendingCursorMove: null,
 
   _undoPast: [],
   _undoFuture: [],
@@ -307,4 +311,9 @@ export const useNotebookStore = create<NotebookState>((set) => ({
     }),
 
   forceInputSnapshot: () => set({ _forceNextInputSnapshot: true }),
+
+  setPendingCursorMove: (move: { cellId: string; pos: number }) =>
+    set({ pendingCursorMove: move }),
+
+  clearPendingCursorMove: () => set({ pendingCursorMove: null }),
 }));

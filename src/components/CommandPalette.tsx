@@ -65,18 +65,13 @@ export function CommandPalette({ onClose, onViewDocs, initialQuery }: CommandPal
         targetCellId = newId;
       }
       onClose();
-      const focusCellId = targetCellId;
-      requestAnimationFrame(() => {
-        if (!focusCellId) return;
-        const textarea = document.querySelector<HTMLTextAreaElement>(
-          `textarea[data-cell-id="${focusCellId}"]`
-        );
-        if (textarea) {
-          textarea.focus();
-          const pos = textarea.value.length - 1;
-          textarea.setSelectionRange(pos, pos);
-        }
-      });
+      if (targetCellId) {
+        // Get the current cell input length to position cursor inside parens
+        const cells = useNotebookStore.getState().cells;
+        const cell = cells.find((c) => c.id === targetCellId);
+        const pos = cell ? cell.input.length - 1 : 0;
+        useNotebookStore.getState().setPendingCursorMove({ cellId: targetCellId, pos });
+      }
     },
     [insertTextInActiveCell, addCell, setActiveCellId, onClose, activeCellId]
   );

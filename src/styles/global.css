@@ -242,7 +242,7 @@
   border: 1px solid var(--border-color);
   border-radius: 8px;
   background: var(--bg-cell);
-  overflow: hidden;
+  overflow: visible;
 }
 
 .cell.running {
@@ -300,11 +300,16 @@
   line-height: 1.5;
   resize: none;
   outline: none;
-  overflow: hidden;
+  overflow: visible;
+  min-height: 1.5em;
 }
 
-.cell-input::placeholder {
-  color: var(--text-placeholder);
+.cell-input .cm-editor {
+  outline: none;
+}
+
+.cell-input .cm-scroller {
+  overflow: visible;
 }
 
 .cell-actions {
@@ -473,63 +478,8 @@
   word-break: break-word;
 }
 
-/* Autocomplete Popup */
-.autocomplete-popup {
-  position: fixed;
-  z-index: 50;
-  background: var(--bg-primary);
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
-  max-height: 240px;
-  overflow-y: auto;
-  min-width: 260px;
-  max-width: 400px;
-  padding: 4px 0;
-}
-
-.autocomplete-item {
-  padding: 6px 12px;
-  cursor: pointer;
-  display: flex;
-  gap: 8px;
-  align-items: baseline;
-  transition: background 0.1s;
-}
-
-.autocomplete-item.selected {
-  background: var(--accent);
-  color: var(--bg-primary);
-}
-
-.autocomplete-item.selected .autocomplete-sig {
-  color: inherit;
-  opacity: 0.8;
-}
-
-.autocomplete-name {
-  font-weight: 600;
-  font-size: 13px;
-  font-family: "JetBrains Mono", "Fira Code", "SF Mono", Menlo, Consolas, monospace;
-}
-
-.autocomplete-sig {
-  font-size: 11px;
-  color: var(--text-secondary);
-  font-family: "JetBrains Mono", "Fira Code", "SF Mono", Menlo, Consolas, monospace;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-/* Signature Hint Popup */
+/* Signature Hint Popup (rendered inside CM .cm-tooltip) */
 .signature-hint {
-  position: fixed;
-  z-index: 55;
-  background: var(--bg-primary);
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
   padding: 6px 10px;
   max-width: 420px;
   font-family: "JetBrains Mono", "Fira Code", "SF Mono", Menlo, Consolas, monospace;
@@ -1659,15 +1609,9 @@
   pointer-events: none;
 }
 
-/* Hover Tooltip */
+/* Hover Tooltip (rendered inside CM .cm-tooltip) */
 .hover-tooltip {
-  position: fixed;
-  z-index: 60;
   max-width: 320px;
-  background: var(--bg-primary);
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
   padding: 10px 12px;
   pointer-events: auto;
 }

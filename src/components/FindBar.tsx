@@ -61,17 +61,16 @@ export function FindBar() {
     const { setActiveCellId } = useNotebookStore.getState();
     setActiveCellId(match.cellId);
 
+    useFindStore.getState().setNavigateTo({
+      cellId: match.cellId,
+      start: match.start,
+      end: match.end,
+    });
+    // Scroll cell into view
     requestAnimationFrame(() => {
-      const textarea = document.querySelector<HTMLTextAreaElement>(
-        `[data-cell-id="${match.cellId}"]`
-      );
-      if (textarea) {
-        textarea.focus();
-        textarea.setSelectionRange(match.start, match.end);
-        // Scroll cell into view
-        const cellEl = textarea.closest(".cell");
-        cellEl?.scrollIntoView({ block: "nearest", behavior: "smooth" });
-      }
+      const cellEl = document.querySelector(`[data-cell-id="${match.cellId}"]`);
+      const container = cellEl?.closest(".cell");
+      container?.scrollIntoView({ block: "nearest", behavior: "smooth" });
     });
   }, [currentMatchIndex, matches]);
 

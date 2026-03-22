@@ -14,6 +14,7 @@ interface FindState {
   caseSensitive: boolean;
   matches: FindMatch[];
   currentMatchIndex: number;
+  navigateTo: { cellId: string; start: number; end: number } | null;
 
   open: (withReplace?: boolean) => void;
   close: () => void;
@@ -24,6 +25,8 @@ interface FindState {
   setMatches: (matches: FindMatch[]) => void;
   goToNextMatch: () => void;
   goToPrevMatch: () => void;
+  setNavigateTo: (nav: { cellId: string; start: number; end: number }) => void;
+  clearNavigateTo: () => void;
 }
 
 export const useFindStore = create<FindState>((set) => ({
@@ -34,6 +37,7 @@ export const useFindStore = create<FindState>((set) => ({
   caseSensitive: false,
   matches: [],
   currentMatchIndex: 0,
+  navigateTo: null,
 
   open: (withReplace?: boolean) =>
     set((state) => ({
@@ -80,4 +84,9 @@ export const useFindStore = create<FindState>((set) => ({
           (state.currentMatchIndex - 1 + state.matches.length) % state.matches.length,
       };
     }),
+
+  setNavigateTo: (nav: { cellId: string; start: number; end: number }) =>
+    set({ navigateTo: nav }),
+
+  clearNavigateTo: () => set({ navigateTo: null }),
 }));
