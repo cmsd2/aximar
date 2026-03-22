@@ -47,15 +47,18 @@ export function Toolbar({ onOpenTemplates, onOpenSettings, variablesOpen, onTogg
         <button className="toolbar-btn" onClick={() => addMarkdownCell()}>
           + Markdown
         </button>
+        <div className="toolbar-separator" />
         <button className="toolbar-btn" onClick={runAll}>
           Run All
         </button>
         <button className="toolbar-btn" onClick={restartSession}>
           Restart
         </button>
+        <div className="toolbar-separator" />
         <button className="toolbar-btn" onClick={onOpenTemplates}>
           Templates
         </button>
+        <div className="toolbar-separator" />
         <button
           className={`toolbar-btn${variablesOpen ? " toolbar-btn-active" : ""}`}
           onClick={onToggleVariables}
