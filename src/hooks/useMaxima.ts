@@ -1,7 +1,60 @@
 import { useCallback } from "react";
+import { message } from "@tauri-apps/plugin-dialog";
 import { useNotebookStore } from "../store/notebookStore";
 import { evaluateExpression, startSession, restartSession } from "../lib/maxima-client";
 import type { CellOutput } from "../types/notebook";
+
+function isMaximaNotFoundError(errorMsg: string): boolean {
+  const lower = errorMsg.toLowerCase();
+  return lower.includes("no such file") || lower.includes("not found");
+}
+
+function detectPlatform(): "macos" | "linux" | "windows" | "unknown" {
+  const p = navigator.platform?.toLowerCase() ?? "";
+  const ua = navigator.userAgent?.toLowerCase() ?? "";
+  if (p.startsWith("mac") || ua.includes("macintosh")) return "macos";
+  if (p.startsWith("linux") || ua.includes("linux")) return "linux";
+  if (p.startsWith("win") || ua.includes("windows")) return "windows";
+  return "unknown";
+}
+
+let maximaDialogShown = false;
+
+async function showMaximaNotFoundDialog(errorMsg: string): Promise<void> {
+  if (!isMaximaNotFoundError(errorMsg)) return;
+  if (maximaDialogShown) return;
+  maximaDialogShown = true;
+
+  const platform = detectPlatform();
+
+  let installInstructions: string;
+  switch (platform) {
+    case "macos":
+      installInstructions = "Install Maxima using Homebrew:\n\n  brew install maxima";
+      break;
+    case "linux":
+      installInstructions =
+        "Install Maxima using your package manager:\n\n" +
+        "  Ubuntu/Debian: sudo apt install maxima\n" +
+        "  Fedora: sudo dnf install maxima";
+      break;
+    case "windows":
+      installInstructions =
+        "Download Maxima for Windows from:\nhttps://sourceforge.net/projects/maxima/";
+      break;
+    default:
+      installInstructions = "Install Maxima from https://maxima.sourceforge.io/";
+      break;
+  }
+
+  const body =
+    `Aximar could not find Maxima on your system.\n\n` +
+    `${installInstructions}\n\n` +
+    `If Maxima is installed in a non-standard location, set the AXIMAR_MAXIMA_PATH ` +
+    `environment variable or configure the path in Settings.`;
+
+  await message(body, { title: "Maxima Not Found", kind: "error" });
+}
 
 /**
  * Build a map from display execution count → real Maxima output label.
@@ -90,7 +143,9 @@ export function useMaxima() {
       const status = await startSession();
       setSessionStatus(status);
     } catch (err) {
-      setSessionStatus({ Error: String(err) });
+      const errMsg = String(err);
+      setSessionStatus({ Error: errMsg });
+      await showMaximaNotFoundDialog(errMsg);
     }
   }, [setSessionStatus]);
 
@@ -100,7 +155,9 @@ export function useMaxima() {
       const status = await restartSession();
       setSessionStatus(status);
     } catch (err) {
-      setSessionStatus({ Error: String(err) });
+      const errMsg = String(err);
+      setSessionStatus({ Error: errMsg });
+      await showMaximaNotFoundDialog(errMsg);
     }
   }, [setSessionStatus]);
 
