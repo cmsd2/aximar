@@ -16,6 +16,7 @@ interface ToolbarProps {
 export function Toolbar({ onOpenTemplates, onOpenSettings, variablesOpen, onToggleVariables, logOpen, onToggleLog, logUnreadCount, docsOpen, onToggleDocs }: ToolbarProps) {
   const addCell = useNotebookStore((s) => s.addCell);
   const addMarkdownCell = useNotebookStore((s) => s.addMarkdownCell);
+  const activeCellId = useNotebookStore((s) => s.activeCellId);
   const cells = useNotebookStore((s) => s.cells);
   const sessionStatus = useNotebookStore((s) => s.sessionStatus);
   const filePath = useNotebookStore((s) => s.filePath);
@@ -49,10 +50,22 @@ export function Toolbar({ onOpenTemplates, onOpenSettings, variablesOpen, onTogg
   return (
     <div className="toolbar">
       <div className="toolbar-left">
-        <button className="toolbar-btn" onClick={() => addCell()}>
+        <button className="toolbar-btn" onClick={() => {
+          const id = addCell(activeCellId ?? undefined);
+          requestAnimationFrame(() => {
+            const el = document.querySelector<HTMLTextAreaElement>(`[data-cell-id="${id}"]`);
+            el?.focus();
+          });
+        }}>
           + Cell
         </button>
-        <button className="toolbar-btn" onClick={() => addMarkdownCell()}>
+        <button className="toolbar-btn" onClick={() => {
+          const id = addMarkdownCell(activeCellId ?? undefined);
+          requestAnimationFrame(() => {
+            const el = document.querySelector<HTMLTextAreaElement>(`[data-cell-id="${id}"]`);
+            el?.focus();
+          });
+        }}>
           + Markdown
         </button>
         <div className="toolbar-separator" />

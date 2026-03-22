@@ -30,8 +30,8 @@ interface NotebookState {
   filePath: string | null;
   isDirty: boolean;
 
-  addCell: (afterId?: string) => void;
-  addMarkdownCell: (afterId?: string) => void;
+  addCell: (afterId?: string) => string;
+  addMarkdownCell: (afterId?: string) => string;
   addCellWithInput: (afterId: string, input: string) => string;
   deleteCell: (id: string) => void;
   moveCell: (id: string, direction: "up" | "down") => void;
@@ -62,9 +62,9 @@ export const useNotebookStore = create<NotebookState>((set) => ({
   filePath: null,
   isDirty: false,
 
-  addCell: (afterId?: string) =>
+  addCell: (afterId?: string) => {
+    const newCell = createCell();
     set((state) => {
-      const newCell = createCell();
       if (!afterId) {
         return { cells: [...state.cells, newCell], isDirty: true };
       }
@@ -75,11 +75,13 @@ export const useNotebookStore = create<NotebookState>((set) => ({
       const cells = [...state.cells];
       cells.splice(index + 1, 0, newCell);
       return { cells, isDirty: true };
-    }),
+    });
+    return newCell.id;
+  },
 
-  addMarkdownCell: (afterId?: string) =>
+  addMarkdownCell: (afterId?: string) => {
+    const newCell = createCell("markdown");
     set((state) => {
-      const newCell = createCell("markdown");
       if (!afterId) {
         return { cells: [...state.cells, newCell], isDirty: true };
       }
@@ -90,7 +92,9 @@ export const useNotebookStore = create<NotebookState>((set) => ({
       const cells = [...state.cells];
       cells.splice(index + 1, 0, newCell);
       return { cells, isDirty: true };
-    }),
+    });
+    return newCell.id;
+  },
 
   addCellWithInput: (afterId: string, input: string) => {
     const newCell: Cell = { ...createCell(), input };
