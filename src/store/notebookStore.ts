@@ -25,6 +25,8 @@ interface NotebookState {
   cellStyle: CellStyle;
   activeCellId: string | null;
   executionCounter: number;
+  filePath: string | null;
+  isDirty: boolean;
 
   addCell: (afterId?: string) => void;
   addMarkdownCell: (afterId?: string) => void;
@@ -39,7 +41,10 @@ interface NotebookState {
   setActiveCellId: (id: string | null) => void;
   insertTextInActiveCell: (text: string) => void;
   toggleCellType: (id: string) => void;
-  loadNotebook: (cells: NotebookCell[]) => void;
+  loadNotebook: (cells: NotebookCell[], filePath?: string | null) => void;
+  newNotebook: () => void;
+  setFilePath: (path: string | null) => void;
+  markClean: () => void;
 }
 
 export const useNotebookStore = create<NotebookState>((set) => ({
@@ -49,35 +54,37 @@ export const useNotebookStore = create<NotebookState>((set) => ({
   cellStyle: "card",
   activeCellId: null,
   executionCounter: 0,
+  filePath: null,
+  isDirty: false,
 
   addCell: (afterId?: string) =>
     set((state) => {
       const newCell = createCell();
       if (!afterId) {
-        return { cells: [...state.cells, newCell] };
+        return { cells: [...state.cells, newCell], isDirty: true };
       }
       const index = state.cells.findIndex((c) => c.id === afterId);
       if (index === -1) {
-        return { cells: [...state.cells, newCell] };
+        return { cells: [...state.cells, newCell], isDirty: true };
       }
       const cells = [...state.cells];
       cells.splice(index + 1, 0, newCell);
-      return { cells };
+      return { cells, isDirty: true };
     }),
 
   addMarkdownCell: (afterId?: string) =>
     set((state) => {
       const newCell = createCell("markdown");
       if (!afterId) {
-        return { cells: [...state.cells, newCell] };
+        return { cells: [...state.cells, newCell], isDirty: true };
       }
       const index = state.cells.findIndex((c) => c.id === afterId);
       if (index === -1) {
-        return { cells: [...state.cells, newCell] };
+        return { cells: [...state.cells, newCell], isDirty: true };
       }
       const cells = [...state.cells];
       cells.splice(index + 1, 0, newCell);
-      return { cells };
+      return { cells, isDirty: true };
     }),
 
   addCellWithInput: (afterId: string, input: string) => {
@@ -85,11 +92,11 @@ export const useNotebookStore = create<NotebookState>((set) => ({
     set((state) => {
       const index = state.cells.findIndex((c) => c.id === afterId);
       if (index === -1) {
-        return { cells: [...state.cells, newCell] };
+        return { cells: [...state.cells, newCell], isDirty: true };
       }
       const cells = [...state.cells];
       cells.splice(index + 1, 0, newCell);
-      return { cells };
+      return { cells, isDirty: true };
     });
     return newCell.id;
   },
@@ -97,12 +104,13 @@ export const useNotebookStore = create<NotebookState>((set) => ({
   deleteCell: (id: string) =>
     set((state) => {
       if (state.cells.length <= 1) return state;
-      return { cells: state.cells.filter((c) => c.id !== id) };
+      return { cells: state.cells.filter((c) => c.id !== id), isDirty: true };
     }),
 
   updateCellInput: (id: string, input: string) =>
     set((state) => ({
       cells: state.cells.map((c) => (c.id === id ? { ...c, input } : c)),
+      isDirty: true,
     })),
 
   setCellStatus: (id: string, status: CellStatus) =>
@@ -139,6 +147,7 @@ export const useNotebookStore = create<NotebookState>((set) => ({
             ? { ...c, input: c.input + text }
             : c
         ),
+        isDirty: true,
       };
     }),
 
@@ -149,11 +158,14 @@ export const useNotebookStore = create<NotebookState>((set) => ({
           ? { ...c, cellType: c.cellType === "code" ? "markdown" : "code", output: null, status: "idle" }
           : c
       ),
+      isDirty: true,
     })),
 
-  loadNotebook: (newCells: NotebookCell[]) =>
+  loadNotebook: (newCells: NotebookCell[], filePath?: string | null) =>
     set(() => ({
       executionCounter: 0,
+      filePath: filePath ?? null,
+      isDirty: false,
       cells: newCells
         .filter((c) => c.cell_type !== "raw")
         .map((c) => ({
@@ -161,4 +173,16 @@ export const useNotebookStore = create<NotebookState>((set) => ({
           input: cellSourceText(c.source),
         })),
     })),
+
+  newNotebook: () =>
+    set(() => ({
+      cells: [createCell()],
+      executionCounter: 0,
+      filePath: null,
+      isDirty: false,
+    })),
+
+  setFilePath: (path: string | null) => set({ filePath: path }),
+
+  markClean: () => set({ isDirty: false }),
 }));

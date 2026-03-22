@@ -1,4 +1,5 @@
 use regex::Regex;
+use std::fs;
 
 use crate::catalog::search::Catalog;
 use crate::maxima::errors;
@@ -161,6 +162,38 @@ pub fn parse_output(cell_id: &str, lines: &[String], duration_ms: u64, catalog: 
     // If error, discard any junk latex that came from tex(%) on the error state
     let latex = if has_error { None } else { latex };
 
+    // Detect SVG plot file paths in text output: Maxima returns e.g. ["/tmp/maxplot.svg"]
+    let svg_path_re = Regex::new(r#"\[?"([^"]+\.svg)"(?:,\s*"[^"]+\.svg")*\]?"#).unwrap();
+    let mut plot_svg: Option<String> = None;
+    let text_output = if !has_error {
+        if let Some(caps) = svg_path_re.captures(&text_output) {
+            let svg_path = &caps[1];
+            if let Ok(svg_content) = fs::read_to_string(svg_path) {
+                plot_svg = Some(svg_content);
+            }
+            // Strip the file path line from text output
+            let cleaned: Vec<&str> = text_output
+                .lines()
+                .filter(|line| !svg_path_re.is_match(line))
+                .collect();
+            cleaned.join("\n")
+        } else {
+            text_output
+        }
+    } else {
+        text_output
+    };
+
+    // If we found a plot SVG, also suppress any LaTeX that just wraps the file path
+    let latex = if plot_svg.is_some() {
+        match &latex {
+            Some(l) if l.contains(".svg") => None,
+            _ => latex,
+        }
+    } else {
+        latex
+    };
+
     let error_info = error
         .as_ref()
         .and_then(|e| errors::enhance_error(e, catalog));
@@ -172,7 +205,7 @@ pub fn parse_output(cell_id: &str, lines: &[String], duration_ms: u64, catalog: 
         cell_id: cell_id.to_string(),
         text_output,
         latex,
-        plot_svg: None,
+        plot_svg,
         error: error.clone(),
         error_info,
         is_error: has_error,

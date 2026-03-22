@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
+import { listen } from "@tauri-apps/api/event";
 import { Toolbar } from "./components/Toolbar";
 import { VariablePanel } from "./components/VariablePanel";
 import { Notebook } from "./components/Notebook";
@@ -13,6 +14,9 @@ import {
   getHasSeenWelcome,
   setHasSeenWelcome,
   getTemplate,
+  saveNotebook,
+  saveNotebookAs,
+  openNotebook,
 } from "./lib/notebooks-client";
 import { getConfig } from "./lib/config-client";
 import { useNotebookStore } from "./store/notebookStore";
@@ -33,6 +37,7 @@ function App() {
   const [docsFunctionName, setDocsFunctionName] = useState<string | undefined>(undefined);
   const [docsRequestId, setDocsRequestId] = useState(0);
   const loadNotebook = useNotebookStore((s) => s.loadNotebook);
+  const newNotebook = useNotebookStore((s) => s.newNotebook);
   const logOpen = useLogStore((s) => s.logOpen);
   const toggleLog = useLogStore((s) => s.toggleLog);
   const logUnreadCount = useLogStore((s) => s.unreadCount);
@@ -79,6 +84,65 @@ function App() {
     setDocsRequestId((n) => n + 1);
     setDocsOpen(true);
   }, []);
+
+  // --- File operations ---
+
+  const handleSave = useCallback(async () => {
+    const { cells, filePath, markClean, setFilePath } =
+      useNotebookStore.getState();
+    const savedPath = await saveNotebook(cells, filePath);
+    if (savedPath) {
+      setFilePath(savedPath);
+      markClean();
+    }
+  }, []);
+
+  const handleSaveAs = useCallback(async () => {
+    const { cells, filePath, markClean, setFilePath } =
+      useNotebookStore.getState();
+    const savedPath = await saveNotebookAs(cells, filePath);
+    if (savedPath) {
+      setFilePath(savedPath);
+      markClean();
+    }
+  }, []);
+
+  const handleOpen = useCallback(async () => {
+    const result = await openNotebook();
+    if (result) {
+      loadNotebook(result.notebook.cells, result.path);
+    }
+  }, [loadNotebook]);
+
+  const handleNew = useCallback(() => {
+    newNotebook();
+  }, [newNotebook]);
+
+  // --- Listen for native menu events from Tauri ---
+
+  useEffect(() => {
+    const unlisten = listen<string>("menu-event", (event) => {
+      switch (event.payload) {
+        case "new":
+          handleNew();
+          break;
+        case "open":
+          handleOpen();
+          break;
+        case "save":
+          handleSave();
+          break;
+        case "save_as":
+          handleSaveAs();
+          break;
+      }
+    });
+    return () => {
+      unlisten.then((fn) => fn());
+    };
+  }, [handleNew, handleOpen, handleSave, handleSaveAs]);
+
+  // --- Keyboard shortcut: Cmd+K for command palette ---
 
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
     if ((e.metaKey || e.ctrlKey) && e.key === "k") {

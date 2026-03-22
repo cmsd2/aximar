@@ -1,4 +1,6 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
+import { invoke } from "@tauri-apps/api/core";
+import { save } from "@tauri-apps/plugin-dialog";
 import { useNotebookStore } from "../store/notebookStore";
 import { useMaxima } from "../hooks/useMaxima";
 import { getSuggestions } from "../lib/suggestions-client";
@@ -27,6 +29,21 @@ export function CellSuggestions({ cell }: CellSuggestionsProps) {
 
   // Track the cell created by the last suggestion click so we can reuse it
   const lastSuggestionRef = useRef<{ cellId: string; template: string } | null>(null);
+
+  const handleAction = useCallback(
+    async (action: string) => {
+      if (action === "save_svg" && cell.output?.plotSvg) {
+        const path = await save({
+          defaultPath: "plot.svg",
+          filters: [{ name: "SVG Image", extensions: ["svg"] }],
+        });
+        if (path) {
+          await invoke("write_plot_svg", { path, content: cell.output.plotSvg });
+        }
+      }
+    },
+    [cell.output],
+  );
 
   useEffect(() => {
     if (!cell.output || cell.output.isError || cell.status !== "success") {
@@ -85,10 +102,12 @@ export function CellSuggestions({ cell }: CellSuggestionsProps) {
     <div className="cell-suggestions">
       {suggestions.map((s) => (
         <button
-          key={s.template}
+          key={s.action ?? s.template}
           className="suggestion-chip"
           title={s.description}
-          onClick={() => handleSuggestionClick(s.template)}
+          onClick={() =>
+            s.action ? handleAction(s.action) : handleSuggestionClick(s.template)
+          }
         >
           {s.label}
         </button>

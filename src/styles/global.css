@@ -150,6 +150,15 @@
   color: var(--text-primary);
 }
 
+.toolbar-filename {
+  font-size: 13px;
+  color: var(--text-secondary);
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .session-status {
   font-size: 12px;
   padding: 4px 10px;
@@ -419,6 +428,22 @@
 .katex-output .katex {
   color: var(--text-primary);
   text-align: left;
+}
+
+.plot-output {
+  display: flex;
+  justify-content: center;
+  padding: 8px;
+  background: var(--bg-input);
+  border-radius: 6px;
+  margin: 4px 0;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.plot-output svg {
+  max-width: 100%;
+  height: auto;
 }
 
 .empty-output {

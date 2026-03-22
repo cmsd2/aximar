@@ -15,12 +15,24 @@ pub fn suggestions_for_output(input: &str, output: &EvalResult) -> Vec<Suggestio
     let text = &output.text_output;
     let latex = output.latex.as_deref().unwrap_or("");
 
+    // Plot output: only offer plot-specific actions
+    if output.plot_svg.is_some() {
+        suggestions.push(Suggestion {
+            label: "Save SVG".into(),
+            template: String::new(),
+            description: "Save plot as SVG file".into(),
+            action: Some("save_svg".into()),
+        });
+        return suggestions;
+    }
+
     // After diff(): suggest integrate
     if input_lower.contains("diff(") || input_lower.contains("diff (") {
         suggestions.push(Suggestion {
             label: "Integrate".into(),
             template: "integrate(%, x)".into(),
             description: "Integrate the result".into(),
+            action: None,
         });
     }
 
@@ -30,6 +42,7 @@ pub fn suggestions_for_output(input: &str, output: &EvalResult) -> Vec<Suggestio
             label: "Differentiate".into(),
             template: "diff(%, x)".into(),
             description: "Differentiate the result".into(),
+            action: None,
         });
     }
 
@@ -39,6 +52,7 @@ pub fn suggestions_for_output(input: &str, output: &EvalResult) -> Vec<Suggestio
             label: "Extract values".into(),
             template: "map(rhs, %)".into(),
             description: "Extract right-hand sides of solutions".into(),
+            action: None,
         });
     }
 
@@ -52,21 +66,25 @@ pub fn suggestions_for_output(input: &str, output: &EvalResult) -> Vec<Suggestio
             label: "Determinant".into(),
             template: "determinant(%)".into(),
             description: "Compute the determinant".into(),
+            action: None,
         });
         suggestions.push(Suggestion {
             label: "Eigenvalues".into(),
             template: "eigenvalues(%)".into(),
             description: "Find eigenvalues".into(),
+            action: None,
         });
         suggestions.push(Suggestion {
             label: "Inverse".into(),
             template: "invert(%)".into(),
             description: "Compute matrix inverse".into(),
+            action: None,
         });
         suggestions.push(Suggestion {
             label: "Transpose".into(),
             template: "transpose(%)".into(),
             description: "Transpose the matrix".into(),
+            action: None,
         });
     }
 
@@ -81,11 +99,13 @@ pub fn suggestions_for_output(input: &str, output: &EvalResult) -> Vec<Suggestio
             label: "Solve".into(),
             template: "solve(%, x)".into(),
             description: "Solve for x".into(),
+            action: None,
         });
         suggestions.push(Suggestion {
             label: "Right-hand side".into(),
             template: "rhs(%)".into(),
             description: "Extract right-hand side".into(),
+            action: None,
         });
     }
 
@@ -101,11 +121,13 @@ pub fn suggestions_for_output(input: &str, output: &EvalResult) -> Vec<Suggestio
             label: "Trig simplify".into(),
             template: "trigsimp(%)".into(),
             description: "Simplify trig expressions".into(),
+            action: None,
         });
         suggestions.push(Suggestion {
             label: "Trig expand".into(),
             template: "trigexpand(%)".into(),
             description: "Expand trig functions".into(),
+            action: None,
         });
     }
 
@@ -116,11 +138,13 @@ pub fn suggestions_for_output(input: &str, output: &EvalResult) -> Vec<Suggestio
             label: "Length".into(),
             template: "length(%)".into(),
             description: "Count list elements".into(),
+            action: None,
         });
         suggestions.push(Suggestion {
             label: "Sort".into(),
             template: "sort(%)".into(),
             description: "Sort the list".into(),
+            action: None,
         });
     }
 
@@ -135,6 +159,7 @@ pub fn suggestions_for_output(input: &str, output: &EvalResult) -> Vec<Suggestio
             label: "Float".into(),
             template: "float(%)".into(),
             description: "Convert to decimal".into(),
+            action: None,
         });
     }
 
@@ -150,6 +175,7 @@ pub fn suggestions_for_output(input: &str, output: &EvalResult) -> Vec<Suggestio
                 label: "Expand".into(),
                 template: "expand(%)".into(),
                 description: "Expand products and powers".into(),
+                action: None,
             });
         }
 
@@ -161,6 +187,7 @@ pub fn suggestions_for_output(input: &str, output: &EvalResult) -> Vec<Suggestio
                 label: "Factor".into(),
                 template: "factor(%)".into(),
                 description: "Factor the expression".into(),
+                action: None,
             });
         }
 
@@ -174,6 +201,7 @@ pub fn suggestions_for_output(input: &str, output: &EvalResult) -> Vec<Suggestio
                 label: "Simplify".into(),
                 template: "ratsimp(%)".into(),
                 description: "Simplify the expression".into(),
+                action: None,
             });
         }
     }
@@ -276,5 +304,13 @@ mod tests {
         let result = make_result("x^2+2*x+1", Some("x^2+2\\,x+1"));
         let suggestions = suggestions_for_output("something", &result);
         assert!(suggestions.iter().any(|s| s.template.contains("factor")));
+    }
+
+    #[test]
+    fn test_plot_svg_suggestions() {
+        let mut result = make_result("", None);
+        result.plot_svg = Some("<svg>...</svg>".into());
+        let suggestions = suggestions_for_output("plot2d(sin(x), [x, -5, 5])", &result);
+        assert!(suggestions.iter().any(|s| s.action.as_deref() == Some("save_svg")));
     }
 }

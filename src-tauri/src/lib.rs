@@ -2,6 +2,7 @@ pub mod catalog;
 mod commands;
 mod error;
 mod maxima;
+mod menu;
 mod notebooks;
 mod state;
 mod suggestions;
@@ -12,7 +13,12 @@ use state::AppState;
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_dialog::init())
         .manage(AppState::new())
+        .setup(|app| {
+            menu::setup_menu(app)?;
+            Ok(())
+        })
         .invoke_handler(tauri::generate_handler![
             commands::evaluate::evaluate_expression,
             commands::session::start_session,
@@ -29,6 +35,8 @@ pub fn run() {
             commands::suggestions::get_suggestions,
             commands::notebooks::list_templates,
             commands::notebooks::get_template,
+            commands::notebooks::save_notebook,
+            commands::notebooks::open_notebook,
             commands::config::get_has_seen_welcome,
             commands::config::set_has_seen_welcome,
             commands::config::get_config,
@@ -36,6 +44,7 @@ pub fn run() {
             commands::variables::list_variables,
             commands::variables::kill_variable,
             commands::variables::kill_all_variables,
+            commands::plot::write_plot_svg,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

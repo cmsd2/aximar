@@ -35,10 +35,11 @@ export function CellOutput({ output, cellId }: CellOutputProps) {
 
   const hasLatex = output.latex !== null && output.latex !== "";
   const hasText = output.textOutput !== "";
+  const hasPlot = output.plotSvg !== null && output.plotSvg !== undefined && output.plotSvg !== "";
 
   return (
     <div className="cell-output">
-      {(hasLatex || hasText) && (
+      {(hasLatex || hasText || hasPlot) && (
         <div className="copy-actions">
           {hasLatex && (
             <button
@@ -60,11 +61,17 @@ export function CellOutput({ output, cellId }: CellOutputProps) {
           )}
         </div>
       )}
+      {hasPlot && (
+        <div
+          className="plot-output"
+          dangerouslySetInnerHTML={{ __html: output.plotSvg! }}
+        />
+      )}
       {hasLatex && <KatexOutput latex={output.latex!} />}
-      {hasText && !hasLatex && (
+      {hasText && !hasLatex && !hasPlot && (
         <pre className="text-output">{output.textOutput}</pre>
       )}
-      {!hasLatex && !hasText && (
+      {!hasLatex && !hasText && !hasPlot && (
         <span className="text-output empty-output">(no output)</span>
       )}
     </div>

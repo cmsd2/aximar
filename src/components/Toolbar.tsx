@@ -18,6 +18,8 @@ export function Toolbar({ onOpenTemplates, onOpenSettings, variablesOpen, onTogg
   const addMarkdownCell = useNotebookStore((s) => s.addMarkdownCell);
   const cells = useNotebookStore((s) => s.cells);
   const sessionStatus = useNotebookStore((s) => s.sessionStatus);
+  const filePath = useNotebookStore((s) => s.filePath);
+  const isDirty = useNotebookStore((s) => s.isDirty);
   const { executeCell, restartSession } = useMaxima();
 
   const runAll = async () => {
@@ -39,6 +41,10 @@ export function Toolbar({ onOpenTemplates, onOpenSettings, variablesOpen, onTogg
       : sessionStatus === "Starting"
         ? "status-starting"
         : "status-error";
+
+  const fileName = filePath
+    ? filePath.split("/").pop()?.split("\\").pop() ?? "Untitled"
+    : "Untitled";
 
   return (
     <div className="toolbar">
@@ -86,6 +92,9 @@ export function Toolbar({ onOpenTemplates, onOpenSettings, variablesOpen, onTogg
         </button>
       </div>
       <div className="toolbar-right">
+        <span className="toolbar-filename" title={filePath ?? undefined}>
+          {isDirty ? `${fileName} *` : fileName}
+        </span>
         <button className="toolbar-btn" onClick={onOpenSettings}>
           Settings
         </button>

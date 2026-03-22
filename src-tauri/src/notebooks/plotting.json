@@ -1,0 +1,134 @@
+{
+  "nbformat": 4,
+  "nbformat_minor": 0,
+  "metadata": {
+    "kernelspec": {
+      "name": "maxima",
+      "display_name": "Maxima",
+      "language": "maxima"
+    },
+    "aximar": {
+      "template_id": "plotting",
+      "title": "Plotting",
+      "description": "2D and 3D plots with Maxima and gnuplot."
+    }
+  },
+  "cells": [
+    {
+      "cell_type": "markdown",
+      "source": "## 2D Plots",
+      "metadata": {}
+    },
+    {
+      "cell_type": "markdown",
+      "source": "A simple sine wave over two full periods.",
+      "metadata": {}
+    },
+    {
+      "cell_type": "code",
+      "source": "plot2d(sin(x), [x, -2*%pi, 2*%pi])",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "Multiple functions on the same axes.",
+      "metadata": {}
+    },
+    {
+      "cell_type": "code",
+      "source": "plot2d([sin(x), cos(x), sin(x)+cos(x)], [x, -2*%pi, 2*%pi])",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## Customising Plots",
+      "metadata": {}
+    },
+    {
+      "cell_type": "markdown",
+      "source": "Add a title, legend, and custom y-range.",
+      "metadata": {}
+    },
+    {
+      "cell_type": "code",
+      "source": "plot2d([sin(x), sin(2*x)], [x, 0, 2*%pi],\n  [legend, \"sin(x)\", \"sin(2x)\"],\n  [ylabel, \"y\"])",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## Parametric Plots",
+      "metadata": {}
+    },
+    {
+      "cell_type": "code",
+      "source": "plot2d([parametric, cos(t), sin(t), [t, 0, 2*%pi]],\n  [nticks, 100])",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "A Lissajous figure.",
+      "metadata": {}
+    },
+    {
+      "cell_type": "code",
+      "source": "plot2d([parametric, sin(3*t), sin(4*t), [t, 0, 2*%pi]],\n  [nticks, 200])",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## 3D Surface Plots",
+      "metadata": {}
+    },
+    {
+      "cell_type": "markdown",
+      "source": "A saddle surface.",
+      "metadata": {}
+    },
+    {
+      "cell_type": "code",
+      "source": "plot3d(x^2 - y^2, [x, -2, 2], [y, -2, 2])",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "A ripple pattern using sine.",
+      "metadata": {}
+    },
+    {
+      "cell_type": "code",
+      "source": "plot3d(sin(x^2 + y^2) / (x^2 + y^2 + 1),\n  [x, -4, 4], [y, -4, 4])",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## Plotting Computed Results",
+      "metadata": {}
+    },
+    {
+      "cell_type": "markdown",
+      "source": "Compute a derivative and plot both the function and its derivative.",
+      "metadata": {}
+    },
+    {
+      "cell_type": "code",
+      "source": "f: x^3 - 3*x;\ndf: diff(f, x);\nplot2d([f, df], [x, -3, 3],\n  [legend, \"f(x)\", \"f'(x)\"])",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    }
+  ]
+}
