@@ -1,6 +1,6 @@
 use tauri::{
     menu::{AboutMetadata, MenuBuilder, MenuItemBuilder, SubmenuBuilder},
-    Emitter,
+    Emitter, Manager,
 };
 
 pub fn setup_menu(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
@@ -24,6 +24,11 @@ pub fn setup_menu(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>
     let save_as_item = MenuItemBuilder::new("Save As...")
         .id("save_as")
         .accelerator("CmdOrCtrl+Shift+S")
+        .build(app)?;
+
+    let print_item = MenuItemBuilder::new("Print...")
+        .id("print")
+        .accelerator("CmdOrCtrl+P")
         .build(app)?;
 
     // --- App submenu (macOS: appears under app name) ---
@@ -50,6 +55,8 @@ pub fn setup_menu(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>
         .separator()
         .item(&save_item)
         .item(&save_as_item)
+        .separator()
+        .item(&print_item)
         .separator()
         .close_window()
         .build()?;
@@ -87,6 +94,11 @@ pub fn setup_menu(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>
         match id {
             "new" | "open" | "save" | "save_as" => {
                 let _ = app_handle.emit("menu-event", id);
+            }
+            "print" => {
+                if let Some(window) = app_handle.get_webview_window("main") {
+                    let _ = window.print();
+                }
             }
             _ => {}
         }

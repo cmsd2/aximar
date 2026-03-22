@@ -6,6 +6,7 @@
   "permissions": [
     "core:default",
     "core:window:allow-destroy",
+    "core:webview:allow-print",
     "opener:default",
     "dialog:default"
   ]

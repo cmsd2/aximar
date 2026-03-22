@@ -22,7 +22,7 @@ import {
   saveNotebookAs,
   openNotebook,
 } from "./lib/notebooks-client";
-import { getConfig } from "./lib/config-client";
+import { getConfig, markdownFontStack } from "./lib/config-client";
 import { useNotebookStore } from "./store/notebookStore";
 import { useLogStore } from "./store/logStore";
 import { useFindStore } from "./store/findStore";
@@ -60,7 +60,23 @@ function App() {
           "--font-size-mono",
           `${cfg.font_size}px`
         );
+        document.documentElement.style.setProperty(
+          "--print-font-size",
+          `${cfg.print_font_size}px`
+        );
+        document.documentElement.style.setProperty(
+          "--print-font-size-mono",
+          `${cfg.print_font_size - 1}px`
+        );
         document.documentElement.dataset.cellStyle = cfg.cell_style || "bracket";
+        document.documentElement.style.setProperty(
+          "--font-family-markdown",
+          markdownFontStack(cfg.markdown_font)
+        );
+        document.documentElement.style.setProperty(
+          "--markdown-indent",
+          cfg.markdown_indent === "aligned" ? "var(--gutter-width)" : "16px"
+        );
         if (cfg.autocomplete_mode) {
           useNotebookStore.getState().setAutocompleteMode(
             cfg.autocomplete_mode as "hint" | "snippet" | "active-hint"

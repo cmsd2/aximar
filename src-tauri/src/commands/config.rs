@@ -21,8 +21,20 @@ fn default_cell_style() -> String {
     "bracket".to_string()
 }
 
+fn default_print_font_size() -> u32 {
+    12
+}
+
 fn default_autocomplete_mode() -> String {
     "active-hint".to_string()
+}
+
+fn default_markdown_font() -> String {
+    "sans-serif".to_string()
+}
+
+fn default_markdown_indent() -> String {
+    "flush".to_string()
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -41,8 +53,14 @@ struct AppConfig {
     variables_open: bool,
     #[serde(default = "default_cell_style")]
     cell_style: String,
+    #[serde(default = "default_print_font_size")]
+    print_font_size: u32,
     #[serde(default = "default_autocomplete_mode")]
     autocomplete_mode: String,
+    #[serde(default = "default_markdown_font")]
+    markdown_font: String,
+    #[serde(default = "default_markdown_indent")]
+    markdown_indent: String,
 }
 
 impl Default for AppConfig {
@@ -55,7 +73,10 @@ impl Default for AppConfig {
             eval_timeout: default_eval_timeout(),
             variables_open: false,
             cell_style: default_cell_style(),
+            print_font_size: default_print_font_size(),
             autocomplete_mode: default_autocomplete_mode(),
+            markdown_font: default_markdown_font(),
+            markdown_indent: default_markdown_indent(),
         }
     }
 }
@@ -78,6 +99,14 @@ impl AppConfig {
                 default_font_size()
             ));
             self.font_size = default_font_size();
+        }
+        if !(8..=32).contains(&self.print_font_size) {
+            warnings.push(format!(
+                "Invalid print_font_size {}, reset to {}",
+                self.print_font_size,
+                default_print_font_size()
+            ));
+            self.print_font_size = default_print_font_size();
         }
         if self.eval_timeout == 0 || self.eval_timeout > 600 {
             warnings.push(format!(
@@ -103,6 +132,22 @@ impl AppConfig {
             ));
             self.autocomplete_mode = default_autocomplete_mode();
         }
+        if !matches!(self.markdown_font.as_str(), "sans-serif" | "serif" | "computer-modern" | "mono") {
+            warnings.push(format!(
+                "Invalid markdown_font '{}', reset to '{}'",
+                self.markdown_font,
+                default_markdown_font()
+            ));
+            self.markdown_font = default_markdown_font();
+        }
+        if !matches!(self.markdown_indent.as_str(), "flush" | "aligned") {
+            warnings.push(format!(
+                "Invalid markdown_indent '{}', reset to '{}'",
+                self.markdown_indent,
+                default_markdown_indent()
+            ));
+            self.markdown_indent = default_markdown_indent();
+        }
         (self, warnings)
     }
 }
@@ -113,10 +158,13 @@ pub struct PublicConfig {
     pub theme: String,
     pub maxima_path: Option<String>,
     pub font_size: u32,
+    pub print_font_size: u32,
     pub eval_timeout: u64,
     pub variables_open: bool,
     pub cell_style: String,
     pub autocomplete_mode: String,
+    pub markdown_font: String,
+    pub markdown_indent: String,
 }
 
 /// Config response with validation warnings
@@ -132,10 +180,13 @@ pub struct ConfigUpdate {
     pub theme: Option<String>,
     pub maxima_path: Option<Option<String>>,
     pub font_size: Option<u32>,
+    pub print_font_size: Option<u32>,
     pub eval_timeout: Option<u64>,
     pub variables_open: Option<bool>,
     pub cell_style: Option<String>,
     pub autocomplete_mode: Option<String>,
+    pub markdown_font: Option<String>,
+    pub markdown_indent: Option<String>,
 }
 
 fn config_path(app: &tauri::AppHandle) -> Result<PathBuf, AppError> {
@@ -203,10 +254,13 @@ pub async fn get_config(app: tauri::AppHandle) -> Result<ConfigResponse, AppErro
             theme: config.theme,
             maxima_path: config.maxima_path,
             font_size: config.font_size,
+            print_font_size: config.print_font_size,
             eval_timeout: config.eval_timeout,
             variables_open: config.variables_open,
             cell_style: config.cell_style,
             autocomplete_mode: config.autocomplete_mode,
+            markdown_font: config.markdown_font,
+            markdown_indent: config.markdown_indent,
         },
         warnings,
     })
@@ -224,6 +278,9 @@ pub async fn set_config(app: tauri::AppHandle, updates: ConfigUpdate) -> Result<
     if let Some(font_size) = updates.font_size {
         config.font_size = font_size;
     }
+    if let Some(print_font_size) = updates.print_font_size {
+        config.print_font_size = print_font_size;
+    }
     if let Some(eval_timeout) = updates.eval_timeout {
         config.eval_timeout = eval_timeout;
     }
@@ -235,6 +292,12 @@ pub async fn set_config(app: tauri::AppHandle, updates: ConfigUpdate) -> Result<
     }
     if let Some(autocomplete_mode) = updates.autocomplete_mode {
         config.autocomplete_mode = autocomplete_mode;
+    }
+    if let Some(markdown_font) = updates.markdown_font {
+        config.markdown_font = markdown_font;
+    }
+    if let Some(markdown_indent) = updates.markdown_indent {
+        config.markdown_indent = markdown_indent;
     }
     write_config(&app, &config)?;
     Ok(())

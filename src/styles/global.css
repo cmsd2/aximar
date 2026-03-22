@@ -1,4 +1,5 @@
 @import "katex/dist/katex.min.css";
+@import "computer-modern/cmu-serif.css";
 
 :root {
   /* Light theme (default) */
@@ -18,6 +19,8 @@
   --running-color: #b8860b;
   --gutter-width: 56px;
   --font-size-mono: 14px;
+  --font-family-markdown: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  --markdown-indent: 16px;
 
   font-family:
     -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu,
@@ -198,8 +201,16 @@
   align-items: center;
   gap: 8px;
   height: 24px;
+  margin-top: -12px;
+  margin-bottom: -6px;
+  position: relative;
+  z-index: 1;
   opacity: 0;
   transition: opacity 0.15s;
+}
+
+.cell-suggestions + .insert-bar {
+  margin-top: 0;
 }
 
 .insert-bar:hover {
@@ -270,7 +281,12 @@
   color: var(--text-secondary);
   font-size: 11px;
   font-weight: 600;
+  line-height: calc(var(--font-size-mono) * 1.5);
   user-select: none;
+}
+
+.cell-output-area > .cell-gutter {
+  padding-top: 14px;
 }
 
 .cell-indicator.running {
@@ -1115,8 +1131,9 @@
 .markdown-cell-view {
   flex: 1;
   min-width: 0;
-  padding: 4px 16px;
+  padding: 4px 16px 0 var(--markdown-indent);
   cursor: text;
+  font-family: var(--font-family-markdown);
   font-size: 14px;
   line-height: 1.6;
   color: var(--text-primary);
@@ -1142,6 +1159,10 @@
 .markdown-cell-view h2:first-child,
 .markdown-cell-view h3:first-child {
   margin-top: 0;
+}
+
+.markdown-cell-view > :last-child {
+  margin-bottom: 0;
 }
 
 .markdown-cell-view p {
@@ -2083,5 +2104,148 @@
   font-size: 10px;
   color: var(--text-primary);
   line-height: 1.4;
+}
+
+/* ===== Print Styles ===== */
+@media print {
+  /* Configurable font for print */
+  :root {
+    font-size: var(--print-font-size, 12px) !important;
+    --font-size-mono: var(--print-font-size-mono, 11px) !important;
+  }
+
+  /* Force light theme */
+  :root {
+    --bg-primary: #ffffff !important;
+    --bg-secondary: #f5f5f7 !important;
+    --bg-cell: #ffffff !important;
+    --bg-input: #ffffff !important;
+    --text-primary: #1d1d1f !important;
+    --text-secondary: #6e6e73 !important;
+    --text-placeholder: #aeaeb2 !important;
+    --border-color: #d2d2d7 !important;
+    --accent: #0071e3 !important;
+    --error-color: #e3342f !important;
+    --success-color: #2d8a4e !important;
+    --running-color: #b8860b !important;
+    color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  /* Hide non-content UI */
+  .toolbar,
+  .find-bar,
+  .variable-panel,
+  .log-panel,
+  .docs-panel,
+  .shortcut-hints,
+  .palette-overlay,
+  .settings-modal,
+  .template-modal,
+  .cell-actions,
+  .insert-bar,
+  .bracket-toggle,
+  .cell-suggestions,
+  .cm-tooltip {
+    display: none !important;
+  }
+
+  /* Layout: full width, no overflow clipping */
+  .app {
+    display: block !important;
+    overflow: visible !important;
+  }
+
+  .main-content {
+    display: block !important;
+    overflow: visible !important;
+  }
+
+  .notebook {
+    overflow: visible !important;
+    padding: 12mm !important;
+  }
+
+  /* Cell styling for print */
+  .cell {
+    break-inside: avoid;
+    border: none !important;
+    box-shadow: none !important;
+    margin: 8px 0 !important;
+    padding: 4px 0 !important;
+    overflow: visible !important;
+    background: transparent !important;
+  }
+
+  .markdown-cell {
+    break-inside: avoid;
+    border: none !important;
+    background: transparent !important;
+  }
+
+  .markdown-cell-view {
+    font-size: var(--print-font-size, 12px) !important;
+  }
+
+  /* Remove bracket decorations */
+  [data-cell-style="bracket"] .cell::after {
+    display: none !important;
+  }
+
+  [data-cell-style="bracket"] .cell-output-area::before {
+    display: none !important;
+  }
+
+  /* Ensure code and output are fully visible */
+  .cell-input-area,
+  .cell-output-area {
+    overflow: visible !important;
+  }
+
+  .cell-output-area {
+    background: transparent !important;
+    border-top: none !important;
+  }
+
+  /* CodeMirror: hide cursor, selections, placeholder */
+  .cm-cursor,
+  .cm-selectionBackground,
+  .cm-placeholder {
+    display: none !important;
+  }
+
+  .cm-editor {
+    overflow: visible !important;
+  }
+
+  .cm-scroller {
+    overflow: visible !important;
+  }
+
+  /* SVG plots fit within page */
+  .cell-output-area svg {
+    max-width: 100% !important;
+    height: auto !important;
+  }
+
+  .cell-output-area img {
+    max-width: 100% !important;
+    height: auto !important;
+  }
+
+  /* Hide empty code cells (no input and no output) */
+  .cell:not(.markdown-cell):not(:has(.cm-line:not(:empty))):not(:has(.cell-output-area > *)) {
+    display: none !important;
+  }
+
+  /* Hide empty markdown cells (only placeholder, no content) */
+  .markdown-cell:has(.markdown-cell-placeholder) {
+    display: none !important;
+  }
+
+  /* Gutter labels for print */
+  .cell-gutter {
+    color: #999 !important;
+  }
 }
 

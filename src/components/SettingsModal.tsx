@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { getConfig, setConfig, type AppConfig } from "../lib/config-client";
+import { getConfig, setConfig, markdownFontStack, type AppConfig } from "../lib/config-client";
 import { useNotebookStore, type Theme, type CellStyle, type AutocompleteMode } from "../store/notebookStore";
 
 interface SettingsModalProps {
@@ -8,9 +8,20 @@ interface SettingsModalProps {
 }
 
 const FONT_SIZES = [12, 13, 14, 15, 16];
+const PRINT_FONT_SIZES = [8, 9, 10, 11, 12, 13, 14, 15, 16];
 const EVAL_TIMEOUTS = [10, 30, 60, 120];
 const THEMES: Theme[] = ["auto", "light", "dark"];
 const CELL_STYLES: CellStyle[] = ["card", "bracket"];
+const MARKDOWN_FONTS: { value: string; label: string }[] = [
+  { value: "sans-serif", label: "Sans-serif" },
+  { value: "serif", label: "Serif" },
+  { value: "computer-modern", label: "Computer Modern" },
+  { value: "mono", label: "Mono" },
+];
+const MARKDOWN_INDENTS: { value: string; label: string }[] = [
+  { value: "flush", label: "Flush" },
+  { value: "aligned", label: "Aligned" },
+];
 const AUTOCOMPLETE_MODES: { value: AutocompleteMode; label: string }[] = [
   { value: "hint", label: "Hint" },
   { value: "snippet", label: "Snippet" },
@@ -44,6 +55,18 @@ export function SettingsModal({ onClose, onSetVariablesOpen }: SettingsModalProp
       if (updates.autocomplete_mode) {
         setAutocompleteMode(updates.autocomplete_mode as AutocompleteMode);
       }
+      if (updates.markdown_font) {
+        document.documentElement.style.setProperty(
+          "--font-family-markdown",
+          markdownFontStack(updates.markdown_font)
+        );
+      }
+      if (updates.markdown_indent) {
+        document.documentElement.style.setProperty(
+          "--markdown-indent",
+          updates.markdown_indent === "aligned" ? "var(--gutter-width)" : "16px"
+        );
+      }
       if (updates.variables_open !== undefined) {
         onSetVariablesOpen(updates.variables_open);
       }
@@ -51,6 +74,16 @@ export function SettingsModal({ onClose, onSetVariablesOpen }: SettingsModalProp
         document.documentElement.style.setProperty(
           "--font-size-mono",
           `${updates.font_size}px`
+        );
+      }
+      if (updates.print_font_size !== undefined) {
+        document.documentElement.style.setProperty(
+          "--print-font-size",
+          `${updates.print_font_size}px`
+        );
+        document.documentElement.style.setProperty(
+          "--print-font-size-mono",
+          `${updates.print_font_size - 1}px`
         );
       }
     },
@@ -102,6 +135,40 @@ export function SettingsModal({ onClose, onSetVariablesOpen }: SettingsModalProp
             </div>
 
             <div className="settings-row">
+              <label className="settings-label">Markdown font</label>
+              <div className="settings-control">
+                <div className="settings-theme-group">
+                  {MARKDOWN_FONTS.map((f) => (
+                    <button
+                      key={f.value}
+                      className={`settings-theme-btn${config.markdown_font === f.value ? " active" : ""}`}
+                      onClick={() => update({ markdown_font: f.value })}
+                    >
+                      {f.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="settings-row">
+              <label className="settings-label">Markdown indent</label>
+              <div className="settings-control">
+                <div className="settings-theme-group">
+                  {MARKDOWN_INDENTS.map((i) => (
+                    <button
+                      key={i.value}
+                      className={`settings-theme-btn${config.markdown_indent === i.value ? " active" : ""}`}
+                      onClick={() => update({ markdown_indent: i.value })}
+                    >
+                      {i.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="settings-row">
               <label className="settings-label">Argument help</label>
               <div className="settings-control">
                 <div className="settings-theme-group">
@@ -146,6 +213,25 @@ export function SettingsModal({ onClose, onSetVariablesOpen }: SettingsModalProp
                   }
                 >
                   {FONT_SIZES.map((s) => (
+                    <option key={s} value={s}>
+                      {s}px
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="settings-row">
+              <label className="settings-label">Print font size</label>
+              <div className="settings-control">
+                <select
+                  className="settings-select"
+                  value={config.print_font_size}
+                  onChange={(e) =>
+                    update({ print_font_size: Number(e.target.value) })
+                  }
+                >
+                  {PRINT_FONT_SIZES.map((s) => (
                     <option key={s} value={s}>
                       {s}px
                     </option>
