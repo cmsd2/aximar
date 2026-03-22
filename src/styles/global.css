@@ -1509,6 +1509,12 @@
   word-break: break-word;
 }
 
+.hover-tooltip-more {
+  font-size: 11px;
+  color: var(--text-placeholder);
+  font-style: italic;
+}
+
 .hover-tooltip-desc {
   font-size: 12px;
   color: var(--text-secondary);

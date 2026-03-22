@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { searchFunctions, listCategories } from "../lib/catalog-client";
+import { MathText } from "./MathText";
 import { useNotebookStore } from "../store/notebookStore";
 import type { SearchResult, CategoryGroup } from "../types/catalog";
 
@@ -152,7 +153,9 @@ export function CommandPalette({ onClose, initialQuery }: CommandPaletteProps) {
                   <div className="palette-item-sig">
                     {f.signatures[0] || ""}
                   </div>
-                  <div className="palette-item-desc">{f.description}</div>
+                  <div className="palette-item-desc">
+                    <MathText text={f.description} />
+                  </div>
                 </div>
               </div>
             );
