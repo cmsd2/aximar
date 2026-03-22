@@ -11,6 +11,10 @@ export interface AppConfig {
   autocomplete_mode: string;
   markdown_font: string;
   markdown_indent: string;
+  print_margin_top: number;
+  print_margin_bottom: number;
+  print_margin_left: number;
+  print_margin_right: number;
 }
 
 export interface ConfigResponse {
@@ -32,6 +36,17 @@ const MARKDOWN_FONT_STACKS: Record<string, string> = {
 
 export function markdownFontStack(value: string): string {
   return MARKDOWN_FONT_STACKS[value] ?? MARKDOWN_FONT_STACKS["sans-serif"];
+}
+
+export function applyPrintMargins(top: number, bottom: number, left: number, right: number): void {
+  const id = "print-margins-style";
+  let el = document.getElementById(id) as HTMLStyleElement | null;
+  if (!el) {
+    el = document.createElement("style");
+    el.id = id;
+    document.head.appendChild(el);
+  }
+  el.textContent = `@page { margin: ${top}mm ${right}mm ${bottom}mm ${left}mm; }`;
 }
 
 export async function setConfig(updates: Partial<AppConfig>): Promise<void> {

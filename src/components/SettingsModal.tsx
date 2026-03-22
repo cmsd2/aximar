@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { getConfig, setConfig, markdownFontStack, type AppConfig } from "../lib/config-client";
+import { getConfig, setConfig, markdownFontStack, applyPrintMargins, type AppConfig } from "../lib/config-client";
 import { useNotebookStore, type Theme, type CellStyle, type AutocompleteMode } from "../store/notebookStore";
 
 interface SettingsModalProps {
@@ -84,6 +84,19 @@ export function SettingsModal({ onClose, onSetVariablesOpen }: SettingsModalProp
         document.documentElement.style.setProperty(
           "--print-font-size-mono",
           `${updates.print_font_size - 1}px`
+        );
+      }
+      if (
+        updates.print_margin_top !== undefined ||
+        updates.print_margin_bottom !== undefined ||
+        updates.print_margin_left !== undefined ||
+        updates.print_margin_right !== undefined
+      ) {
+        applyPrintMargins(
+          updates.print_margin_top ?? next.print_margin_top,
+          updates.print_margin_bottom ?? next.print_margin_bottom,
+          updates.print_margin_left ?? next.print_margin_left,
+          updates.print_margin_right ?? next.print_margin_right,
         );
       }
     },
@@ -237,6 +250,32 @@ export function SettingsModal({ onClose, onSetVariablesOpen }: SettingsModalProp
                     </option>
                   ))}
                 </select>
+              </div>
+            </div>
+
+            <div className="settings-row">
+              <label className="settings-label">Print margins (mm)</label>
+              <div className="settings-control">
+                <div className="settings-margins">
+                  {(["top", "bottom", "left", "right"] as const).map((side) => {
+                    const key = `print_margin_${side}` as keyof AppConfig;
+                    return (
+                      <label key={side} className="settings-margin-field">
+                        <span className="settings-margin-label">{side.charAt(0).toUpperCase() + side.slice(1)}</span>
+                        <input
+                          type="number"
+                          className="settings-margin-input"
+                          min={0}
+                          max={50}
+                          value={config[key] as number}
+                          onChange={(e) =>
+                            update({ [key]: Math.max(0, Math.min(50, Number(e.target.value))) })
+                          }
+                        />
+                      </label>
+                    );
+                  })}
+                </div>
               </div>
             </div>
 

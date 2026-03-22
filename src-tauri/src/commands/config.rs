@@ -37,6 +37,11 @@ fn default_markdown_indent() -> String {
     "flush".to_string()
 }
 
+fn default_print_margin_top() -> u32 { 15 }
+fn default_print_margin_bottom() -> u32 { 15 }
+fn default_print_margin_left() -> u32 { 24 }
+fn default_print_margin_right() -> u32 { 24 }
+
 #[derive(Debug, Serialize, Deserialize)]
 struct AppConfig {
     #[serde(default = "default_theme")]
@@ -61,6 +66,14 @@ struct AppConfig {
     markdown_font: String,
     #[serde(default = "default_markdown_indent")]
     markdown_indent: String,
+    #[serde(default = "default_print_margin_top")]
+    print_margin_top: u32,
+    #[serde(default = "default_print_margin_bottom")]
+    print_margin_bottom: u32,
+    #[serde(default = "default_print_margin_left")]
+    print_margin_left: u32,
+    #[serde(default = "default_print_margin_right")]
+    print_margin_right: u32,
 }
 
 impl Default for AppConfig {
@@ -77,6 +90,10 @@ impl Default for AppConfig {
             autocomplete_mode: default_autocomplete_mode(),
             markdown_font: default_markdown_font(),
             markdown_indent: default_markdown_indent(),
+            print_margin_top: default_print_margin_top(),
+            print_margin_bottom: default_print_margin_bottom(),
+            print_margin_left: default_print_margin_left(),
+            print_margin_right: default_print_margin_right(),
         }
     }
 }
@@ -148,6 +165,17 @@ impl AppConfig {
             ));
             self.markdown_indent = default_markdown_indent();
         }
+        for (field, val, default_fn) in [
+            ("print_margin_top", &mut self.print_margin_top, default_print_margin_top as fn() -> u32),
+            ("print_margin_bottom", &mut self.print_margin_bottom, default_print_margin_bottom),
+            ("print_margin_left", &mut self.print_margin_left, default_print_margin_left),
+            ("print_margin_right", &mut self.print_margin_right, default_print_margin_right),
+        ] {
+            if *val > 50 {
+                warnings.push(format!("Invalid {} {}, reset to {}", field, val, default_fn()));
+                *val = default_fn();
+            }
+        }
         (self, warnings)
     }
 }
@@ -165,6 +193,10 @@ pub struct PublicConfig {
     pub autocomplete_mode: String,
     pub markdown_font: String,
     pub markdown_indent: String,
+    pub print_margin_top: u32,
+    pub print_margin_bottom: u32,
+    pub print_margin_left: u32,
+    pub print_margin_right: u32,
 }
 
 /// Config response with validation warnings
@@ -187,6 +219,10 @@ pub struct ConfigUpdate {
     pub autocomplete_mode: Option<String>,
     pub markdown_font: Option<String>,
     pub markdown_indent: Option<String>,
+    pub print_margin_top: Option<u32>,
+    pub print_margin_bottom: Option<u32>,
+    pub print_margin_left: Option<u32>,
+    pub print_margin_right: Option<u32>,
 }
 
 fn config_path(app: &tauri::AppHandle) -> Result<PathBuf, AppError> {
@@ -261,6 +297,10 @@ pub async fn get_config(app: tauri::AppHandle) -> Result<ConfigResponse, AppErro
             autocomplete_mode: config.autocomplete_mode,
             markdown_font: config.markdown_font,
             markdown_indent: config.markdown_indent,
+            print_margin_top: config.print_margin_top,
+            print_margin_bottom: config.print_margin_bottom,
+            print_margin_left: config.print_margin_left,
+            print_margin_right: config.print_margin_right,
         },
         warnings,
     })
@@ -299,6 +339,10 @@ pub async fn set_config(app: tauri::AppHandle, updates: ConfigUpdate) -> Result<
     if let Some(markdown_indent) = updates.markdown_indent {
         config.markdown_indent = markdown_indent;
     }
+    if let Some(v) = updates.print_margin_top { config.print_margin_top = v; }
+    if let Some(v) = updates.print_margin_bottom { config.print_margin_bottom = v; }
+    if let Some(v) = updates.print_margin_left { config.print_margin_left = v; }
+    if let Some(v) = updates.print_margin_right { config.print_margin_right = v; }
     write_config(&app, &config)?;
     Ok(())
 }

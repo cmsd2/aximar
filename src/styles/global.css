@@ -1124,8 +1124,12 @@
 
 .markdown-cell .cell-actions {
   position: absolute;
-  top: 6px;
+  top: -3px;
   right: 6px;
+}
+
+[data-cell-style="bracket"] .markdown-cell .cell-actions {
+  right: 22px;
 }
 
 .markdown-cell-view {
@@ -1323,6 +1327,39 @@
   font-size: 13px;
   outline: none;
   cursor: pointer;
+}
+
+.settings-margins {
+  display: flex;
+  gap: 8px;
+}
+
+.settings-margin-field {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.settings-margin-label {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.settings-margin-input {
+  width: 48px;
+  padding: 4px 6px;
+  background: var(--bg-input);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  color: var(--text-primary);
+  font-size: 13px;
+  text-align: center;
+  outline: none;
+}
+
+.settings-margin-input:focus {
+  border-color: var(--accent);
 }
 
 .settings-checkbox {
@@ -2146,7 +2183,8 @@
   .insert-bar,
   .bracket-toggle,
   .cell-suggestions,
-  .cm-tooltip {
+  .cm-tooltip,
+  .copy-actions {
     display: none !important;
   }
 
@@ -2163,7 +2201,7 @@
 
   .notebook {
     overflow: visible !important;
-    padding: 12mm !important;
+    padding: 0 !important;
   }
 
   /* Cell styling for print */

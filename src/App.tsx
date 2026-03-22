@@ -22,7 +22,7 @@ import {
   saveNotebookAs,
   openNotebook,
 } from "./lib/notebooks-client";
-import { getConfig, markdownFontStack } from "./lib/config-client";
+import { getConfig, markdownFontStack, applyPrintMargins } from "./lib/config-client";
 import { useNotebookStore } from "./store/notebookStore";
 import { useLogStore } from "./store/logStore";
 import { useFindStore } from "./store/findStore";
@@ -76,6 +76,10 @@ function App() {
         document.documentElement.style.setProperty(
           "--markdown-indent",
           cfg.markdown_indent === "aligned" ? "var(--gutter-width)" : "16px"
+        );
+        applyPrintMargins(
+          cfg.print_margin_top, cfg.print_margin_bottom,
+          cfg.print_margin_left, cfg.print_margin_right
         );
         if (cfg.autocomplete_mode) {
           useNotebookStore.getState().setAutocompleteMode(
