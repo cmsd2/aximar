@@ -13,7 +13,7 @@ Aximar provides a notebook-style interface (like Jupyter/Mathematica) for Maxima
 | Desktop shell | Tauri v2 (Rust) | Small binary (~5-10MB), native feel, secure |
 | Frontend | Vite + React 19 + TypeScript | Fast dev, large ecosystem, Tauri default template |
 | Math rendering | KaTeX | Fast LaTeX rendering, same quality as modern LaTeX |
-| Code editor | CodeMirror 6 | Extensible, lightweight, good mobile support |
+| Code editor | Plain `<textarea>` (CodeMirror 6 planned) | Lightweight, with custom autocomplete and hover tooltips |
 | State management | Zustand | Minimal API, no boilerplate, fine-grained reactivity |
 | Styling | CSS Modules + CSS custom properties | Scoped styles, no build complexity |
 | Subprocess mgmt | tokio::process | Full async control over Maxima stdin/stdout |
@@ -215,7 +215,7 @@ Maxima's `tex()` output needs preprocessing for KaTeX compatibility:
 
 ## Implementation Phases
 
-### Phase 1: MVP — Working Notebook with Math Rendering
+### Phase 1: MVP — Working Notebook with Math Rendering ✅
 
 **Goal**: A usable app where you can type Maxima expressions, execute them, and see beautifully rendered math output with KaTeX.
 
@@ -247,7 +247,7 @@ Maxima's `tex()` output needs preprocessing for KaTeX compatibility:
 
 ### Phase 2: CodeMirror Editor
 
-**Goal**: Syntax-highlighted Maxima editing replaces textarea.
+**Goal**: Syntax-highlighted Maxima editing replaces textarea. (Currently using plain `<textarea>` with autocomplete and hover tooltips.)
 
 1. Create basic Maxima language mode for CodeMirror 6
    - Keywords: `if`, `then`, `else`, `do`, `for`, `while`, etc.
@@ -273,36 +273,36 @@ Maxima's `tex()` output needs preprocessing for KaTeX compatibility:
 
 **Verify**: Plot commands produce visible inline graphs. ✅
 
-### Phase 4: Polish + Persistence (partially complete)
+### Phase 4: Polish + Persistence ✅
 
 **Goal**: Production-quality UX with file save/load.
 
-1. Cell reorder (move up/down)
+1. ✅ Cell reorder (move up/down)
 2. ✅ In[N] / Out[N] execution labels (`output_label` and `executionCount`)
 3. ✅ Status bar (session status)
 4. ✅ Loading spinner during evaluation
-5. Keyboard shortcuts:
+5. ✅ Keyboard shortcuts:
    - ✅ `Shift+Enter` — run cell, advance to next
-   - `Ctrl/Cmd+Enter` — run cell in place
-   - `Escape` — blur editor
+   - ✅ `Ctrl/Cmd+Enter` — run cell in place
+   - ✅ `Escape` — blur editor
 6. ✅ Run All
 7. ✅ Responsive layout at various window sizes
 8. ✅ `.axm` / `.ipynb` JSON notebook format (Jupyter nbformat 4)
 9. ✅ Save/Load commands with native file picker dialog (`tauri-plugin-dialog`)
 10. ✅ Native macOS menu bar with File menu (New, Open, Save, Save As) + accelerators
-11. Unsaved changes warning on close
+11. ✅ Unsaved changes warning on close
 12. ✅ Dirty state tracking — toolbar shows filename and `*` indicator
 
-### Phase 5: Cross-Platform Distribution
+### Phase 5: Cross-Platform Distribution (partially complete)
 
 **Goal**: Distributable app for macOS, Linux, Windows.
 
-1. Cross-platform Maxima binary detection
-2. "Maxima not found" dialog with install instructions
+1. ✅ Cross-platform Maxima binary detection (`AXIMAR_MAXIMA_PATH` env var + settings)
+2. ✅ "Maxima not found" dialog with platform-specific install instructions
 3. App icons (Tauri icon generator)
 4. Build config for .dmg / .AppImage / .deb / .msi
 
-### CI/CD
+### CI/CD ✅
 
 **Goal**: Automated builds on every push to `master`.
 

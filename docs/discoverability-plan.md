@@ -1,5 +1,7 @@
 # Discoverability & User Guidance Plan
 
+> **Status**: All phases (A–F) are fully implemented.
+
 ## Problem
 
 Maxima has ~1500 functions but poor discoverability. Users don't know what functions exist, what arguments they take, or what to try next. Error messages are cryptic. There's no autocomplete, no inline docs, no contextual hints.
@@ -26,24 +28,24 @@ React (rendering)  <--IPC-->  Rust (all logic)
 ## Phases
 
 ```
-Phase A: Function Catalog in Rust (Foundation)
+Phase A: Function Catalog in Rust (Foundation)      ✅ Complete
    |
-   +-- Phase B: Command Palette (Cmd+K)
+   +-- Phase B: Command Palette (Cmd+K)             ✅ Complete
    |
-   +-- Phase C: Rich Error Messages (in parser)
+   +-- Phase C: Rich Error Messages (in parser)     ✅ Complete
    |
-   +-- Phase E: Autocomplete
+   +-- Phase E: Autocomplete                        ✅ Complete
    |
-Phase D: Contextual Suggestions (independent, benefits from A)
+Phase D: Contextual Suggestions (independent)       ✅ Complete
    |
-Phase F: Starter Notebooks (best after C+D)
+Phase F: Starter Notebooks (best after C+D)         ✅ Complete
 ```
 
-Recommended order: A -> D -> B -> C -> F -> E
+Implemented in order: A -> D -> B -> C -> F -> E
 
 ---
 
-## Phase A: Function Catalog in Rust
+## Phase A: Function Catalog in Rust ✅
 
 ### New Rust module: `src-tauri/src/catalog/`
 
@@ -198,7 +200,7 @@ export async function listCategories(): Promise<[FunctionCategory, MaximaFunctio
 
 ---
 
-## Phase B: Command Palette (Cmd+K)
+## Phase B: Command Palette (Cmd+K) ✅
 
 Modal searchable function browser. Calls `search_functions` and `list_categories` Tauri commands.
 
@@ -237,7 +239,7 @@ insertTextInActiveCell: (text: string) => void
 
 ---
 
-## Phase C: Rich Error Messages
+## Phase C: Rich Error Messages ✅
 
 Move error enhancement into the Rust parser so `EvalResult` includes structured error info, not just a raw string.
 
@@ -339,7 +341,7 @@ Add `ErrorInfo` interface and `error_info` field to `EvalResult`.
 
 ---
 
-## Phase D: Contextual Suggestions
+## Phase D: Contextual Suggestions ✅
 
 Suggestion logic in Rust, exposed via a Tauri command. Frontend renders chips.
 
@@ -416,7 +418,7 @@ Add `addCellWithInput(afterId: string, input: string)` action.
 
 ---
 
-## Phase E: Autocomplete
+## Phase E: Autocomplete ✅
 
 Calls the `complete_function` Tauri command from Phase A. Frontend handles popup positioning and keyboard interaction.
 
@@ -452,7 +454,7 @@ If staying with textarea, build a lightweight overlay:
 
 ---
 
-## Phase F: Starter Notebooks
+## Phase F: Starter Notebooks ✅
 
 Notebook content and template listing in Rust. Frontend renders the chooser.
 

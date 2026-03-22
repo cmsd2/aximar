@@ -1,5 +1,7 @@
 # Function Hover Tooltip
 
+> **Status**: Fully implemented.
+
 ## Context
 
 Users want to hover over function names in code cells to see what they do, with the option to jump to full documentation. The cell input is a plain `<textarea>` so we can't attach hover listeners to individual words — instead we detect the word under the mouse cursor on `mousemove`, look it up in the catalog via the existing `getFunction(name)` backend command, and show a positioned tooltip.
