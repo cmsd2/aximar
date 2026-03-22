@@ -5,10 +5,11 @@ import type { SearchResult, CategoryGroup } from "../types/catalog";
 
 interface CommandPaletteProps {
   onClose: () => void;
+  onViewDocs?: (name: string) => void;
   initialQuery?: string;
 }
 
-export function CommandPalette({ onClose, initialQuery }: CommandPaletteProps) {
+export function CommandPalette({ onClose, onViewDocs, initialQuery }: CommandPaletteProps) {
   const [query, setQuery] = useState(initialQuery ?? "");
   const [results, setResults] = useState<SearchResult[]>([]);
   const [categories, setCategories] = useState<CategoryGroup[]>([]);
@@ -106,6 +107,14 @@ export function CommandPalette({ onClose, initialQuery }: CommandPaletteProps) {
     []
   );
 
+  const viewDocs = useCallback(
+    (name: string) => {
+      onClose();
+      onViewDocs?.(name);
+    },
+    [onClose, onViewDocs]
+  );
+
   const navigableCount = isCategoryList ? categories.length : displayItems.length;
 
   const handleKeyDown = useCallback(
@@ -116,6 +125,15 @@ export function CommandPalette({ onClose, initialQuery }: CommandPaletteProps) {
       } else if (e.key === "ArrowUp") {
         e.preventDefault();
         setSelectedIndex((i) => Math.max(i - 1, 0));
+      } else if (
+        e.key === "Enter" &&
+        (e.metaKey || e.ctrlKey) &&
+        !isCategoryList &&
+        displayItems.length > 0 &&
+        onViewDocs
+      ) {
+        e.preventDefault();
+        viewDocs(displayItems[selectedIndex].function.name);
       } else if (e.key === "Enter" && navigableCount > 0) {
         e.preventDefault();
         if (isCategoryList) {
@@ -144,6 +162,8 @@ export function CommandPalette({ onClose, initialQuery }: CommandPaletteProps) {
       displayItems,
       selectedIndex,
       insertFunction,
+      viewDocs,
+      onViewDocs,
       selectCategory,
       query,
       onClose,
@@ -222,11 +242,25 @@ export function CommandPalette({ onClose, initialQuery }: CommandPaletteProps) {
                     onClick={() => insertFunction(f.name)}
                     onMouseEnter={() => setSelectedIndex(i)}
                   >
-                    <div className="palette-item-name">{f.name}</div>
-                    <div className="palette-item-sig">
-                      {f.signatures[0] || ""}
+                    <div className="palette-item-main">
+                      <div className="palette-item-name">{f.name}</div>
+                      <div className="palette-item-sig">
+                        {f.signatures[0] || ""}
+                      </div>
+                      <div className="palette-item-desc">{f.description}</div>
                     </div>
-                    <div className="palette-item-desc">{f.description}</div>
+                    {onViewDocs && (
+                      <button
+                        className="palette-item-docs"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          viewDocs(f.name);
+                        }}
+                        title="View docs"
+                      >
+                        ?
+                      </button>
+                    )}
                   </div>
                 </div>
               );
@@ -239,6 +273,11 @@ export function CommandPalette({ onClose, initialQuery }: CommandPaletteProps) {
           <span>
             <kbd>Enter</kbd> {isCategoryList ? "select" : "insert"}
           </span>
+          {!isCategoryList && onViewDocs && (
+            <span>
+              <kbd>&#8984;Enter</kbd> docs
+            </span>
+          )}
           {isCategorySelected && (
             <span>
               <kbd>Backspace</kbd> back

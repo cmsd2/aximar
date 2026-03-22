@@ -287,6 +287,7 @@ function App() {
             setPaletteOpen(false);
             setPaletteQuery(undefined);
           }}
+          onViewDocs={openDocsFor}
           initialQuery={paletteQuery}
         />
       )}
