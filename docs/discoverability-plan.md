@@ -420,37 +420,24 @@ Add `addCellWithInput(afterId: string, input: string)` action.
 
 ## Phase E: Autocomplete ✅
 
-Calls the `complete_function` Tauri command from Phase A. Frontend handles popup positioning and keyboard interaction.
+Calls the `complete_function` Tauri command from Phase A. Implemented as a CodeMirror 6 extension.
 
-### Design decision
+### Implementation
 
-If CodeMirror (existing Phase 2) is coming soon, build autocomplete as a CodeMirror extension using the `completeFunction` client. CodeMirror's `@codemirror/autocomplete` handles all the hard parts (positioning, keyboard, rendering).
+**Completion source**: `src/lib/maxima-completions.ts`
+- Uses CM's `@codemirror/autocomplete` API
+- Matches identifiers of 2+ chars, calls `completeFunction(prefix)` via Tauri IPC
+- Supports snippet mode: fetches function signature and creates CM snippet templates with tab-stop placeholders
+- Non-snippet mode: inserts `name(` and triggers signature hint
 
-If staying with textarea, build a lightweight overlay:
+**Integration**: Part of the `useCodeMirrorEditor` hook's extension stack. Autocomplete mode is wrapped in a `Compartment` for live reconfiguration when the user changes modes (hint/snippet/active-hint).
 
-### Textarea approach (if needed)
-
-**Hook**: `src/hooks/useAutocomplete.ts`
-- Extract word at cursor via `selectionStart`
-- If >= 2 chars, call `completeFunction(prefix)` (debounced)
-- Handle Tab/Enter (accept), Escape (dismiss), Arrow keys (navigate)
-
-**Popup**: `src/components/AutocompletePopup.tsx`
-- Positioned using mirror-div technique for cursor coordinates
-- Shows name, signature, description for each completion
-- Max 8 visible results
-
-**Integration**: `Cell.tsx` -- autocomplete keys intercepted before Shift+Enter.
-
-### Files (textarea version)
+### Files
 
 | Action | Path |
 |--------|------|
-| Create | `src/hooks/useAutocomplete.ts` |
-| Create | `src/components/AutocompletePopup.tsx` |
-| Create | `src/lib/textarea-caret.ts` |
-| Modify | `src/components/Cell.tsx` |
-| Modify | `src/styles/global.css` |
+| Create | `src/lib/maxima-completions.ts` |
+| Modify | `src/hooks/useCodeMirrorEditor.ts` |
 
 ---
 

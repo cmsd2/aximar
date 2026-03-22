@@ -1,4 +1,5 @@
 import { hoverTooltip, type Tooltip } from "@codemirror/view";
+import katex from "katex";
 import { getFunction } from "./catalog-client";
 import type { MaximaFunction } from "../types/catalog";
 
@@ -87,10 +88,10 @@ function renderHoverTooltip(
   }
   container.appendChild(sigDiv);
 
-  // Description
+  // Description (with inline KaTeX math)
   const descDiv = document.createElement("div");
   descDiv.className = "hover-tooltip-desc";
-  descDiv.textContent = func.description;
+  renderMathText(descDiv, func.description);
   container.appendChild(descDiv);
 
   // Footer
@@ -116,4 +117,56 @@ function renderHoverTooltip(
   container.appendChild(footerDiv);
 
   return container;
+}
+
+/** Render text with inline ($...$) and display ($$...$$) KaTeX math into a DOM element. */
+function renderMathText(el: HTMLElement, text: string) {
+  let i = 0;
+  while (i < text.length) {
+    // Display math $$...$$
+    if (text[i] === "$" && text[i + 1] === "$") {
+      const end = text.indexOf("$$", i + 2);
+      if (end !== -1) {
+        const span = document.createElement("span");
+        try {
+          span.innerHTML = katex.renderToString(text.slice(i + 2, end), {
+            displayMode: true,
+            throwOnError: false,
+            trust: false,
+          });
+        } catch {
+          span.textContent = text.slice(i, end + 2);
+        }
+        el.appendChild(span);
+        i = end + 2;
+        continue;
+      }
+    }
+    // Inline math $...$
+    if (text[i] === "$") {
+      const end = text.indexOf("$", i + 1);
+      if (end !== -1) {
+        const span = document.createElement("span");
+        try {
+          span.innerHTML = katex.renderToString(text.slice(i + 1, end), {
+            displayMode: false,
+            throwOnError: false,
+            trust: false,
+          });
+        } catch {
+          span.textContent = text.slice(i, end + 1);
+        }
+        el.appendChild(span);
+        i = end + 1;
+        continue;
+      }
+    }
+    // Plain text until next $
+    const next = text.indexOf("$", i);
+    const chunk = next === -1 ? text.slice(i) : text.slice(i, next);
+    if (chunk) {
+      el.appendChild(document.createTextNode(chunk));
+    }
+    i = next === -1 ? text.length : next;
+  }
 }

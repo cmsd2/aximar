@@ -13,7 +13,7 @@ Aximar provides a notebook-style interface (like Jupyter/Mathematica) for Maxima
 | Desktop shell | Tauri v2 (Rust) | Small binary (~5-10MB), native feel, secure |
 | Frontend | Vite + React 19 + TypeScript | Fast dev, large ecosystem, Tauri default template |
 | Math rendering | KaTeX | Fast LaTeX rendering, same quality as modern LaTeX |
-| Code editor | Plain `<textarea>` (CodeMirror 6 planned) | Lightweight, with custom autocomplete and hover tooltips |
+| Code editor | CodeMirror 6 | Syntax highlighting, autocomplete, hover tooltips, bracket matching |
 | State management | Zustand | Minimal API, no boilerplate, fine-grained reactivity |
 | Styling | CSS Modules + CSS custom properties | Scoped styles, no build complexity |
 | Subprocess mgmt | tokio::process | Full async control over Maxima stdin/stdout |
@@ -87,7 +87,6 @@ aximar/
 │   │   ├── CellSuggestions.tsx      # Suggestion chips (eval + actions like Save SVG)
 │   │   ├── KatexOutput.tsx
 │   │   ├── EnhancedErrorOutput.tsx  # Rich error display with did-you-mean
-│   │   ├── HoverTooltip.tsx         # Function hover docs
 │   │   ├── Toolbar.tsx              # Toolbar with filename/dirty indicator
 │   │   ├── CommandPalette.tsx       # Cmd+K function browser
 │   │   ├── TemplateChooser.tsx      # Template selection modal
@@ -97,8 +96,7 @@ aximar/
 │   │   └── LogPanel.tsx
 │   ├── hooks/
 │   │   ├── useMaxima.ts             # Cell execution logic
-│   │   ├── useAutocomplete.ts       # Autocomplete popup logic
-│   │   ├── useHoverTooltip.ts       # Function hover detection
+│   │   ├── useCodeMirrorEditor.ts   # CodeMirror 6 editor lifecycle + store sync
 │   │   └── useTheme.ts
 │   ├── lib/
 │   │   ├── maxima-client.ts         # Tauri invoke wrappers
@@ -106,7 +104,13 @@ aximar/
 │   │   ├── catalog-client.ts        # Search/complete/get functions
 │   │   ├── suggestions-client.ts
 │   │   ├── config-client.ts
-│   │   └── textarea-caret.ts
+│   │   ├── maxima-language.ts       # Maxima StreamLanguage tokenizer for CM6
+│   │   ├── codemirror-theme.ts      # CM6 theme using CSS variables
+│   │   ├── maxima-completions.ts    # CM6 autocomplete source via Tauri IPC
+│   │   ├── maxima-signature-hint.ts # CM6 signature hint StateField + tooltips
+│   │   ├── maxima-hover-tooltip.ts  # CM6 hover tooltip via hoverTooltip()
+│   │   ├── param-tracker.ts         # Function call / param index detection
+│   │   └── signature-parser.ts      # Parse signature strings
 │   └── styles/
 │       └── global.css
 └── src-tauri/                        # Rust backend
@@ -234,7 +238,7 @@ Maxima's `tex()` output needs preprocessing for KaTeX compatibility:
 10. Create Zustand store (`store/notebookStore.ts`)
 11. Create Tauri invoke wrappers (`lib/maxima-client.ts`)
 12. Build Notebook → Cell → Input/Output component hierarchy
-13. Cell input uses plain `<textarea>` (CodeMirror deferred to Phase 2)
+13. Cell input uses CodeMirror 6 with Maxima syntax highlighting
 14. Cell output renders LaTeX via KaTeX (`KatexOutput.tsx`)
 15. Error output component (`ErrorOutput.tsx`)
 16. LaTeX preprocessing for KaTeX compatibility (`lib/katex-helpers.ts`)
@@ -245,20 +249,20 @@ Maxima's `tex()` output needs preprocessing for KaTeX compatibility:
 
 **Verify**: `npm run tauri dev` → type `integrate(x^2, x);` → Shift+Enter → see rendered math.
 
-### Phase 2: CodeMirror Editor
+### Phase 2: CodeMirror Editor ✅
 
-**Goal**: Syntax-highlighted Maxima editing replaces textarea. (Currently using plain `<textarea>` with autocomplete and hover tooltips.)
+**Goal**: Syntax-highlighted Maxima editing with integrated autocomplete, signature hints, and hover tooltips.
 
-1. Create basic Maxima language mode for CodeMirror 6
-   - Keywords: `if`, `then`, `else`, `do`, `for`, `while`, etc.
-   - Built-ins: `integrate`, `diff`, `solve`, `expand`, `factor`, etc.
-   - Numbers, strings, comments (`/* ... */`)
-2. Build CellInput wrapping CodeMirror
-3. Shift+Enter keybinding, line numbers, bracket matching
-4. Auto-expanding editor height
-5. Theme (One Dark or custom light theme)
+1. ✅ Maxima `StreamLanguage` tokenizer (`maxima-language.ts`): keywords, builtins, nested `/* */` comments, strings, numbers, operators
+2. ✅ Transparent CM theme (`codemirror-theme.ts`) inheriting CSS variables for dark/light
+3. ✅ `useCodeMirrorEditor` hook: CM lifecycle, store sync, undo/redo passthrough to zustand, find/cursor navigation
+4. ✅ Autocomplete via CM's `autocompletion()` with Tauri IPC (`maxima-completions.ts`), snippet mode support
+5. ✅ Signature hints via CM `StateField` + tooltip system (`maxima-signature-hint.ts`)
+6. ✅ Hover tooltips via CM `hoverTooltip()` (`maxima-hover-tooltip.ts`)
+7. ✅ Store-mediated navigation: `navigateTo` in findStore, `pendingCursorMove` in notebookStore
+8. ✅ Shift+Enter/Cmd+Enter keybindings, auto-height, line wrapping
 
-**Verify**: Syntax coloring works, Shift+Enter executes, editor feels responsive.
+**Verify**: Syntax coloring works, Shift+Enter executes, autocomplete popup appears, hover shows function docs.
 
 ### Phase 3: Plot Support ✅
 
@@ -366,6 +370,8 @@ tempfile = "3"
 katex @types/katex
 zustand nanoid
 react-markdown rehype-katex remark-math
+@codemirror/state @codemirror/view @codemirror/commands
+@codemirror/language @codemirror/autocomplete @lezer/highlight
 ```
 
 (React, TypeScript, Vite, @tauri-apps/cli come from the template.)
