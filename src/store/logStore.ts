@@ -1,21 +1,32 @@
 import { create } from "zustand";
 import { nanoid } from "nanoid";
-import type { LogEntry, LogLevel } from "../types/log";
+import type { LogEntry, LogLevel, RawOutputEntry, LogTab } from "../types/log";
+
+const MAX_RAW_ENTRIES = 5000;
 
 interface LogState {
   entries: LogEntry[];
+  rawOutput: RawOutputEntry[];
   unreadCount: number;
-  logOpen: boolean;
+  windowOpen: boolean;
+  activeTab: LogTab;
 
   addEntry: (level: LogLevel, message: string, source: string) => void;
-  toggleLog: () => void;
+  addRawOutput: (line: string, stream: "stdin" | "stdout" | "stderr", timestamp: number) => void;
+  toggleWindow: () => void;
+  openWindow: () => void;
+  closeWindow: () => void;
+  setActiveTab: (tab: LogTab) => void;
   clearLog: () => void;
+  clearRawOutput: () => void;
 }
 
 export const useLogStore = create<LogState>((set, get) => ({
   entries: [],
+  rawOutput: [],
   unreadCount: 0,
-  logOpen: false,
+  windowOpen: false,
+  activeTab: "app",
 
   addEntry: (level, message, source) => {
     const entry: LogEntry = {
@@ -27,17 +38,49 @@ export const useLogStore = create<LogState>((set, get) => ({
     };
     set((state) => ({
       entries: [...state.entries, entry],
-      unreadCount: state.logOpen ? state.unreadCount : state.unreadCount + 1,
+      unreadCount:
+        level === "error" && !state.windowOpen
+          ? state.unreadCount + 1
+          : state.unreadCount,
     }));
   },
 
-  toggleLog: () => {
-    const opening = !get().logOpen;
+  addRawOutput: (line, stream, timestamp) => {
+    const entry: RawOutputEntry = {
+      id: nanoid(),
+      line,
+      stream,
+      timestamp,
+    };
+    set((state) => {
+      const next = [...state.rawOutput, entry];
+      // Cap buffer size
+      if (next.length > MAX_RAW_ENTRIES) {
+        next.splice(0, next.length - MAX_RAW_ENTRIES);
+      }
+      return { rawOutput: next };
+    });
+  },
+
+  toggleWindow: () => {
+    const opening = !get().windowOpen;
     set({
-      logOpen: opening,
+      windowOpen: opening,
       unreadCount: opening ? 0 : get().unreadCount,
     });
   },
 
+  openWindow: () => {
+    set({ windowOpen: true, unreadCount: 0 });
+  },
+
+  closeWindow: () => {
+    set({ windowOpen: false });
+  },
+
+  setActiveTab: (tab) => set({ activeTab: tab }),
+
   clearLog: () => set({ entries: [], unreadCount: 0 }),
+
+  clearRawOutput: () => set({ rawOutput: [] }),
 }));

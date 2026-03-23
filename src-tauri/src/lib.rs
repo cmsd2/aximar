@@ -7,6 +7,7 @@ mod notebooks;
 mod state;
 mod suggestions;
 
+use tauri::Manager;
 use state::AppState;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -17,6 +18,11 @@ pub fn run() {
         .manage(AppState::new())
         .setup(|app| {
             menu::setup_menu(app)?;
+            let state = app.state::<AppState>();
+            let handle = app.handle().clone();
+            tauri::async_runtime::block_on(async {
+                *state.app_handle.lock().await = Some(handle);
+            });
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![

@@ -11,6 +11,7 @@ pub struct AppState {
     pub status: Arc<Mutex<SessionStatus>>,
     pub catalog: Catalog,
     pub docs: Docs,
+    pub app_handle: Arc<Mutex<Option<tauri::AppHandle>>>,
 }
 
 impl AppState {
@@ -20,6 +21,7 @@ impl AppState {
             status: Arc::new(Mutex::new(SessionStatus::Stopped)),
             catalog: Catalog::load(),
             docs: Docs::load(),
+            app_handle: Arc::new(Mutex::new(None)),
         }
     }
 }

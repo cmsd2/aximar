@@ -1,6 +1,7 @@
 import { useCallback } from "react";
 import { message } from "@tauri-apps/plugin-dialog";
 import { useNotebookStore } from "../store/notebookStore";
+import { useLogStore } from "../store/logStore";
 import { evaluateExpression, startSession, restartSession } from "../lib/maxima-client";
 import type { CellOutput } from "../types/notebook";
 
@@ -92,12 +93,15 @@ export function useMaxima() {
   const setCellStatus = useNotebookStore((s) => s.setCellStatus);
   const setCellOutput = useNotebookStore((s) => s.setCellOutput);
   const setSessionStatus = useNotebookStore((s) => s.setSessionStatus);
+  const addLog = useLogStore((s) => s.addEntry);
 
   const executeCell = useCallback(
     async (cellId: string, input: string): Promise<boolean> => {
       if (!input.trim()) return false;
 
       setCellStatus(cellId, "running");
+      const preview = input.trim().split("\n")[0].slice(0, 60);
+      addLog("info", `Evaluating: ${preview}`, "eval");
 
       // Translate display %oN/%iN to real Maxima labels before evaluation
       const labelMap = buildLabelMap();
@@ -117,13 +121,20 @@ export function useMaxima() {
           executionCount: null, // stamped by store
         };
         setCellOutput(cellId, output);
+        if (result.is_error) {
+          addLog("error", `Evaluation error: ${result.error?.split("\n")[0] ?? "unknown"}`, "eval");
+        } else {
+          addLog("info", `Complete (${result.duration_ms}ms)`, "eval");
+        }
         return !result.is_error;
       } catch (err) {
+        const errMsg = String(err);
+        addLog("error", `Evaluation failed: ${errMsg}`, "eval");
         const output: CellOutput = {
           textOutput: "",
           latex: null,
           plotSvg: null,
-          error: String(err),
+          error: errMsg,
           errorInfo: null,
           isError: true,
           durationMs: 0,
@@ -134,32 +145,38 @@ export function useMaxima() {
         return false;
       }
     },
-    [setCellStatus, setCellOutput]
+    [setCellStatus, setCellOutput, addLog]
   );
 
   const initSession = useCallback(async () => {
     setSessionStatus("Starting");
+    addLog("info", "Session starting...", "session");
     try {
       const status = await startSession();
       setSessionStatus(status);
+      addLog("info", "Session ready", "session");
     } catch (err) {
       const errMsg = String(err);
       setSessionStatus({ Error: errMsg });
+      addLog("error", `Session failed: ${errMsg}`, "session");
       await showMaximaNotFoundDialog(errMsg);
     }
-  }, [setSessionStatus]);
+  }, [setSessionStatus, addLog]);
 
   const doRestartSession = useCallback(async () => {
     setSessionStatus("Starting");
+    addLog("info", "Session restarting...", "session");
     try {
       const status = await restartSession();
       setSessionStatus(status);
+      addLog("info", "Session ready", "session");
     } catch (err) {
       const errMsg = String(err);
       setSessionStatus({ Error: errMsg });
+      addLog("error", `Session restart failed: ${errMsg}`, "session");
       await showMaximaNotFoundDialog(errMsg);
     }
-  }, [setSessionStatus]);
+  }, [setSessionStatus, addLog]);
 
   return { executeCell, initSession, restartSession: doRestartSession };
 }

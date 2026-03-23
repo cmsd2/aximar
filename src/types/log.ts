@@ -7,3 +7,12 @@ export interface LogEntry {
   message: string;
   source: string;
 }
+
+export interface RawOutputEntry {
+  id: string;
+  line: string;
+  stream: "stdin" | "stdout" | "stderr";
+  timestamp: number;
+}
+
+export type LogTab = "app" | "maxima";

@@ -8,7 +8,7 @@ import { Notebook } from "./components/Notebook";
 import { CommandPalette } from "./components/CommandPalette";
 import { TemplateChooser } from "./components/TemplateChooser";
 import { SettingsModal } from "./components/SettingsModal";
-import { LogPanel } from "./components/LogPanel";
+import { StatusBar, LogWindow } from "./components/LogPanel";
 import { DocsPanel } from "./components/DocsPanel";
 import { FindBar } from "./components/FindBar";
 import { ShortcutHints } from "./components/ShortcutHints";
@@ -43,10 +43,11 @@ function App() {
   const [docsRequestId, setDocsRequestId] = useState(0);
   const loadNotebook = useNotebookStore((s) => s.loadNotebook);
   const newNotebook = useNotebookStore((s) => s.newNotebook);
-  const logOpen = useLogStore((s) => s.logOpen);
-  const toggleLog = useLogStore((s) => s.toggleLog);
+  const windowOpen = useLogStore((s) => s.windowOpen);
+  const toggleWindow = useLogStore((s) => s.toggleWindow);
   const logUnreadCount = useLogStore((s) => s.unreadCount);
   const addLogEntry = useLogStore((s) => s.addEntry);
+  const addRawOutput = useLogStore((s) => s.addRawOutput);
 
   useEffect(() => {
     initSession();
@@ -92,6 +93,23 @@ function App() {
         }
       })
       .catch(() => {});
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Listen for raw Maxima output events from the backend
+  useEffect(() => {
+    const unlisten = listen<{ line: string; stream: string; timestamp: number }>(
+      "maxima-output",
+      (event) => {
+        addRawOutput(
+          event.payload.line,
+          event.payload.stream as "stdin" | "stdout" | "stderr",
+          event.payload.timestamp
+        );
+      }
+    );
+    return () => {
+      unlisten.then((fn) => fn());
+    };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // First-launch: load welcome notebook
@@ -282,8 +300,8 @@ function App() {
         onOpenSettings={() => setSettingsOpen(true)}
         variablesOpen={variablesOpen}
         onToggleVariables={() => setVariablesOpen((o) => !o)}
-        logOpen={logOpen}
-        onToggleLog={toggleLog}
+        logOpen={windowOpen}
+        onToggleLog={toggleWindow}
         logUnreadCount={logUnreadCount}
         docsOpen={docsOpen}
         onToggleDocs={() => setDocsOpen((o) => !o)}
@@ -299,7 +317,8 @@ function App() {
           onClose={() => setDocsOpen(false)}
         />
       </div>
-      <LogPanel open={logOpen} />
+      <LogWindow />
+      <StatusBar />
       <ShortcutHints />
       {paletteOpen && (
         <CommandPalette

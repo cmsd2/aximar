@@ -1,5 +1,8 @@
 use std::env;
 use std::path::PathBuf;
+use std::time::{SystemTime, UNIX_EPOCH};
+use serde::Serialize;
+use tauri::Emitter;
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::process::{Child, Command};
 
@@ -8,6 +11,13 @@ use crate::maxima::backend::Backend;
 
 const READY_SENTINEL: &str = "__AXIMAR_READY__";
 
+#[derive(Clone, Serialize)]
+pub struct MaximaOutputEvent {
+    pub line: String,
+    pub stream: String,
+    pub timestamp: u64,
+}
+
 pub struct MaximaProcess {
     child: Child,
     stdin: tokio::process::ChildStdin,
@@ -15,10 +25,11 @@ pub struct MaximaProcess {
     stderr_reader: BufReader<tokio::process::ChildStderr>,
     backend: Backend,
     container_name: Option<String>,
+    app_handle: Option<tauri::AppHandle>,
 }
 
 impl MaximaProcess {
-    pub async fn spawn(backend: Backend, custom_path: Option<String>) -> Result<Self, AppError> {
+    pub async fn spawn(backend: Backend, custom_path: Option<String>, app_handle: Option<tauri::AppHandle>) -> Result<Self, AppError> {
         Self::preflight_check(&backend).await?;
 
         let (mut child, container_name) = match &backend {
@@ -169,6 +180,7 @@ impl MaximaProcess {
             stderr_reader,
             backend,
             container_name,
+            app_handle,
         };
 
         proc.initialize().await?;
@@ -200,7 +212,25 @@ impl MaximaProcess {
         Ok(())
     }
 
+    fn emit_output(&self, line: &str, stream: &str) {
+        if let Some(ref handle) = self.app_handle {
+            let _ = handle.emit("maxima-output", MaximaOutputEvent {
+                line: line.to_string(),
+                stream: stream.to_string(),
+                timestamp: SystemTime::now()
+                    .duration_since(UNIX_EPOCH)
+                    .map(|d| d.as_millis() as u64)
+                    .unwrap_or(0),
+            });
+        }
+    }
+
     pub async fn write_stdin(&mut self, input: &str) -> Result<(), AppError> {
+        for line in input.lines() {
+            if !line.is_empty() {
+                self.emit_output(line, "stdin");
+            }
+        }
         self.stdin
             .write_all(input.as_bytes())
             .await
@@ -231,6 +261,7 @@ impl MaximaProcess {
                         ));
                     }
                     let trimmed = stdout_line.trim_end().to_string();
+                    self.emit_output(&trimmed, "stdout");
                     if trimmed.contains(sentinel) {
                         lines.push(trimmed);
                         // Drain any remaining stderr
@@ -253,6 +284,7 @@ impl MaximaProcess {
                     }
                     let trimmed = stderr_line.trim_end().to_string();
                     if !trimmed.is_empty() {
+                        self.emit_output(&trimmed, "stderr");
                         lines.push(trimmed);
                     }
                 }
@@ -271,6 +303,7 @@ impl MaximaProcess {
                 Ok(Ok(n)) if n > 0 => {
                     let trimmed = line.trim_end().to_string();
                     if !trimmed.is_empty() {
+                        self.emit_output(&trimmed, "stderr");
                         lines.push(trimmed);
                     }
                 }

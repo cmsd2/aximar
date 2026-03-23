@@ -16,7 +16,7 @@ pub async fn start_session(app: tauri::AppHandle, state: State<'_, AppState>) ->
     let mut status = state.status.lock().await;
     *status = SessionStatus::Starting;
 
-    match MaximaProcess::spawn(backend, maxima_path).await {
+    match MaximaProcess::spawn(backend, maxima_path, Some(app)).await {
         Ok(process) => {
             let mut guard = state.process.lock().await;
             *guard = Some(process);
@@ -63,7 +63,7 @@ pub async fn restart_session(app: tauri::AppHandle, state: State<'_, AppState>) 
     let mut status = state.status.lock().await;
     *status = SessionStatus::Starting;
 
-    match MaximaProcess::spawn(backend, maxima_path).await {
+    match MaximaProcess::spawn(backend, maxima_path, Some(app.clone())).await {
         Ok(process) => {
             let mut guard = state.process.lock().await;
             *guard = Some(process);
