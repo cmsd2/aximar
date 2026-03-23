@@ -119,6 +119,25 @@
     },
     {
       "cell_type": "markdown",
+      "source": "## Math symbols\n\nType `\\` followed by a name (e.g. `\\alpha`, `\\theta`) to insert Unicode symbols.\nThey are automatically translated to Maxima when you evaluate.",
+      "metadata": {}
+    },
+    {
+      "cell_type": "code",
+      "source": "θ: %pi/4;\nsin(θ)^2 + cos(θ)^2",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": "f: α*x^2 + β*x + γ;\nsolve(f = 0, x)",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
       "source": "## Tips\n\n- Press **Cmd+K** (or **Ctrl+K**) to open the function browser\n- Click **suggestion chips** below outputs for next steps\n- Use `$x^2$` in markdown cells for inline math: $x^2 + y^2 = r^2$",
       "metadata": {}
     }
