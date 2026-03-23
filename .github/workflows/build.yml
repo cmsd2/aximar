@@ -16,37 +16,37 @@ jobs:
             rust-target: aarch64-apple-darwin
             artifact-name: aximar-macos-arm64
             artifact-path: |
-              src-tauri/target/aarch64-apple-darwin/release/bundle/dmg/*.dmg
+              target/aarch64-apple-darwin/release/bundle/dmg/*.dmg
           - os: macos-latest
             rust-target: x86_64-apple-darwin
             artifact-name: aximar-macos-x64
             artifact-path: |
-              src-tauri/target/x86_64-apple-darwin/release/bundle/dmg/*.dmg
+              target/x86_64-apple-darwin/release/bundle/dmg/*.dmg
           - os: ubuntu-latest
             rust-target: x86_64-unknown-linux-gnu
             artifact-name: aximar-linux-x64
             artifact-path: |
-              src-tauri/target/x86_64-unknown-linux-gnu/release/bundle/deb/*.deb
-              src-tauri/target/x86_64-unknown-linux-gnu/release/bundle/rpm/*.rpm
-              src-tauri/target/x86_64-unknown-linux-gnu/release/bundle/appimage/*.AppImage
+              target/x86_64-unknown-linux-gnu/release/bundle/deb/*.deb
+              target/x86_64-unknown-linux-gnu/release/bundle/rpm/*.rpm
+              target/x86_64-unknown-linux-gnu/release/bundle/appimage/*.AppImage
           - os: ubuntu-latest
             rust-target: aarch64-unknown-linux-gnu
             artifact-name: aximar-linux-arm64
             cross: true
             artifact-path: |
-              src-tauri/target/aarch64-unknown-linux-gnu/release/bundle/deb/*.deb
+              target/aarch64-unknown-linux-gnu/release/bundle/deb/*.deb
           - os: windows-latest
             rust-target: x86_64-pc-windows-msvc
             artifact-name: aximar-windows-x64
             artifact-path: |
-              src-tauri/target/x86_64-pc-windows-msvc/release/bundle/msi/*.msi
-              src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/*.exe
+              target/x86_64-pc-windows-msvc/release/bundle/msi/*.msi
+              target/x86_64-pc-windows-msvc/release/bundle/nsis/*.exe
           - os: windows-11-arm
             rust-target: aarch64-pc-windows-msvc
             artifact-name: aximar-windows-arm64
             artifact-path: |
-              src-tauri/target/aarch64-pc-windows-msvc/release/bundle/msi/*.msi
-              src-tauri/target/aarch64-pc-windows-msvc/release/bundle/nsis/*.exe
+              target/aarch64-pc-windows-msvc/release/bundle/msi/*.msi
+              target/aarch64-pc-windows-msvc/release/bundle/nsis/*.exe
 
     runs-on: ${{ matrix.os }}
 
