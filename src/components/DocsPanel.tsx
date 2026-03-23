@@ -1,9 +1,18 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
+import katex from "katex";
 import { getFunctionDocs, getFunction, searchFunctions } from "../lib/catalog-client";
 import type { MaximaFunction, SearchResult } from "../types/catalog";
+
+/**
+ * Convert single-line `$$...$$` to multi-line format required by remark-math v6.
+ * (remark-math treats display math like code fences — delimiters must be on own lines.)
+ */
+function preprocessDocsMath(md: string): string {
+  return md.replace(/^\$\$(.+)\$\$$/gm, "$$$$\n$1\n$$$$");
+}
 
 interface DocsPanelProps {
   open: boolean;
@@ -228,9 +237,46 @@ export function DocsPanel({ open, functionName, requestId, onClose }: DocsPanelP
                       const imgSrc = src?.startsWith("figures/") ? `/${src}` : src || "";
                       return <img {...props} src={imgSrc} alt={alt || ""} className="docs-figure" />;
                     },
+                    pre: ({ children, ...props }) => {
+                      // Render $$...$$ lines as KaTeX inside maxima code blocks
+                      const child = React.Children.toArray(children)[0];
+                      if (!React.isValidElement(child)) return <pre {...props}>{children}</pre>;
+                      const codeProps = child.props as { className?: string; children?: React.ReactNode };
+                      const className = codeProps.className || "";
+                      const content = String(codeProps.children || "");
+
+                      if (!className.includes("language-maxima") || !content.includes("$$")) {
+                        return <pre {...props}>{children}</pre>;
+                      }
+
+                      // Split on $$...$$ regions (possibly spanning multiple lines)
+                      const parts = content.split(/\$\$([\s\S]*?)\$\$/);
+                      const elements: React.ReactNode[] = [];
+                      for (let i = 0; i < parts.length; i++) {
+                        if (i % 2 === 0) {
+                          // Code text (between math regions)
+                          if (parts[i]) elements.push(parts[i]);
+                        } else {
+                          // Math capture group
+                          const tex = parts[i].replace(/\n\s*/g, " ").trim();
+                          const html = katex.renderToString(tex, {
+                            displayMode: true,
+                            throwOnError: false,
+                          });
+                          elements.push(
+                            <span key={i} dangerouslySetInnerHTML={{ __html: html }} />,
+                          );
+                        }
+                      }
+                      return (
+                        <pre {...props}>
+                          <code className={className}>{elements}</code>
+                        </pre>
+                      );
+                    },
                   }}
                 >
-                  {currentDocs}
+                  {preprocessDocsMath(currentDocs)}
                 </ReactMarkdown>
               </div>
             ) : (

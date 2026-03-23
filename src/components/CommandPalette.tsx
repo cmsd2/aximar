@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { searchFunctions, listCategories } from "../lib/catalog-client";
+import { MATH_SYMBOLS } from "../lib/math-symbols";
 import { useNotebookStore } from "../store/notebookStore";
 import { useLogStore } from "../store/logStore";
 import type { SearchResult, CategoryGroup } from "../types/catalog";
@@ -78,10 +79,32 @@ export function CommandPalette({ onClose, onViewDocs, initialQuery }: CommandPal
     [insertTextInActiveCell, addCell, setActiveCellId, onClose, activeCellId]
   );
 
-  // Display mode: "categories" | "categoryFunctions" | "search"
-  const isSearchMode = query.trim().length > 0;
-  const isCategorySelected = !isSearchMode && selectedCategory !== null;
-  const isCategoryList = !isSearchMode && selectedCategory === null;
+  const insertSymbol = useCallback(
+    (unicode: string) => {
+      if (activeCellId) {
+        insertTextInActiveCell(unicode);
+      } else {
+        const newId = addCell();
+        setActiveCellId(newId);
+        useNotebookStore.getState().insertTextInActiveCell(unicode);
+      }
+      onClose();
+    },
+    [insertTextInActiveCell, addCell, setActiveCellId, onClose, activeCellId]
+  );
+
+  // Display mode: "categories" | "categoryFunctions" | "search" | "symbols"
+  const isSymbolMode = query.startsWith("\\");
+  const isSearchMode = !isSymbolMode && query.trim().length > 0;
+  const isCategorySelected = !isSearchMode && !isSymbolMode && selectedCategory !== null;
+  const isCategoryList = !isSearchMode && !isSymbolMode && selectedCategory === null;
+
+  const filteredSymbols = useMemo(() => {
+    if (!isSymbolMode) return [];
+    const prefix = query.slice(1); // strip leading backslash
+    if (!prefix) return MATH_SYMBOLS;
+    return MATH_SYMBOLS.filter((s) => s.latex.startsWith(prefix));
+  }, [isSymbolMode, query]);
 
   const categoryFunctionItems: SearchResult[] = useMemo(() => {
     if (!isCategorySelected) return [];
@@ -98,6 +121,11 @@ export function CommandPalette({ onClose, onViewDocs, initialQuery }: CommandPal
 
   const selectCategory = useCallback(
     (category: string) => {
+      if (category === "__symbols__") {
+        setQuery("\\");
+        setSelectedIndex(0);
+        return;
+      }
       setSelectedCategory(category);
       setSelectedIndex(0);
     },
@@ -112,7 +140,11 @@ export function CommandPalette({ onClose, onViewDocs, initialQuery }: CommandPal
     [onClose, onViewDocs]
   );
 
-  const navigableCount = isCategoryList ? categories.length : displayItems.length;
+  const navigableCount = isSymbolMode
+    ? filteredSymbols.length
+    : isCategoryList
+      ? categories.length + 1 // +1 for Symbols entry
+      : displayItems.length;
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
@@ -133,8 +165,14 @@ export function CommandPalette({ onClose, onViewDocs, initialQuery }: CommandPal
         viewDocs(displayItems[selectedIndex].function.name);
       } else if (e.key === "Enter" && navigableCount > 0) {
         e.preventDefault();
-        if (isCategoryList) {
-          selectCategory(categories[selectedIndex].category);
+        if (isSymbolMode) {
+          insertSymbol(filteredSymbols[selectedIndex].unicode);
+        } else if (isCategoryList) {
+          if (selectedIndex < categories.length) {
+            selectCategory(categories[selectedIndex].category);
+          } else {
+            selectCategory("__symbols__");
+          }
         } else {
           insertFunction(displayItems[selectedIndex].function.name);
         }
@@ -155,10 +193,13 @@ export function CommandPalette({ onClose, onViewDocs, initialQuery }: CommandPal
       navigableCount,
       isCategoryList,
       isCategorySelected,
+      isSymbolMode,
       categories,
       displayItems,
+      filteredSymbols,
       selectedIndex,
       insertFunction,
+      insertSymbol,
       viewDocs,
       onViewDocs,
       selectCategory,
@@ -194,9 +235,11 @@ export function CommandPalette({ onClose, onViewDocs, initialQuery }: CommandPal
       selectedCategory
     : null;
 
-  const placeholder = isCategorySelected
-    ? `Filter ${selectedCategoryLabel}... (Backspace to go back)`
-    : "Search Maxima functions...";
+  const placeholder = isSymbolMode
+    ? "Type symbol name (e.g. \\alpha, \\leq, \\nabla)..."
+    : isCategorySelected
+      ? `Filter ${selectedCategoryLabel}... (Backspace to go back)`
+      : "Search functions (or type \\ for symbols)...";
 
   return (
     <div className="palette-overlay" onClick={onClose}>
@@ -212,8 +255,26 @@ export function CommandPalette({ onClose, onViewDocs, initialQuery }: CommandPal
           autoFocus
         />
         <div className="palette-results" ref={listRef} onMouseDown={(e) => e.preventDefault()}>
-          {isCategoryList &&
-            categories.map((g, i) => (
+          {isSymbolMode &&
+            filteredSymbols.map((s, i) => (
+              <div
+                key={`${s.latex}-${i}`}
+                className={`palette-item ${i === selectedIndex ? "selected" : ""}`}
+                onClick={() => insertSymbol(s.unicode)}
+                onMouseEnter={() => setSelectedIndex(i)}
+              >
+                <div className="palette-symbol-row">
+                  <span className="palette-symbol-char">{s.unicode}</span>
+                  <span className="palette-symbol-name">\{s.latex}</span>
+                  <span className="palette-symbol-maxima">{s.maxima}</span>
+                </div>
+              </div>
+            ))}
+          {isSymbolMode && filteredSymbols.length === 0 && (
+            <div className="palette-empty">No matching symbols</div>
+          )}
+          {isCategoryList && (<>
+            {categories.map((g, i) => (
               <div
                 key={g.category}
                 className={`palette-category-item ${i === selectedIndex ? "selected" : ""}`}
@@ -226,7 +287,19 @@ export function CommandPalette({ onClose, onViewDocs, initialQuery }: CommandPal
                 </span>
               </div>
             ))}
-          {!isCategoryList && displayItems.length === 0 && query.trim() && (
+            <div
+              key="__symbols__"
+              className={`palette-category-item ${categories.length === selectedIndex ? "selected" : ""}`}
+              onClick={() => selectCategory("__symbols__")}
+              onMouseEnter={() => setSelectedIndex(categories.length)}
+            >
+              <span className="palette-category-item-label">Symbols</span>
+              <span className="palette-category-item-count">
+                {MATH_SYMBOLS.length}
+              </span>
+            </div>
+          </>)}
+          {!isCategoryList && !isSymbolMode && displayItems.length === 0 && query.trim() && (
             <div className="palette-empty">No functions found</div>
           )}
           {!isCategoryList &&

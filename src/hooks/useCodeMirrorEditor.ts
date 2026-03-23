@@ -2,10 +2,11 @@ import { useRef, useEffect, useCallback } from "react";
 import { EditorState, Compartment } from "@codemirror/state";
 import { EditorView, keymap, placeholder as cmPlaceholder, ViewUpdate, tooltips } from "@codemirror/view";
 import { defaultKeymap } from "@codemirror/commands";
-import { autocompletion, completionKeymap } from "@codemirror/autocomplete";
+import { acceptCompletion, autocompletion, completionKeymap } from "@codemirror/autocomplete";
 import { maximaLanguage } from "../lib/maxima-language";
 import { maximaTheme, maximaHighlightStyle } from "../lib/codemirror-theme";
 import { maximaCompletionSource } from "../lib/maxima-completions";
+import { symbolCompletionSource } from "../lib/symbol-completions";
 import {
   signatureHintField,
   hideSignatureEffect,
@@ -190,7 +191,7 @@ export function useCodeMirrorEditor({
       doc: initialValue,
       extensions: [
         cellKeymap,
-        keymap.of([...completionKeymap, ...filteredKeymap]),
+        keymap.of([{ key: "Tab", run: acceptCompletion }, ...completionKeymap, ...filteredKeymap]),
         maximaLanguage,
         maximaTheme,
         maximaHighlightStyle,
@@ -198,7 +199,7 @@ export function useCodeMirrorEditor({
         cmPlaceholder("Enter Maxima expression... (Shift+Enter to evaluate)"),
         autocompleteCompartment.current.of(
           autocompletion({
-            override: [maximaCompletionSource(initialAutocompleteMode)],
+            override: [symbolCompletionSource, maximaCompletionSource(initialAutocompleteMode)],
             activateOnTyping: true,
             maxRenderedOptions: 8,
           })
@@ -298,7 +299,7 @@ export function useCodeMirrorEditor({
           hideSignatureEffect.of(undefined),
           autocompleteCompartment.current.reconfigure(
             autocompletion({
-              override: [maximaCompletionSource(state.autocompleteMode)],
+              override: [symbolCompletionSource, maximaCompletionSource(state.autocompleteMode)],
               activateOnTyping: true,
               maxRenderedOptions: 8,
             })

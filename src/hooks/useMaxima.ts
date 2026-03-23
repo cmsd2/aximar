@@ -3,6 +3,7 @@ import { message } from "@tauri-apps/plugin-dialog";
 import { useNotebookStore } from "../store/notebookStore";
 import { useLogStore } from "../store/logStore";
 import { evaluateExpression, startSession, restartSession } from "../lib/maxima-client";
+import { unicodeToMaxima, buildTexputInit } from "../lib/math-symbols";
 import type { LabelContext } from "../lib/maxima-client";
 import type { CellOutput } from "../types/notebook";
 
@@ -139,7 +140,8 @@ export function useMaxima() {
       const labelContext = buildLabelContext(cellId);
 
       try {
-        const result = await evaluateExpression(cellId, input, labelContext);
+        const translatedInput = unicodeToMaxima(input);
+        const result = await evaluateExpression(cellId, translatedInput, labelContext);
         // If Maxima returned a bare %oN reference (expression unchanged),
         // substitute the referenced cell's LaTeX instead of showing the label
         const latexMap = buildLabelLatexMap();
@@ -189,6 +191,8 @@ export function useMaxima() {
     try {
       const status = await startSession();
       setSessionStatus(status);
+      // Configure TeX rendering for Greek symbol variables
+      await evaluateExpression("__init__", buildTexputInit());
       addLog("info", "Session ready", "session");
     } catch (err) {
       const errMsg = String(err);
@@ -204,6 +208,8 @@ export function useMaxima() {
     try {
       const status = await restartSession();
       setSessionStatus(status);
+      // Configure TeX rendering for Greek symbol variables
+      await evaluateExpression("__init__", buildTexputInit());
       addLog("info", "Session ready", "session");
     } catch (err) {
       const errMsg = String(err);

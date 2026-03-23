@@ -95,13 +95,13 @@ const maximaParser: StreamParser<MaximaState> = {
       return "operator";
     }
 
-    // Single-char operators and terminators
-    if (stream.match(/^[+\-*/^=<>!@,.:;$()[\]{}]/)) {
+    // Single-char operators and terminators (including Unicode math operators)
+    if (stream.match(/^[+\-*/^=<>!@,.:;$()[\]{}\u2200-\u22FF\u2190-\u21FF\u00AC\u00B1\u00D7\u00F7]/)) {
       return "operator";
     }
 
-    // Identifiers, keywords, builtins
-    if (stream.match(/^[a-zA-Z_][a-zA-Z_0-9]*/)) {
+    // Identifiers, keywords, builtins (including Greek and math symbols used as variables)
+    if (stream.match(/^[a-zA-Z_\u0370-\u03FF\u2202\u2207\u221E][a-zA-Z_0-9\u0370-\u03FF\u2202\u2207\u221E]*/)) {
       const word = stream.current();
       if (KEYWORDS.has(word)) return "keyword";
       if (BUILTINS.has(word)) return "variableName.standard";
