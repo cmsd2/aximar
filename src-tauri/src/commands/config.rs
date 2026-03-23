@@ -4,11 +4,103 @@ use std::path::PathBuf;
 use tauri::Manager;
 
 use crate::error::AppError;
-use crate::maxima::backend::decode_wsl_output;
+use crate::maxima::backend::{decode_wsl_output, Backend};
 use crate::maxima::noconsole::hide_console_window;
 
-fn default_theme() -> String {
-    "auto".to_string()
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum Theme {
+    Auto,
+    Light,
+    Dark,
+}
+
+impl Default for Theme {
+    fn default() -> Self {
+        Self::Auto
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum CellStyle {
+    Card,
+    Bracket,
+}
+
+impl Default for CellStyle {
+    fn default() -> Self {
+        Self::Bracket
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum AutocompleteMode {
+    Hint,
+    Snippet,
+    ActiveHint,
+}
+
+impl Default for AutocompleteMode {
+    fn default() -> Self {
+        Self::ActiveHint
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum MarkdownFont {
+    SansSerif,
+    Serif,
+    ComputerModern,
+    Mono,
+}
+
+impl Default for MarkdownFont {
+    fn default() -> Self {
+        Self::SansSerif
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum MarkdownIndent {
+    Flush,
+    Aligned,
+}
+
+impl Default for MarkdownIndent {
+    fn default() -> Self {
+        Self::Flush
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum BackendKind {
+    Local,
+    Docker,
+    Wsl,
+}
+
+impl Default for BackendKind {
+    fn default() -> Self {
+        Self::Local
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum ContainerEngine {
+    Docker,
+    Podman,
+}
+
+impl Default for ContainerEngine {
+    fn default() -> Self {
+        Self::Docker
+    }
 }
 
 fn default_font_size() -> u32 {
@@ -19,24 +111,8 @@ fn default_eval_timeout() -> u64 {
     30
 }
 
-fn default_cell_style() -> String {
-    "bracket".to_string()
-}
-
 fn default_print_font_size() -> u32 {
     12
-}
-
-fn default_autocomplete_mode() -> String {
-    "active-hint".to_string()
-}
-
-fn default_markdown_font() -> String {
-    "sans-serif".to_string()
-}
-
-fn default_markdown_indent() -> String {
-    "flush".to_string()
 }
 
 fn default_print_margin_top() -> u32 { 15 }
@@ -44,15 +120,13 @@ fn default_print_margin_bottom() -> u32 { 15 }
 fn default_print_margin_left() -> u32 { 24 }
 fn default_print_margin_right() -> u32 { 24 }
 
-fn default_backend() -> String { "local".to_string() }
 fn default_docker_image() -> String { String::new() }
 fn default_wsl_distro() -> String { String::new() }
-fn default_container_engine() -> String { "docker".to_string() }
 
 #[derive(Debug, Serialize, Deserialize)]
 struct AppConfig {
-    #[serde(default = "default_theme")]
-    theme: String,
+    #[serde(default)]
+    theme: Theme,
     #[serde(default)]
     has_seen_welcome: bool,
     #[serde(default)]
@@ -63,16 +137,16 @@ struct AppConfig {
     eval_timeout: u64,
     #[serde(default)]
     variables_open: bool,
-    #[serde(default = "default_cell_style")]
-    cell_style: String,
+    #[serde(default)]
+    cell_style: CellStyle,
     #[serde(default = "default_print_font_size")]
     print_font_size: u32,
-    #[serde(default = "default_autocomplete_mode")]
-    autocomplete_mode: String,
-    #[serde(default = "default_markdown_font")]
-    markdown_font: String,
-    #[serde(default = "default_markdown_indent")]
-    markdown_indent: String,
+    #[serde(default)]
+    autocomplete_mode: AutocompleteMode,
+    #[serde(default)]
+    markdown_font: MarkdownFont,
+    #[serde(default)]
+    markdown_indent: MarkdownIndent,
     #[serde(default = "default_print_margin_top")]
     print_margin_top: u32,
     #[serde(default = "default_print_margin_bottom")]
@@ -81,38 +155,38 @@ struct AppConfig {
     print_margin_left: u32,
     #[serde(default = "default_print_margin_right")]
     print_margin_right: u32,
-    #[serde(default = "default_backend")]
-    backend: String,
+    #[serde(default)]
+    backend: BackendKind,
     #[serde(default = "default_docker_image")]
     docker_image: String,
     #[serde(default = "default_wsl_distro")]
     wsl_distro: String,
-    #[serde(default = "default_container_engine")]
-    container_engine: String,
+    #[serde(default)]
+    container_engine: ContainerEngine,
 }
 
 impl Default for AppConfig {
     fn default() -> Self {
         Self {
-            theme: default_theme(),
+            theme: Theme::default(),
             has_seen_welcome: false,
             maxima_path: None,
             font_size: default_font_size(),
             eval_timeout: default_eval_timeout(),
             variables_open: false,
-            cell_style: default_cell_style(),
+            cell_style: CellStyle::default(),
             print_font_size: default_print_font_size(),
-            autocomplete_mode: default_autocomplete_mode(),
-            markdown_font: default_markdown_font(),
-            markdown_indent: default_markdown_indent(),
+            autocomplete_mode: AutocompleteMode::default(),
+            markdown_font: MarkdownFont::default(),
+            markdown_indent: MarkdownIndent::default(),
             print_margin_top: default_print_margin_top(),
             print_margin_bottom: default_print_margin_bottom(),
             print_margin_left: default_print_margin_left(),
             print_margin_right: default_print_margin_right(),
-            backend: default_backend(),
+            backend: BackendKind::default(),
             docker_image: default_docker_image(),
             wsl_distro: default_wsl_distro(),
-            container_engine: default_container_engine(),
+            container_engine: ContainerEngine::default(),
         }
     }
 }
@@ -120,14 +194,6 @@ impl Default for AppConfig {
 impl AppConfig {
     fn validated(mut self) -> (Self, Vec<String>) {
         let mut warnings = Vec::new();
-        if !matches!(self.theme.as_str(), "auto" | "light" | "dark") {
-            warnings.push(format!(
-                "Invalid theme '{}', reset to '{}'",
-                self.theme,
-                default_theme()
-            ));
-            self.theme = default_theme();
-        }
         if !(8..=32).contains(&self.font_size) {
             warnings.push(format!(
                 "Invalid font_size {}, reset to {}",
@@ -152,54 +218,6 @@ impl AppConfig {
             ));
             self.eval_timeout = default_eval_timeout();
         }
-        if !matches!(self.cell_style.as_str(), "card" | "bracket") {
-            warnings.push(format!(
-                "Invalid cell_style '{}', reset to '{}'",
-                self.cell_style,
-                default_cell_style()
-            ));
-            self.cell_style = default_cell_style();
-        }
-        if !matches!(self.autocomplete_mode.as_str(), "hint" | "snippet" | "active-hint") {
-            warnings.push(format!(
-                "Invalid autocomplete_mode '{}', reset to '{}'",
-                self.autocomplete_mode,
-                default_autocomplete_mode()
-            ));
-            self.autocomplete_mode = default_autocomplete_mode();
-        }
-        if !matches!(self.markdown_font.as_str(), "sans-serif" | "serif" | "computer-modern" | "mono") {
-            warnings.push(format!(
-                "Invalid markdown_font '{}', reset to '{}'",
-                self.markdown_font,
-                default_markdown_font()
-            ));
-            self.markdown_font = default_markdown_font();
-        }
-        if !matches!(self.markdown_indent.as_str(), "flush" | "aligned") {
-            warnings.push(format!(
-                "Invalid markdown_indent '{}', reset to '{}'",
-                self.markdown_indent,
-                default_markdown_indent()
-            ));
-            self.markdown_indent = default_markdown_indent();
-        }
-        if !matches!(self.backend.as_str(), "local" | "docker" | "wsl") {
-            warnings.push(format!(
-                "Invalid backend '{}', reset to '{}'",
-                self.backend,
-                default_backend()
-            ));
-            self.backend = default_backend();
-        }
-        if !matches!(self.container_engine.as_str(), "docker" | "podman") {
-            warnings.push(format!(
-                "Invalid container_engine '{}', reset to '{}'",
-                self.container_engine,
-                default_container_engine()
-            ));
-            self.container_engine = default_container_engine();
-        }
         for (field, val, default_fn) in [
             ("print_margin_top", &mut self.print_margin_top, default_print_margin_top as fn() -> u32),
             ("print_margin_bottom", &mut self.print_margin_bottom, default_print_margin_bottom),
@@ -218,24 +236,24 @@ impl AppConfig {
 /// Public config returned to the frontend (excludes internal fields like has_seen_welcome)
 #[derive(Debug, Serialize, Deserialize)]
 pub struct PublicConfig {
-    pub theme: String,
+    pub theme: Theme,
     pub maxima_path: Option<String>,
     pub font_size: u32,
     pub print_font_size: u32,
     pub eval_timeout: u64,
     pub variables_open: bool,
-    pub cell_style: String,
-    pub autocomplete_mode: String,
-    pub markdown_font: String,
-    pub markdown_indent: String,
+    pub cell_style: CellStyle,
+    pub autocomplete_mode: AutocompleteMode,
+    pub markdown_font: MarkdownFont,
+    pub markdown_indent: MarkdownIndent,
     pub print_margin_top: u32,
     pub print_margin_bottom: u32,
     pub print_margin_left: u32,
     pub print_margin_right: u32,
-    pub backend: String,
+    pub backend: BackendKind,
     pub docker_image: String,
     pub wsl_distro: String,
-    pub container_engine: String,
+    pub container_engine: ContainerEngine,
 }
 
 /// Config response with validation warnings
@@ -248,24 +266,24 @@ pub struct ConfigResponse {
 /// Partial config for updates from the frontend
 #[derive(Debug, Deserialize)]
 pub struct ConfigUpdate {
-    pub theme: Option<String>,
+    pub theme: Option<Theme>,
     pub maxima_path: Option<Option<String>>,
     pub font_size: Option<u32>,
     pub print_font_size: Option<u32>,
     pub eval_timeout: Option<u64>,
     pub variables_open: Option<bool>,
-    pub cell_style: Option<String>,
-    pub autocomplete_mode: Option<String>,
-    pub markdown_font: Option<String>,
-    pub markdown_indent: Option<String>,
+    pub cell_style: Option<CellStyle>,
+    pub autocomplete_mode: Option<AutocompleteMode>,
+    pub markdown_font: Option<MarkdownFont>,
+    pub markdown_indent: Option<MarkdownIndent>,
     pub print_margin_top: Option<u32>,
     pub print_margin_bottom: Option<u32>,
     pub print_margin_left: Option<u32>,
     pub print_margin_right: Option<u32>,
-    pub backend: Option<String>,
+    pub backend: Option<BackendKind>,
     pub docker_image: Option<String>,
     pub wsl_distro: Option<String>,
-    pub container_engine: Option<String>,
+    pub container_engine: Option<ContainerEngine>,
 }
 
 fn config_path(app: &tauri::AppHandle) -> Result<PathBuf, AppError> {
@@ -298,13 +316,13 @@ fn write_config(app: &tauri::AppHandle, config: &AppConfig) -> Result<(), AppErr
 }
 
 #[tauri::command]
-pub async fn get_theme(app: tauri::AppHandle) -> Result<String, AppError> {
+pub async fn get_theme(app: tauri::AppHandle) -> Result<Theme, AppError> {
     let (config, _) = read_config(&app)?;
     Ok(config.theme)
 }
 
 #[tauri::command]
-pub async fn set_theme(app: tauri::AppHandle, theme: String) -> Result<(), AppError> {
+pub async fn set_theme(app: tauri::AppHandle, theme: Theme) -> Result<(), AppError> {
     let (mut config, _) = read_config(&app)?;
     config.theme = theme;
     write_config(&app, &config)?;
@@ -448,13 +466,7 @@ pub async fn check_wsl_maxima(distro: String) -> Result<Option<String>, AppError
     }
 }
 
-pub fn read_backend(app: &tauri::AppHandle) -> (String, String, String, String) {
-    read_config(app)
-        .map(|(c, _)| (c.backend, c.docker_image, c.wsl_distro, c.container_engine))
-        .unwrap_or_else(|_| (
-            default_backend(),
-            default_docker_image(),
-            default_wsl_distro(),
-            default_container_engine(),
-        ))
+pub fn read_backend(app: &tauri::AppHandle) -> Backend {
+    let config = read_config(app).map(|(c, _)| c).unwrap_or_default();
+    Backend::from_config(config.backend, &config.docker_image, &config.wsl_distro, config.container_engine)
 }

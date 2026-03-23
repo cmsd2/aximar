@@ -2,7 +2,6 @@ use tauri::State;
 
 use crate::commands::config::{read_backend, read_maxima_path};
 use crate::error::AppError;
-use crate::maxima::backend::Backend;
 use crate::maxima::process::MaximaProcess;
 use crate::maxima::types::SessionStatus;
 use crate::state::AppState;
@@ -13,8 +12,7 @@ pub async fn start_session(
     state: State<'_, AppState>,
 ) -> Result<SessionStatus, AppError> {
     let maxima_path = read_maxima_path(&app);
-    let (backend_str, docker_image, wsl_distro, container_engine) = read_backend(&app);
-    let backend = Backend::from_config(&backend_str, &docker_image, &wsl_distro, &container_engine);
+    let backend = read_backend(&app);
 
     state.session.begin_start().await;
 
@@ -42,8 +40,7 @@ pub async fn restart_session(
     state: State<'_, AppState>,
 ) -> Result<SessionStatus, AppError> {
     let maxima_path = read_maxima_path(&app);
-    let (backend_str, docker_image, wsl_distro, container_engine) = read_backend(&app);
-    let backend = Backend::from_config(&backend_str, &docker_image, &wsl_distro, &container_engine);
+    let backend = read_backend(&app);
 
     state.session.begin_start().await;
 

@@ -1,6 +1,7 @@
 use std::path::PathBuf;
 use std::process::Command;
 
+use crate::commands::config::{BackendKind, ContainerEngine};
 use crate::maxima::noconsole::hide_console_window_sync;
 
 const CONTAINER_TEMP_DIR: &str = "/tmp/aximar";
@@ -25,20 +26,23 @@ pub enum Backend {
 
 impl Backend {
     pub fn from_config(
-        backend: &str,
+        backend: BackendKind,
         docker_image: &str,
         wsl_distro: &str,
-        container_engine: &str,
+        container_engine: ContainerEngine,
     ) -> Self {
         match backend {
-            "docker" => Backend::Docker {
-                engine: container_engine.to_string(),
+            BackendKind::Docker => Backend::Docker {
+                engine: match container_engine {
+                    ContainerEngine::Docker => "docker".to_string(),
+                    ContainerEngine::Podman => "podman".to_string(),
+                },
                 image: docker_image.to_string(),
             },
-            "wsl" => Backend::Wsl {
+            BackendKind::Wsl => Backend::Wsl {
                 distro: wsl_distro.to_string(),
             },
-            _ => Backend::Local,
+            BackendKind::Local => Backend::Local,
         }
     }
 
