@@ -33,6 +33,7 @@ jobs:
             rust-target: aarch64-unknown-linux-gnu
             artifact-name: aximar-linux-arm64
             cross: true
+            bundles: deb
             artifact-path: |
               target/aarch64-unknown-linux-gnu/release/bundle/deb/*.deb
           - os: windows-latest
@@ -133,7 +134,7 @@ jobs:
         run: npm run build
 
       - name: Build Tauri app
-        run: npx tauri build --target ${{ matrix.rust-target }}
+        run: npx tauri build --target ${{ matrix.rust-target }} ${{ matrix.bundles && format('--bundles {0}', matrix.bundles) || '' }}
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
