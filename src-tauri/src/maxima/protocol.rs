@@ -45,7 +45,7 @@ pub async fn evaluate(
 
     let duration_ms = start.elapsed().as_millis() as u64;
 
-    Ok(parser::parse_output(cell_id, &lines, duration_ms, catalog))
+    Ok(parser::parse_output(cell_id, &lines, duration_ms, catalog, process.backend()))
 }
 
 pub async fn query_variables(process: &mut MaximaProcess) -> Result<Vec<String>, AppError> {

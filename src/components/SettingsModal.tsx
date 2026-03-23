@@ -27,6 +27,15 @@ const AUTOCOMPLETE_MODES: { value: AutocompleteMode; label: string }[] = [
   { value: "snippet", label: "Snippet" },
   { value: "active-hint", label: "Active hint" },
 ];
+const BACKENDS: { value: string; label: string }[] = [
+  { value: "local", label: "Local" },
+  { value: "docker", label: "Docker" },
+  { value: "wsl", label: "WSL" },
+];
+const CONTAINER_ENGINES: { value: string; label: string }[] = [
+  { value: "docker", label: "Docker" },
+  { value: "podman", label: "Podman" },
+];
 
 export function SettingsModal({ onClose, onSetVariablesOpen }: SettingsModalProps) {
   const [config, setLocalConfig] = useState<AppConfig | null>(null);
@@ -199,21 +208,93 @@ export function SettingsModal({ onClose, onSetVariablesOpen }: SettingsModalProp
             </div>
 
             <div className="settings-row">
-              <label className="settings-label">Maxima path</label>
+              <label className="settings-label">Backend</label>
               <div className="settings-control">
-                <input
-                  type="text"
-                  className="settings-input"
-                  placeholder="Auto-detect"
-                  value={config.maxima_path ?? ""}
-                  onChange={(e) =>
-                    update({
-                      maxima_path: e.target.value || null,
-                    })
-                  }
-                />
+                <div className="settings-theme-group">
+                  {BACKENDS.map((b) => (
+                    <button
+                      key={b.value}
+                      className={`settings-theme-btn${config.backend === b.value ? " active" : ""}`}
+                      onClick={() => update({ backend: b.value })}
+                    >
+                      {b.label}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
+
+            {config.backend === "docker" && (
+              <>
+                <div className="settings-row">
+                  <label className="settings-label">Container engine</label>
+                  <div className="settings-control">
+                    <div className="settings-theme-group">
+                      {CONTAINER_ENGINES.map((e) => (
+                        <button
+                          key={e.value}
+                          className={`settings-theme-btn${config.container_engine === e.value ? " active" : ""}`}
+                          onClick={() => update({ container_engine: e.value })}
+                        >
+                          {e.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="settings-row">
+                  <label className="settings-label">Docker image</label>
+                  <div className="settings-control">
+                    <input
+                      type="text"
+                      className="settings-input"
+                      placeholder="e.g. aximar/maxima"
+                      value={config.docker_image}
+                      onChange={(e) =>
+                        update({ docker_image: e.target.value })
+                      }
+                    />
+                  </div>
+                </div>
+              </>
+            )}
+
+            {config.backend === "wsl" && (
+              <div className="settings-row">
+                <label className="settings-label">WSL distro</label>
+                <div className="settings-control">
+                  <input
+                    type="text"
+                    className="settings-input"
+                    placeholder="Default"
+                    value={config.wsl_distro}
+                    onChange={(e) =>
+                      update({ wsl_distro: e.target.value })
+                    }
+                  />
+                </div>
+              </div>
+            )}
+
+            {config.backend === "local" && (
+              <div className="settings-row">
+                <label className="settings-label">Maxima path</label>
+                <div className="settings-control">
+                  <input
+                    type="text"
+                    className="settings-input"
+                    placeholder="Auto-detect"
+                    value={config.maxima_path ?? ""}
+                    onChange={(e) =>
+                      update({
+                        maxima_path: e.target.value || null,
+                      })
+                    }
+                  />
+                </div>
+              </div>
+            )}
 
             <div className="settings-row">
               <label className="settings-label">Font size</label>

@@ -15,6 +15,11 @@ const MAXIMA_TEXI_REL: &str = "doc/info/maxima.texi";
 const CATALOG_REL: &str = "src-tauri/src/catalog/catalog.json";
 const DOCS_REL: &str = "src-tauri/src/catalog/docs.json";
 const FIGURES_REL: &str = "public/figures";
+const SECCOMP_REL: &str = "docker/seccomp.json";
+/// Upstream Docker default seccomp profile. Pinned to a release tag because
+/// the file was removed from master. Update the tag when upgrading.
+const UPSTREAM_SECCOMP_URL: &str =
+    "https://raw.githubusercontent.com/moby/moby/v28.2.0/profiles/seccomp/default.json";
 
 /// Generate Maxima function catalog from official documentation.
 #[derive(Parser)]
@@ -56,6 +61,21 @@ enum Commands {
         /// Skip entries with descriptions shorter than N characters
         #[arg(long, default_value_t = 10)]
         min_description: usize,
+    },
+
+    /// Regenerate docker/seccomp.json from Docker's upstream default profile.
+    ///
+    /// Downloads the latest default seccomp profile from moby/moby on GitHub
+    /// and adds the personality(2) syscall values required by GCL
+    /// (ADDR_NO_RANDOMIZE, READ_IMPLIES_EXEC, and both combined).
+    Seccomp {
+        /// Output path for seccomp.json [default: <workspace>/docker/seccomp.json]
+        #[arg(short, long)]
+        output: Option<PathBuf>,
+
+        /// URL of the upstream default seccomp profile
+        #[arg(long, default_value = UPSTREAM_SECCOMP_URL)]
+        upstream_url: String,
     },
 
     /// Parse a pre-existing Maxima XML file (produced by `makeinfo --xml`).
@@ -148,6 +168,14 @@ fn main() {
             let figures_src = src_dir.join("doc/info/figures");
             let figures_dest = resolve_output(None, FIGURES_REL);
             copy_figures(&figures_src, &figures_dest);
+        }
+
+        Commands::Seccomp {
+            output,
+            upstream_url,
+        } => {
+            let output = resolve_output(output, SECCOMP_REL);
+            generate_seccomp(&upstream_url, &output);
         }
 
         Commands::FromXml {
@@ -495,6 +523,113 @@ fn copy_figures(src: &Path, dest: &Path) {
     }
 
     eprintln!("Copied {count} figure PNG files to {}", dest.display());
+}
+
+// --- Seccomp profile generation ---
+
+/// Additional personality(2) argument values that GCL (GNU Common Lisp) needs.
+/// Docker's default profile only allows 0, 8, 131072, 131080, and 0xFFFFFFFF.
+/// GCL calls personality() with these flags to disable ASLR and enable
+/// READ_IMPLIES_EXEC, both needed for its memory management.
+const GCL_PERSONALITY_VALUES: &[(u64, &str)] = &[
+    (0x0_0040_000, "ADDR_NO_RANDOMIZE"),
+    (0x0_0400_000, "READ_IMPLIES_EXEC"),
+    (0x0_0440_000, "ADDR_NO_RANDOMIZE | READ_IMPLIES_EXEC"),
+];
+
+fn is_personality_entry(sc: &serde_json::Value) -> bool {
+    sc.get("names")
+        .and_then(|n| n.as_array())
+        .is_some_and(|names| names.iter().any(|n| n.as_str() == Some("personality")))
+}
+
+fn generate_seccomp(upstream_url: &str, output: &Path) {
+    eprintln!("Downloading upstream seccomp profile from {upstream_url}...");
+
+    let body = ureq::get(upstream_url)
+        .call()
+        .unwrap_or_else(|e| {
+            fatal(&format!("Failed to download upstream seccomp profile: {e}"));
+        })
+        .into_string()
+        .unwrap_or_else(|e| {
+            fatal(&format!("Failed to read response body: {e}"));
+        });
+
+    let mut profile: serde_json::Value = serde_json::from_str(&body).unwrap_or_else(|e| {
+        fatal(&format!("Failed to parse upstream seccomp profile as JSON: {e}"));
+    });
+
+    let (inserted, total_entries) = {
+        let syscalls = profile
+            .get_mut("syscalls")
+            .and_then(|v| v.as_array_mut())
+            .unwrap_or_else(|| {
+                fatal("Upstream profile has no 'syscalls' array");
+            });
+
+        // Find the last personality entry so we insert right after it
+        let last_personality_idx = syscalls
+            .iter()
+            .rposition(|sc| is_personality_entry(sc))
+            .unwrap_or_else(|| {
+                fatal("Upstream profile has no 'personality' syscall entry");
+            });
+
+        // Collect existing personality values to avoid duplicates
+        let existing_values: Vec<u64> = syscalls
+            .iter()
+            .filter(|sc| is_personality_entry(sc))
+            .filter_map(|sc| {
+                sc.get("args")
+                    .and_then(|a| a.as_array())
+                    .and_then(|args| args.first())
+                    .and_then(|arg| arg.get("value"))
+                    .and_then(|v| v.as_u64())
+            })
+            .collect();
+
+        let mut inserted = 0usize;
+        for (i, (value, label)) in GCL_PERSONALITY_VALUES.iter().enumerate() {
+            if existing_values.contains(value) {
+                eprintln!("  personality({label}) = {value:#x} already present, skipping");
+                continue;
+            }
+
+            let entry = serde_json::json!({
+                "names": ["personality"],
+                "action": "SCMP_ACT_ALLOW",
+                "args": [
+                    {
+                        "index": 0,
+                        "value": value,
+                        "op": "SCMP_CMP_EQ"
+                    }
+                ]
+            });
+
+            syscalls.insert(last_personality_idx + 1 + i, entry);
+            eprintln!("  Added personality({label}) = {value:#x}");
+            inserted += 1;
+        }
+
+        (inserted, syscalls.len())
+    };
+
+    let json = serde_json::to_string_pretty(&profile).expect("failed to serialize seccomp profile");
+    if let Some(parent) = output.parent() {
+        fs::create_dir_all(parent).unwrap_or_else(|e| {
+            fatal(&format!("Error creating {}: {e}", parent.display()));
+        });
+    }
+    fs::write(output, json + "\n").unwrap_or_else(|e| {
+        fatal(&format!("Error writing {}: {e}", output.display()));
+    });
+
+    eprintln!(
+        "Wrote seccomp profile to {} ({inserted} personality values added, {total_entries} total syscall entries)",
+        output.display(),
+    );
 }
 
 // --- Helpers ---

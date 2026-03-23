@@ -15,6 +15,10 @@ export interface AppConfig {
   print_margin_bottom: number;
   print_margin_left: number;
   print_margin_right: number;
+  backend: string;
+  docker_image: string;
+  wsl_distro: string;
+  container_engine: string;
 }
 
 export interface ConfigResponse {

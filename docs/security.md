@@ -16,7 +16,14 @@ Maxima is a full programming environment with access to the host system. The `sy
 
 **Impact:** A cell containing `system("rm -rf ~")$` would execute if the user runs it.
 
-**Current mitigation:** None beyond requiring explicit execution. Possible future mitigations:
+**Current mitigation:** None beyond requiring explicit execution for the Local backend. The Docker backend provides partial sandboxing:
+- `--network none`: no network access from the container
+- `--memory 512m`: memory limit prevents resource exhaustion
+- Non-root user (`maxima`) inside the container
+- Volume mount restricted to a dedicated temp directory
+- Custom seccomp profile: GCL (the Lisp runtime used by Ubuntu's Maxima package) calls `personality(ADDR_NO_RANDOMIZE | READ_IMPLIES_EXEC)` which Docker's default seccomp profile blocks. Rather than disabling seccomp entirely, a custom profile based on Docker's default is used that adds only the three specific `personality` argument values GCL requires (0x40000, 0x400000, 0x440000). All other seccomp restrictions remain in effect.
+
+Possible future mitigations:
 - Warn before executing cells containing `system()`, `load()`, `batchload()`, or similar dangerous functions
 - Run Maxima in a restricted sandbox (e.g. seccomp on Linux, sandbox-exec on macOS)
 - Display untrusted-file warnings when opening notebooks not created by the user

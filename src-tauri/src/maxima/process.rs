@@ -4,6 +4,7 @@ use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::process::{Child, Command};
 
 use crate::error::AppError;
+use crate::maxima::backend::Backend;
 
 const READY_SENTINEL: &str = "__AXIMAR_READY__";
 
@@ -12,22 +13,119 @@ pub struct MaximaProcess {
     stdin: tokio::process::ChildStdin,
     stdout_reader: BufReader<tokio::process::ChildStdout>,
     stderr_reader: BufReader<tokio::process::ChildStderr>,
+    backend: Backend,
+    container_name: Option<String>,
 }
 
 impl MaximaProcess {
-    pub async fn spawn(custom_path: Option<String>) -> Result<Self, AppError> {
-        let maxima_path = custom_path
-            .filter(|p| !p.is_empty())
-            .unwrap_or_else(find_maxima_binary);
+    pub async fn spawn(backend: Backend, custom_path: Option<String>) -> Result<Self, AppError> {
+        Self::preflight_check(&backend).await?;
 
-        let mut child = Command::new(&maxima_path)
-            .arg("--very-quiet")
-            .stdin(std::process::Stdio::piped())
-            .stdout(std::process::Stdio::piped())
-            .stderr(std::process::Stdio::piped())
-            .kill_on_drop(true)
-            .spawn()
-            .map_err(|e| AppError::ProcessStartFailed(format!("{}: {}", maxima_path, e)))?;
+        let (mut child, container_name) = match &backend {
+            Backend::Local => {
+                let maxima_path = custom_path
+                    .filter(|p| !p.is_empty())
+                    .unwrap_or_else(find_maxima_binary);
+
+                let child = Command::new(&maxima_path)
+                    .arg("--very-quiet")
+                    .stdin(std::process::Stdio::piped())
+                    .stdout(std::process::Stdio::piped())
+                    .stderr(std::process::Stdio::piped())
+                    .kill_on_drop(true)
+                    .spawn()
+                    .map_err(|e| AppError::ProcessStartFailed(format!("{}: {}", maxima_path, e)))?;
+
+                (child, None)
+            }
+            Backend::Docker { engine, image } => {
+                if image.is_empty() {
+                    return Err(AppError::ProcessStartFailed(
+                        "Docker image not configured. Set a Docker image in Settings.".into(),
+                    ));
+                }
+
+                let container_name = format!("aximar-{}", std::process::id());
+
+                // Ensure host temp dir exists
+                if let Some(host_dir) = backend.host_temp_dir() {
+                    std::fs::create_dir_all(&host_dir).map_err(|e| {
+                        AppError::ProcessStartFailed(format!(
+                            "Failed to create temp directory {}: {}",
+                            host_dir.display(),
+                            e
+                        ))
+                    })?;
+                }
+
+                let volume_mount = format!(
+                    "{}:{}",
+                    backend
+                        .host_temp_dir()
+                        .unwrap()
+                        .to_string_lossy(),
+                    Backend::container_temp_dir()
+                );
+
+                // GCL (the Lisp runtime Ubuntu's Maxima uses) calls
+                // personality(ADDR_NO_RANDOMIZE | READ_IMPLIES_EXEC) which
+                // Docker's default seccomp profile blocks. We use a custom
+                // profile that adds only these specific personality values
+                // rather than disabling seccomp entirely.
+                let seccomp_path = Backend::write_seccomp_profile().map_err(|e| {
+                    AppError::ProcessStartFailed(format!(
+                        "Failed to write seccomp profile: {}", e
+                    ))
+                })?;
+                let seccomp_opt = format!("seccomp={}", seccomp_path.display());
+
+                let child = Command::new(engine)
+                    .args([
+                        "run",
+                        "--rm",
+                        "-i",
+                        "--network",
+                        "none",
+                        "--memory",
+                        "512m",
+                        "--security-opt",
+                        &seccomp_opt,
+                        "--name",
+                        &container_name,
+                        "-v",
+                        &volume_mount,
+                        image,
+                        "--very-quiet",
+                    ])
+                    .stdin(std::process::Stdio::piped())
+                    .stdout(std::process::Stdio::piped())
+                    .stderr(std::process::Stdio::piped())
+                    .kill_on_drop(true)
+                    .spawn()
+                    .map_err(|e| {
+                        AppError::ProcessStartFailed(format!("{} run {}: {}", engine, image, e))
+                    })?;
+
+                (child, Some(container_name))
+            }
+            Backend::Wsl { distro } => {
+                let mut cmd = Command::new("wsl");
+                if !distro.is_empty() {
+                    cmd.args(["-d", distro]);
+                }
+                cmd.args(["--", "maxima", "--very-quiet"]);
+                cmd.stdin(std::process::Stdio::piped())
+                    .stdout(std::process::Stdio::piped())
+                    .stderr(std::process::Stdio::piped())
+                    .kill_on_drop(true);
+
+                let child = cmd.spawn().map_err(|e| {
+                    AppError::ProcessStartFailed(format!("wsl maxima: {}", e))
+                })?;
+
+                (child, None)
+            }
+        };
 
         let stdin = child.stdin.take().ok_or_else(|| {
             AppError::ProcessStartFailed("Failed to capture stdin".into())
@@ -46,6 +144,8 @@ impl MaximaProcess {
             stdin,
             stdout_reader,
             stderr_reader,
+            backend,
+            container_name,
         };
 
         proc.initialize().await?;
@@ -53,8 +153,17 @@ impl MaximaProcess {
     }
 
     async fn initialize(&mut self) -> Result<(), AppError> {
+        // For Docker, set maxima_tempdir so gnuplot writes SVGs to the mounted volume
+        let tempdir_cmd = match &self.backend {
+            Backend::Docker { .. } => {
+                format!("maxima_tempdir:\"{}\"$\n", Backend::container_temp_dir())
+            }
+            _ => String::new(),
+        };
+
         let init_commands = format!(
-            "display2d:false$\nset_plot_option([run_viewer, false])$\nset_plot_option([gnuplot_term, svg])$\nprint(\"{}\")$\n",
+            "{}display2d:false$\nset_plot_option([run_viewer, false])$\nset_plot_option([gnuplot_term, svg])$\nprint(\"{}\")$\n",
+            tempdir_cmd,
             READY_SENTINEL
         );
 
@@ -148,7 +257,124 @@ impl MaximaProcess {
     }
 
     pub async fn kill(&mut self) -> Result<(), AppError> {
-        self.child.kill().await.map_err(AppError::Io)
+        self.child.kill().await.map_err(AppError::Io)?;
+
+        // For Docker/Podman, also force-remove the container as a safety net
+        if let (Backend::Docker { engine, .. }, Some(name)) =
+            (&self.backend, &self.container_name)
+        {
+            let _ = tokio::process::Command::new(engine)
+                .args(["rm", "-f", name])
+                .output()
+                .await;
+        }
+
+        Ok(())
+    }
+
+    pub fn backend(&self) -> &Backend {
+        &self.backend
+    }
+
+    async fn preflight_check(backend: &Backend) -> Result<(), AppError> {
+        match backend {
+            Backend::Local => Ok(()),
+            Backend::Docker { engine, image } => {
+                // Check engine is available
+                let output = tokio::process::Command::new(engine)
+                    .arg("info")
+                    .stdout(std::process::Stdio::null())
+                    .stderr(std::process::Stdio::piped())
+                    .output()
+                    .await
+                    .map_err(|e| {
+                        AppError::ProcessStartFailed(format!(
+                            "'{}' not found. Is {} installed and running? {}",
+                            engine, engine, e
+                        ))
+                    })?;
+
+                if !output.status.success() {
+                    let stderr = String::from_utf8_lossy(&output.stderr);
+                    return Err(AppError::ProcessStartFailed(format!(
+                        "{} daemon not responding: {}",
+                        engine,
+                        stderr.trim()
+                    )));
+                }
+
+                // Check image exists
+                if !image.is_empty() {
+                    let output = tokio::process::Command::new(engine)
+                        .args(["image", "inspect", image])
+                        .stdout(std::process::Stdio::null())
+                        .stderr(std::process::Stdio::piped())
+                        .output()
+                        .await
+                        .map_err(|e| {
+                            AppError::ProcessStartFailed(format!(
+                                "Failed to check image '{}': {}",
+                                image, e
+                            ))
+                        })?;
+
+                    if !output.status.success() {
+                        return Err(AppError::ProcessStartFailed(format!(
+                            "Image '{}' not found. Pull it with: {} pull {}",
+                            image, engine, image
+                        )));
+                    }
+                }
+
+                Ok(())
+            }
+            Backend::Wsl { distro } => {
+                // Check WSL is available
+                let output = tokio::process::Command::new("wsl")
+                    .arg("--status")
+                    .stdout(std::process::Stdio::null())
+                    .stderr(std::process::Stdio::piped())
+                    .output()
+                    .await
+                    .map_err(|e| {
+                        AppError::ProcessStartFailed(format!(
+                            "'wsl' not found. Is WSL installed? {}",
+                            e
+                        ))
+                    })?;
+
+                if !output.status.success() {
+                    return Err(AppError::ProcessStartFailed(
+                        "WSL is not available or not running.".into(),
+                    ));
+                }
+
+                // Check distro exists if specified
+                if !distro.is_empty() {
+                    let output = tokio::process::Command::new("wsl")
+                        .args(["-d", distro, "--", "echo", "ok"])
+                        .stdout(std::process::Stdio::null())
+                        .stderr(std::process::Stdio::piped())
+                        .output()
+                        .await
+                        .map_err(|e| {
+                            AppError::ProcessStartFailed(format!(
+                                "Failed to check WSL distro '{}': {}",
+                                distro, e
+                            ))
+                        })?;
+
+                    if !output.status.success() {
+                        return Err(AppError::ProcessStartFailed(format!(
+                            "WSL distribution '{}' not found.",
+                            distro
+                        )));
+                    }
+                }
+
+                Ok(())
+            }
+        }
     }
 }
 

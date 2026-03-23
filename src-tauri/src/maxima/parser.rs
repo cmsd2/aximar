@@ -3,6 +3,7 @@ use std::fs;
 use std::path::Path;
 
 use crate::catalog::search::Catalog;
+use crate::maxima::backend::Backend;
 use crate::maxima::errors;
 use crate::maxima::types::EvalResult;
 
@@ -27,9 +28,9 @@ fn is_junk_latex(inner: &str) -> bool {
 }
 
 /// Check that an SVG path is safe to read: it must have a `.svg` extension and
-/// reside within the system temp directory. This prevents crafted Maxima output
-/// from reading arbitrary files.
-fn is_safe_svg_path(path_str: &str) -> bool {
+/// reside within the system temp directory (or the Docker host temp dir).
+/// This prevents crafted Maxima output from reading arbitrary files.
+fn is_safe_svg_path(path_str: &str, backend: &Backend) -> bool {
     let path = Path::new(path_str);
 
     // Must have .svg extension
@@ -49,10 +50,23 @@ fn is_safe_svg_path(path_str: &str) -> bool {
         Err(_) => temp_dir,
     };
 
-    canonical.starts_with(&canonical_temp)
+    if canonical.starts_with(&canonical_temp) {
+        return true;
+    }
+
+    // For Docker, also allow the host temp dir used for volume mounts
+    if let Some(host_dir) = backend.host_temp_dir() {
+        if let Ok(canonical_host) = fs::canonicalize(&host_dir) {
+            if canonical.starts_with(&canonical_host) {
+                return true;
+            }
+        }
+    }
+
+    false
 }
 
-pub fn parse_output(cell_id: &str, lines: &[String], duration_ms: u64, catalog: &Catalog) -> EvalResult {
+pub fn parse_output(cell_id: &str, lines: &[String], duration_ms: u64, catalog: &Catalog, backend: &Backend) -> EvalResult {
     let label_re = Regex::new(r"__AXIMAR_LABEL__\s+(\d+)").unwrap();
     let error_patterns = [
         " -- an error.",
@@ -194,9 +208,13 @@ pub fn parse_output(cell_id: &str, lines: &[String], duration_ms: u64, catalog: 
     let mut plot_svg: Option<String> = None;
     let text_output = if !has_error {
         if let Some(caps) = svg_path_re.captures(&text_output) {
-            let svg_path = &caps[1];
-            if is_safe_svg_path(svg_path) {
-                if let Ok(svg_content) = fs::read_to_string(svg_path) {
+            let raw_svg_path = caps[1].to_string();
+            // Translate path for Docker/WSL backends, or use as-is for Local
+            let svg_path = backend
+                .translate_svg_path(&raw_svg_path)
+                .unwrap_or(raw_svg_path);
+            if is_safe_svg_path(&svg_path, backend) {
+                if let Ok(svg_content) = fs::read_to_string(&svg_path) {
                     plot_svg = Some(svg_content);
                 }
             }
@@ -260,7 +278,7 @@ mod tests {
             "__AXIMAR_EVAL_END__".to_string(),
         ];
 
-        let result = parse_output("cell-1", &lines, 100, &catalog());
+        let result = parse_output("cell-1", &lines, 100, &catalog(), &Backend::Local);
         assert!(!result.is_error);
         assert_eq!(result.latex, Some("{{x^3}\\over{3}}".to_string()));
         assert!(result.error.is_none());
@@ -276,7 +294,7 @@ mod tests {
             "__AXIMAR_EVAL_END__".to_string(),
         ];
 
-        let result = parse_output("cell-1", &lines, 100, &catalog());
+        let result = parse_output("cell-1", &lines, 100, &catalog(), &Backend::Local);
         assert!(result.is_error);
         assert!(result.error.is_some());
         assert!(result.latex.is_none());
@@ -296,7 +314,7 @@ mod tests {
             "__AXIMAR_EVAL_END__".to_string(),
         ];
 
-        let result = parse_output("cell-1", &lines, 100, &catalog());
+        let result = parse_output("cell-1", &lines, 100, &catalog(), &Backend::Local);
         assert!(result.is_error);
         assert!(result.error.is_some());
         assert!(result.latex.is_none());
@@ -316,7 +334,7 @@ mod tests {
             "__AXIMAR_EVAL_END__".to_string(),
         ];
 
-        let result = parse_output("cell-1", &lines, 100, &catalog());
+        let result = parse_output("cell-1", &lines, 100, &catalog(), &Backend::Local);
         assert!(!result.is_error);
         // linenum 7 = print's own line; expression = 7-2 = %o5
         assert_eq!(result.output_label, Some("%o5".to_string()));
@@ -333,7 +351,7 @@ mod tests {
             "__AXIMAR_EVAL_END__".to_string(),
         ];
 
-        let result = parse_output("cell-1", &lines, 100, &catalog());
+        let result = parse_output("cell-1", &lines, 100, &catalog(), &Backend::Local);
         assert!(result.is_error);
         // Errors should NOT have an output label
         assert_eq!(result.output_label, None);
@@ -351,7 +369,7 @@ mod tests {
             "__AXIMAR_EVAL_END__".to_string(),
         ];
 
-        let result = parse_output("cell-1", &lines, 100, &catalog());
+        let result = parse_output("cell-1", &lines, 100, &catalog(), &Backend::Local);
         assert!(!result.is_error);
         assert!(result.latex.is_some());
         let latex = result.latex.unwrap();
@@ -370,7 +388,7 @@ mod tests {
             "\"__AXIMAR_EVAL_END__\"".to_string(),
         ];
 
-        let result = parse_output("cell-1", &lines, 100, &catalog());
+        let result = parse_output("cell-1", &lines, 100, &catalog(), &Backend::Local);
         assert!(!result.text_output.contains("__AXIMAR_EVAL_END__"));
         assert!(result.error.is_none() || !result.error.unwrap().contains("__AXIMAR_EVAL_END__"));
     }

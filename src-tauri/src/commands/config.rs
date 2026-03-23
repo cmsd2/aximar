@@ -42,6 +42,11 @@ fn default_print_margin_bottom() -> u32 { 15 }
 fn default_print_margin_left() -> u32 { 24 }
 fn default_print_margin_right() -> u32 { 24 }
 
+fn default_backend() -> String { "local".to_string() }
+fn default_docker_image() -> String { String::new() }
+fn default_wsl_distro() -> String { String::new() }
+fn default_container_engine() -> String { "docker".to_string() }
+
 #[derive(Debug, Serialize, Deserialize)]
 struct AppConfig {
     #[serde(default = "default_theme")]
@@ -74,6 +79,14 @@ struct AppConfig {
     print_margin_left: u32,
     #[serde(default = "default_print_margin_right")]
     print_margin_right: u32,
+    #[serde(default = "default_backend")]
+    backend: String,
+    #[serde(default = "default_docker_image")]
+    docker_image: String,
+    #[serde(default = "default_wsl_distro")]
+    wsl_distro: String,
+    #[serde(default = "default_container_engine")]
+    container_engine: String,
 }
 
 impl Default for AppConfig {
@@ -94,6 +107,10 @@ impl Default for AppConfig {
             print_margin_bottom: default_print_margin_bottom(),
             print_margin_left: default_print_margin_left(),
             print_margin_right: default_print_margin_right(),
+            backend: default_backend(),
+            docker_image: default_docker_image(),
+            wsl_distro: default_wsl_distro(),
+            container_engine: default_container_engine(),
         }
     }
 }
@@ -165,6 +182,22 @@ impl AppConfig {
             ));
             self.markdown_indent = default_markdown_indent();
         }
+        if !matches!(self.backend.as_str(), "local" | "docker" | "wsl") {
+            warnings.push(format!(
+                "Invalid backend '{}', reset to '{}'",
+                self.backend,
+                default_backend()
+            ));
+            self.backend = default_backend();
+        }
+        if !matches!(self.container_engine.as_str(), "docker" | "podman") {
+            warnings.push(format!(
+                "Invalid container_engine '{}', reset to '{}'",
+                self.container_engine,
+                default_container_engine()
+            ));
+            self.container_engine = default_container_engine();
+        }
         for (field, val, default_fn) in [
             ("print_margin_top", &mut self.print_margin_top, default_print_margin_top as fn() -> u32),
             ("print_margin_bottom", &mut self.print_margin_bottom, default_print_margin_bottom),
@@ -197,6 +230,10 @@ pub struct PublicConfig {
     pub print_margin_bottom: u32,
     pub print_margin_left: u32,
     pub print_margin_right: u32,
+    pub backend: String,
+    pub docker_image: String,
+    pub wsl_distro: String,
+    pub container_engine: String,
 }
 
 /// Config response with validation warnings
@@ -223,6 +260,10 @@ pub struct ConfigUpdate {
     pub print_margin_bottom: Option<u32>,
     pub print_margin_left: Option<u32>,
     pub print_margin_right: Option<u32>,
+    pub backend: Option<String>,
+    pub docker_image: Option<String>,
+    pub wsl_distro: Option<String>,
+    pub container_engine: Option<String>,
 }
 
 fn config_path(app: &tauri::AppHandle) -> Result<PathBuf, AppError> {
@@ -301,6 +342,10 @@ pub async fn get_config(app: tauri::AppHandle) -> Result<ConfigResponse, AppErro
             print_margin_bottom: config.print_margin_bottom,
             print_margin_left: config.print_margin_left,
             print_margin_right: config.print_margin_right,
+            backend: config.backend,
+            docker_image: config.docker_image,
+            wsl_distro: config.wsl_distro,
+            container_engine: config.container_engine,
         },
         warnings,
     })
@@ -343,6 +388,10 @@ pub async fn set_config(app: tauri::AppHandle, updates: ConfigUpdate) -> Result<
     if let Some(v) = updates.print_margin_bottom { config.print_margin_bottom = v; }
     if let Some(v) = updates.print_margin_left { config.print_margin_left = v; }
     if let Some(v) = updates.print_margin_right { config.print_margin_right = v; }
+    if let Some(backend) = updates.backend { config.backend = backend; }
+    if let Some(docker_image) = updates.docker_image { config.docker_image = docker_image; }
+    if let Some(wsl_distro) = updates.wsl_distro { config.wsl_distro = wsl_distro; }
+    if let Some(container_engine) = updates.container_engine { config.container_engine = container_engine; }
     write_config(&app, &config)?;
     Ok(())
 }
@@ -354,4 +403,15 @@ pub fn read_eval_timeout(app: &tauri::AppHandle) -> u64 {
 
 pub fn read_maxima_path(app: &tauri::AppHandle) -> Option<String> {
     read_config(app).ok().map(|(c, _)| c.maxima_path).flatten()
+}
+
+pub fn read_backend(app: &tauri::AppHandle) -> (String, String, String, String) {
+    read_config(app)
+        .map(|(c, _)| (c.backend, c.docker_image, c.wsl_distro, c.container_engine))
+        .unwrap_or_else(|_| (
+            default_backend(),
+            default_docker_image(),
+            default_wsl_distro(),
+            default_container_engine(),
+        ))
 }

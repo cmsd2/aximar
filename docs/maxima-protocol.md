@@ -14,6 +14,42 @@ User executes cell → send expression → read until sentinel → parse → ret
 App Close → kill process
 ```
 
+## Backend Modes
+
+Aximar supports three backends for running Maxima, configured in Settings:
+
+| Backend | How it runs | When to use |
+|---------|------------|-------------|
+| **Local** (default) | Spawns a local `maxima` process directly | Maxima installed natively |
+| **Docker** | Runs Maxima inside a container via `docker run` or `podman run` | Easy setup on Windows/Linux; sandboxed execution |
+| **WSL** | Runs Maxima inside a WSL distribution via `wsl -d <distro> -- maxima` | Windows with WSL2 and Maxima installed in a Linux distro |
+
+### Docker backend
+
+- Container engine: `docker` or `podman` (argument-compatible)
+- Runs with `--rm -i --network none --memory 512m` for isolation
+- A host temp directory is volume-mounted to `/tmp/aximar` inside the container so SVG plots are accessible to the host
+- A `maxima_tempdir` command is sent during initialization so gnuplot writes SVGs to the mounted volume
+- On process kill, `<engine> rm -f <container>` is run as a safety net
+
+A minimal Docker image is provided in `docker/Dockerfile`:
+
+```bash
+docker build -t aximar/maxima docker/
+```
+
+### WSL backend
+
+- Uses `wsl -d <distro> -- maxima --very-quiet`
+- If no distro is specified, uses the default WSL distribution
+- SVG paths are translated from `/tmp/...` to `\\wsl.localhost\<distro>\tmp\...`
+
+### Preflight checks
+
+Before spawning, each backend runs a preflight check:
+- **Docker/Podman**: verifies `<engine> info` succeeds and the configured image exists
+- **WSL**: verifies `wsl --status` succeeds and the distro exists (if specified)
+
 ## Spawning
 
 ```bash
@@ -22,7 +58,7 @@ maxima --very-quiet
 
 The `--very-quiet` flag suppresses the startup banner and version info.
 
-**Binary detection order**:
+**Binary detection order** (Local backend):
 1. `AXIMAR_MAXIMA_PATH` environment variable
 2. Common paths: `/opt/homebrew/bin/maxima`, `/usr/local/bin/maxima`, `/usr/bin/maxima`
 3. Windows: `C:\maxima-*\bin\maxima.bat`
