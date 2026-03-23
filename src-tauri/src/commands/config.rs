@@ -4,6 +4,7 @@ use std::path::PathBuf;
 use tauri::Manager;
 
 use crate::error::AppError;
+use crate::maxima::backend::decode_wsl_output;
 
 fn default_theme() -> String {
     "auto".to_string()
@@ -403,6 +404,48 @@ pub fn read_eval_timeout(app: &tauri::AppHandle) -> u64 {
 
 pub fn read_maxima_path(app: &tauri::AppHandle) -> Option<String> {
     read_config(app).ok().map(|(c, _)| c.maxima_path).flatten()
+}
+
+#[tauri::command]
+pub async fn list_wsl_distros() -> Result<Vec<String>, AppError> {
+    let output = tokio::process::Command::new("wsl")
+        .args(["-l", "-q"])
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::null())
+        .output()
+        .await
+        .map_err(|e| AppError::ProcessStartFailed(format!("Failed to list WSL distros: {}", e)))?;
+
+    let text = decode_wsl_output(&output.stdout);
+    let distros: Vec<String> = text
+        .lines()
+        .map(|l| l.trim().trim_end_matches('\0'))
+        .filter(|l| !l.is_empty())
+        .map(|l| l.to_string())
+        .collect();
+    Ok(distros)
+}
+
+#[tauri::command]
+pub async fn check_wsl_maxima(distro: String) -> Result<Option<String>, AppError> {
+    let mut cmd = tokio::process::Command::new("wsl");
+    if !distro.is_empty() {
+        cmd.args(["-d", &distro]);
+    }
+    cmd.args(["--", "which", "maxima"]);
+    let output = cmd
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::null())
+        .output()
+        .await
+        .map_err(|e| AppError::ProcessStartFailed(format!("Failed to check maxima in WSL: {}", e)))?;
+
+    if output.status.success() {
+        let path = String::from_utf8_lossy(&output.stdout).trim().to_string();
+        Ok(Some(path))
+    } else {
+        Ok(None)
+    }
 }
 
 pub fn read_backend(app: &tauri::AppHandle) -> (String, String, String, String) {

@@ -45,6 +45,8 @@ pub fn run() {
             commands::variables::kill_variable,
             commands::variables::kill_all_variables,
             commands::plot::write_plot_svg,
+            commands::config::list_wsl_distros,
+            commands::config::check_wsl_maxima,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

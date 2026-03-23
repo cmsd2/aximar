@@ -56,3 +56,11 @@ export function applyPrintMargins(top: number, bottom: number, left: number, rig
 export async function setConfig(updates: Partial<AppConfig>): Promise<void> {
   return invoke<void>("set_config", { updates });
 }
+
+export async function listWslDistros(): Promise<string[]> {
+  return invoke<string[]>("list_wsl_distros");
+}
+
+export async function checkWslMaxima(distro: string): Promise<string | null> {
+  return invoke<string | null>("check_wsl_maxima", { distro });
+}

@@ -109,6 +109,29 @@ impl MaximaProcess {
                 (child, Some(container_name))
             }
             Backend::Wsl { distro } => {
+                // Ensure host temp dir exists for plot SVG copies
+                if let Some(host_dir) = backend.host_temp_dir() {
+                    std::fs::create_dir_all(&host_dir).map_err(|e| {
+                        AppError::ProcessStartFailed(format!(
+                            "Failed to create temp directory {}: {}",
+                            host_dir.display(),
+                            e
+                        ))
+                    })?;
+                }
+
+                // Create the temp dir inside WSL for gnuplot output
+                let mut mkdir_cmd = Command::new("wsl");
+                if !distro.is_empty() {
+                    mkdir_cmd.args(["-d", distro]);
+                }
+                mkdir_cmd.args(["--", "mkdir", "-p", Backend::container_temp_dir()]);
+                let _ = mkdir_cmd
+                    .stdout(std::process::Stdio::null())
+                    .stderr(std::process::Stdio::null())
+                    .status()
+                    .await;
+
                 let mut cmd = Command::new("wsl");
                 if !distro.is_empty() {
                     cmd.args(["-d", distro]);
@@ -153,9 +176,9 @@ impl MaximaProcess {
     }
 
     async fn initialize(&mut self) -> Result<(), AppError> {
-        // For Docker, set maxima_tempdir so gnuplot writes SVGs to the mounted volume
+        // For Docker/WSL, set maxima_tempdir so gnuplot writes SVGs to a known location
         let tempdir_cmd = match &self.backend {
-            Backend::Docker { .. } => {
+            Backend::Docker { .. } | Backend::Wsl { .. } => {
                 format!("maxima_tempdir:\"{}\"$\n", Backend::container_temp_dir())
             }
             _ => String::new(),
@@ -368,6 +391,38 @@ impl MaximaProcess {
                         return Err(AppError::ProcessStartFailed(format!(
                             "WSL distribution '{}' not found.",
                             distro
+                        )));
+                    }
+                }
+
+                // Check maxima is installed in the WSL distro
+                {
+                    let mut cmd = tokio::process::Command::new("wsl");
+                    if !distro.is_empty() {
+                        cmd.args(["-d", distro]);
+                    }
+                    cmd.args(["--", "which", "maxima"]);
+                    let output = cmd
+                        .stdout(std::process::Stdio::null())
+                        .stderr(std::process::Stdio::piped())
+                        .output()
+                        .await
+                        .map_err(|e| {
+                            AppError::ProcessStartFailed(format!(
+                                "Failed to check for maxima in WSL: {}",
+                                e
+                            ))
+                        })?;
+
+                    if !output.status.success() {
+                        let distro_hint = if distro.is_empty() {
+                            "the default WSL distribution".to_string()
+                        } else {
+                            format!("WSL distribution '{}'", distro)
+                        };
+                        return Err(AppError::ProcessStartFailed(format!(
+                            "'maxima' not found in {}. Install it with: sudo apt install maxima",
+                            distro_hint
                         )));
                     }
                 }

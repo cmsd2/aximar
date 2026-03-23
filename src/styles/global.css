@@ -1329,6 +1329,38 @@
   cursor: pointer;
 }
 
+.settings-wsl-status {
+  margin-left: 10px;
+  font-size: 12px;
+  white-space: nowrap;
+  display: inline-block;
+  min-width: 120px;
+}
+
+.settings-wsl-status[title^="Found"] {
+  color: var(--color-success, #22c55e);
+}
+
+.settings-wsl-status[title="maxima not found in this distro"] {
+  color: var(--color-error, #ef4444);
+}
+
+.settings-wsl-status[title="Checking..."]::before {
+  content: "";
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border: 2px solid var(--text-secondary);
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: settings-spin 0.6s linear infinite;
+  vertical-align: middle;
+}
+
+@keyframes settings-spin {
+  to { transform: rotate(360deg); }
+}
+
 .settings-margins {
   display: flex;
   gap: 8px;

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { getConfig, setConfig, markdownFontStack, applyPrintMargins, type AppConfig } from "../lib/config-client";
+import { getConfig, setConfig, listWslDistros, checkWslMaxima, markdownFontStack, applyPrintMargins, type AppConfig } from "../lib/config-client";
 import { useNotebookStore, type Theme, type CellStyle, type AutocompleteMode } from "../store/notebookStore";
 
 interface SettingsModalProps {
@@ -39,6 +39,8 @@ const CONTAINER_ENGINES: { value: string; label: string }[] = [
 
 export function SettingsModal({ onClose, onSetVariablesOpen }: SettingsModalProps) {
   const [config, setLocalConfig] = useState<AppConfig | null>(null);
+  const [wslDistros, setWslDistros] = useState<string[]>([]);
+  const [wslMaximaPath, setWslMaximaPath] = useState<string | null | undefined>(undefined);
   const setTheme = useNotebookStore((s) => s.setTheme);
   const setCellStyle = useNotebookStore((s) => s.setCellStyle);
   const setAutocompleteMode = useNotebookStore((s) => s.setAutocompleteMode);
@@ -46,6 +48,21 @@ export function SettingsModal({ onClose, onSetVariablesOpen }: SettingsModalProp
   useEffect(() => {
     getConfig().then((resp) => setLocalConfig(resp.config)).catch(() => {});
   }, []);
+
+  useEffect(() => {
+    if (config?.backend === "wsl") {
+      listWslDistros().then(setWslDistros).catch(() => setWslDistros([]));
+    }
+  }, [config?.backend]);
+
+  useEffect(() => {
+    if (config?.backend === "wsl") {
+      setWslMaximaPath(undefined);
+      checkWslMaxima(config.wsl_distro)
+        .then(setWslMaximaPath)
+        .catch(() => setWslMaximaPath(null));
+    }
+  }, [config?.backend, config?.wsl_distro]);
 
   const update = useCallback(
     (updates: Partial<AppConfig>) => {
@@ -264,15 +281,36 @@ export function SettingsModal({ onClose, onSetVariablesOpen }: SettingsModalProp
               <div className="settings-row">
                 <label className="settings-label">WSL distro</label>
                 <div className="settings-control">
-                  <input
-                    type="text"
-                    className="settings-input"
-                    placeholder="Default"
+                  <select
+                    className="settings-select"
                     value={config.wsl_distro}
                     onChange={(e) =>
                       update({ wsl_distro: e.target.value })
                     }
-                  />
+                  >
+                    <option value="">Default</option>
+                    {wslDistros.map((d) => (
+                      <option key={d} value={d}>
+                        {d}
+                      </option>
+                    ))}
+                  </select>
+                  <span
+                    className="settings-wsl-status"
+                    title={
+                      wslMaximaPath === undefined
+                        ? "Checking..."
+                        : wslMaximaPath
+                          ? `Found: ${wslMaximaPath}`
+                          : "maxima not found in this distro"
+                    }
+                  >
+                    {wslMaximaPath === undefined
+                      ? ""
+                      : wslMaximaPath
+                        ? `maxima found`
+                        : "maxima not found"}
+                  </span>
                 </div>
               </div>
             )}

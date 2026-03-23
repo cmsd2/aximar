@@ -28,7 +28,7 @@ fn is_junk_latex(inner: &str) -> bool {
 }
 
 /// Check that an SVG path is safe to read: it must have a `.svg` extension and
-/// reside within the system temp directory (or the Docker host temp dir).
+/// reside within the system temp directory (or the Docker/WSL host temp dir).
 /// This prevents crafted Maxima output from reading arbitrary files.
 fn is_safe_svg_path(path_str: &str, backend: &Backend) -> bool {
     let path = Path::new(path_str);
