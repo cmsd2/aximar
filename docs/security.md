@@ -36,22 +36,19 @@ Even within a Tauri app, XSS is dangerous because JavaScript runs in the app's W
 
 **File:** `src/components/CellOutput.tsx`
 
-Plot output SVGs are rendered using `dangerouslySetInnerHTML` with no sanitization. If an SVG contains `<script>` tags or event handler attributes (`onload`, `onerror`, etc.), they execute in the app context.
+Plot output SVGs originate from files that Maxima writes during plot operations. The Rust parser reads SVG files from paths extracted from Maxima's text output (`src-tauri/src/maxima/parser.rs`).
 
-The SVG content originates from files that Maxima writes during plot operations. The Rust parser reads SVG files from paths extracted from Maxima's text output (`src-tauri/src/maxima/parser.rs`). The path extraction uses a regex match with no validation, so a crafted Maxima output could cause the parser to read arbitrary files and inject their contents as SVG.
-
-**Recommendations:**
-- Sanitize SVG content before rendering (strip `<script>`, event handlers, `<foreignObject>`, `<iframe>`, data URIs)
-- Restrict SVG path reading to the system temp directory
-- Consider rendering SVGs in a sandboxed `<iframe>`
+**Current mitigation:**
+- SVG content is sanitized via `sanitizeSvg()` which strips dangerous elements (`<script>`, `<foreignObject>`, `<iframe>`), event handler attributes, and data URIs
+- Sanitized SVGs are rendered as `<img src="blob:...">` — the `<img>` context natively blocks all script execution and event handlers
+- SVG file paths are canonicalized and validated: must have a `.svg` extension and reside within the system temp directory (`is_safe_svg_path()` in `parser.rs`)
+- CSP blocks inline scripts as an additional layer
 
 #### KaTeX trust mode
 
 **Files:** `src/components/KatexOutput.tsx`, `src/components/MathText.tsx`
 
-KaTeX is configured with `trust: true`, which allows macros like `\href{javascript:...}{text}` that execute JavaScript when clicked.
-
-**Recommendation:** Set `trust: false`.
+**Current mitigation:** KaTeX is configured with `trust: false` in both components, which blocks macros like `\href{javascript:...}{text}` that could otherwise execute JavaScript when clicked.
 
 #### Markdown rendering
 
@@ -67,26 +64,22 @@ Markdown cells are rendered with `react-markdown`, which sanitizes HTML by defau
 
 **File:** `src-tauri/src/maxima/parser.rs`
 
-The parser extracts file paths from Maxima's text output using a regex and reads them with `fs::read_to_string`. There is no validation that the path points to a legitimate SVG file or resides in an expected directory.
+The parser extracts file paths from Maxima's text output using a regex and reads them with `fs::read_to_string`.
 
-**Impact:** Read any file accessible to the Aximar process. Contents are embedded in the cell output and visible in the UI.
-
-**Recommendation:** Only read SVG files from the expected temp directory. Reject paths containing `..` or pointing outside the allowed directory.
+**Current mitigation:** The `is_safe_svg_path()` function canonicalizes extracted paths (resolving symlinks and `..`) and validates that they have a `.svg` extension and reside within the system temp directory. For the Docker backend, the Docker host temp directory (`aximar-docker`) is also allowed.
 
 #### File write via `write_plot_svg` command
 
 **File:** `src-tauri/src/commands/plot.rs`
 
-The `write_plot_svg` Tauri command accepts an arbitrary file path and writes content to it. While the UI gates this behind a save dialog, the IPC command itself performs no path validation.
+The `write_plot_svg` Tauri command accepts a file path and writes content to it. The UI gates this behind a save dialog.
 
-**Impact:** Arbitrary file write to any location writable by the process.
-
-**Recommendation:** Validate that the path has a `.svg` extension. Consider using Tauri's file scope restrictions.
+**Current mitigation:** The backend rejects paths containing `..` segments (directory traversal) and enforces a `.svg` extension.
 
 ### 5. Denial of service
 
 - **Large notebooks:** No size limits on notebook JSON. A multi-gigabyte file could exhaust memory during parsing.
-- **Expensive Maxima expressions:** No timeout on cell execution. An expression like `factor(2^(2^20) - 1)$` could run indefinitely.
+- **Expensive Maxima expressions:** Cell execution has a configurable timeout (default 30 seconds, max 600 seconds) enforced via `tokio::time::timeout` in the protocol layer. However, a user can set a long timeout, and expressions can still consume significant CPU within the allowed window.
 - **Rapid evaluation requests:** No rate limiting on the `evaluate_expression` Tauri command.
 
 These are low-severity for a desktop application since the user can kill the process.
@@ -96,12 +89,12 @@ These are low-severity for a desktop application since the user can kill the pro
 | Surface | Trigger | Impact | Status | Mitigation |
 |---------|---------|--------|--------|------------|
 | `system()` in Maxima | User runs cell | RCE | No mitigation | — |
-| SVG rendering | User runs plot cell | XSS / IPC access | Mitigated | SVG sanitized via DOMParser then rendered as `<img src="blob:...">`. The `<img>` context natively blocks all script execution and event handlers. Sanitization is defence-in-depth. CSP blocks inline scripts as an additional layer. |
+| SVG rendering | User runs plot cell | XSS / IPC access | Mitigated | SVG sanitized via `sanitizeSvg()` then rendered as `<img src="blob:...">`. The `<img>` context natively blocks all script execution and event handlers. Sanitization is defence-in-depth. CSP blocks inline scripts as an additional layer. |
 | SVG file path reading | User runs plot cell | Arbitrary file read | Mitigated | Path canonicalized and validated: must have `.svg` extension and reside within the system temp directory. |
-| KaTeX `trust: true` | User runs cell producing LaTeX | XSS via `\href` | Mitigated | `trust` set to `false` in both `KatexOutput` and `MathText`. |
+| KaTeX trust mode | User runs cell producing LaTeX | XSS via `\href` | Mitigated | `trust` set to `false` in both `KatexOutput` and `MathText`. |
 | `write_plot_svg` IPC | User clicks "Save SVG" | Arbitrary file write | Mitigated | Backend enforces `.svg` extension and rejects paths containing `..` segments. |
 | Notebook JSON parsing | User opens file | DoS (memory) | No mitigation | — |
-| Maxima execution time | User runs cell | DoS (CPU) | No mitigation | — |
+| Maxima execution time | User runs cell | DoS (CPU) | Partial | Configurable eval timeout (default 30s, max 600s). |
 
 ## Design principles
 
