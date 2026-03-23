@@ -1,6 +1,8 @@
 use std::path::PathBuf;
 use std::process::Command;
 
+use crate::maxima::noconsole::hide_console_window_sync;
+
 const CONTAINER_TEMP_DIR: &str = "/tmp/aximar";
 
 /// Docker's default seccomp profile with additional `personality` syscall values
@@ -131,12 +133,12 @@ impl Backend {
 /// Query WSL for the default distribution name.
 /// `wsl --status` outputs UTF-16LE on Windows; we decode and parse it.
 fn resolve_default_wsl_distro() -> Option<String> {
-    let output = Command::new("wsl")
-        .arg("--status")
+    let mut cmd = Command::new("wsl");
+    cmd.arg("--status")
         .stdout(std::process::Stdio::piped())
-        .stderr(std::process::Stdio::null())
-        .output()
-        .ok()?;
+        .stderr(std::process::Stdio::null());
+    hide_console_window_sync(&mut cmd);
+    let output = cmd.output().ok()?;
 
     // wsl --status outputs UTF-16LE on Windows
     let text = decode_wsl_output(&output.stdout);

@@ -5,6 +5,7 @@ use tauri::Manager;
 
 use crate::error::AppError;
 use crate::maxima::backend::decode_wsl_output;
+use crate::maxima::noconsole::hide_console_window;
 
 fn default_theme() -> String {
     "auto".to_string()
@@ -408,12 +409,12 @@ pub fn read_maxima_path(app: &tauri::AppHandle) -> Option<String> {
 
 #[tauri::command]
 pub async fn list_wsl_distros() -> Result<Vec<String>, AppError> {
-    let output = tokio::process::Command::new("wsl")
-        .args(["-l", "-q"])
+    let mut cmd = tokio::process::Command::new("wsl");
+    cmd.args(["-l", "-q"])
         .stdout(std::process::Stdio::piped())
-        .stderr(std::process::Stdio::null())
-        .output()
-        .await
+        .stderr(std::process::Stdio::null());
+    hide_console_window(&mut cmd);
+    let output = cmd.output().await
         .map_err(|e| AppError::ProcessStartFailed(format!("Failed to list WSL distros: {}", e)))?;
 
     let text = decode_wsl_output(&output.stdout);
@@ -433,11 +434,10 @@ pub async fn check_wsl_maxima(distro: String) -> Result<Option<String>, AppError
         cmd.args(["-d", &distro]);
     }
     cmd.args(["--", "which", "maxima"]);
-    let output = cmd
-        .stdout(std::process::Stdio::piped())
-        .stderr(std::process::Stdio::null())
-        .output()
-        .await
+    cmd.stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::null());
+    hide_console_window(&mut cmd);
+    let output = cmd.output().await
         .map_err(|e| AppError::ProcessStartFailed(format!("Failed to check maxima in WSL: {}", e)))?;
 
     if output.status.success() {

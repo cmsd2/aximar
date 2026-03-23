@@ -8,6 +8,7 @@ use tokio::process::{Child, Command};
 
 use crate::error::AppError;
 use crate::maxima::backend::Backend;
+use crate::maxima::noconsole::hide_console_window;
 
 const READY_SENTINEL: &str = "__AXIMAR_READY__";
 
@@ -38,13 +39,14 @@ impl MaximaProcess {
                     .filter(|p| !p.is_empty())
                     .unwrap_or_else(find_maxima_binary);
 
-                let child = Command::new(&maxima_path)
-                    .arg("--very-quiet")
+                let mut cmd = Command::new(&maxima_path);
+                cmd.arg("--very-quiet")
                     .stdin(std::process::Stdio::piped())
                     .stdout(std::process::Stdio::piped())
                     .stderr(std::process::Stdio::piped())
-                    .kill_on_drop(true)
-                    .spawn()
+                    .kill_on_drop(true);
+                hide_console_window(&mut cmd);
+                let child = cmd.spawn()
                     .map_err(|e| AppError::ProcessStartFailed(format!("{}: {}", maxima_path, e)))?;
 
                 (child, None)
@@ -90,8 +92,8 @@ impl MaximaProcess {
                 })?;
                 let seccomp_opt = format!("seccomp={}", seccomp_path.display());
 
-                let child = Command::new(engine)
-                    .args([
+                let mut docker_cmd = Command::new(engine);
+                docker_cmd.args([
                         "run",
                         "--rm",
                         "-i",
@@ -111,8 +113,9 @@ impl MaximaProcess {
                     .stdin(std::process::Stdio::piped())
                     .stdout(std::process::Stdio::piped())
                     .stderr(std::process::Stdio::piped())
-                    .kill_on_drop(true)
-                    .spawn()
+                    .kill_on_drop(true);
+                hide_console_window(&mut docker_cmd);
+                let child = docker_cmd.spawn()
                     .map_err(|e| {
                         AppError::ProcessStartFailed(format!("{} run {}: {}", engine, image, e))
                     })?;
@@ -137,11 +140,11 @@ impl MaximaProcess {
                     mkdir_cmd.args(["-d", distro]);
                 }
                 mkdir_cmd.args(["--", "mkdir", "-p", Backend::container_temp_dir()]);
-                let _ = mkdir_cmd
+                mkdir_cmd
                     .stdout(std::process::Stdio::null())
-                    .stderr(std::process::Stdio::null())
-                    .status()
-                    .await;
+                    .stderr(std::process::Stdio::null());
+                hide_console_window(&mut mkdir_cmd);
+                let _ = mkdir_cmd.status().await;
 
                 let mut cmd = Command::new("wsl");
                 if !distro.is_empty() {
@@ -152,6 +155,7 @@ impl MaximaProcess {
                     .stdout(std::process::Stdio::piped())
                     .stderr(std::process::Stdio::piped())
                     .kill_on_drop(true);
+                hide_console_window(&mut cmd);
 
                 let child = cmd.spawn().map_err(|e| {
                     AppError::ProcessStartFailed(format!("wsl maxima: {}", e))
@@ -319,10 +323,10 @@ impl MaximaProcess {
         if let (Backend::Docker { engine, .. }, Some(name)) =
             (&self.backend, &self.container_name)
         {
-            let _ = tokio::process::Command::new(engine)
-                .args(["rm", "-f", name])
-                .output()
-                .await;
+            let mut rm_cmd = tokio::process::Command::new(engine);
+            rm_cmd.args(["rm", "-f", name]);
+            hide_console_window(&mut rm_cmd);
+            let _ = rm_cmd.output().await;
         }
 
         Ok(())
@@ -337,12 +341,12 @@ impl MaximaProcess {
             Backend::Local => Ok(()),
             Backend::Docker { engine, image } => {
                 // Check engine is available
-                let output = tokio::process::Command::new(engine)
-                    .arg("info")
+                let mut cmd = tokio::process::Command::new(engine);
+                cmd.arg("info")
                     .stdout(std::process::Stdio::null())
-                    .stderr(std::process::Stdio::piped())
-                    .output()
-                    .await
+                    .stderr(std::process::Stdio::piped());
+                hide_console_window(&mut cmd);
+                let output = cmd.output().await
                     .map_err(|e| {
                         AppError::ProcessStartFailed(format!(
                             "'{}' not found. Is {} installed and running? {}",
@@ -361,12 +365,12 @@ impl MaximaProcess {
 
                 // Check image exists
                 if !image.is_empty() {
-                    let output = tokio::process::Command::new(engine)
-                        .args(["image", "inspect", image])
+                    let mut cmd = tokio::process::Command::new(engine);
+                    cmd.args(["image", "inspect", image])
                         .stdout(std::process::Stdio::null())
-                        .stderr(std::process::Stdio::piped())
-                        .output()
-                        .await
+                        .stderr(std::process::Stdio::piped());
+                    hide_console_window(&mut cmd);
+                    let output = cmd.output().await
                         .map_err(|e| {
                             AppError::ProcessStartFailed(format!(
                                 "Failed to check image '{}': {}",
@@ -386,12 +390,12 @@ impl MaximaProcess {
             }
             Backend::Wsl { distro } => {
                 // Check WSL is available
-                let output = tokio::process::Command::new("wsl")
-                    .arg("--status")
+                let mut cmd = tokio::process::Command::new("wsl");
+                cmd.arg("--status")
                     .stdout(std::process::Stdio::null())
-                    .stderr(std::process::Stdio::piped())
-                    .output()
-                    .await
+                    .stderr(std::process::Stdio::piped());
+                hide_console_window(&mut cmd);
+                let output = cmd.output().await
                     .map_err(|e| {
                         AppError::ProcessStartFailed(format!(
                             "'wsl' not found. Is WSL installed? {}",
@@ -407,12 +411,12 @@ impl MaximaProcess {
 
                 // Check distro exists if specified
                 if !distro.is_empty() {
-                    let output = tokio::process::Command::new("wsl")
-                        .args(["-d", distro, "--", "echo", "ok"])
+                    let mut cmd = tokio::process::Command::new("wsl");
+                    cmd.args(["-d", distro, "--", "echo", "ok"])
                         .stdout(std::process::Stdio::null())
-                        .stderr(std::process::Stdio::piped())
-                        .output()
-                        .await
+                        .stderr(std::process::Stdio::piped());
+                    hide_console_window(&mut cmd);
+                    let output = cmd.output().await
                         .map_err(|e| {
                             AppError::ProcessStartFailed(format!(
                                 "Failed to check WSL distro '{}': {}",
@@ -435,11 +439,10 @@ impl MaximaProcess {
                         cmd.args(["-d", distro]);
                     }
                     cmd.args(["--", "which", "maxima"]);
-                    let output = cmd
-                        .stdout(std::process::Stdio::null())
-                        .stderr(std::process::Stdio::piped())
-                        .output()
-                        .await
+                    cmd.stdout(std::process::Stdio::null())
+                        .stderr(std::process::Stdio::piped());
+                    hide_console_window(&mut cmd);
+                    let output = cmd.output().await
                         .map_err(|e| {
                             AppError::ProcessStartFailed(format!(
                                 "Failed to check for maxima in WSL: {}",
