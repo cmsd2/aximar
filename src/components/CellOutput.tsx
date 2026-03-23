@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useMemo } from "react";
+import { useState, useCallback, useRef, useMemo, useEffect } from "react";
 import type { CellOutput as CellOutputType } from "../types/notebook";
 import { KatexOutput } from "./KatexOutput";
 import { EnhancedErrorOutput } from "./EnhancedErrorOutput";
@@ -36,12 +36,14 @@ export function CellOutput({ output, cellId }: CellOutputProps) {
     return URL.createObjectURL(blob);
   }, [hasPlot, output.plotSvg]);
 
-  // Revoke previous blob URL on unmount or when it changes
-  const prevBlobUrl = useRef<string>("");
-  if (prevBlobUrl.current && prevBlobUrl.current !== plotBlobUrl) {
-    URL.revokeObjectURL(prevBlobUrl.current);
-  }
-  prevBlobUrl.current = plotBlobUrl;
+  // Revoke blob URL when it changes or on unmount
+  useEffect(() => {
+    return () => {
+      if (plotBlobUrl) {
+        URL.revokeObjectURL(plotBlobUrl);
+      }
+    };
+  }, [plotBlobUrl]);
 
   if (output.isError && output.error) {
     return (

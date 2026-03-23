@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { getConfig, setConfig, listWslDistros, checkWslMaxima, markdownFontStack, applyPrintMargins, type AppConfig } from "../lib/config-client";
 import { useNotebookStore, type Theme, type CellStyle, type AutocompleteMode } from "../store/notebookStore";
+import { useLogStore } from "../store/logStore";
 
 interface SettingsModalProps {
   onClose: () => void;
@@ -44,32 +45,43 @@ export function SettingsModal({ onClose, onSetVariablesOpen }: SettingsModalProp
   const setTheme = useNotebookStore((s) => s.setTheme);
   const setCellStyle = useNotebookStore((s) => s.setCellStyle);
   const setAutocompleteMode = useNotebookStore((s) => s.setAutocompleteMode);
+  const addLogEntry = useLogStore((s) => s.addEntry);
 
   useEffect(() => {
-    getConfig().then((resp) => setLocalConfig(resp.config)).catch(() => {});
-  }, []);
+    getConfig()
+      .then((resp) => setLocalConfig(resp.config))
+      .catch((e) => addLogEntry("error", `Failed to load config: ${e}`, "settings"));
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (config?.backend === "wsl") {
-      listWslDistros().then(setWslDistros).catch(() => setWslDistros([]));
+      listWslDistros()
+        .then(setWslDistros)
+        .catch((e) => {
+          addLogEntry("error", `Failed to list WSL distros: ${e}`, "settings");
+          setWslDistros([]);
+        });
     }
-  }, [config?.backend]);
+  }, [config?.backend]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (config?.backend === "wsl") {
       setWslMaximaPath(undefined);
       checkWslMaxima(config.wsl_distro)
         .then(setWslMaximaPath)
-        .catch(() => setWslMaximaPath(null));
+        .catch((e) => {
+          addLogEntry("error", `Failed to check WSL Maxima: ${e}`, "settings");
+          setWslMaximaPath(null);
+        });
     }
-  }, [config?.backend, config?.wsl_distro]);
+  }, [config?.backend, config?.wsl_distro]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const update = useCallback(
     (updates: Partial<AppConfig>) => {
       if (!config) return;
       const next = { ...config, ...updates };
       setLocalConfig(next);
-      setConfig(updates).catch(() => {});
+      setConfig(updates).catch((e) => addLogEntry("error", `Failed to save settings: ${e}`, "settings"));
 
       if (updates.theme) {
         setTheme(updates.theme as Theme);
@@ -126,7 +138,7 @@ export function SettingsModal({ onClose, onSetVariablesOpen }: SettingsModalProp
         );
       }
     },
-    [config, setTheme, setCellStyle, setAutocompleteMode, onSetVariablesOpen]
+    [config, setTheme, setCellStyle, setAutocompleteMode, onSetVariablesOpen, addLogEntry]
   );
 
   if (!config) return null;

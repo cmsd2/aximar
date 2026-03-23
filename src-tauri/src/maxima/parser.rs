@@ -1,11 +1,18 @@
 use regex::Regex;
 use std::fs;
 use std::path::Path;
+use std::sync::LazyLock;
 
 use crate::catalog::search::Catalog;
 use crate::maxima::backend::Backend;
 use crate::maxima::errors;
 use crate::maxima::types::EvalResult;
+
+static LABEL_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"__AXIMAR_LABEL__\s+(\d+)").unwrap());
+
+static SVG_PATH_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r#"\[?"([^"]+\.svg)"(?:,\s*"[^"]+\.svg")*\]?"#).unwrap());
 
 /// LaTeX values that indicate tex(%) had no real result (e.g. after an error)
 const JUNK_LATEX: &[&str] = &[
@@ -67,7 +74,7 @@ fn is_safe_svg_path(path_str: &str, backend: &Backend) -> bool {
 }
 
 pub fn parse_output(cell_id: &str, lines: &[String], duration_ms: u64, catalog: &Catalog, backend: &Backend) -> EvalResult {
-    let label_re = Regex::new(r"__AXIMAR_LABEL__\s+(\d+)").unwrap();
+    let label_re = &*LABEL_RE;
     let error_patterns = [
         " -- an error.",
         "incorrect syntax:",
@@ -204,7 +211,7 @@ pub fn parse_output(cell_id: &str, lines: &[String], duration_ms: u64, catalog: 
     let latex = if has_error { None } else { latex };
 
     // Detect SVG plot file paths in text output: Maxima returns e.g. ["/tmp/maxplot.svg"]
-    let svg_path_re = Regex::new(r#"\[?"([^"]+\.svg)"(?:,\s*"[^"]+\.svg")*\]?"#).unwrap();
+    let svg_path_re = &*SVG_PATH_RE;
     let mut plot_svg: Option<String> = None;
     let text_output = if !has_error {
         if let Some(caps) = svg_path_re.captures(&text_output) {
@@ -391,5 +398,158 @@ mod tests {
         let result = parse_output("cell-1", &lines, 100, &catalog(), &Backend::Local);
         assert!(!result.text_output.contains("__AXIMAR_EVAL_END__"));
         assert!(result.error.is_none() || !result.error.unwrap().contains("__AXIMAR_EVAL_END__"));
+    }
+
+    // --- Junk LaTeX filtering ---
+
+    #[test]
+    fn test_junk_latex_mathit_false() {
+        let lines = vec!["$$\\mathit{false}$$".to_string()];
+        let result = parse_output("cell-1", &lines, 100, &catalog(), &Backend::Local);
+        assert!(result.latex.is_none());
+    }
+
+    #[test]
+    fn test_junk_latex_it_false() {
+        let lines = vec!["$$\\it false$$".to_string()];
+        let result = parse_output("cell-1", &lines, 100, &catalog(), &Backend::Local);
+        assert!(result.latex.is_none());
+    }
+
+    #[test]
+    fn test_junk_latex_plain_false() {
+        let lines = vec!["$$false$$".to_string()];
+        let result = parse_output("cell-1", &lines, 100, &catalog(), &Backend::Local);
+        assert!(result.latex.is_none());
+    }
+
+    #[test]
+    fn test_junk_latex_percent() {
+        let lines = vec!["$$\\mathit{\\%}$$".to_string()];
+        let result = parse_output("cell-1", &lines, 100, &catalog(), &Backend::Local);
+        assert!(result.latex.is_none());
+    }
+
+    #[test]
+    fn test_junk_latex_zero() {
+        let lines = vec!["$$0$$".to_string()];
+        let result = parse_output("cell-1", &lines, 100, &catalog(), &Backend::Local);
+        assert!(result.latex.is_none());
+    }
+
+    #[test]
+    fn test_junk_latex_mbox_string() {
+        let lines = vec!["$$\\mbox{hello world}$$".to_string()];
+        let result = parse_output("cell-1", &lines, 100, &catalog(), &Backend::Local);
+        assert!(result.latex.is_none());
+    }
+
+    #[test]
+    fn test_junk_latex_aximar_sentinel() {
+        let lines = vec!["$$blah __AXIMAR_ blah$$".to_string()];
+        let result = parse_output("cell-1", &lines, 100, &catalog(), &Backend::Local);
+        assert!(result.latex.is_none());
+    }
+
+    // --- Error context ---
+
+    #[test]
+    fn test_error_pulls_preceding_text() {
+        let lines = vec![
+            "some context line".to_string(),
+            " -- an error.".to_string(),
+            "__AXIMAR_EVAL_END__".to_string(),
+        ];
+        let result = parse_output("cell-1", &lines, 100, &catalog(), &Backend::Local);
+        assert!(result.is_error);
+        let err = result.error.unwrap();
+        assert!(err.contains("some context line"));
+        assert!(err.contains("-- an error."));
+    }
+
+    #[test]
+    fn test_error_context_ends_on_empty_line() {
+        let lines = vec![
+            " -- an error.".to_string(),
+            "error context".to_string(),
+            "".to_string(),
+            "normal text after".to_string(),
+            "__AXIMAR_EVAL_END__".to_string(),
+        ];
+        let result = parse_output("cell-1", &lines, 100, &catalog(), &Backend::Local);
+        assert!(result.is_error);
+        let err = result.error.unwrap();
+        assert!(err.contains("error context"));
+        // Text after the empty line is not in the error
+        assert!(!err.contains("normal text after"));
+    }
+
+    // --- Label edge cases ---
+
+    #[test]
+    fn test_label_linenum_1() {
+        let lines = vec![
+            "result".to_string(),
+            "__AXIMAR_LABEL__ 1".to_string(),
+            "__AXIMAR_EVAL_END__".to_string(),
+        ];
+        let result = parse_output("cell-1", &lines, 100, &catalog(), &Backend::Local);
+        assert_eq!(result.output_label, None);
+    }
+
+    #[test]
+    fn test_label_linenum_2() {
+        let lines = vec![
+            "result".to_string(),
+            "__AXIMAR_LABEL__ 2".to_string(),
+            "__AXIMAR_EVAL_END__".to_string(),
+        ];
+        let result = parse_output("cell-1", &lines, 100, &catalog(), &Backend::Local);
+        assert_eq!(result.output_label, Some("%o0".to_string()));
+    }
+
+    #[test]
+    fn test_label_non_numeric() {
+        let lines = vec![
+            "result".to_string(),
+            "__AXIMAR_LABEL__ abc".to_string(),
+            "__AXIMAR_EVAL_END__".to_string(),
+        ];
+        let result = parse_output("cell-1", &lines, 100, &catalog(), &Backend::Local);
+        assert_eq!(result.output_label, None);
+    }
+
+    // --- Other edge cases ---
+
+    #[test]
+    fn test_empty_input() {
+        let lines: Vec<String> = vec![];
+        let result = parse_output("cell-1", &lines, 100, &catalog(), &Backend::Local);
+        assert!(!result.is_error);
+        assert!(result.text_output.is_empty());
+        assert!(result.latex.is_none());
+    }
+
+    #[test]
+    fn test_only_sentinels() {
+        let lines = vec![
+            "__AXIMAR_EVAL_END__".to_string(),
+            "__AXIMAR_READY__".to_string(),
+        ];
+        let result = parse_output("cell-1", &lines, 100, &catalog(), &Backend::Local);
+        assert!(!result.is_error);
+        assert!(result.text_output.is_empty());
+        assert!(result.latex.is_none());
+    }
+
+    #[test]
+    fn test_non_false_after_latex_kept() {
+        let lines = vec![
+            "$$x^2$$".to_string(),
+            "some output".to_string(),
+            "__AXIMAR_EVAL_END__".to_string(),
+        ];
+        let result = parse_output("cell-1", &lines, 100, &catalog(), &Backend::Local);
+        assert!(result.text_output.contains("some output"));
     }
 }

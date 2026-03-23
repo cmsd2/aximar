@@ -92,7 +92,7 @@ function App() {
           addLogEntry("warning", w, "config");
         }
       })
-      .catch(() => {});
+      .catch((e) => addLogEntry("error", `Failed to load config: ${e}`, "config"));
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Listen for raw Maxima output events from the backend
@@ -124,8 +124,8 @@ function App() {
           await setHasSeenWelcome();
         }
       })
-      .catch(() => {});
-  }, [loadNotebook]);
+      .catch((e) => addLogEntry("error", `Failed to load welcome notebook: ${e}`, "init"));
+  }, [loadNotebook]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const openDocsFor = useCallback((name: string) => {
     setDocsFunctionName(name);

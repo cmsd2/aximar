@@ -1,7 +1,26 @@
 use regex::Regex;
+use std::sync::LazyLock;
 
 use crate::catalog::search::Catalog;
 use crate::maxima::types::ErrorInfo;
+
+static ARG_COUNT_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"Too (few|many) arguments supplied to (\w+)").unwrap());
+
+static UNDEFINED_VAR_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"(?:unbound|undefined) variable (\w+)").unwrap());
+
+static UNDEFINED_FUNC_RE_1: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"no such function:?\s+(\w+)").unwrap());
+
+static UNDEFINED_FUNC_RE_2: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"The function (\w+) is not known").unwrap());
+
+static MISSING_ASSUMPTION_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"Is\s+(.+?)\s+(positive|negative|zero|an integer|even|odd)").unwrap());
+
+static LOAD_FAILED_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"(?:failed to load|Cannot find file)\s+(\S+)").unwrap());
 
 pub fn enhance_error(raw_error: &str, catalog: &Catalog) -> Option<ErrorInfo> {
     // Try each pattern in order
@@ -82,8 +101,7 @@ fn check_syntax_error(raw: &str) -> Option<ErrorInfo> {
 }
 
 fn check_arg_count(raw: &str, catalog: &Catalog) -> Option<ErrorInfo> {
-    let re = Regex::new(r"Too (few|many) arguments supplied to (\w+)").ok()?;
-    let caps = re.captures(raw)?;
+    let caps = ARG_COUNT_RE.captures(raw)?;
 
     let direction = caps.get(1)?.as_str();
     let func_name = caps.get(2)?.as_str();
@@ -115,8 +133,7 @@ fn check_arg_count(raw: &str, catalog: &Catalog) -> Option<ErrorInfo> {
 }
 
 fn check_undefined_variable(raw: &str) -> Option<ErrorInfo> {
-    let re = Regex::new(r"(?:unbound|undefined) variable (\w+)").ok()?;
-    let caps = re.captures(raw)?;
+    let caps = UNDEFINED_VAR_RE.captures(raw)?;
     let var_name = caps.get(1)?.as_str();
 
     Some(ErrorInfo {
@@ -135,12 +152,9 @@ fn check_undefined_variable(raw: &str) -> Option<ErrorInfo> {
 fn check_undefined_function(raw: &str, catalog: &Catalog) -> Option<ErrorInfo> {
     // Maxima says things like "funcall: no such function: intgrate" or
     // "The function intgrate is not known to Maxima"
-    let patterns = [
-        Regex::new(r"no such function:?\s+(\w+)").ok()?,
-        Regex::new(r"The function (\w+) is not known").ok()?,
-    ];
+    let patterns = [&*UNDEFINED_FUNC_RE_1, &*UNDEFINED_FUNC_RE_2];
 
-    for re in &patterns {
+    for re in patterns {
         if let Some(caps) = re.captures(raw) {
             let func_name = caps.get(1)?.as_str();
             let similar = catalog.find_similar(func_name, 3);
@@ -205,8 +219,7 @@ fn check_inconsistent_equations(raw: &str) -> Option<ErrorInfo> {
 }
 
 fn check_missing_assumption(raw: &str) -> Option<ErrorInfo> {
-    let re = Regex::new(r"Is\s+(.+?)\s+(positive|negative|zero|an integer|even|odd)").ok()?;
-    if re.is_match(raw) {
+    if MISSING_ASSUMPTION_RE.is_match(raw) {
         return Some(ErrorInfo {
             title: "Assumption Required".into(),
             explanation: "Maxima needs to know a property of a variable to proceed with the computation.".into(),
@@ -251,9 +264,8 @@ fn check_premature_termination(raw: &str) -> Option<ErrorInfo> {
 
 fn check_load_failed(raw: &str) -> Option<ErrorInfo> {
     if raw.contains("loadfile: failed to load") || raw.contains("Cannot find file") {
-        let re = Regex::new(r"(?:failed to load|Cannot find file)\s+(\S+)").ok();
-        let pkg = re
-            .and_then(|r| r.captures(raw))
+        let pkg = LOAD_FAILED_RE
+            .captures(raw)
             .and_then(|c| c.get(1))
             .map(|m| m.as_str().to_string());
 
@@ -338,5 +350,123 @@ mod tests {
     fn test_no_match() {
         let info = enhance_error("some random output", &catalog());
         assert!(info.is_none());
+    }
+
+    #[test]
+    fn test_division_by_zero_alternate() {
+        let info = enhance_error("Division by 0", &catalog());
+        assert!(info.is_some());
+        assert_eq!(info.unwrap().title, "Division by Zero");
+    }
+
+    #[test]
+    fn test_syntax_error_infix() {
+        let info = enhance_error("incorrect syntax: x is not an infix operator", &catalog());
+        let info = info.unwrap();
+        assert_eq!(info.title, "Syntax Error");
+        assert!(info.explanation.contains("Two values"));
+    }
+
+    #[test]
+    fn test_syntax_error_generic() {
+        let info = enhance_error("incorrect syntax: unexpected end", &catalog());
+        let info = info.unwrap();
+        assert_eq!(info.title, "Syntax Error");
+        assert!(info.explanation.contains("syntax error"));
+    }
+
+    #[test]
+    fn test_too_many_args() {
+        let info = enhance_error("Too many arguments supplied to sin", &catalog());
+        assert!(info.is_some());
+        assert_eq!(info.unwrap().title, "Wrong Argument Count");
+    }
+
+    #[test]
+    fn test_arg_count_unknown_func() {
+        let info = enhance_error("Too few arguments supplied to myfunc", &catalog());
+        let info = info.unwrap();
+        assert_eq!(info.title, "Wrong Argument Count");
+        assert!(info.correct_signatures.is_empty());
+        assert!(info.suggestion.as_ref().unwrap().contains("describe"));
+    }
+
+    #[test]
+    fn test_undefined_variable() {
+        let info = enhance_error("unbound variable foo", &catalog());
+        let info = info.unwrap();
+        assert_eq!(info.title, "Undefined Variable");
+        assert!(info.explanation.contains("foo"));
+    }
+
+    #[test]
+    fn test_undefined_func_not_known() {
+        let info = enhance_error("The function intgrate is not known to Maxima", &catalog());
+        let info = info.unwrap();
+        assert_eq!(info.title, "Unknown Function");
+    }
+
+    #[test]
+    fn test_lisp_error() {
+        let info = enhance_error("Maxima encountered a Lisp error", &catalog());
+        assert_eq!(info.unwrap().title, "Internal Error");
+    }
+
+    #[test]
+    fn test_macsyma_restart() {
+        let info = enhance_error("MACSYMA restart", &catalog());
+        assert_eq!(info.unwrap().title, "Internal Error");
+    }
+
+    #[test]
+    fn test_inconsistent_equations() {
+        let info = enhance_error("solve: inconsistent equations", &catalog());
+        assert_eq!(info.unwrap().title, "Inconsistent Equations");
+    }
+
+    #[test]
+    fn test_missing_assumption() {
+        let info = enhance_error("Is x positive, negative, or zero?", &catalog());
+        assert_eq!(info.unwrap().title, "Assumption Required");
+    }
+
+    #[test]
+    fn test_missing_assumption_integer() {
+        let info = enhance_error("Is n an integer?", &catalog());
+        assert_eq!(info.unwrap().title, "Assumption Required");
+    }
+
+    #[test]
+    fn test_matrix_dimension_rows() {
+        let info = enhance_error("all rows must be the same length", &catalog());
+        assert_eq!(info.unwrap().title, "Matrix Dimension Error");
+    }
+
+    #[test]
+    fn test_matrix_dimension_incompatible() {
+        let info = enhance_error("incompatible dimensions", &catalog());
+        assert_eq!(info.unwrap().title, "Matrix Dimension Error");
+    }
+
+    #[test]
+    fn test_premature_termination() {
+        let info = enhance_error("Premature termination", &catalog());
+        assert_eq!(info.unwrap().title, "Incomplete Expression");
+    }
+
+    #[test]
+    fn test_load_failed() {
+        let info = enhance_error("loadfile: failed to load mypackage", &catalog());
+        let info = info.unwrap();
+        assert_eq!(info.title, "Package Not Found");
+        assert!(info.explanation.contains("mypackage"));
+    }
+
+    #[test]
+    fn test_cannot_find_file() {
+        let info = enhance_error("Cannot find file draw", &catalog());
+        let info = info.unwrap();
+        assert_eq!(info.title, "Package Not Found");
+        assert!(info.explanation.contains("draw"));
     }
 }

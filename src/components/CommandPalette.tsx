@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { searchFunctions, listCategories } from "../lib/catalog-client";
 import { useNotebookStore } from "../store/notebookStore";
+import { useLogStore } from "../store/logStore";
 import type { SearchResult, CategoryGroup } from "../types/catalog";
 
 interface CommandPaletteProps {
@@ -23,13 +24,14 @@ export function CommandPalette({ onClose, onViewDocs, initialQuery }: CommandPal
   );
   const addCell = useNotebookStore((s) => s.addCell);
   const setActiveCellId = useNotebookStore((s) => s.setActiveCellId);
+  const addLogEntry = useLogStore((s) => s.addEntry);
 
   // Load categories on mount
   useEffect(() => {
     listCategories()
       .then(setCategories)
-      .catch(() => {});
-  }, []);
+      .catch((e) => addLogEntry("error", `Failed to load categories: ${e}`, "catalog"));
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Search on query change
   useEffect(() => {
@@ -40,7 +42,7 @@ export function CommandPalette({ onClose, onViewDocs, initialQuery }: CommandPal
             setResults(r);
             setSelectedIndex(0);
           })
-          .catch(() => {});
+          .catch((e) => addLogEntry("error", `Catalog search failed: ${e}`, "catalog"));
       }, 80);
       return () => clearTimeout(timer);
     } else {
