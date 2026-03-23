@@ -5,6 +5,9 @@ pub enum AppError {
     #[error("Maxima process not running")]
     ProcessNotRunning,
 
+    #[error("Session is busy with another evaluation")]
+    SessionBusy,
+
     #[error("Failed to start Maxima: {0}")]
     ProcessStartFailed(String),
 

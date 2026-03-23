@@ -18,13 +18,9 @@ All `.catch(() => {})` handlers in `SettingsModal.tsx`, `CommandPalette.tsx`, an
 
 ## High
 
-### 4. Process/status race condition in session management
+### ~~4. Process/status race condition in session management~~ — RESOLVED
 
-**Files:** `src-tauri/src/commands/session.rs`, `src-tauri/src/state.rs`
-
-Session status and the process handle are behind separate `Mutex` locks. Status can show "Ready" while the process is `None` if initialization partially fails between the two lock acquisitions.
-
-Fix: combine status and process into a single lock, or use an atomic state machine.
+Combined status and process into a unified `Session` state machine (`session.rs`) behind a single `Mutex`. An `AtomicU8` mirror provides lock-free status reads for the UI. `SessionStatus::Busy` is now set during evaluations via `try_begin_eval()`/`end_eval()` transitions.
 
 ### 5. Panic on NaN in catalog search scoring
 

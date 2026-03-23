@@ -32,3 +32,25 @@ pub enum SessionStatus {
     Stopped,
     Error(String),
 }
+
+impl SessionStatus {
+    pub(crate) fn as_code(&self) -> u8 {
+        match self {
+            SessionStatus::Stopped => 0,
+            SessionStatus::Starting => 1,
+            SessionStatus::Ready => 2,
+            SessionStatus::Busy => 3,
+            SessionStatus::Error(_) => 4,
+        }
+    }
+
+    pub(crate) fn from_code(code: u8, error_msg: impl FnOnce() -> String) -> Self {
+        match code {
+            1 => SessionStatus::Starting,
+            2 => SessionStatus::Ready,
+            3 => SessionStatus::Busy,
+            4 => SessionStatus::Error(error_msg()),
+            _ => SessionStatus::Stopped,
+        }
+    }
+}

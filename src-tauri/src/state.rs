@@ -3,12 +3,10 @@ use tokio::sync::Mutex;
 
 use crate::catalog::docs::Docs;
 use crate::catalog::search::Catalog;
-use crate::maxima::process::MaximaProcess;
-use crate::maxima::types::SessionStatus;
+use crate::session::SessionManager;
 
 pub struct AppState {
-    pub process: Arc<Mutex<Option<MaximaProcess>>>,
-    pub status: Arc<Mutex<SessionStatus>>,
+    pub session: SessionManager,
     pub catalog: Catalog,
     pub docs: Docs,
     pub app_handle: Arc<Mutex<Option<tauri::AppHandle>>>,
@@ -17,8 +15,7 @@ pub struct AppState {
 impl AppState {
     pub fn new() -> Self {
         AppState {
-            process: Arc::new(Mutex::new(None)),
-            status: Arc::new(Mutex::new(SessionStatus::Stopped)),
+            session: SessionManager::new(),
             catalog: Catalog::load(),
             docs: Docs::load(),
             app_handle: Arc::new(Mutex::new(None)),

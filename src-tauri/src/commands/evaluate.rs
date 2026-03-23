@@ -22,10 +22,9 @@ pub async fn evaluate_expression(
         None => expression,
     };
 
-    let mut guard = state.process.lock().await;
-    let process = guard
-        .as_mut()
-        .ok_or(AppError::ProcessNotRunning)?;
-
-    protocol::evaluate(process, &cell_id, &expression, &state.catalog, eval_timeout).await
+    let mut guard = state.session.lock().await;
+    let process = guard.try_begin_eval()?;
+    let result = protocol::evaluate(process, &cell_id, &expression, &state.catalog, eval_timeout).await;
+    guard.end_eval();
+    result
 }

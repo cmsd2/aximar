@@ -4,6 +4,7 @@ mod error;
 mod maxima;
 mod menu;
 mod notebooks;
+mod session;
 mod state;
 mod suggestions;
 
