@@ -1,13 +1,20 @@
 import { invoke } from "@tauri-apps/api/core";
 import type { EvalResult, SessionStatus } from "../types/maxima";
 
+export interface LabelContext {
+  label_map: Record<number, string>;
+  previous_output_label: string | null;
+}
+
 export async function evaluateExpression(
   cellId: string,
-  expression: string
+  expression: string,
+  labelContext?: LabelContext
 ): Promise<EvalResult> {
   return invoke<EvalResult>("evaluate_expression", {
     cellId,
     expression,
+    labelContext: labelContext ?? null,
   });
 }
 

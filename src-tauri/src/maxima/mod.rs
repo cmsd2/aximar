@@ -1,5 +1,6 @@
 pub mod backend;
 pub mod errors;
+pub mod labels;
 pub mod noconsole;
 pub mod parser;
 pub mod process;

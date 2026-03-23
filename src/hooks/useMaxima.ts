@@ -3,6 +3,7 @@ import { message } from "@tauri-apps/plugin-dialog";
 import { useNotebookStore } from "../store/notebookStore";
 import { useLogStore } from "../store/logStore";
 import { evaluateExpression, startSession, restartSession } from "../lib/maxima-client";
+import type { LabelContext } from "../lib/maxima-client";
 import type { CellOutput } from "../types/notebook";
 
 function isMaximaNotFoundError(errorMsg: string): boolean {
@@ -58,63 +59,34 @@ async function showMaximaNotFoundDialog(errorMsg: string): Promise<void> {
 }
 
 /**
- * Build a map from display execution count → real Maxima output label.
- * Used to translate user-facing %o1, %o2 into the real %o6, %o10 etc.
+ * Build a LabelContext for the backend to rewrite %oN, %iN, and bare %
+ * references. Assembles the mapping data from the notebook store.
  */
-function buildLabelMap(): Map<number, string> {
+function buildLabelContext(cellId: string): LabelContext {
   const cells = useNotebookStore.getState().cells;
-  const map = new Map<number, string>();
+
+  // Build label_map: display execution count → real Maxima output label
+  const label_map: Record<number, string> = {};
   for (const cell of cells) {
     const ec = cell.output?.executionCount;
     const label = cell.output?.outputLabel;
     if (ec != null && label != null) {
-      map.set(ec, label);
+      label_map[ec] = label;
     }
   }
-  return map;
-}
 
-/**
- * Find the real Maxima output label for the cell immediately before cellId
- * that has output, or the most recently evaluated cell if running individually.
- */
-function findPreviousOutputLabel(cellId: string): string | null {
-  const cells = useNotebookStore.getState().cells;
+  // Find the real Maxima output label for the previous cell
+  let previous_output_label: string | null = null;
   const idx = cells.findIndex((c) => c.id === cellId);
-  // Walk backwards from the cell before this one
   for (let i = idx - 1; i >= 0; i--) {
     const label = cells[i].output?.outputLabel;
-    if (label) return label;
-  }
-  return null;
-}
-
-/**
- * Rewrite %oN, %iN, and bare % references in an expression so they map
- * to real Maxima output/input labels. Bare % (meaning "last output") is
- * replaced with the output label of the previous cell, since our protocol
- * commands (tex, print sentinel) clobber Maxima's internal %.
- */
-function rewriteLabels(input: string, labelMap: Map<number, string>, cellId: string): string {
-  // First, replace bare % with the previous cell's real output label.
-  // Match % not followed by a letter, digit, or another % (to avoid
-  // clobbering %e, %pi, %i, %o1, %th, %%, etc.)
-  const prevLabel = findPreviousOutputLabel(cellId);
-  let result = input;
-  if (prevLabel) {
-    result = result.replace(/%(?![%a-zA-Z0-9_])/g, prevLabel);
+    if (label) {
+      previous_output_label = label;
+      break;
+    }
   }
 
-  // Then, replace display %oN/%iN with real Maxima labels
-  result = result.replace(/%([oi])(\d+)/g, (match, kind: string, numStr: string) => {
-    const num = parseInt(numStr, 10);
-    const realLabel = labelMap.get(num);
-    if (!realLabel) return match;
-    const realNum = realLabel.replace("%o", "");
-    return `%${kind}${realNum}`;
-  });
-
-  return result;
+  return { label_map, previous_output_label };
 }
 
 /**
@@ -163,12 +135,11 @@ export function useMaxima() {
       const preview = input.trim().split("\n")[0].slice(0, 60);
       addLog("info", `Evaluating: ${preview}`, "eval");
 
-      // Translate display %oN/%iN and bare % to real Maxima labels
-      const labelMap = buildLabelMap();
-      const rewritten = rewriteLabels(input, labelMap, cellId);
+      // Build label context for backend to rewrite %oN/%iN and bare %
+      const labelContext = buildLabelContext(cellId);
 
       try {
-        const result = await evaluateExpression(cellId, rewritten);
+        const result = await evaluateExpression(cellId, input, labelContext);
         // If Maxima returned a bare %oN reference (expression unchanged),
         // substitute the referenced cell's LaTeX instead of showing the label
         const latexMap = buildLabelLatexMap();

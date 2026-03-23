@@ -8,14 +8,6 @@ import type { Suggestion } from "../types/suggestions";
 import type { Cell } from "../types/notebook";
 import type { EvalResult } from "../types/maxima";
 
-/**
- * Replace standalone `%` with a specific Maxima output label.
- * Leaves `%pi`, `%e`, `%i`, `%oN`, `%iN` etc. untouched.
- */
-function bindPercent(expr: string, label: string): string {
-  return expr.replace(/(?<![a-zA-Z0-9_])%(?![a-zA-Z0-9_])/g, label);
-}
-
 interface CellSuggestionsProps {
   cell: Cell;
 }
@@ -70,14 +62,8 @@ export function CellSuggestions({ cell }: CellSuggestionsProps) {
 
   if (suggestions.length === 0) return null;
 
-  // Real Maxima label for this cell's output (e.g. "%o6")
-  const realLabel = cell.output?.outputLabel;
-
   const handleSuggestionClick = (template: string) => {
     const prev = lastSuggestionRef.current;
-
-    // Rewrite bare % → real Maxima %oN for stable evaluation
-    const evalExpr = realLabel ? bindPercent(template, realLabel) : template;
 
     // Check if we can reuse the cell from the previous suggestion click:
     // it must still exist, and its input must not have been edited by the user
@@ -87,15 +73,15 @@ export function CellSuggestions({ cell }: CellSuggestionsProps) {
         // Reuse: update input and re-execute
         updateCellInput(prev.cellId, template);
         lastSuggestionRef.current = { cellId: prev.cellId, template };
-        executeCell(prev.cellId, evalExpr);
+        executeCell(prev.cellId, template);
         return;
       }
     }
 
-    // Create a new cell (shows clean % in input)
+    // Create a new cell — backend resolves % via label context
     const newCellId = addCellWithInput(cell.id, template);
     lastSuggestionRef.current = { cellId: newCellId, template };
-    executeCell(newCellId, evalExpr);
+    executeCell(newCellId, template);
   };
 
   return (
