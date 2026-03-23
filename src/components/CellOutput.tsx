@@ -24,19 +24,9 @@ export function CellOutput({ output, cellId }: CellOutputProps) {
     [],
   );
 
-  if (output.isError && output.error) {
-    return (
-      <EnhancedErrorOutput
-        error={output.error}
-        errorInfo={output.errorInfo}
-        cellId={cellId}
-      />
-    );
-  }
-
-  const hasLatex = output.latex !== null && output.latex !== "";
-  const hasText = output.textOutput !== "";
-  const hasPlot = output.plotSvg !== null && output.plotSvg !== undefined && output.plotSvg !== "";
+  const hasLatex = !output.isError && output.latex !== null && output.latex !== "";
+  const hasText = !output.isError && output.textOutput !== "";
+  const hasPlot = !output.isError && output.plotSvg !== null && output.plotSvg !== undefined && output.plotSvg !== "";
 
   const plotBlobUrl = useMemo(() => {
     if (!hasPlot) return "";
@@ -52,6 +42,16 @@ export function CellOutput({ output, cellId }: CellOutputProps) {
     URL.revokeObjectURL(prevBlobUrl.current);
   }
   prevBlobUrl.current = plotBlobUrl;
+
+  if (output.isError && output.error) {
+    return (
+      <EnhancedErrorOutput
+        error={output.error}
+        errorInfo={output.errorInfo}
+        cellId={cellId}
+      />
+    );
+  }
 
   return (
     <div className="cell-output">
