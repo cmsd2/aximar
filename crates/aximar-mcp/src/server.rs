@@ -12,7 +12,7 @@ use aximar_core::catalog::search::Catalog;
 use aximar_core::maxima::backend::Backend;
 use aximar_core::maxima::labels::{rewrite_labels, LabelContext};
 use aximar_core::maxima::output::OutputSink;
-use aximar_core::maxima::unicode::unicode_to_maxima;
+use aximar_core::maxima::unicode::{build_texput_init, unicode_to_maxima};
 use aximar_core::maxima::process::MaximaProcess;
 use aximar_core::maxima::protocol;
 use aximar_core::maxima::types::SessionStatus;
@@ -132,6 +132,14 @@ impl AximarMcpServer {
                 {
                     Ok(process) => {
                         self.session.set_ready(process).await;
+                        // Configure texput so Greek letters render correctly
+                        // (e.g. theta → \theta instead of Maxima's default \vartheta)
+                        let init = build_texput_init();
+                        let mut guard = self.session.lock().await;
+                        if let Ok(p) = guard.process_mut() {
+                            let _ = protocol::evaluate(p, "__init__", &init, &self.catalog, self.eval_timeout).await;
+                        }
+                        drop(guard);
                         Ok(())
                     }
                     Err(e) => {

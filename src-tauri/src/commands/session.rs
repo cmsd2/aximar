@@ -4,8 +4,10 @@ use tauri::State;
 use aximar_core::error::AppError;
 use aximar_core::maxima::output::{MultiOutputSink, OutputSink};
 use aximar_core::maxima::process::MaximaProcess;
+use aximar_core::maxima::protocol;
 use aximar_core::maxima::types::SessionStatus;
-use crate::commands::config::{read_backend, read_maxima_path};
+use aximar_core::maxima::unicode::build_texput_init;
+use crate::commands::config::{read_backend, read_eval_timeout, read_maxima_path};
 use crate::state::AppState;
 use crate::tauri_output::{emit_app_log, TauriOutputSink};
 
@@ -33,6 +35,14 @@ pub async fn start_session(
     match MaximaProcess::spawn(backend, maxima_path, output_sink).await {
         Ok(process) => {
             state.session.set_ready(process).await;
+            // Configure texput so Greek letters render correctly in TeX output
+            let init = build_texput_init();
+            let eval_timeout = read_eval_timeout(&app);
+            let mut guard = state.session.lock().await;
+            if let Ok(p) = guard.process_mut() {
+                let _ = protocol::evaluate(p, "__init__", &init, &state.catalog, eval_timeout).await;
+            }
+            drop(guard);
             emit_app_log(&state.app_handle, &state.app_log, "info", "Maxima session ready", "session");
             Ok(SessionStatus::Ready)
         }
@@ -67,6 +77,14 @@ pub async fn restart_session(
     match MaximaProcess::spawn(backend, maxima_path, output_sink).await {
         Ok(process) => {
             state.session.set_ready(process).await;
+            // Configure texput so Greek letters render correctly in TeX output
+            let init = build_texput_init();
+            let eval_timeout = read_eval_timeout(&app);
+            let mut guard = state.session.lock().await;
+            if let Ok(p) = guard.process_mut() {
+                let _ = protocol::evaluate(p, "__init__", &init, &state.catalog, eval_timeout).await;
+            }
+            drop(guard);
             emit_app_log(&state.app_handle, &state.app_log, "info", "Maxima session ready", "session");
             Ok(SessionStatus::Ready)
         }

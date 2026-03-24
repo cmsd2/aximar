@@ -2,8 +2,7 @@ import { useCallback } from "react";
 import { message } from "@tauri-apps/plugin-dialog";
 import { useNotebookStore } from "../store/notebookStore";
 import { useLogStore } from "../store/logStore";
-import { startSession, restartSession, evaluateExpression } from "../lib/maxima-client";
-import { buildTexputInit } from "../lib/math-symbols";
+import { startSession, restartSession } from "../lib/maxima-client";
 import { nbRunCell } from "../lib/notebook-commands";
 
 function isMaximaNotFoundError(errorMsg: string): boolean {
@@ -94,8 +93,6 @@ export function useMaxima() {
     try {
       const status = await startSession();
       setSessionStatus(status);
-      // Configure TeX rendering for Greek symbol variables
-      await evaluateExpression("__init__", buildTexputInit());
       addLog("info", "Session ready", "session");
     } catch (err) {
       const errMsg = String(err);
@@ -111,8 +108,6 @@ export function useMaxima() {
     try {
       const status = await restartSession();
       setSessionStatus(status);
-      // Configure TeX rendering for Greek symbol variables
-      await evaluateExpression("__init__", buildTexputInit());
       addLog("info", "Session ready", "session");
     } catch (err) {
       const errMsg = String(err);

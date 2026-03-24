@@ -52,6 +52,61 @@ const UNICODE_MAP: &[(&str, &str)] = &[
     ("∞", "inf"),
 ];
 
+/// (maxima_name, latex_command) pairs for `texput` initialization.
+/// Maxima's default TeX rendering uses `\vartheta` for `theta`, etc.
+/// These overrides ensure standard LaTeX names are used.
+/// Each LaTeX command needs a double backslash because Maxima's string parser
+/// treats `\` as an escape character — `\\` in a Maxima string literal produces
+/// a single literal backslash.
+const TEXPUT_MAP: &[(&str, &str)] = &[
+    // Lowercase Greek
+    ("alpha", "\\\\alpha"),
+    ("beta", "\\\\beta"),
+    ("gamma", "\\\\gamma"),
+    ("delta", "\\\\delta"),
+    ("epsilon", "\\\\epsilon"),
+    ("zeta", "\\\\zeta"),
+    ("eta", "\\\\eta"),
+    ("theta", "\\\\theta"),
+    ("iota", "\\\\iota"),
+    ("kappa", "\\\\kappa"),
+    ("lambda", "\\\\lambda"),
+    ("mu", "\\\\mu"),
+    ("nu", "\\\\nu"),
+    ("xi", "\\\\xi"),
+    ("rho", "\\\\rho"),
+    ("sigma", "\\\\sigma"),
+    ("tau", "\\\\tau"),
+    ("upsilon", "\\\\upsilon"),
+    ("phi", "\\\\phi"),
+    ("chi", "\\\\chi"),
+    ("psi", "\\\\psi"),
+    ("omega", "\\\\omega"),
+    // Uppercase Greek
+    ("Gamma", "\\\\Gamma"),
+    ("Delta", "\\\\Delta"),
+    ("Theta", "\\\\Theta"),
+    ("Lambda", "\\\\Lambda"),
+    ("Xi", "\\\\Xi"),
+    ("Pi", "\\\\Pi"),
+    ("Sigma", "\\\\Sigma"),
+    ("Phi", "\\\\Phi"),
+    ("Psi", "\\\\Psi"),
+    ("Omega", "\\\\Omega"),
+];
+
+/// Build a Maxima expression that configures `texput` for all Greek symbols,
+/// so e.g. `theta` renders as `\theta` instead of Maxima's default `\vartheta`.
+/// Returns a `$`-terminated block that produces no visible output.
+pub fn build_texput_init() -> String {
+    TEXPUT_MAP
+        .iter()
+        .map(|(name, tex)| format!("texput({}, \"{}\")", name, tex))
+        .collect::<Vec<_>>()
+        .join("$ ")
+        + "$"
+}
+
 /// Replace Unicode math symbols with their Maxima-compatible ASCII names.
 pub fn unicode_to_maxima(expr: &str) -> String {
     let mut result = expr.to_string();
@@ -104,5 +159,16 @@ mod tests {
     fn uppercase_greek() {
         assert_eq!(unicode_to_maxima("Γ(x)"), "Gamma(x)");
         assert_eq!(unicode_to_maxima("Ω"), "Omega");
+    }
+
+    #[test]
+    fn texput_init_escaping() {
+        let init = build_texput_init();
+        // Each entry should produce: texput(name, "\\latex")
+        // where \\ is a Maxima string escape for a literal backslash
+        assert!(init.contains(r#"texput(theta, "\\theta")"#));
+        assert!(init.contains(r#"texput(Gamma, "\\Gamma")"#));
+        // Should end with $
+        assert!(init.ends_with('$'));
     }
 }
