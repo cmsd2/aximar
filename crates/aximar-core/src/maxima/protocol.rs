@@ -63,22 +63,20 @@ pub async fn query_variables(process: &mut MaximaProcess) -> Result<Vec<String>,
     .await
     .map_err(|_| AppError::Timeout(VARS_TIMEOUT_SECS))??;
 
-    // Find the line containing __AXIMAR_VARS__ and parse the variable list
-    // Maxima outputs: __AXIMAR_VARS__ [a,b,c] or __AXIMAR_VARS__ [] if none
+    // Find __AXIMAR_VARS__ and parse the variable list.
+    // Maxima may wrap long lists across multiple lines, so join them first.
+    let joined = lines.join(" ");
     let mut vars = Vec::new();
-    for line in &lines {
-        if let Some(pos) = line.find(VARS_START) {
-            let rest = &line[pos + VARS_START.len()..];
-            // Extract content between [ and ]
-            if let Some(start) = rest.find('[') {
-                if let Some(end) = rest.find(']') {
-                    let content = rest[start + 1..end].trim();
-                    if !content.is_empty() {
-                        for var in content.split(',') {
-                            let name = var.trim().to_string();
-                            if !name.is_empty() && !is_internal_variable(&name) {
-                                vars.push(name);
-                            }
+    if let Some(pos) = joined.find(VARS_START) {
+        let rest = &joined[pos + VARS_START.len()..];
+        if let Some(start) = rest.find('[') {
+            if let Some(end) = rest.find(']') {
+                let content = rest[start + 1..end].trim();
+                if !content.is_empty() {
+                    for var in content.split(',') {
+                        let name = var.trim().to_string();
+                        if !name.is_empty() && !is_internal_variable(&name) {
+                            vars.push(name);
                         }
                     }
                 }
