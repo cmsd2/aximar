@@ -1,0 +1,209 @@
+{
+  "nbformat": 4,
+  "nbformat_minor": 0,
+  "metadata": {
+    "kernelspec": {
+      "name": "maxima",
+      "display_name": "Maxima",
+      "language": "maxima"
+    },
+    "aximar": {
+      "template_id": "complex-numbers",
+      "title": "Complex Numbers",
+      "description": "Arithmetic, polar form, De Moivre, roots of unity, complex calculus, and plotting."
+    }
+  },
+  "cells": [
+    {
+      "cell_type": "markdown",
+      "source": "# Complex Numbers in Maxima\n\nA tour of complex number operations: arithmetic, polar and exponential forms, De Moivre's theorem, roots of unity, complex calculus, and visualisation.",
+      "metadata": {}
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## Basic Arithmetic",
+      "metadata": {}
+    },
+    {
+      "cell_type": "code",
+      "source": "z1 : 3 + 4*%i;\nz2 : 1 - 2*%i;\nrectform([z1 + z2, z1 - z2, z1 * z2, z1 / z2])",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## Real Part, Imaginary Part, Modulus, Argument",
+      "metadata": {}
+    },
+    {
+      "cell_type": "code",
+      "source": "z : 3 + 4*%i;\n[realpart(z), imagpart(z), cabs(z), carg(z)]",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## Conjugate",
+      "metadata": {}
+    },
+    {
+      "cell_type": "code",
+      "source": "z : 3 + 4*%i;\n[conjugate(z), rectform(z * conjugate(z))]",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## Polar Form & Euler's Formula\n\n`polarform(z)` converts to r\u00b7e^(i\u03b8). Maxima knows Euler's identity e^(i\u03c0) + 1 = 0.",
+      "metadata": {}
+    },
+    {
+      "cell_type": "code",
+      "source": "polarform(3 + 4*%i)",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": "/* Euler's identity */\nrectform(%e^(%i * \u03c0) + 1)",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## De Moivre's Theorem\n\n(cos \u03b8 + i sin \u03b8)\u207f = cos(n\u03b8) + i sin(n\u03b8). Use `demoivre` to convert exponential form to trig form.",
+      "metadata": {}
+    },
+    {
+      "cell_type": "code",
+      "source": "kill(z)$\n/* Expand e^(i\u00b73\u03b8) using De Moivre */\ndemoivre(%e^(3*%i*\u03b8))",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## Roots of Unity\n\nThe nth roots of unity are the solutions to z\u207f = 1.",
+      "metadata": {}
+    },
+    {
+      "cell_type": "code",
+      "source": "/* 5th roots of unity via explicit formula */\nmakelist(rectform(%e^(2*\u03c0*%i*k/5)), k, 0, 4)",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## Complex Functions & Calculus\n\nDifferentiation and integration work with complex-valued expressions.",
+      "metadata": {}
+    },
+    {
+      "cell_type": "code",
+      "source": "/* Derivative of a complex exponential */\ndiff(%e^(%i*\u03c9*t), t)",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": "/* Integral of e^(i\u03c9t) */\nintegrate(%e^(%i*\u03c9*t), t)",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## Expanding Complex Trig & Hyperbolic Functions\n\n`exponentialize` converts trig to exponentials; `demoivre` converts back.",
+      "metadata": {}
+    },
+    {
+      "cell_type": "code",
+      "source": "/* cos(z) in terms of exponentials */\nexponentialize(cos(z))",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": "/* Verify: cos(iz) = cosh(z) */\nrectform(exponentialize(cos(%i*z) - cosh(z)))",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## Solving Equations with Complex Roots",
+      "metadata": {}
+    },
+    {
+      "cell_type": "code",
+      "source": "/* Quadratic with complex roots */\nsolve(x^2 + 2*x + 5 = 0, x)",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": "/* Cubic: all roots including complex ones */\nsolve(x^3 - 1 = 0, x)",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## Complex Logarithm & Powers\n\nThe complex logarithm is multi-valued. Maxima returns the principal branch.",
+      "metadata": {}
+    },
+    {
+      "cell_type": "code",
+      "source": "/* Principal log of a negative number */\nrectform(log(-1))",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": "/* i^i is real! */\nrectform(%i^%i)",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": "/* Its numerical value */\nfloat(%)",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## Complex Series Expansion\n\nTaylor-expand complex functions around a point.",
+      "metadata": {}
+    },
+    {
+      "cell_type": "code",
+      "source": "/* Taylor series of e^(iz) around z=0 */\ntaylor(%e^(%i*z), z, 0, 6)",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## Mapping a Circle under z\u00b2\n\nWhen we square every point on a circle in the complex plane, the image is a distorted curve. Here we plot a circle of radius 1 centred at \u00bd and its image under f(z) = z\u00b2.",
+      "metadata": {}
+    },
+    {
+      "cell_type": "code",
+      "source": "/* Circle: z = 1/2 + e^(i\u03b8)   Image: w = z\u00b2 */\na : 1/2$\nplot2d(\n  [[parametric, a + cos(t), sin(t), [t, 0, 2*float(%pi)]],\n   [parametric, (a+cos(t))^2 - sin(t)^2, 2*(a+cos(t))*sin(t), [t, 0, 2*float(%pi)]]],\n  [xlabel, \"Re\"], [ylabel, \"Im\"],\n  [legend, \"z\", \"z^2\"],\n  [same_xy])",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    }
+  ]
+}

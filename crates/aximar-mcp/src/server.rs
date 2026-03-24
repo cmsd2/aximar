@@ -7,6 +7,7 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use tokio::sync::Mutex;
 
+use aximar_core::commands::{CommandEffect, NotebookCommand};
 use aximar_core::catalog::docs::Docs;
 use aximar_core::catalog::search::Catalog;
 use aximar_core::maxima::backend::Backend;
@@ -20,7 +21,6 @@ use aximar_core::notebooks::{data as notebook_data, io as notebook_io, types as 
 use aximar_core::session::SessionManager;
 
 use crate::capture::CaptureOutputSink;
-use crate::commands::NotebookCommand;
 use crate::log::ServerLog;
 use crate::notebook::{CellOutput, CellStatus, CellType, Notebook};
 
@@ -43,7 +43,7 @@ pub struct AximarMcpServer {
     eval_timeout: u64,
     /// Optional callback invoked after any notebook mutation (used by connected mode
     /// to push state to the Tauri frontend).
-    on_notebook_change: Option<Arc<dyn Fn() + Send + Sync>>,
+    on_notebook_change: Option<Arc<dyn Fn(CommandEffect) + Send + Sync>>,
 }
 
 impl AximarMcpServer {
@@ -89,7 +89,7 @@ impl AximarMcpServer {
         backend: Backend,
         maxima_path: Option<String>,
         eval_timeout: u64,
-        on_notebook_change: Arc<dyn Fn() + Send + Sync>,
+        on_notebook_change: Arc<dyn Fn(CommandEffect) + Send + Sync>,
     ) -> Self {
         let tool_router = Self::tool_router();
         AximarMcpServer {
@@ -109,9 +109,9 @@ impl AximarMcpServer {
     }
 
     /// Invoke the notebook-change callback if one is registered (connected mode).
-    fn notify_notebook_change(&self) {
+    fn notify_notebook_change(&self, effect: CommandEffect) {
         if let Some(ref cb) = self.on_notebook_change {
-            cb();
+            cb(effect);
         }
     }
 
@@ -415,7 +415,7 @@ impl AximarMcpServer {
         })?;
         let cell_id = effect.cell_id().unwrap_or("").to_string();
         drop(nb);
-        self.notify_notebook_change();
+        self.notify_notebook_change(effect);
         success_json(&serde_json::json!({ "cell_id": cell_id }))
     }
 
@@ -425,12 +425,13 @@ impl AximarMcpServer {
         Parameters(params): Parameters<UpdateCellParams>,
     ) -> Result<String, String> {
         let mut nb = self.notebook.lock().await;
+        let mut last_effect = None;
         // Apply input update if provided
         if let Some(input) = params.input {
-            nb.apply(NotebookCommand::UpdateCellInput {
+            last_effect = Some(nb.apply(NotebookCommand::UpdateCellInput {
                 cell_id: params.cell_id.clone(),
                 input,
-            })?;
+            })?);
         }
         // Apply cell type toggle if the requested type differs
         if let Some(ref type_str) = params.cell_type {
@@ -440,16 +441,18 @@ impl AximarMcpServer {
             };
             if let Some(cell) = nb.get_cell(&params.cell_id) {
                 if cell.cell_type != requested {
-                    nb.apply(NotebookCommand::ToggleCellType {
+                    last_effect = Some(nb.apply(NotebookCommand::ToggleCellType {
                         cell_id: params.cell_id.clone(),
-                    })?;
+                    })?);
                 }
             } else {
                 return error_result(format!("Cell '{}' not found", params.cell_id));
             }
         }
         drop(nb);
-        self.notify_notebook_change();
+        if let Some(effect) = last_effect {
+            self.notify_notebook_change(effect);
+        }
         success_json(&serde_json::json!({ "updated": true }))
     }
 
@@ -463,7 +466,7 @@ impl AximarMcpServer {
             cell_id: params.cell_id.clone(),
         })?;
         drop(nb);
-        self.notify_notebook_change();
+        self.notify_notebook_change(effect.clone());
         match effect {
             crate::commands::CommandEffect::NoOp { reason } => {
                 error_result(reason)
@@ -483,7 +486,7 @@ impl AximarMcpServer {
             direction: params.direction.clone(),
         })?;
         drop(nb);
-        self.notify_notebook_change();
+        self.notify_notebook_change(effect.clone());
         match effect {
             crate::commands::CommandEffect::NoOp { reason } => {
                 error_result(reason)
@@ -520,14 +523,16 @@ impl AximarMcpServer {
 
         if cell_type == CellType::Code {
             // Set status to Running
-            {
+            let status_effect = {
                 let mut nb = self.notebook.lock().await;
-                let _ = nb.apply(NotebookCommand::SetCellStatus {
+                nb.apply(NotebookCommand::SetCellStatus {
                     cell_id: params.cell_id.clone(),
                     status: CellStatus::Running,
-                });
+                }).ok()
+            };
+            if let Some(effect) = status_effect {
+                self.notify_notebook_change(effect);
             }
-            self.notify_notebook_change();
 
             // Clear previous capture
             self.output_sink.take_cell_output();
@@ -585,14 +590,17 @@ impl AximarMcpServer {
                     }
 
                     let cell_output = CellOutput::from_eval_result(&eval_result, exec_count);
-                    let mut nb = self.notebook.lock().await;
-                    let _ = nb.apply(NotebookCommand::SetCellOutput {
-                        cell_id: params.cell_id.clone(),
-                        output: cell_output.clone(),
-                        raw_output,
-                    });
-                    drop(nb);
-                    self.notify_notebook_change();
+                    let output_effect = {
+                        let mut nb = self.notebook.lock().await;
+                        nb.apply(NotebookCommand::SetCellOutput {
+                            cell_id: params.cell_id.clone(),
+                            output: cell_output.clone(),
+                            raw_output,
+                        }).ok()
+                    };
+                    if let Some(effect) = output_effect {
+                        self.notify_notebook_change(effect);
+                    }
                     success_json(&serde_json::json!({
                         "cell_id": params.cell_id,
                         "execution_count": exec_count,
@@ -857,10 +865,10 @@ impl AximarMcpServer {
             Ok(notebook) => {
                 let cells = ipynb_to_cell_tuples(&notebook);
                 let mut nb = self.notebook.lock().await;
-                nb.apply(NotebookCommand::LoadCells { cells })?;
+                let effect = nb.apply(NotebookCommand::LoadCells { cells })?;
                 let cell_count = nb.cells().len();
                 drop(nb);
-                self.notify_notebook_change();
+                self.notify_notebook_change(effect);
                 success_json(&serde_json::json!({
                     "opened": true,
                     "path": params.path,
@@ -897,10 +905,10 @@ impl AximarMcpServer {
             Some(notebook) => {
                 let cells = ipynb_to_cell_tuples(&notebook);
                 let mut nb = self.notebook.lock().await;
-                nb.apply(NotebookCommand::LoadCells { cells })?;
+                let effect = nb.apply(NotebookCommand::LoadCells { cells })?;
                 let cell_count = nb.cells().len();
                 drop(nb);
-                self.notify_notebook_change();
+                self.notify_notebook_change(effect);
                 success_json(&serde_json::json!({
                     "loaded": true,
                     "template_id": params.template_id,
@@ -957,7 +965,11 @@ impl rmcp::handler::server::ServerHandler for AximarMcpServer {
                  automatically, so % forms are not required.\n\n\
                  When building a notebook, run each code cell immediately after creating it \
                  before moving on to the next cell. This ensures earlier definitions are \
-                 available to later cells and lets you catch errors early.",
+                 available to later cells and lets you catch errors early.\n\n\
+                 To clear a variable binding, add a code cell with `kill(varname)$` and run it. \
+                 This keeps the operation visible in the notebook so it works when re-run from \
+                 scratch. The kill_variable tool is fine for ad-hoc cleanup, but when building a \
+                 notebook that should work start to finish, prefer a code cell.",
             )
     }
 }

@@ -32,7 +32,7 @@ pub async fn start_mcp_server(state: AppState, listen_address: String, ct: Cance
     // Build notebook-change callback that emits a Tauri event
     let app_handle = state.app_handle.clone();
     let notebook_for_cb = state.notebook.clone();
-    let on_notebook_change: Arc<dyn Fn() + Send + Sync> = Arc::new(move || {
+    let on_notebook_change: Arc<dyn Fn(CommandEffect) + Send + Sync> = Arc::new(move |effect| {
         let app_handle = app_handle.clone();
         let notebook = notebook_for_cb.clone();
         // Spawn a task because the callback is called synchronously but we need
@@ -41,9 +41,6 @@ pub async fn start_mcp_server(state: AppState, listen_address: String, ct: Cance
             if let Ok(guard) = app_handle.try_lock() {
                 if let Some(ref handle) = *guard {
                     let nb = notebook.lock().await;
-                    // Use a generic "mcp_changed" effect since we don't know
-                    // which specific command the MCP server applied
-                    let effect = CommandEffect::NotebookReplaced;
                     emit_notebook_state(handle, &nb, &effect);
                 }
             }

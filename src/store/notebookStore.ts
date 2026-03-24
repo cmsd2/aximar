@@ -101,16 +101,19 @@ export const useNotebookStore = create<NotebookState>((set) => ({
     set((state) => {
       // Merge backend cells with local state, preserving local input edits
       // that may not have been synced yet.
+      const isReplace = effect === "notebook_replaced";
       const mergedCells = cells.map((backendCell) => {
         const localCell = state.cells.find((c) => c.id === backendCell.id);
-        // For input updates from the backend, use backend input.
-        // For other effects, preserve local input if it differs (pending debounced sync).
+        // For input updates, notebook replacements (MCP changes, undo/redo,
+        // new/load), or new cells: use backend input. Otherwise preserve
+        // local input which may have pending debounced sync.
         const isInputEffect =
           effect === "cell_input_updated" && cellId === backendCell.id;
-        const input =
-          isInputEffect || !localCell
-            ? backendCell.input
-            : localCell.input;
+        const useBackendInput =
+          isInputEffect || isReplace || !localCell;
+        const input = useBackendInput
+          ? backendCell.input
+          : localCell.input;
         return {
           ...backendCell,
           input,
@@ -124,9 +127,6 @@ export const useNotebookStore = create<NotebookState>((set) => ({
           maxExecCount = Math.max(maxExecCount, cell.output.executionCount);
         }
       }
-
-      // Determine if notebook was replaced (new/load/open) to clear dirty flag
-      const isReplace = effect === "notebook_replaced";
 
       // Auto-activate newly added cells; on notebook replace, activate the first cell
       let newActiveCellId = state.activeCellId;
