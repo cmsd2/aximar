@@ -1,7 +1,8 @@
 use std::path::PathBuf;
 use std::process::Command;
 
-use crate::commands::config::{BackendKind, ContainerEngine};
+use serde::{Deserialize, Serialize};
+
 use crate::maxima::noconsole::hide_console_window_sync;
 
 const CONTAINER_TEMP_DIR: &str = "/tmp/aximar";
@@ -10,7 +11,34 @@ const CONTAINER_TEMP_DIR: &str = "/tmp/aximar";
 /// required by GCL (GNU Common Lisp), which is the Lisp runtime used by
 /// Ubuntu's Maxima package. GCL needs ADDR_NO_RANDOMIZE (0x40000) and
 /// READ_IMPLIES_EXEC (0x400000), which Docker's default profile blocks.
-const SECCOMP_PROFILE: &str = include_str!("../../../docker/seccomp.json");
+const SECCOMP_PROFILE: &str = include_str!("../../../../docker/seccomp.json");
+
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum BackendKind {
+    Local,
+    Docker,
+    Wsl,
+}
+
+impl Default for BackendKind {
+    fn default() -> Self {
+        Self::Local
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum ContainerEngine {
+    Docker,
+    Podman,
+}
+
+impl Default for ContainerEngine {
+    fn default() -> Self {
+        Self::Docker
+    }
+}
 
 #[derive(Debug, Clone)]
 pub enum Backend {

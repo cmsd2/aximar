@@ -1,23 +1,16 @@
 use std::env;
 use std::path::PathBuf;
+use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
-use serde::Serialize;
-use tauri::Emitter;
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
 use tokio::process::{Child, Command};
 
 use crate::error::AppError;
 use crate::maxima::backend::Backend;
 use crate::maxima::noconsole::hide_console_window;
+use crate::maxima::output::{OutputEvent, OutputSink};
 
 const READY_SENTINEL: &str = "__AXIMAR_READY__";
-
-#[derive(Clone, Serialize)]
-pub struct MaximaOutputEvent {
-    pub line: String,
-    pub stream: String,
-    pub timestamp: u64,
-}
 
 pub struct MaximaProcess {
     child: Child,
@@ -26,11 +19,11 @@ pub struct MaximaProcess {
     stderr_reader: BufReader<tokio::process::ChildStderr>,
     backend: Backend,
     container_name: Option<String>,
-    app_handle: Option<tauri::AppHandle>,
+    output_sink: Arc<dyn OutputSink>,
 }
 
 impl MaximaProcess {
-    pub async fn spawn(backend: Backend, custom_path: Option<String>, app_handle: Option<tauri::AppHandle>) -> Result<Self, AppError> {
+    pub async fn spawn(backend: Backend, custom_path: Option<String>, output_sink: Arc<dyn OutputSink>) -> Result<Self, AppError> {
         Self::preflight_check(&backend).await?;
 
         let (mut child, container_name) = match &backend {
@@ -184,7 +177,7 @@ impl MaximaProcess {
             stderr_reader,
             backend,
             container_name,
-            app_handle,
+            output_sink,
         };
 
         proc.initialize().await?;
@@ -217,16 +210,14 @@ impl MaximaProcess {
     }
 
     fn emit_output(&self, line: &str, stream: &str) {
-        if let Some(ref handle) = self.app_handle {
-            let _ = handle.emit("maxima-output", MaximaOutputEvent {
-                line: line.to_string(),
-                stream: stream.to_string(),
-                timestamp: SystemTime::now()
-                    .duration_since(UNIX_EPOCH)
-                    .map(|d| d.as_millis() as u64)
-                    .unwrap_or(0),
-            });
-        }
+        self.output_sink.emit(OutputEvent {
+            line: line.to_string(),
+            stream: stream.to_string(),
+            timestamp: SystemTime::now()
+                .duration_since(UNIX_EPOCH)
+                .map(|d| d.as_millis() as u64)
+                .unwrap_or(0),
+        });
     }
 
     pub async fn write_stdin(&mut self, input: &str) -> Result<(), AppError> {
@@ -469,7 +460,7 @@ impl MaximaProcess {
     }
 }
 
-fn find_maxima_binary() -> String {
+pub fn find_maxima_binary() -> String {
     if let Ok(path) = env::var("AXIMAR_MAXIMA_PATH") {
         return path;
     }

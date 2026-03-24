@@ -10,6 +10,7 @@ pub fn definition_to_markdown(node: Node) -> String {
 }
 
 /// Convert any element subtree to Markdown (used for arbitrary nodes).
+#[cfg(test)]
 pub fn node_to_markdown(node: Node) -> String {
     let mut ctx = MarkdownContext::new();
     convert_node(node, &mut ctx);

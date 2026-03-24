@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use aximar_lib::catalog::types::{FunctionCategory, FunctionExample, MaximaFunction};
+use aximar_core::catalog::types::{FunctionCategory, FunctionExample, MaximaFunction};
 use roxmltree::{Document, Node, ParsingOptions};
 
 use crate::mapping::map_category;

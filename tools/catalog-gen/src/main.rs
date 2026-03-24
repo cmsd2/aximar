@@ -7,13 +7,13 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-use aximar_lib::catalog::types::MaximaFunction;
+use aximar_core::catalog::types::MaximaFunction;
 use clap::{Parser, Subcommand};
 
 const MAXIMA_GIT_URL: &str = "https://git.code.sf.net/p/maxima/code";
 const MAXIMA_TEXI_REL: &str = "doc/info/maxima.texi";
-const CATALOG_REL: &str = "src-tauri/src/catalog/catalog.json";
-const DOCS_REL: &str = "src-tauri/src/catalog/docs.json";
+const CATALOG_REL: &str = "crates/aximar-core/src/catalog/catalog.json";
+const DOCS_REL: &str = "crates/aximar-core/src/catalog/docs.json";
 const FIGURES_REL: &str = "public/figures";
 const SECCOMP_REL: &str = "docker/seccomp.json";
 /// Upstream Docker default seccomp profile. Pinned to a release tag because

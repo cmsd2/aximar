@@ -2,6 +2,7 @@ pub mod backend;
 pub mod errors;
 pub mod labels;
 pub mod noconsole;
+pub mod output;
 pub mod parser;
 pub mod process;
 pub mod protocol;

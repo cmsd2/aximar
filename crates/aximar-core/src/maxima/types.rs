@@ -34,7 +34,7 @@ pub enum SessionStatus {
 }
 
 impl SessionStatus {
-    pub(crate) fn as_code(&self) -> u8 {
+    pub fn as_code(&self) -> u8 {
         match self {
             SessionStatus::Stopped => 0,
             SessionStatus::Starting => 1,
@@ -44,7 +44,7 @@ impl SessionStatus {
         }
     }
 
-    pub(crate) fn from_code(code: u8, error_msg: impl FnOnce() -> String) -> Self {
+    pub fn from_code(code: u8, error_msg: impl FnOnce() -> String) -> Self {
         match code {
             1 => SessionStatus::Starting,
             2 => SessionStatus::Ready,

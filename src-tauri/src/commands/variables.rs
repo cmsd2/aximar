@@ -1,7 +1,7 @@
 use tauri::State;
 
-use crate::error::AppError;
-use crate::maxima::protocol;
+use aximar_core::error::AppError;
+use aximar_core::maxima::protocol;
 use crate::state::AppState;
 
 #[tauri::command]

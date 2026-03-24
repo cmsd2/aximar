@@ -1,0 +1,25 @@
+[package]
+name = "aximar-mcp"
+version = "0.3.0"
+edition = "2021"
+description = "Headless MCP server for Aximar — exposes Maxima CAS via Model Context Protocol"
+license = "GPL-3.0-or-later"
+
+[lib]
+name = "aximar_mcp"
+path = "src/lib.rs"
+
+[[bin]]
+name = "aximar-mcp"
+path = "src/main.rs"
+
+[dependencies]
+aximar-core = { path = "../aximar-core" }
+rmcp = { version = "1.2", features = ["server", "transport-io"] }
+tokio = { version = "1", features = ["full"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+schemars = "1"
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+anyhow = "1"

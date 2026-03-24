@@ -1,4 +1,4 @@
-use aximar_lib::catalog::types::FunctionCategory;
+use aximar_core::catalog::types::FunctionCategory;
 
 /// Map Maxima's fine-grained category strings to our FunctionCategory enum.
 ///

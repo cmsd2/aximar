@@ -1,6 +1,6 @@
 use tauri::State;
 
-use crate::catalog::types::*;
+use aximar_core::catalog::types::*;
 use crate::state::AppState;
 
 #[tauri::command]

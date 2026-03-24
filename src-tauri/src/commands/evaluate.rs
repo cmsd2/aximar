@@ -1,10 +1,10 @@
 use tauri::State;
 
+use aximar_core::error::AppError;
+use aximar_core::maxima::labels::{self, LabelContext};
+use aximar_core::maxima::protocol;
+use aximar_core::maxima::types::EvalResult;
 use crate::commands::config::read_eval_timeout;
-use crate::error::AppError;
-use crate::maxima::labels::{self, LabelContext};
-use crate::maxima::protocol;
-use crate::maxima::types::EvalResult;
 use crate::state::AppState;
 
 #[tauri::command]

@@ -1,6 +1,6 @@
-use crate::notebooks::data;
-use crate::notebooks::io;
-use crate::notebooks::types::{Notebook, TemplateSummary};
+use aximar_core::notebooks::data;
+use aximar_core::notebooks::io;
+use aximar_core::notebooks::types::{Notebook, TemplateSummary};
 
 #[tauri::command]
 pub fn list_templates() -> Vec<TemplateSummary> {
