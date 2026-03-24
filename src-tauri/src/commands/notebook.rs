@@ -75,6 +75,7 @@ pub async fn nb_add_cell(
     cell_type: Option<String>,
     input: Option<String>,
     after_cell_id: Option<String>,
+    before_cell_id: Option<String>,
 ) -> Result<NbAddCellResult, AppError> {
     let ct = match cell_type.as_deref() {
         Some("markdown") => CellType::Markdown,
@@ -86,6 +87,7 @@ pub async fn nb_add_cell(
             cell_type: ct,
             input: input.unwrap_or_default(),
             after_cell_id,
+            before_cell_id,
         })
         .map_err(|e| AppError::CommunicationError(e))?;
     let cell_id = match &effect {
@@ -309,7 +311,7 @@ pub async fn nb_run_cell(
         }
     };
 
-    let result = protocol::evaluate(process, &cell_id, &rewritten, &state.catalog, eval_timeout).await;
+    let result = protocol::evaluate_with_packages(process, &cell_id, &rewritten, &state.catalog, &state.packages, eval_timeout).await;
     guard.end_eval();
     drop(guard);
 

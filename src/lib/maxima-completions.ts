@@ -1,10 +1,14 @@
 import type { CompletionContext, CompletionResult } from "@codemirror/autocomplete";
 import { snippet } from "@codemirror/autocomplete";
-import { completeFunction, getFunction } from "./catalog-client";
+import { completeFunction, completePackages, getFunction } from "./catalog-client";
 import { parseSignature } from "./signature-parser";
 
 export function maximaCompletionSource(autocompleteMode: string) {
   return async (context: CompletionContext): Promise<CompletionResult | null> => {
+    // Check if we're inside a load("...") call first
+    const loadResult = await loadPackageCompletionSource(context);
+    if (loadResult) return loadResult;
+
     const word = context.matchBefore(/[a-zA-Z_][a-zA-Z_0-9]*/);
     if (!word || word.text.length < 2) return null;
 
@@ -15,7 +19,7 @@ export function maximaCompletionSource(autocompleteMode: string) {
       from: word.from,
       options: results.slice(0, 8).map((r) => ({
         label: r.name,
-        detail: r.signature,
+        detail: r.package ? `load("${r.package}")` : r.signature,
         info: r.description || undefined,
         type: "function" as const,
         apply: autocompleteMode === "snippet"
@@ -23,6 +27,47 @@ export function maximaCompletionSource(autocompleteMode: string) {
           : `${r.name}(`,
       })),
     };
+  };
+}
+
+/**
+ * Detect when cursor is inside load("...") and offer package name completions.
+ */
+async function loadPackageCompletionSource(
+  context: CompletionContext
+): Promise<CompletionResult | null> {
+  // Match load("prefix or load(prefix (with or without quotes)
+  const match = context.matchBefore(/load\s*\(\s*"?([a-zA-Z_/]*)/);
+  if (!match) return null;
+
+  // Extract the prefix (the part after the opening quote/paren)
+  const fullMatch = match.text;
+  const prefixMatch = fullMatch.match(/load\s*\(\s*"?([a-zA-Z_/]*)$/);
+  if (!prefixMatch) return null;
+
+  const prefix = prefixMatch[1];
+  const prefixStart = match.to - prefix.length;
+
+  const results = await completePackages(prefix);
+  if (results.length === 0) return null;
+
+  // Check if there's already a closing quote and paren after cursor
+  const after = context.state.sliceDoc(context.pos, context.pos + 10);
+  const hasClosingQuote = after.startsWith('"');
+  const hasQuoteAndParen = after.startsWith('")');
+
+  return {
+    from: prefixStart,
+    options: results.slice(0, 10).map((r) => ({
+      label: r.name,
+      info: r.description || undefined,
+      type: "keyword" as const,
+      apply: hasQuoteAndParen
+        ? r.name
+        : hasClosingQuote
+          ? r.name
+          : `${r.name}`,
+    })),
   };
 }
 

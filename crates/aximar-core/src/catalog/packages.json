@@ -1,0 +1,2330 @@
+[
+  {
+    "name": "affine/macbasic",
+    "description": "macbasic package",
+    "functions": [
+      "central_elements",
+      "central_elements_and_check_dot_simplifications",
+      "free_ideal_generated_by",
+      "hhh",
+      "jcubic",
+      "jinv",
+      "skew_centralizer",
+      "tchirn"
+    ]
+  },
+  {
+    "name": "algebra/gcdex",
+    "description": "Implementation of the Maxima user functions gcdex and igcdex",
+    "functions": [
+      "gcdex",
+      "igcdex"
+    ]
+  },
+  {
+    "name": "algebra/nusum",
+    "description": "nusum package",
+    "functions": [
+      "algebraicp",
+      "clist",
+      "dimsum",
+      "funcsol",
+      "funcsolve",
+      "genpol",
+      "hicoef",
+      "nusum",
+      "nusuml",
+      "prodflip",
+      "prodgunch",
+      "prodshift",
+      "produ",
+      "ratsolve",
+      "rform",
+      "rforn",
+      "unsum"
+    ]
+  },
+  {
+    "name": "algebra/recur",
+    "description": "recur package",
+    "functions": [
+      "besselcheck",
+      "char",
+      "genf",
+      "newrat",
+      "polyinn",
+      "polyp",
+      "varc1",
+      "varc2"
+    ]
+  },
+  {
+    "name": "amatrix",
+    "description": "amatrix package",
+    "functions": [
+      "amatrix_mean",
+      "booleanp",
+      "compute_index0",
+      "compute_index1",
+      "copy_amatrix",
+      "copy_array",
+      "decprop",
+      "elements",
+      "get_element",
+      "incprop",
+      "integer_listp",
+      "make_matrix",
+      "new2old_matrix",
+      "old2new_matrix",
+      "putative_boolean_amatrixp",
+      "random_matrix",
+      "submatrix_by_all_and_flags",
+      "submatrix_by_flags_and_all",
+      "submatrix_by_flags_and_flags",
+      "submatrix_by_flags_and_indices",
+      "submatrix_by_indices",
+      "submatrix_by_indices_and_flags"
+    ]
+  },
+  {
+    "name": "bernstein/bernstein_utilities",
+    "description": "bernstein_utilities package",
+    "functions": [
+      "bernstein_expand"
+    ]
+  },
+  {
+    "name": "calculus/asympa",
+    "description": "asympa is a package for asymptotic analysis.",
+    "functions": [
+      "argscomplexity",
+      "asimp",
+      "asymp",
+      "asympdata",
+      "asympseries",
+      "asympsimp",
+      "cfasymp",
+      "complexity",
+      "incomensurate",
+      "leadterm",
+      "lo",
+      "lomega",
+      "mrge",
+      "multilim",
+      "mypartition",
+      "omega",
+      "oom",
+      "ooromega",
+      "pass1",
+      "pass2",
+      "theta",
+      "theta1",
+      "update"
+    ]
+  },
+  {
+    "name": "calculus/fourie",
+    "description": "fourie package",
+    "functions": [
+      "absint",
+      "adefint",
+      "delfun1",
+      "delfun2",
+      "delfunn1",
+      "delfunn2",
+      "equalp",
+      "evenfunp",
+      "fourcoeff",
+      "fourcos",
+      "fourexpand",
+      "fourier",
+      "fourint",
+      "fourintcoeff",
+      "fourintcos",
+      "fourintsin",
+      "foursimp",
+      "foursimple",
+      "foursin",
+      "funp",
+      "funp1",
+      "funp2",
+      "indefint",
+      "oddfunp",
+      "parint",
+      "parint1",
+      "parity",
+      "remfun",
+      "remfun1",
+      "remfun2",
+      "remfunn",
+      "remfunn1",
+      "remfunn2",
+      "totalfourier"
+    ]
+  },
+  {
+    "name": "calculus/optmiz",
+    "description": "optmiz package",
+    "functions": [
+      "gradient",
+      "stapoints"
+    ]
+  },
+  {
+    "name": "calculus/optvar",
+    "description": "optvar package",
+    "functions": [
+      "convert",
+      "el",
+      "ham",
+      "ic"
+    ]
+  },
+  {
+    "name": "calculus/pade2",
+    "description": "pade2 package",
+    "functions": [
+      "alength",
+      "pade2"
+    ]
+  },
+  {
+    "name": "calculus/qual",
+    "description": "qual package",
+    "functions": [
+      "addbnd",
+      "bndge1to",
+      "bndge1tonn",
+      "bndlem1to",
+      "bndlem1tonn",
+      "bndmayspan1tonn",
+      "bndminus",
+      "bndnegtimes",
+      "bndnntimes",
+      "bndnntimnn",
+      "bndnptonnevn",
+      "bndrecip",
+      "bndrestrict",
+      "bndspan1tonn",
+      "bndunary",
+      "bounds",
+      "bounds1",
+      "conssingularities",
+      "curvature",
+      "definitecode",
+      "evnp",
+      "ge1l",
+      "ge1u",
+      "gem1l",
+      "gradient",
+      "lbatom",
+      "lcmspec",
+      "le1u",
+      "lem1l",
+      "lem1u",
+      "limits1",
+      "mgez",
+      "neg8",
+      "negl",
+      "negu",
+      "nntonn",
+      "nonnegl",
+      "nonposu",
+      "period2",
+      "periods1",
+      "posl",
+      "posu",
+      "qual1",
+      "qual_hessian",
+      "qual_listify",
+      "recipl",
+      "recipu",
+      "revelation1",
+      "slopes1",
+      "slopes2",
+      "stationarypoints1",
+      "symmetry1",
+      "symmetry2",
+      "type",
+      "ubatom",
+      "unarybnd",
+      "variablep",
+      "zerosandsingularities",
+      "zp1"
+    ]
+  },
+  {
+    "name": "calculus/revert",
+    "description": "revert package",
+    "functions": [
+      "revert",
+      "revert2"
+    ]
+  },
+  {
+    "name": "calculus/taylor1",
+    "description": "find the taylor series of a function of x which is defined implicitly",
+    "functions": [
+      "implicit_taylor"
+    ]
+  },
+  {
+    "name": "colnew/prob1",
+    "description": "Problem 1 for colnew",
+    "functions": [
+      "dfsub",
+      "dgsub",
+      "exact",
+      "fsub",
+      "gsub"
+    ]
+  },
+  {
+    "name": "colnew/prob2",
+    "description": "Problem 2 for colnew",
+    "functions": [
+      "dfsub",
+      "dgsub",
+      "fsub",
+      "gsub",
+      "solutn"
+    ]
+  },
+  {
+    "name": "colnew/prob3",
+    "description": "Problem 3 for colnew, example of continuation",
+    "functions": [
+      "dfsub",
+      "dgsub",
+      "fsub",
+      "gsub",
+      "init_guess"
+    ]
+  },
+  {
+    "name": "colnew/prob4",
+    "description": "Problem 4 for colnew, example of continuation,",
+    "functions": [
+      "dfsub",
+      "dgsub",
+      "fsub",
+      "gsub",
+      "init_guess"
+    ]
+  },
+  {
+    "name": "colnew/prob5",
+    "description": "This example (Ascher et al, 1995, Example 9.2) solves a numerically",
+    "functions": [
+      "exact",
+      "run_it",
+      "xlist"
+    ]
+  },
+  {
+    "name": "contrib/augmented_lagrangian",
+    "description": "augmented_lagrangian package",
+    "functions": [
+      "augmented_lagrangian_method",
+      "fboundp"
+    ]
+  },
+  {
+    "name": "contrib/bode",
+    "description": "bode package",
+    "functions": [
+      "bode_gain",
+      "bode_phase",
+      "carg_unwrapped",
+      "log10"
+    ]
+  },
+  {
+    "name": "contrib/celine",
+    "description": "celine package",
+    "functions": [
+      "celine"
+    ]
+  },
+  {
+    "name": "contrib/clebsch_gordan",
+    "description": "This program computes the 3j, 6j, 9j symbols of Wigner, associated",
+    "functions": [
+      "clebsch_gordan",
+      "racah_delta",
+      "racah_v",
+      "racah_w",
+      "wigner_3j",
+      "wigner_6j",
+      "wigner_9j"
+    ]
+  },
+  {
+    "name": "contrib/devine",
+    "description": "devine package",
+    "functions": [
+      "guess",
+      "guesscons",
+      "rationalinterpolation"
+    ]
+  },
+  {
+    "name": "contrib/diag",
+    "description": "diag.mac",
+    "functions": [
+      "ModeMatrix",
+      "diag",
+      "diag_calculate_mult_partition",
+      "diag_find_li_chain",
+      "diag_general_jordan_chain",
+      "diag_jordan_info_check",
+      "diag_kernel_element",
+      "diag_mat_function_jordan",
+      "diag_matrixify",
+      "diag_mode_matrix",
+      "diag_sorted_list_histogram",
+      "diag_taylor_coefficients",
+      "diag_taylor_expand_block",
+      "diag_zeropad_row",
+      "dispJordan",
+      "jordan",
+      "mat_function",
+      "minimalPoly"
+    ]
+  },
+  {
+    "name": "contrib/ggf",
+    "description": "ggf package",
+    "functions": [
+      "ggf"
+    ]
+  },
+  {
+    "name": "contrib/impdiff",
+    "description": "impdiff package",
+    "functions": [
+      "display_array",
+      "display_array_declared",
+      "display_array_hashed",
+      "implicit_derivative"
+    ]
+  },
+  {
+    "name": "contrib/lindstedt",
+    "description": "lindstedt package",
+    "functions": [
+      "Lindstedt",
+      "LindstedtFindDiffVars",
+      "LindstedtProcessEquation",
+      "LindstedtProcessIC2",
+      "LindstedtRemoveSecularTerms",
+      "second"
+    ]
+  },
+  {
+    "name": "contrib/log10",
+    "description": "log10 package",
+    "functions": [
+      "divisible_by10",
+      "divp",
+      "exponp",
+      "multp",
+      "not10",
+      "power_of"
+    ]
+  },
+  {
+    "name": "contrib/makeOrders",
+    "description": "makeOrders package",
+    "functions": [
+      "makeOrders"
+    ]
+  },
+  {
+    "name": "contrib/meijer_gv2",
+    "description": "meijer_gv2 package",
+    "functions": [
+      "macrobert_ered",
+      "meijer_gred",
+      "test_int_diff"
+    ]
+  },
+  {
+    "name": "contrib/quaternion",
+    "description": "quaternion package",
+    "functions": [
+      "conj4",
+      "decomp4",
+      "expand4",
+      "inv4",
+      "invdecomp4",
+      "matcoeff4",
+      "norm4",
+      "scalarpart4",
+      "vectorpart4"
+    ]
+  },
+  {
+    "name": "contrib/stirling",
+    "description": "stirling package",
+    "functions": [
+      "stirling"
+    ]
+  },
+  {
+    "name": "contrib/wrstcse",
+    "description": "%wc_tols lists all tol[n] contained in the list, nested list",
+    "functions": [
+      "wc_getgaussparams",
+      "wc_inputvalueranges",
+      "wc_mintypmax",
+      "wc_mintypmax2tol",
+      "wc_mintypmax_gauss",
+      "wc_mintypmax_gauss_percent",
+      "wc_montecarlo",
+      "wc_systematic",
+      "wc_tolappend",
+      "wc_typicalvalues"
+    ]
+  },
+  {
+    "name": "descriptive",
+    "description": "Descriptive statistics (mean, median, variance, etc.)",
+    "functions": [
+      "barsplot",
+      "barsplot_description",
+      "boxplot",
+      "boxplot_description",
+      "build_sample",
+      "cdf_empirical",
+      "central_moment",
+      "continuous_freq",
+      "continuous_freq_array",
+      "cor",
+      "count_array_by_bins",
+      "count_by_bins",
+      "cov",
+      "cov1",
+      "cv",
+      "discrete_freq",
+      "discrete_freq_array",
+      "extract_options",
+      "find_index_first",
+      "find_index_first_1",
+      "find_index_last",
+      "find_index_last_1",
+      "find_runs",
+      "find_runs_inverse",
+      "geometric_mean",
+      "global_variances",
+      "harmonic_mean",
+      "histogram",
+      "histogram_description",
+      "km",
+      "kurtosis",
+      "list_correlations",
+      "listofexpr",
+      "listoflistsp",
+      "listofnumbersp",
+      "listsofequalsize",
+      "make_skyline",
+      "matrixtrace",
+      "maxi",
+      "mean",
+      "mean_deviation",
+      "median",
+      "median_deviation",
+      "mini",
+      "noncentral_moment",
+      "pearson_skewness",
+      "piechart",
+      "piechart_description",
+      "principal_components",
+      "qrange",
+      "quantile",
+      "quartile_skewness",
+      "random_color",
+      "range",
+      "ratsimp_nonnumeric",
+      "scatterplot",
+      "scatterplot_description",
+      "skewness",
+      "smax",
+      "smin",
+      "standardize",
+      "starplot",
+      "starplot_description",
+      "std",
+      "std1",
+      "stemplot",
+      "subsample",
+      "transform_sample",
+      "var",
+      "var1",
+      "verify_weights",
+      "wxbarsplot",
+      "wxboxplot",
+      "wxhistogram",
+      "wxpiechart",
+      "wxscatterplot",
+      "wxstarplot"
+    ]
+  },
+  {
+    "name": "diff_form/curvture2",
+    "description": "curvture2 package",
+    "functions": [
+      "add_tan",
+      "cross",
+      "cross2",
+      "make_tan"
+    ]
+  },
+  {
+    "name": "diff_form/f_star_test4",
+    "description": "f_star_test4 package",
+    "functions": [
+      "Lie",
+      "clif_norm",
+      "f_star",
+      "fstar_with_clf",
+      "inner"
+    ]
+  },
+  {
+    "name": "diff_form/frobenius",
+    "description": "frobenius package",
+    "functions": [
+      "trans_toexact"
+    ]
+  },
+  {
+    "name": "diff_form/helpfunc",
+    "description": "helpfunc package",
+    "functions": [
+      "Liebkt",
+      "antid",
+      "inv_i1",
+      "matdmake",
+      "triple_pmat",
+      "vtof1",
+      "vtof2"
+    ]
+  },
+  {
+    "name": "diff_form/hodge_test3",
+    "description": "hodge_test3 package",
+    "functions": [
+      "h_st",
+      "inargs",
+      "inop"
+    ]
+  },
+  {
+    "name": "diff_form/new_cartan_test4",
+    "description": "new_cartan_test4 package",
+    "functions": [
+      "nest2",
+      "nest3"
+    ]
+  },
+  {
+    "name": "diff_form/poisson",
+    "description": "poisson package",
+    "functions": [
+      "p_braket"
+    ]
+  },
+  {
+    "name": "diffequations/abel",
+    "description": "abel package",
+    "functions": [
+      "abel",
+      "berno",
+      "elements",
+      "makecoeflist3",
+      "nonlin",
+      "nonlin1"
+    ]
+  },
+  {
+    "name": "diffequations/desoln",
+    "description": "desoln package",
+    "functions": [
+      "desolve"
+    ]
+  },
+  {
+    "name": "diffequations/drawdf",
+    "description": "Function drawdf draws a 2D direction field with optional solution curves and other graphics using the draw package.",
+    "functions": [
+      "calc_dir_soln_curve",
+      "calc_point_vars",
+      "calc_soln_curve",
+      "confirm_solution_arrow",
+      "df_graphics",
+      "disallow_arrows_in",
+      "drawdf",
+      "equipotential_plot",
+      "linearize_at",
+      "list_of_points_from",
+      "make_f_rk_4",
+      "normalize_vec",
+      "saddle_plot",
+      "solution_arrows",
+      "solution_plot",
+      "valid_var_lo_hi_spec",
+      "vec_mag",
+      "wxdrawdf"
+    ]
+  },
+  {
+    "name": "diffequations/linde1",
+    "description": "THIS LITTLE PACKAGE SOLVES FIRST ORDER LINEAR",
+    "functions": [
+      "consmat3",
+      "evec",
+      "ivpsol",
+      "soldiff"
+    ]
+  },
+  {
+    "name": "diffequations/ode2",
+    "description": "ode2 package",
+    "functions": [
+      "bc2",
+      "bessel2",
+      "boundtest",
+      "cc2",
+      "desimp",
+      "euler2",
+      "exact",
+      "exact2",
+      "failure",
+      "ftest",
+      "genhom",
+      "hom2",
+      "ic1",
+      "ic2",
+      "integfactor",
+      "linear2",
+      "modifiedbessel2",
+      "nlx",
+      "nlxy",
+      "nly",
+      "noteqn",
+      "ode1a",
+      "ode2",
+      "ode2a",
+      "pr2",
+      "pttest",
+      "reduce",
+      "separable",
+      "solve1",
+      "solvebernoulli",
+      "solvehom",
+      "solvelnr",
+      "varp",
+      "xcc2"
+    ]
+  },
+  {
+    "name": "diffequations/odeaux",
+    "description": "odeaux package",
+    "functions": [
+      "eqsimp",
+      "homog",
+      "odeaux",
+      "purify",
+      "riccati_test",
+      "solveode",
+      "subsf",
+      "testli",
+      "win"
+    ]
+  },
+  {
+    "name": "diffequations/pdvtr",
+    "description": "pdvtr package",
+    "functions": [
+      "degenc",
+      "dvt60",
+      "dvtexp",
+      "dvtmxp",
+      "dvtrns",
+      "eqpt6",
+      "gpt078",
+      "gpt128",
+      "gpt442",
+      "gptm",
+      "ldf6"
+    ]
+  },
+  {
+    "name": "diffequations/phypgm",
+    "description": "phypgm package",
+    "functions": [
+      "caseof22",
+      "checkcontratn",
+      "clsort",
+      "contratn",
+      "elmrephg1",
+      "elmrephg2",
+      "exc1c",
+      "exc2c",
+      "exccolumns",
+      "exchla",
+      "excroots",
+      "excrow",
+      "gsvhg",
+      "gsvlgdre",
+      "haspmts",
+      "hgstdd",
+      "infosum",
+      "ldf3",
+      "listofpars",
+      "make01p",
+      "minabssum",
+      "mklntr",
+      "nmod",
+      "nopmt",
+      "oddintp",
+      "pfdivide",
+      "pfuncthg",
+      "psdmint",
+      "replcompform",
+      "seekodd",
+      "sortratn",
+      "ssolve",
+      "svhypr",
+      "svlgdre",
+      "wlength"
+    ]
+  },
+  {
+    "name": "diffequations/pivtr",
+    "description": "pivtr package",
+    "functions": [
+      "dptarg",
+      "eqpt7",
+      "farg",
+      "ivexctrig",
+      "ivtrns",
+      "ldf5",
+      "listofargs",
+      "prphpb",
+      "prptrg",
+      "slchpb",
+      "slctrg",
+      "tivasin",
+      "tivexp",
+      "tivhpb",
+      "tivinv",
+      "tivln",
+      "tivlog",
+      "tivsc",
+      "tivsqrt",
+      "trasin",
+      "trasinh",
+      "trhpb",
+      "trpow",
+      "trsymx",
+      "trtrig"
+    ]
+  },
+  {
+    "name": "diffequations/pmain",
+    "description": "beginning of main ********************************",
+    "functions": [
+      "brchde1",
+      "brchde2",
+      "calca",
+      "deqcoeff",
+      "facza",
+      "hlode2",
+      "idvprep",
+      "kindspt",
+      "lcm",
+      "ldf0",
+      "lode2",
+      "lodesave",
+      "nhstddeq",
+      "nosol",
+      "polord",
+      "ratdeg",
+      "regsingpt",
+      "reqans1",
+      "stddeq",
+      "tblspt",
+      "tobegin",
+      "vecdeg",
+      "vprep"
+    ]
+  },
+  {
+    "name": "distrib",
+    "description": "Probability distributions (normal, t, chi-squared, F, beta, etc.)",
+    "functions": [
+      "cdf_bernoulli",
+      "cdf_beta",
+      "cdf_binomial",
+      "cdf_cauchy",
+      "cdf_chi2",
+      "cdf_continuous_uniform",
+      "cdf_discrete_uniform",
+      "cdf_exp",
+      "cdf_f",
+      "cdf_gamma",
+      "cdf_general_finite_discrete",
+      "cdf_geometric",
+      "cdf_gumbel",
+      "cdf_hypergeometric",
+      "cdf_inverse_gamma",
+      "cdf_laplace",
+      "cdf_logistic",
+      "cdf_lognormal",
+      "cdf_negative_binomial",
+      "cdf_noncentral_chi2",
+      "cdf_noncentral_student_t",
+      "cdf_normal",
+      "cdf_pareto",
+      "cdf_poisson",
+      "cdf_rayleigh",
+      "cdf_student_t",
+      "cdf_weibull",
+      "kurtosis_bernoulli",
+      "kurtosis_beta",
+      "kurtosis_binomial",
+      "kurtosis_chi2",
+      "kurtosis_continuous_uniform",
+      "kurtosis_discrete_uniform",
+      "kurtosis_exp",
+      "kurtosis_f",
+      "kurtosis_gamma",
+      "kurtosis_general_finite_discrete",
+      "kurtosis_geometric",
+      "kurtosis_gumbel",
+      "kurtosis_hypergeometric",
+      "kurtosis_inverse_gamma",
+      "kurtosis_laplace",
+      "kurtosis_logistic",
+      "kurtosis_lognormal",
+      "kurtosis_negative_binomial",
+      "kurtosis_noncentral_chi2",
+      "kurtosis_noncentral_student_t",
+      "kurtosis_normal",
+      "kurtosis_pareto",
+      "kurtosis_poisson",
+      "kurtosis_rayleigh",
+      "kurtosis_student_t",
+      "kurtosis_weibull",
+      "mean_bernoulli",
+      "mean_beta",
+      "mean_binomial",
+      "mean_chi2",
+      "mean_continuous_uniform",
+      "mean_discrete_uniform",
+      "mean_exp",
+      "mean_f",
+      "mean_gamma",
+      "mean_general_finite_discrete",
+      "mean_geometric",
+      "mean_gumbel",
+      "mean_hypergeometric",
+      "mean_inverse_gamma",
+      "mean_laplace",
+      "mean_logistic",
+      "mean_lognormal",
+      "mean_negative_binomial",
+      "mean_noncentral_chi2",
+      "mean_noncentral_student_t",
+      "mean_normal",
+      "mean_pareto",
+      "mean_poisson",
+      "mean_rayleigh",
+      "mean_student_t",
+      "mean_weibull",
+      "mle_beta",
+      "mle_beta_initial_estimates",
+      "mle_exp",
+      "mle_gamma",
+      "mle_gamma_scale",
+      "mle_gamma_shape",
+      "mle_lognormal",
+      "mle_normal",
+      "mle_weibull",
+      "mle_weibull_scale",
+      "mle_weibull_shape",
+      "mode_inverse_gamma",
+      "pdf_bernoulli",
+      "pdf_beta",
+      "pdf_binomial",
+      "pdf_cauchy",
+      "pdf_chi2",
+      "pdf_continuous_uniform",
+      "pdf_discrete_uniform",
+      "pdf_exp",
+      "pdf_f",
+      "pdf_gamma",
+      "pdf_general_finite_discrete",
+      "pdf_geometric",
+      "pdf_gumbel",
+      "pdf_hypergeometric",
+      "pdf_inverse_gamma",
+      "pdf_laplace",
+      "pdf_logistic",
+      "pdf_lognormal",
+      "pdf_negative_binomial",
+      "pdf_noncentral_chi2",
+      "pdf_noncentral_student_t",
+      "pdf_normal",
+      "pdf_pareto",
+      "pdf_poisson",
+      "pdf_rayleigh",
+      "pdf_student_t",
+      "pdf_weibull",
+      "quantile_bernoulli",
+      "quantile_beta",
+      "quantile_binomial",
+      "quantile_cauchy",
+      "quantile_chi2",
+      "quantile_continuous_uniform",
+      "quantile_discrete_uniform",
+      "quantile_exp",
+      "quantile_f",
+      "quantile_gamma",
+      "quantile_general_finite_discrete",
+      "quantile_geometric",
+      "quantile_gumbel",
+      "quantile_hypergeometric",
+      "quantile_inverse_gamma",
+      "quantile_laplace",
+      "quantile_logistic",
+      "quantile_lognormal",
+      "quantile_negative_binomial",
+      "quantile_noncentral_chi2",
+      "quantile_noncentral_student_t",
+      "quantile_normal",
+      "quantile_pareto",
+      "quantile_poisson",
+      "quantile_rayleigh",
+      "quantile_student_t",
+      "quantile_weibull",
+      "random_bernoulli",
+      "random_beta",
+      "random_binomial",
+      "random_cauchy",
+      "random_chi2",
+      "random_continuous_uniform",
+      "random_discrete_uniform",
+      "random_exp",
+      "random_f",
+      "random_gamma",
+      "random_general_finite_discrete",
+      "random_geometric",
+      "random_gumbel",
+      "random_hypergeometric",
+      "random_inverse_gamma",
+      "random_laplace",
+      "random_logistic",
+      "random_lognormal",
+      "random_negative_binomial",
+      "random_noncentral_chi2",
+      "random_noncentral_student_t",
+      "random_normal",
+      "random_pareto",
+      "random_poisson",
+      "random_rayleigh",
+      "random_student_t",
+      "random_weibull",
+      "skewness_bernoulli",
+      "skewness_beta",
+      "skewness_binomial",
+      "skewness_chi2",
+      "skewness_continuous_uniform",
+      "skewness_discrete_uniform",
+      "skewness_exp",
+      "skewness_f",
+      "skewness_gamma",
+      "skewness_general_finite_discrete",
+      "skewness_geometric",
+      "skewness_gumbel",
+      "skewness_hypergeometric",
+      "skewness_inverse_gamma",
+      "skewness_laplace",
+      "skewness_logistic",
+      "skewness_lognormal",
+      "skewness_negative_binomial",
+      "skewness_noncentral_chi2",
+      "skewness_noncentral_student_t",
+      "skewness_normal",
+      "skewness_pareto",
+      "skewness_poisson",
+      "skewness_rayleigh",
+      "skewness_student_t",
+      "skewness_weibull",
+      "std_bernoulli",
+      "std_beta",
+      "std_binomial",
+      "std_chi2",
+      "std_continuous_uniform",
+      "std_discrete_uniform",
+      "std_exp",
+      "std_f",
+      "std_gamma",
+      "std_general_finite_discrete",
+      "std_geometric",
+      "std_gumbel",
+      "std_hypergeometric",
+      "std_inverse_gamma",
+      "std_laplace",
+      "std_logistic",
+      "std_lognormal",
+      "std_negative_binomial",
+      "std_noncentral_chi2",
+      "std_noncentral_student_t",
+      "std_normal",
+      "std_pareto",
+      "std_poisson",
+      "std_rayleigh",
+      "std_student_t",
+      "std_weibull",
+      "var_bernoulli",
+      "var_beta",
+      "var_binomial",
+      "var_chi2",
+      "var_continuous_uniform",
+      "var_discrete_uniform",
+      "var_exp",
+      "var_f",
+      "var_gamma",
+      "var_general_finite_discrete",
+      "var_geometric",
+      "var_gumbel",
+      "var_hypergeometric",
+      "var_inverse_gamma",
+      "var_laplace",
+      "var_logistic",
+      "var_lognormal",
+      "var_negative_binomial",
+      "var_noncentral_chi2",
+      "var_noncentral_student_t",
+      "var_normal",
+      "var_pareto",
+      "var_poisson",
+      "var_rayleigh",
+      "var_student_t",
+      "var_weibull"
+    ]
+  },
+  {
+    "name": "draw/drawutils",
+    "description": "drawutils package",
+    "functions": [
+      "collectatoms",
+      "findatoms",
+      "fun",
+      "liss",
+      "plot_vector_field",
+      "plot_vector_field3d",
+      "randomcolor",
+      "transform",
+      "vennplot"
+    ]
+  },
+  {
+    "name": "draw/worldmap",
+    "description": "Function gr2d builds an object describing a 2D scene.",
+    "functions": [
+      "coastlines",
+      "extr_coord",
+      "list_to_pairs",
+      "make_poly_continent",
+      "make_poly_country",
+      "make_polygon",
+      "numbered_boundaries",
+      "region_boundaries",
+      "region_boundaries_plus"
+    ]
+  },
+  {
+    "name": "dynamics",
+    "description": "Dynamical systems, orbits, and bifurcation diagrams",
+    "functions": [
+      "chaosgame",
+      "evolution",
+      "evolution2d",
+      "ifs",
+      "orbits",
+      "staircase"
+    ]
+  },
+  {
+    "name": "ezunits/ezunits_functions",
+    "description": "ezunits_functions package",
+    "functions": [
+      "add_with_units",
+      "apply_units_conversion",
+      "by_twos",
+      "compute_conversion_factor",
+      "compute_conversions_to_base_units",
+      "compute_conversions_to_base_units0",
+      "constant_factors",
+      "constantp_not0",
+      "constantp_not1",
+      "constvalue",
+      "declare1_qty",
+      "declare1_units",
+      "declare_dimensions",
+      "declare_dimensions1",
+      "declare_fundamental_dimensions",
+      "declare_fundamental_units",
+      "declare_qty",
+      "declare_unit_conversion",
+      "declare_units",
+      "derived_units",
+      "dimensionless",
+      "dimensions",
+      "dimensions1",
+      "dimensions_as_list",
+      "display_known_unit_conversions",
+      "equationp",
+      "everything_else",
+      "expand_dimensional",
+      "flatten_conversion_equation",
+      "fundamental_units",
+      "gensym_map",
+      "get_unit_conversion",
+      "inverse_gensym_map",
+      "known_units",
+      "maybe_subst_qty",
+      "mult_expr_nontrivialconstfactorsp",
+      "mult_exprp",
+      "multiply_with_units",
+      "natural_unit",
+      "nonconstantp",
+      "nondimensional_not0",
+      "nondimensional_not1",
+      "nondimensionalp",
+      "qty",
+      "remove_dimensions",
+      "remove_fundamental_dimensions",
+      "remove_fundamental_units",
+      "reset_convert_units",
+      "simplify_units",
+      "subst_units",
+      "unitop_p",
+      "unitp",
+      "units",
+      "units_at",
+      "units_check",
+      "units_diff",
+      "units_integrate"
+    ]
+  },
+  {
+    "name": "finance",
+    "description": "Financial mathematics (annuity, amortization, etc.)",
+    "functions": [
+      "amortization",
+      "annuity_fv",
+      "annuity_pv",
+      "arit_amortization",
+      "benefit_cost",
+      "days360",
+      "fv",
+      "geo_amortization",
+      "geo_annuity_fv",
+      "geo_annuity_pv",
+      "graph_flow",
+      "irr",
+      "npv",
+      "pv",
+      "saving"
+    ]
+  },
+  {
+    "name": "fractals",
+    "description": "Fractal sets (Mandelbrot, Julia, IFS)",
+    "functions": [
+      "cnbasic",
+      "fernf",
+      "fernfale",
+      "hilbertmap",
+      "hilmap",
+      "julia_set",
+      "julia_sin",
+      "koch",
+      "mandelbrot_set",
+      "nest",
+      "plotmandel",
+      "randomchoice",
+      "rotleft",
+      "siermap",
+      "sierpinskiale",
+      "sierpinskimap",
+      "snowmap",
+      "treef",
+      "treefale",
+      "trian"
+    ]
+  },
+  {
+    "name": "gamma_simp",
+    "description": "gamma_simp package",
+    "functions": [
+      "facsum_gamma_terms",
+      "factorial_simp",
+      "gamma_arg_decrease",
+      "gamma_arg_increase",
+      "gamma_magnitude_simp",
+      "gamma_simp",
+      "gamma_simp_complexity",
+      "homogenize_gamma",
+      "linearp",
+      "mtimesp",
+      "ratsimp_gamma_args"
+    ]
+  },
+  {
+    "name": "graphs/connectivity",
+    "description": "connectivity package",
+    "functions": [
+      "edge_connectivity",
+      "edge_connectivity_graph",
+      "min_edge_cut",
+      "min_vertex_cut",
+      "vertex_connectivity",
+      "vertex_connectivity_graph"
+    ]
+  },
+  {
+    "name": "graphs/create_graph",
+    "description": "create_graph package",
+    "functions": [
+      "add_cycle",
+      "add_path",
+      "antiprism_graph",
+      "as_directed_graph",
+      "bipiramid_graph",
+      "book_graph",
+      "bull_graph",
+      "centipede_graph",
+      "chvatal_graph",
+      "clebsch_graph",
+      "complete_bipartite_graph",
+      "complete_kpartite_graph",
+      "cone_graph",
+      "coxeter_graph",
+      "crossed_prism_graph",
+      "cube_graph",
+      "cuboctahedron_graph",
+      "cycle_positions",
+      "desargues_graph",
+      "dodecahedron_graph",
+      "flower_snark",
+      "fork_graph",
+      "franklin_graph",
+      "frucht_graph",
+      "gear_graph",
+      "great_rhombicosidodecahedron_graph",
+      "great_rhombicuboctahedron_graph",
+      "grid_graph",
+      "grid_graph1",
+      "grotzch_graph",
+      "hanoi_graph",
+      "heawood_graph",
+      "icosahedron_graph",
+      "icosidodecahedron_graph",
+      "induced_subgraph1",
+      "kite_graph",
+      "kneser_graph",
+      "knight_tour_graph",
+      "make_graph",
+      "mobius_graph",
+      "mycielski_graph",
+      "octahedron_graph",
+      "odd_graph",
+      "pappus_graph",
+      "random_network",
+      "random_regular_graph",
+      "relabel_graph_vertices",
+      "small_rhombicosidodecahedron_graph",
+      "small_rhombicuboctahedron_graph",
+      "snub_cube_graph",
+      "snub_dodecahedron_graph",
+      "star_graph",
+      "subdivide_edge",
+      "subdivide_edges",
+      "sunlet_graph",
+      "tetrahedron_graph",
+      "truncated_cube_graph",
+      "truncated_dodecahedron_graph",
+      "truncated_icosahedron_graph",
+      "truncated_octahedron_graph",
+      "truncated_tetrahedron_graph",
+      "tutte_cage_graph",
+      "tutte_graph"
+    ]
+  },
+  {
+    "name": "graphs/draw_graph",
+    "description": "Draws the graph using the Package draw package.",
+    "functions": [
+      "circular_positions",
+      "draw_graph",
+      "draw_graph_list",
+      "graphviz_positions",
+      "read_file",
+      "vertices_to_cycle",
+      "vertices_to_path",
+      "write_file"
+    ]
+  },
+  {
+    "name": "graphs/graph_polynomials",
+    "description": "graph_polynomials package",
+    "functions": [
+      "c_poly_complete",
+      "chromatic_polynomial",
+      "cycle_poly",
+      "flow_polynomial",
+      "matching_polynomial",
+      "matching_polynomial_simple",
+      "rank_polynomial",
+      "tutte_polynomial"
+    ]
+  },
+  {
+    "name": "graphs/graphio",
+    "description": "graphio package",
+    "functions": [
+      "dimacs_export",
+      "dimacs_export_string",
+      "dimacs_import"
+    ]
+  },
+  {
+    "name": "hypergeometric/abramowitz_id",
+    "description": "abramowitz_id package",
+    "functions": [
+      "abramowitz_id",
+      "hypergeometric_order",
+      "nonpositive_integer_p",
+      "not_one_p"
+    ]
+  },
+  {
+    "name": "hypergeometric/hypergeometric_mac",
+    "description": "hypergeometric_mac package",
+    "functions": [
+      "hypergeometric_simp"
+    ]
+  },
+  {
+    "name": "integequations/inteqn",
+    "description": "inteqn is a package for solving integral equations.",
+    "functions": [
+      "abel",
+      "approx",
+      "arg",
+      "collocate",
+      "fconvert",
+      "findint",
+      "firstkind",
+      "firstkindseries",
+      "flfrnk1st",
+      "flfrnk2nd",
+      "fredseries",
+      "frnk",
+      "getics",
+      "getlimits",
+      "getxhat",
+      "ieqn",
+      "ieqn1",
+      "lin",
+      "mydivide",
+      "mypartition",
+      "myprint",
+      "mysolve",
+      "neumann",
+      "opr",
+      "plussplit",
+      "printsoln",
+      "solveandsubst",
+      "solvesys",
+      "sumfactors",
+      "tailor",
+      "testsoln",
+      "transform",
+      "try",
+      "unfun",
+      "vconvert",
+      "vlfrnk",
+      "zeroint"
+    ]
+  },
+  {
+    "name": "integration/antid",
+    "description": "antid package",
+    "functions": [
+      "antid",
+      "antidiff",
+      "nonzeroandfreeof"
+    ]
+  },
+  {
+    "name": "integration/bypart",
+    "description": "bypart package",
+    "functions": [
+      "byparts"
+    ]
+  },
+  {
+    "name": "integration/delta",
+    "description": "delta package",
+    "functions": [
+      "delint",
+      "delintd"
+    ]
+  },
+  {
+    "name": "integration/hermite_reduce",
+    "description": "nicked from mailing list; here is the email message + headers:",
+    "functions": [
+      "algebraic_gcd",
+      "extended_euclidean",
+      "hermite_reduce",
+      "int_rational_function",
+      "int_rational_log_part",
+      "monic"
+    ]
+  },
+  {
+    "name": "linearalgebra",
+    "description": "Linear algebra (determinant, eigenvalues, matrix operations)",
+    "functions": [
+      "column_reduce",
+      "columnop",
+      "columnspace",
+      "columnswap",
+      "diag_matrix",
+      "dotproduct",
+      "good_pivot",
+      "hankel",
+      "hilbert_matrix",
+      "hipow_gzero",
+      "kronecker_product",
+      "linalg_rank",
+      "locate_matrix_entry",
+      "mat_fullunblocker",
+      "mat_norm",
+      "mat_trace",
+      "mat_unblocker",
+      "moore_penrose_pseudoinverse",
+      "nullity",
+      "nullspace",
+      "orthogonal_complement",
+      "polytocompanion",
+      "ptriangularize",
+      "ptriangularize_with_proviso",
+      "request_rational_matrix",
+      "require_integer",
+      "require_symbol",
+      "rowop",
+      "rowswap",
+      "toeplitz"
+    ]
+  },
+  {
+    "name": "lsquares",
+    "description": "Least squares curve fitting",
+    "functions": [
+      "array_nrows",
+      "fboundp",
+      "lsquares_estimates",
+      "lsquares_estimates_approximate",
+      "lsquares_estimates_exact",
+      "lsquares_mse",
+      "lsquares_mse_with_array",
+      "lsquares_residual_mse",
+      "lsquares_residuals"
+    ]
+  },
+  {
+    "name": "macro/basic",
+    "description": "basic package",
+    "functions": [
+      "symbolcheck"
+    ]
+  },
+  {
+    "name": "macro/defm",
+    "description": "defm package",
+    "functions": [
+      "gensym_conventionp"
+    ]
+  },
+  {
+    "name": "macro/defstm",
+    "description": "defstm package",
+    "functions": [
+      "assess_mode",
+      "equal_op",
+      "initialize_structure_list",
+      "name_of_slot_id",
+      "obtain_default_value_for_mode",
+      "save_runtime_structure_info",
+      "slot_type"
+    ]
+  },
+  {
+    "name": "macro/defstmrun",
+    "description": "defstmrun package",
+    "functions": [
+      "alter_extend_check",
+      "not_an_extend",
+      "reference_an_extend"
+    ]
+  },
+  {
+    "name": "macro/keyarg",
+    "description": "keyarg package",
+    "functions": [
+      "key_atom",
+      "key_indicator",
+      "key_pair",
+      "translate_keyarg"
+    ]
+  },
+  {
+    "name": "matrix/eigen",
+    "description": "modified for doe macsyma with define_variable",
+    "functions": [
+      "columnvector",
+      "conj",
+      "covect",
+      "eigenvalues",
+      "eigenvectors",
+      "eivals",
+      "eivects",
+      "gramschmidt",
+      "gschmit",
+      "innerproduct",
+      "inprod",
+      "similaritytransform",
+      "simtran",
+      "substvectk",
+      "ueivects",
+      "uniteigenvectors",
+      "unitvector",
+      "uvect"
+    ]
+  },
+  {
+    "name": "matrix/invert",
+    "description": "the following routines compute inverses and adjoints of matrices",
+    "functions": [
+      "adjoint",
+      "invert"
+    ]
+  },
+  {
+    "name": "matrix/matfun",
+    "description": "Assorted matrix functions written for ELIZC by JPG",
+    "functions": [
+      "cols",
+      "rows"
+    ]
+  },
+  {
+    "name": "matrix/nchrpl",
+    "description": "MATTRACE computes the trace [sum of the elements on the main diagonal] of",
+    "functions": [
+      "mattrace",
+      "ncharpoly"
+    ]
+  },
+  {
+    "name": "matrix/pfaff",
+    "description": "pfaff package",
+    "functions": [
+      "pfaffian"
+    ]
+  },
+  {
+    "name": "matrix/rateig",
+    "description": "rateig package",
+    "functions": [
+      "base",
+      "rateigenvectors"
+    ]
+  },
+  {
+    "name": "misc/declin",
+    "description": "declin package",
+    "functions": [
+      "aplsym1",
+      "applysymmetry",
+      "applyzero",
+      "declare_linear_operator",
+      "declare_symmetry",
+      "declare_zero",
+      "factorargs",
+      "findasymbol",
+      "lclinearp",
+      "lclinearp1",
+      "linopprod",
+      "linopprod0",
+      "linopprod1",
+      "linopsum0",
+      "linopsum1",
+      "linopsum2",
+      "linsimp",
+      "noopsubst",
+      "unscramble"
+    ]
+  },
+  {
+    "name": "misc/smacro",
+    "description": "smacro package",
+    "functions": [
+      "gensym_conventionp",
+      "gensym_conventions"
+    ]
+  },
+  {
+    "name": "mnewton",
+    "description": "Multidimensional Newton's method for nonlinear systems",
+    "functions": [
+      "mnewton"
+    ]
+  },
+  {
+    "name": "numeric/bffac",
+    "description": "Author: Bill Gosper",
+    "functions": [
+      "azetb",
+      "bffac",
+      "bfhzeta",
+      "bfpsi",
+      "bfpsi0",
+      "bfzeta",
+      "bfzeta_borwein",
+      "bfzeta_borwein_terms_needed",
+      "bfzeta_negative",
+      "bfzeta_positive",
+      "burn",
+      "bzeta",
+      "cbffac",
+      "divrlst",
+      "obfac",
+      "obzeta",
+      "prodhack_product",
+      "vonschtoonk"
+    ]
+  },
+  {
+    "name": "numeric/dblint",
+    "description": "A double-integral routine which was written in top-level Maxima and then translated and compiled to machine code.",
+    "functions": [
+      "dblint"
+    ]
+  },
+  {
+    "name": "numeric/diffeq",
+    "description": "diffeq package",
+    "functions": [
+      "floatcheck",
+      "runge1",
+      "runge2",
+      "rungen",
+      "status",
+      "vapply"
+    ]
+  },
+  {
+    "name": "numeric/interpol",
+    "description": "The characteristic or indicator function on the half-open interval [a, b), that is, including a and excluding b.",
+    "functions": [
+      "charfun2",
+      "cspline",
+      "interpol_check_input",
+      "lagrange",
+      "linearinterpol",
+      "ratinterpol"
+    ]
+  },
+  {
+    "name": "numeric/newton",
+    "description": "newton package",
+    "functions": [
+      "newton"
+    ]
+  },
+  {
+    "name": "numeric/newton1",
+    "description": "newton1 package",
+    "functions": [
+      "newton"
+    ]
+  },
+  {
+    "name": "numeric/riemsum",
+    "description": "riemsum package",
+    "functions": [
+      "critical_points",
+      "function_max",
+      "graph_riemann_sum",
+      "make_partition",
+      "upper_and_lower_sums",
+      "upper_sum"
+    ]
+  },
+  {
+    "name": "numeric/simpsn",
+    "description": "simpsn package",
+    "functions": [
+      "simpson",
+      "traprule"
+    ]
+  },
+  {
+    "name": "numeric/submac",
+    "description": "submac package",
+    "functions": [
+      "gensym_conventionp"
+    ]
+  },
+  {
+    "name": "physics/dimen",
+    "description": "dimen is a package for dimensional analysis.",
+    "functions": [
+      "dimension",
+      "listify",
+      "nondimensionalize"
+    ]
+  },
+  {
+    "name": "physics/dimension",
+    "description": "dimen is a package for dimensional analysis.",
+    "functions": [
+      "all_equalp",
+      "dimension",
+      "dimension_as_list",
+      "dimensionless",
+      "natural_unit"
+    ]
+  },
+  {
+    "name": "pslq",
+    "description": "PSLQ integer relation detection algorithm",
+    "functions": [
+      "guess_exact_value",
+      "identify_as_algebraic",
+      "identify_as_powersum",
+      "identify_as_product",
+      "identify_as_sum",
+      "identify_integer_relation"
+    ]
+  },
+  {
+    "name": "quantum/quantum_computing",
+    "description": "quantum_computing package",
+    "functions": [
+      "Rx",
+      "Ry",
+      "Rz",
+      "binlist",
+      "binlist2dec",
+      "controlled",
+      "gate",
+      "gate_matrix",
+      "linsert",
+      "lreplace",
+      "normalize",
+      "qdisplay",
+      "qmeasure",
+      "qswap",
+      "qubits",
+      "toffoli",
+      "tprod"
+    ]
+  },
+  {
+    "name": "raddenest",
+    "description": "Denesting nested radical expressions",
+    "functions": [
+      "raddenest"
+    ]
+  },
+  {
+    "name": "simplification/absimp",
+    "description": "absimp package",
+    "functions": [
+      "absimp",
+      "evenintegerp",
+      "nonzerop",
+      "oddintegerp",
+      "signumsimp",
+      "unitramp",
+      "unitstep"
+    ]
+  },
+  {
+    "name": "simplification/disol",
+    "description": "disol package",
+    "functions": [
+      "disolate",
+      "disolate1",
+      "disolate2",
+      "elabel",
+      "not_atom_elabel"
+    ]
+  },
+  {
+    "name": "simplification/elim",
+    "description": "elim package",
+    "functions": [
+      "eliminate"
+    ]
+  },
+  {
+    "name": "simplification/facex1",
+    "description": "facex1 package",
+    "functions": [
+      "collectten",
+      "collectterms",
+      "collectterms0",
+      "collecttermsl",
+      "multthrusplit",
+      "orderlastp"
+    ]
+  },
+  {
+    "name": "simplification/facexp",
+    "description": "facexp package",
+    "functions": [
+      "argsplit",
+      "autoform",
+      "collectterms",
+      "collectterms0",
+      "collecttermsl",
+      "facexp",
+      "facexpform",
+      "facexpform1",
+      "facexpl",
+      "facsum",
+      "facsuml",
+      "factorfacsum",
+      "fexpt",
+      "fplus",
+      "fstar",
+      "ifmultthru",
+      "lopplusp",
+      "multthrusplit",
+      "nextlayer",
+      "operator0p",
+      "orderlastp",
+      "sqfrfacsum",
+      "vplus",
+      "vstar",
+      "zerosubst"
+    ]
+  },
+  {
+    "name": "simplification/functs",
+    "description": "eval_when([translate,load,loadfile,batch,demo],",
+    "functions": [
+      "lcm1"
+    ]
+  },
+  {
+    "name": "simplification/genut",
+    "description": "genut package",
+    "functions": [
+      "explicitfactor",
+      "freeofl",
+      "genut_prodmap",
+      "iflopmap",
+      "intersect_list",
+      "lcpred",
+      "ldelete",
+      "listofops_nonrat",
+      "listofops_nonratl",
+      "listtoprod",
+      "listtosum",
+      "nonumfactor",
+      "nonumfactor_alt",
+      "nulllistp",
+      "opmap",
+      "orpartition",
+      "orpartitionl",
+      "orpartitionlist",
+      "predpartition",
+      "rloiewl",
+      "setlist",
+      "zerolistp"
+    ]
+  },
+  {
+    "name": "simplification/ineq",
+    "description": "coded by LPH prior to MAY 12, 1983",
+    "functions": [
+      "negp",
+      "posp"
+    ]
+  },
+  {
+    "name": "simplification/lrats",
+    "description": "lrats package",
+    "functions": [
+      "fullratsubst",
+      "fullratsubst0",
+      "fullratsubst1",
+      "fullratsubst2",
+      "lratsubst",
+      "lratsubst1"
+    ]
+  },
+  {
+    "name": "simplification/rncomb",
+    "description": "rncomb package",
+    "functions": [
+      "denomthru",
+      "lcm_l",
+      "predpartition",
+      "rloiewl",
+      "rncombine",
+      "rncombine1"
+    ]
+  },
+  {
+    "name": "simplification/stopex",
+    "description": "stopex package",
+    "functions": [
+      "distribute",
+      "expandwrt",
+      "expandwrt_factored",
+      "expandwrtl",
+      "exwrt_power",
+      "exwrt_power1",
+      "stopexpand",
+      "stopexpandl",
+      "stopexpandl1",
+      "varmult"
+    ]
+  },
+  {
+    "name": "solve_rat_ineq",
+    "description": "solve_rat_ineq package",
+    "functions": [
+      "check_point",
+      "ineq_return",
+      "solve_rat_ineq",
+      "stick_together"
+    ]
+  },
+  {
+    "name": "solve_rec",
+    "description": "Solving linear recurrence relations",
+    "functions": [
+      "casoratian_determinant",
+      "change_to_shift_op",
+      "differ_degree",
+      "differ_order",
+      "get_linearly_independent",
+      "get_linearly_independent1",
+      "get_lower_bound",
+      "get_variables",
+      "hyper",
+      "hyper_poly",
+      "max_shift",
+      "min_shift",
+      "monic_factors",
+      "monic_factors_fac",
+      "monic_factors_sol",
+      "my_prod",
+      "normalize_product",
+      "rec_polyp",
+      "rec_polyp1",
+      "reduce_order",
+      "remove_duplicates",
+      "remove_duplicates1",
+      "ricatti_type",
+      "simplify_product",
+      "solve_rec",
+      "solve_rec_char_gen",
+      "solve_rec_char_part",
+      "solve_rec_gen",
+      "solve_rec_get_exps",
+      "solve_rec_get_exps_mult",
+      "solve_rec_hyper",
+      "solve_rec_ic",
+      "solve_rec_ic1",
+      "solve_rec_lin_1",
+      "solve_rec_lin_cc",
+      "solve_rec_order_1",
+      "solve_rec_poly",
+      "solve_rec_rat",
+      "solve_rec_rat1",
+      "solve_rec_split_exponent",
+      "sr_print",
+      "to_standard_form",
+      "to_standard_form1"
+    ]
+  },
+  {
+    "name": "stats",
+    "description": "Statistical inference and hypothesis testing",
+    "functions": [
+      "cdf_rank_sum",
+      "cdf_signed_rank",
+      "controlw",
+      "linear_regression",
+      "pdf_rank_sum",
+      "pdf_signed_rank",
+      "simple_linear_regression",
+      "test_mean",
+      "test_means_difference",
+      "test_proportion",
+      "test_proportions_difference",
+      "test_rank_sum",
+      "test_sign",
+      "test_signed_rank",
+      "test_variance",
+      "test_variance_ratio"
+    ]
+  },
+  {
+    "name": "tensor/atensor",
+    "description": "atensor package",
+    "functions": [
+      "abasep",
+      "af",
+      "atensimp",
+      "av",
+      "init_atensor",
+      "nonscfunp",
+      "scalarfunp",
+      "sf"
+    ]
+  },
+  {
+    "name": "tensor/ctensor",
+    "description": "ctensor package",
+    "functions": [
+      "bdvac",
+      "bimetric",
+      "cdisplay",
+      "cgeodesic",
+      "checkdiv",
+      "christof",
+      "cleanup",
+      "cmetric",
+      "cograd",
+      "contortion",
+      "contragrad",
+      "csetup",
+      "ct_coordsys",
+      "ctaylor",
+      "ctransform",
+      "deleten",
+      "diagmatrixp",
+      "dscalar",
+      "einstein",
+      "filemet",
+      "findde",
+      "findde1",
+      "findde2",
+      "findde3",
+      "frame_bracket",
+      "init_ctensor",
+      "invariant1",
+      "invariant2",
+      "kdelt",
+      "leinstein",
+      "lriemann",
+      "newmet",
+      "nonmetricity",
+      "nptetrad",
+      "ntermst",
+      "petrov",
+      "psi",
+      "readvalue",
+      "resimp",
+      "ricci",
+      "riccicov",
+      "riemann",
+      "rinvariant",
+      "scurvature",
+      "sermet",
+      "setflags",
+      "symmetricp",
+      "tmetric",
+      "tricci",
+      "triemann",
+      "trrc",
+      "txyzsum",
+      "uricci",
+      "uriemann",
+      "weyl",
+      "yesp"
+    ]
+  },
+  {
+    "name": "tensor/ex_calc",
+    "description": "ex_calc package",
+    "functions": [
+      "contind",
+      "covind",
+      "extdiff",
+      "permutator"
+    ]
+  },
+  {
+    "name": "tensor/iframe",
+    "description": "iframe package",
+    "functions": [
+      "icc1",
+      "icc2",
+      "ifb",
+      "ifc1",
+      "ifc2",
+      "ikt1",
+      "ikt2",
+      "inmc1",
+      "inmc2",
+      "simpmetderiv"
+    ]
+  },
+  {
+    "name": "tensor/lckdt",
+    "description": "lckdt package",
+    "functions": [
+      "lc2kdt"
+    ]
+  },
+  {
+    "name": "to_poly_solve",
+    "description": "Polynomial equation solver with enhanced methods",
+    "functions": [
+      "catch_easy_cases",
+      "compose_functions",
+      "conjugate_solver",
+      "dfloat",
+      "equation_p",
+      "expunge_nonrelevant_cnds",
+      "expunge_nonrelevant_solutions",
+      "if_p",
+      "lambertify",
+      "list_conjugate_vars",
+      "merge_solutions",
+      "non_symbol_subst",
+      "one_to_one_crunch",
+      "opequal_p",
+      "real_imagpart_to_conjugate",
+      "rectform_log_if_constant",
+      "safer_subst",
+      "set_of_variables",
+      "simp_and",
+      "singular_solutions",
+      "solution_subst",
+      "standardize_inverse_trig",
+      "to_poly_solve_h",
+      "top_level_ops",
+      "variable_p"
+    ]
+  },
+  {
+    "name": "trigonometry/ntrig",
+    "description": "The ntrig package contains a set of simplification rules that are used to simplify trigonometric function whose arguments are of the form f(n %pi/10) where f is any of the functions sin, cos, tan, csc...",
+    "functions": [
+      "ucos",
+      "usin"
+    ]
+  },
+  {
+    "name": "trigonometry/spangl",
+    "description": "spangl package",
+    "functions": [
+      "greater1p",
+      "leastremainder",
+      "onetofourp"
+    ]
+  },
+  {
+    "name": "trigonometry/trgsmp",
+    "description": "trgsmp package",
+    "functions": [
+      "argslength",
+      "expnlength",
+      "improve",
+      "listoftrigsq",
+      "specialunion",
+      "trigonometricp",
+      "trigsimp",
+      "trigsimp1",
+      "trigsimp3",
+      "update"
+    ]
+  },
+  {
+    "name": "vector",
+    "description": "This package may be broken.",
+    "functions": [
+      "dimension",
+      "type"
+    ]
+  },
+  {
+    "name": "vector/vect",
+    "description": "vect package",
+    "functions": [
+      "before",
+      "crossrv",
+      "crosssimp",
+      "disjunct",
+      "ev_diff",
+      "evlimit",
+      "express1",
+      "gcov",
+      "has_rules",
+      "myint",
+      "partitionsc",
+      "potential1",
+      "pvcross",
+      "removecrosssc",
+      "removecrosssc1",
+      "scalefactors",
+      "setdiff",
+      "subless",
+      "trycrosscross",
+      "trycrossplus",
+      "vector0p",
+      "vectorsimp",
+      "vpot",
+      "vscalarp",
+      "vsimp",
+      "vsimp1",
+      "zeroloc",
+      "zerovector"
+    ]
+  },
+  {
+    "name": "vector/vector_rebuild",
+    "description": "vector_rebuild package",
+    "functions": [
+      "columnvector",
+      "covect",
+      "lsmx_or_abs1_p"
+    ]
+  },
+  {
+    "name": "z_transform",
+    "description": "z_transform package",
+    "functions": [
+      "apply_z_transform"
+    ]
+  }
+]

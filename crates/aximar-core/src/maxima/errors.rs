@@ -1,6 +1,7 @@
 use regex::Regex;
 use std::sync::LazyLock;
 
+use crate::catalog::packages::PackageCatalog;
 use crate::catalog::search::Catalog;
 use crate::maxima::types::ErrorInfo;
 
@@ -23,6 +24,14 @@ static LOAD_FAILED_RE: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"(?:failed to load|Cannot find file)\s+(\S+)").unwrap());
 
 pub fn enhance_error(raw_error: &str, catalog: &Catalog) -> Option<ErrorInfo> {
+    enhance_error_with_packages(raw_error, catalog, None)
+}
+
+pub fn enhance_error_with_packages(
+    raw_error: &str,
+    catalog: &Catalog,
+    packages: Option<&PackageCatalog>,
+) -> Option<ErrorInfo> {
     // Try each pattern in order
     if let Some(info) = check_division_by_zero(raw_error) {
         return Some(info);
@@ -36,7 +45,7 @@ pub fn enhance_error(raw_error: &str, catalog: &Catalog) -> Option<ErrorInfo> {
     if let Some(info) = check_undefined_variable(raw_error) {
         return Some(info);
     }
-    if let Some(info) = check_undefined_function(raw_error, catalog) {
+    if let Some(info) = check_undefined_function(raw_error, catalog, packages) {
         return Some(info);
     }
     if let Some(info) = check_lisp_error(raw_error) {
@@ -149,7 +158,11 @@ fn check_undefined_variable(raw: &str) -> Option<ErrorInfo> {
     })
 }
 
-fn check_undefined_function(raw: &str, catalog: &Catalog) -> Option<ErrorInfo> {
+fn check_undefined_function(
+    raw: &str,
+    catalog: &Catalog,
+    packages: Option<&PackageCatalog>,
+) -> Option<ErrorInfo> {
     // Maxima says things like "funcall: no such function: intgrate" or
     // "The function intgrate is not known to Maxima"
     let patterns = [&*UNDEFINED_FUNC_RE_1, &*UNDEFINED_FUNC_RE_2];
@@ -157,6 +170,25 @@ fn check_undefined_function(raw: &str, catalog: &Catalog) -> Option<ErrorInfo> {
     for re in patterns {
         if let Some(caps) = re.captures(raw) {
             let func_name = caps.get(1)?.as_str();
+
+            // Check if this function is provided by a loadable package
+            if let Some(pkg_name) = packages.and_then(|p| p.package_for_function(func_name)) {
+                return Some(ErrorInfo {
+                    title: "Unknown Function".into(),
+                    explanation: format!(
+                        "'{}' is provided by the '{}' package, which needs to be loaded first.",
+                        func_name, pkg_name
+                    ),
+                    suggestion: Some(format!(
+                        "Add load(\"{}\")$ before using this function.",
+                        pkg_name
+                    )),
+                    example: Some(format!("load(\"{}\")$", pkg_name)),
+                    did_you_mean: Vec::new(),
+                    correct_signatures: Vec::new(),
+                });
+            }
+
             let similar = catalog.find_similar(func_name, 3);
 
             return Some(ErrorInfo {
@@ -468,5 +500,38 @@ mod tests {
         let info = info.unwrap();
         assert_eq!(info.title, "Package Not Found");
         assert!(info.explanation.contains("draw"));
+    }
+
+    #[test]
+    fn test_unknown_function_suggests_package() {
+        use crate::catalog::packages::PackageCatalog;
+        let cat = catalog();
+        let pkgs = PackageCatalog::load();
+        let info = enhance_error_with_packages(
+            "funcall: no such function: pdf_normal",
+            &cat,
+            Some(&pkgs),
+        );
+        let info = info.unwrap();
+        assert_eq!(info.title, "Unknown Function");
+        assert!(info.explanation.contains("distrib"), "Expected 'distrib' in explanation: {}", info.explanation);
+        assert!(info.example.is_some());
+        assert!(info.example.unwrap().contains("load(\"distrib\")"));
+    }
+
+    #[test]
+    fn test_unknown_function_no_package_fallback() {
+        use crate::catalog::packages::PackageCatalog;
+        let cat = catalog();
+        let pkgs = PackageCatalog::load();
+        // intgrate is a typo, not a package function
+        let info = enhance_error_with_packages(
+            "funcall: no such function: intgrate",
+            &cat,
+            Some(&pkgs),
+        );
+        let info = info.unwrap();
+        assert_eq!(info.title, "Unknown Function");
+        assert!(info.did_you_mean.contains(&"integrate".to_string()));
     }
 }

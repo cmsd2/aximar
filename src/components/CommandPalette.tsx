@@ -1,10 +1,10 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
-import { searchFunctions, listCategories } from "../lib/catalog-client";
+import { searchFunctions, listCategories, searchPackages, searchPackageFunctions } from "../lib/catalog-client";
 import { MATH_SYMBOLS } from "../lib/math-symbols";
 import { useNotebookStore } from "../store/notebookStore";
 import { useLogStore } from "../store/logStore";
 import { nbAddCell } from "../lib/notebook-commands";
-import type { SearchResult, CategoryGroup } from "../types/catalog";
+import type { SearchResult, CategoryGroup, PackageSearchResult, PackageFunctionSearchResult } from "../types/catalog";
 
 interface CommandPaletteProps {
   onClose: () => void;
@@ -16,6 +16,8 @@ export function CommandPalette({ onClose, onViewDocs, initialQuery }: CommandPal
   const [query, setQuery] = useState(initialQuery ?? "");
   const [results, setResults] = useState<SearchResult[]>([]);
   const [categories, setCategories] = useState<CategoryGroup[]>([]);
+  const [packageResults, setPackageResults] = useState<PackageSearchResult[]>([]);
+  const [pkgFuncResults, setPkgFuncResults] = useState<PackageFunctionSearchResult[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -34,23 +36,37 @@ export function CommandPalette({ onClose, onViewDocs, initialQuery }: CommandPal
       .catch((e) => addLogEntry("error", `Failed to load categories: ${e}`, "catalog"));
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Display mode flags (computed early so search effect can reference them)
+  const isSymbolMode = query.startsWith("\\");
+  const isSearchMode = !isSymbolMode && query.trim().length > 0;
+  const isPackagesMode = !isSearchMode && !isSymbolMode && selectedCategory === "__packages__";
+  const isCategorySelected = !isSearchMode && !isSymbolMode && !isPackagesMode && selectedCategory !== null;
+  const isCategoryList = !isSearchMode && !isSymbolMode && selectedCategory === null;
+
   // Search on query change
   useEffect(() => {
-    if (query.trim()) {
+    if (query.trim() && !isSymbolMode) {
       const timer = setTimeout(() => {
-        searchFunctions(query.trim())
-          .then((r) => {
-            setResults(r);
-            setSelectedIndex(0);
-          })
-          .catch((e) => addLogEntry("error", `Catalog search failed: ${e}`, "catalog"));
+        const q = query.trim();
+        Promise.all([
+          searchFunctions(q).catch(() => [] as SearchResult[]),
+          searchPackages(q).catch(() => [] as PackageSearchResult[]),
+          searchPackageFunctions(q).catch(() => [] as PackageFunctionSearchResult[]),
+        ]).then(([funcs, pkgs, pkgFuncs]) => {
+          setResults(funcs);
+          setPackageResults(pkgs);
+          setPkgFuncResults(pkgFuncs);
+          setSelectedIndex(0);
+        });
       }, 80);
       return () => clearTimeout(timer);
     } else {
       setResults([]);
+      setPackageResults([]);
+      setPkgFuncResults([]);
       setSelectedIndex(0);
     }
-  }, [query]);
+  }, [query, isSymbolMode]);
 
   const activeCellId = useNotebookStore((s) => s.activeCellId);
 
@@ -76,6 +92,22 @@ export function CommandPalette({ onClose, onViewDocs, initialQuery }: CommandPal
     [insertTextInActiveCell, setActiveCellId, onClose, activeCellId]
   );
 
+  const insertPackageLoad = useCallback(
+    async (packageName: string) => {
+      const text = `load("${packageName}")$`;
+      let targetCellId = activeCellId;
+      if (targetCellId) {
+        insertTextInActiveCell(text);
+      } else {
+        const result = await nbAddCell("code", text);
+        targetCellId = result.cell_id;
+        setActiveCellId(targetCellId);
+      }
+      onClose();
+    },
+    [insertTextInActiveCell, setActiveCellId, onClose, activeCellId]
+  );
+
   const insertSymbol = useCallback(
     async (unicode: string) => {
       if (activeCellId) {
@@ -88,12 +120,6 @@ export function CommandPalette({ onClose, onViewDocs, initialQuery }: CommandPal
     },
     [insertTextInActiveCell, setActiveCellId, onClose, activeCellId]
   );
-
-  // Display mode: "categories" | "categoryFunctions" | "search" | "symbols"
-  const isSymbolMode = query.startsWith("\\");
-  const isSearchMode = !isSymbolMode && query.trim().length > 0;
-  const isCategorySelected = !isSearchMode && !isSymbolMode && selectedCategory !== null;
-  const isCategoryList = !isSearchMode && !isSymbolMode && selectedCategory === null;
 
   const filteredSymbols = useMemo(() => {
     if (!isSymbolMode) return [];
@@ -109,11 +135,32 @@ export function CommandPalette({ onClose, onViewDocs, initialQuery }: CommandPal
     return group.functions.map((f) => ({ function: f, score: 0 }));
   }, [categories, selectedCategory, isCategorySelected]);
 
-  const displayItems = isSearchMode
-    ? results
-    : isCategorySelected
-      ? categoryFunctionItems
-      : [];
+  type SearchItem =
+    | { kind: "function"; name: string; sig: string; desc: string }
+    | { kind: "pkgFunc"; name: string; packageName: string }
+    | { kind: "package"; name: string; desc: string; funcCount: number };
+
+  const searchItems: SearchItem[] = useMemo(() => {
+    if (!isSearchMode) return [];
+    const items: SearchItem[] = [
+      ...packageResults.slice(0, 5).map((r): SearchItem => ({
+        kind: "package", name: r.package.name,
+        desc: r.package.description, funcCount: r.package.functions.length,
+      })),
+      ...pkgFuncResults.map((r): SearchItem => ({
+        kind: "pkgFunc", name: r.function_name, packageName: r.package_name,
+      })),
+      ...results.map((r): SearchItem => ({
+        kind: "function", name: r.function.name,
+        sig: r.function.signatures[0] || "", desc: r.function.description,
+      })),
+    ];
+    return items;
+  }, [isSearchMode, results, pkgFuncResults, packageResults]);
+
+  const displayItems = isCategorySelected
+    ? categoryFunctionItems
+    : [];
 
   const selectCategory = useCallback(
     (category: string) => {
@@ -136,11 +183,28 @@ export function CommandPalette({ onClose, onViewDocs, initialQuery }: CommandPal
     [onClose, onViewDocs]
   );
 
+  // Load all packages when in packages mode
+  const allPackages = useMemo(() => {
+    if (!isPackagesMode) return [];
+    return packageResults;
+  }, [isPackagesMode, packageResults]);
+
+  // When entering packages mode, search for all packages
+  useEffect(() => {
+    if (isPackagesMode && packageResults.length === 0) {
+      searchPackages("").then(setPackageResults).catch(() => {});
+    }
+  }, [isPackagesMode]); // eslint-disable-line react-hooks/exhaustive-deps
+
   const navigableCount = isSymbolMode
     ? filteredSymbols.length
-    : isCategoryList
-      ? categories.length + 1 // +1 for Symbols entry
-      : displayItems.length;
+    : isSearchMode
+      ? searchItems.length
+      : isPackagesMode
+        ? allPackages.length
+        : isCategoryList
+          ? categories.length + 2 // +1 for Symbols, +1 for Packages
+          : displayItems.length;
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
@@ -153,19 +217,55 @@ export function CommandPalette({ onClose, onViewDocs, initialQuery }: CommandPal
       } else if (
         e.key === "Enter" &&
         (e.metaKey || e.ctrlKey) &&
+        isSearchMode &&
+        searchItems.length > 0 &&
+        onViewDocs
+      ) {
+        e.preventDefault();
+        const item = searchItems[selectedIndex];
+        if (item.kind === "package") {
+          viewDocs(`pkg:${item.name}`);
+        } else {
+          viewDocs(item.name);
+        }
+      } else if (
+        e.key === "Enter" &&
+        (e.metaKey || e.ctrlKey) &&
         !isCategoryList &&
+        !isPackagesMode &&
+        !isSearchMode &&
         displayItems.length > 0 &&
         onViewDocs
       ) {
         e.preventDefault();
         viewDocs(displayItems[selectedIndex].function.name);
+      } else if (
+        e.key === "Enter" &&
+        (e.metaKey || e.ctrlKey) &&
+        isPackagesMode &&
+        allPackages.length > 0 &&
+        onViewDocs
+      ) {
+        e.preventDefault();
+        viewDocs(`pkg:${allPackages[selectedIndex].package.name}`);
       } else if (e.key === "Enter" && navigableCount > 0) {
         e.preventDefault();
         if (isSymbolMode) {
           insertSymbol(filteredSymbols[selectedIndex].unicode);
+        } else if (isSearchMode) {
+          const item = searchItems[selectedIndex];
+          if (item.kind === "package") {
+            insertPackageLoad(item.name);
+          } else {
+            insertFunction(item.name);
+          }
+        } else if (isPackagesMode) {
+          insertPackageLoad(allPackages[selectedIndex].package.name);
         } else if (isCategoryList) {
           if (selectedIndex < categories.length) {
             selectCategory(categories[selectedIndex].category);
+          } else if (selectedIndex === categories.length) {
+            selectCategory("__packages__");
           } else {
             selectCategory("__symbols__");
           }
@@ -175,7 +275,7 @@ export function CommandPalette({ onClose, onViewDocs, initialQuery }: CommandPal
       } else if (
         e.key === "Backspace" &&
         query === "" &&
-        isCategorySelected
+        (isCategorySelected || isPackagesMode)
       ) {
         e.preventDefault();
         setSelectedCategory(null);
@@ -189,12 +289,17 @@ export function CommandPalette({ onClose, onViewDocs, initialQuery }: CommandPal
       navigableCount,
       isCategoryList,
       isCategorySelected,
+      isSearchMode,
       isSymbolMode,
+      isPackagesMode,
       categories,
       displayItems,
+      searchItems,
+      allPackages,
       filteredSymbols,
       selectedIndex,
       insertFunction,
+      insertPackageLoad,
       insertSymbol,
       viewDocs,
       onViewDocs,
@@ -233,9 +338,11 @@ export function CommandPalette({ onClose, onViewDocs, initialQuery }: CommandPal
 
   const placeholder = isSymbolMode
     ? "Type symbol name (e.g. \\alpha, \\leq, \\nabla)..."
-    : isCategorySelected
-      ? `Filter ${selectedCategoryLabel}... (Backspace to go back)`
-      : "Search functions (or type \\ for symbols)...";
+    : isPackagesMode
+      ? "Browse packages... (Backspace to go back)"
+      : isCategorySelected
+        ? `Filter ${selectedCategoryLabel}... (Backspace to go back)`
+        : "Search functions (or type \\ for symbols)...";
 
   return (
     <div className="palette-overlay" onClick={onClose}>
@@ -284,10 +391,21 @@ export function CommandPalette({ onClose, onViewDocs, initialQuery }: CommandPal
               </div>
             ))}
             <div
-              key="__symbols__"
+              key="__packages__"
               className={`palette-category-item ${categories.length === selectedIndex ? "selected" : ""}`}
-              onClick={() => selectCategory("__symbols__")}
+              onClick={() => selectCategory("__packages__")}
               onMouseEnter={() => setSelectedIndex(categories.length)}
+            >
+              <span className="palette-category-item-label">Packages</span>
+              <span className="palette-category-item-count">
+                load()
+              </span>
+            </div>
+            <div
+              key="__symbols__"
+              className={`palette-category-item ${categories.length + 1 === selectedIndex ? "selected" : ""}`}
+              onClick={() => selectCategory("__symbols__")}
+              onMouseEnter={() => setSelectedIndex(categories.length + 1)}
             >
               <span className="palette-category-item-label">Symbols</span>
               <span className="palette-category-item-count">
@@ -295,10 +413,90 @@ export function CommandPalette({ onClose, onViewDocs, initialQuery }: CommandPal
               </span>
             </div>
           </>)}
-          {!isCategoryList && !isSymbolMode && displayItems.length === 0 && query.trim() && (
-            <div className="palette-empty">No functions found</div>
+          {isPackagesMode && allPackages.map((item, i) => (
+            <div key={`pkg-${item.package.name}-${i}`}>
+              <div
+                className={`palette-item ${i === selectedIndex ? "selected" : ""}`}
+                onClick={() => insertPackageLoad(item.package.name)}
+                onMouseEnter={() => setSelectedIndex(i)}
+              >
+                <div className="palette-item-main">
+                  <div className="palette-item-name">{item.package.name}</div>
+                  <div className="palette-item-desc">{item.package.description}</div>
+                  <div className="palette-item-sig">
+                    {item.package.functions.length} functions
+                  </div>
+                </div>
+                {onViewDocs && (
+                  <button
+                    className="palette-item-docs"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      viewDocs(`pkg:${item.package.name}`);
+                    }}
+                    title="View package docs"
+                  >
+                    ?
+                  </button>
+                )}
+              </div>
+            </div>
+          ))}
+          {isSearchMode && searchItems.map((item, i) => (
+            <div key={`${item.kind}-${item.name}-${i}`}>
+              <div
+                className={`palette-item ${i === selectedIndex ? "selected" : ""}`}
+                onClick={() =>
+                  item.kind === "package"
+                    ? insertPackageLoad(item.name)
+                    : insertFunction(item.name)
+                }
+                onMouseEnter={() => setSelectedIndex(i)}
+              >
+                <div className="palette-item-main">
+                  <div className="palette-item-name">
+                    {item.kind !== "function" && (
+                      <span className="palette-package-badge">pkg</span>
+                    )}
+                    {item.name}
+                  </div>
+                  {item.kind === "function" && (
+                    <div className="palette-item-sig">{item.sig}</div>
+                  )}
+                  <div className="palette-item-desc">
+                    {item.kind === "function"
+                      ? item.desc
+                      : item.kind === "pkgFunc"
+                        ? `requires load("${item.packageName}")`
+                        : item.desc}
+                  </div>
+                  {item.kind === "package" && (
+                    <div className="palette-item-sig">
+                      {item.funcCount} functions
+                    </div>
+                  )}
+                </div>
+                {onViewDocs && (
+                  <button
+                    className="palette-item-docs"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      viewDocs(
+                        item.kind === "package" ? `pkg:${item.name}` : item.name
+                      );
+                    }}
+                    title="View docs"
+                  >
+                    ?
+                  </button>
+                )}
+              </div>
+            </div>
+          ))}
+          {isSearchMode && searchItems.length === 0 && query.trim() && (
+            <div className="palette-empty">No functions or packages found</div>
           )}
-          {!isCategoryList &&
+          {!isCategoryList && !isPackagesMode && !isSearchMode &&
             displayItems.map((item, i) => {
               const f = item.function;
               return (
@@ -337,14 +535,14 @@ export function CommandPalette({ onClose, onViewDocs, initialQuery }: CommandPal
             <kbd>&uarr;</kbd> <kbd>&darr;</kbd> navigate
           </span>
           <span>
-            <kbd>Enter</kbd> {isCategoryList ? "select" : "insert"}
+            <kbd>Enter</kbd> {isCategoryList ? "select" : isPackagesMode ? "load" : "insert"}
           </span>
           {!isCategoryList && onViewDocs && (
             <span>
               <kbd>&#8984;Enter</kbd> docs
             </span>
           )}
-          {isCategorySelected && (
+          {(isCategorySelected || isPackagesMode) && (
             <span>
               <kbd>Backspace</kbd> back
             </span>

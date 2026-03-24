@@ -38,10 +38,35 @@ export interface CompletionResult {
   signature: string;
   description: string;
   insert_text: string;
+  /** If this function requires a package, the package name (e.g. "distrib"). */
+  package?: string;
 }
 
 export interface CategoryGroup {
   category: FunctionCategory;
   label: string;
   functions: MaximaFunction[];
+}
+
+export interface PackageInfo {
+  name: string;
+  description: string;
+  functions: string[];
+}
+
+export interface PackageSearchResult {
+  package: PackageInfo;
+  score: number;
+}
+
+export interface PackageCompletionResult {
+  name: string;
+  description: string;
+}
+
+export interface PackageFunctionSearchResult {
+  function_name: string;
+  package_name: string;
+  package_description: string;
+  score: number;
 }

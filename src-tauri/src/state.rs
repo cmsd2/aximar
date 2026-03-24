@@ -2,6 +2,7 @@ use std::sync::Arc;
 use tokio::sync::Mutex;
 
 use aximar_core::catalog::docs::Docs;
+use aximar_core::catalog::packages::PackageCatalog;
 use aximar_core::catalog::search::Catalog;
 use aximar_core::session::SessionManager;
 
@@ -16,6 +17,7 @@ pub struct AppState {
     pub session: Arc<SessionManager>,
     pub catalog: Arc<Catalog>,
     pub docs: Arc<Docs>,
+    pub packages: Arc<PackageCatalog>,
     pub app_handle: Arc<Mutex<Option<tauri::AppHandle>>>,
     /// Shared notebook state (mirrored from the frontend, used by MCP)
     pub notebook: Arc<Mutex<Notebook>>,
@@ -37,6 +39,7 @@ impl AppState {
             session: Arc::new(SessionManager::new()),
             catalog: Arc::new(Catalog::load()),
             docs: Arc::new(Docs::load()),
+            packages: Arc::new(PackageCatalog::load()),
             app_handle: Arc::new(Mutex::new(None)),
             notebook: Arc::new(Mutex::new(Notebook::new())),
             capture_sink,

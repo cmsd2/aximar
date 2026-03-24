@@ -102,6 +102,7 @@ impl Catalog {
                 signature: f.signatures.first().cloned().unwrap_or_default(),
                 description: f.description.clone(),
                 insert_text: format!("{}()", f.name),
+                package: None,
             })
             .collect()
     }

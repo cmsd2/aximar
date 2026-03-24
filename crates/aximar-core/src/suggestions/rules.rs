@@ -1,11 +1,25 @@
 use regex::Regex;
+use std::sync::LazyLock;
 
+use crate::catalog::packages::PackageCatalog;
 use crate::maxima::types::EvalResult;
 use crate::suggestions::types::Suggestion;
 
 const MAX_SUGGESTIONS: usize = 5;
 
+/// Regex to extract function names from Maxima expressions: `name(`
+static FUNC_NAME_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\b([a-zA-Z_]\w*)\s*\(").unwrap());
+
 pub fn suggestions_for_output(input: &str, output: &EvalResult) -> Vec<Suggestion> {
+    suggestions_for_output_with_packages(input, output, None)
+}
+
+pub fn suggestions_for_output_with_packages(
+    input: &str,
+    output: &EvalResult,
+    packages: Option<&PackageCatalog>,
+) -> Vec<Suggestion> {
     if output.is_error {
         return Vec::new();
     }
@@ -15,6 +29,13 @@ pub fn suggestions_for_output(input: &str, output: &EvalResult) -> Vec<Suggestio
     let text = &output.text_output;
     let latex = output.latex.as_deref().unwrap_or("");
 
+    // Check for unevaluated function calls from loadable packages.
+    // When Maxima doesn't know a function, it returns it symbolically (e.g.
+    // input "pdf_normal(0,0,1)" → output "pdf_normal(0,0,1)").
+    if let Some(pkgs) = packages {
+        check_unevaluated_package_functions(input, text, pkgs, &mut suggestions);
+    }
+
     // Plot output: only offer plot-specific actions
     if output.plot_svg.is_some() {
         suggestions.push(Suggestion {
@@ -22,6 +43,7 @@ pub fn suggestions_for_output(input: &str, output: &EvalResult) -> Vec<Suggestio
             template: String::new(),
             description: "Save plot as SVG file".into(),
             action: Some("save_svg".into()),
+            position: None,
         });
         return suggestions;
     }
@@ -33,6 +55,7 @@ pub fn suggestions_for_output(input: &str, output: &EvalResult) -> Vec<Suggestio
             template: "integrate(%, x)".into(),
             description: "Integrate the result".into(),
             action: None,
+            position: None,
         });
     }
 
@@ -43,6 +66,7 @@ pub fn suggestions_for_output(input: &str, output: &EvalResult) -> Vec<Suggestio
             template: "diff(%, x)".into(),
             description: "Differentiate the result".into(),
             action: None,
+            position: None,
         });
     }
 
@@ -53,6 +77,7 @@ pub fn suggestions_for_output(input: &str, output: &EvalResult) -> Vec<Suggestio
             template: "map(rhs, %)".into(),
             description: "Extract right-hand sides of solutions".into(),
             action: None,
+            position: None,
         });
     }
 
@@ -67,24 +92,28 @@ pub fn suggestions_for_output(input: &str, output: &EvalResult) -> Vec<Suggestio
             template: "determinant(%)".into(),
             description: "Compute the determinant".into(),
             action: None,
+            position: None,
         });
         suggestions.push(Suggestion {
             label: "Eigenvalues".into(),
             template: "eigenvalues(%)".into(),
             description: "Find eigenvalues".into(),
             action: None,
+            position: None,
         });
         suggestions.push(Suggestion {
             label: "Inverse".into(),
             template: "invert(%)".into(),
             description: "Compute matrix inverse".into(),
             action: None,
+            position: None,
         });
         suggestions.push(Suggestion {
             label: "Transpose".into(),
             template: "transpose(%)".into(),
             description: "Transpose the matrix".into(),
             action: None,
+            position: None,
         });
     }
 
@@ -100,12 +129,14 @@ pub fn suggestions_for_output(input: &str, output: &EvalResult) -> Vec<Suggestio
             template: "solve(%, x)".into(),
             description: "Solve for x".into(),
             action: None,
+            position: None,
         });
         suggestions.push(Suggestion {
             label: "Right-hand side".into(),
             template: "rhs(%)".into(),
             description: "Extract right-hand side".into(),
             action: None,
+            position: None,
         });
     }
 
@@ -122,12 +153,14 @@ pub fn suggestions_for_output(input: &str, output: &EvalResult) -> Vec<Suggestio
             template: "trigsimp(%)".into(),
             description: "Simplify trig expressions".into(),
             action: None,
+            position: None,
         });
         suggestions.push(Suggestion {
             label: "Trig expand".into(),
             template: "trigexpand(%)".into(),
             description: "Expand trig functions".into(),
             action: None,
+            position: None,
         });
     }
 
@@ -139,12 +172,14 @@ pub fn suggestions_for_output(input: &str, output: &EvalResult) -> Vec<Suggestio
             template: "length(%)".into(),
             description: "Count list elements".into(),
             action: None,
+            position: None,
         });
         suggestions.push(Suggestion {
             label: "Sort".into(),
             template: "sort(%)".into(),
             description: "Sort the list".into(),
             action: None,
+            position: None,
         });
     }
 
@@ -160,6 +195,7 @@ pub fn suggestions_for_output(input: &str, output: &EvalResult) -> Vec<Suggestio
             template: "float(%)".into(),
             description: "Convert to decimal".into(),
             action: None,
+            position: None,
         });
     }
 
@@ -176,6 +212,7 @@ pub fn suggestions_for_output(input: &str, output: &EvalResult) -> Vec<Suggestio
                 template: "expand(%)".into(),
                 description: "Expand products and powers".into(),
                 action: None,
+                position: None,
             });
         }
 
@@ -188,6 +225,7 @@ pub fn suggestions_for_output(input: &str, output: &EvalResult) -> Vec<Suggestio
                 template: "factor(%)".into(),
                 description: "Factor the expression".into(),
                 action: None,
+                position: None,
             });
         }
 
@@ -202,6 +240,7 @@ pub fn suggestions_for_output(input: &str, output: &EvalResult) -> Vec<Suggestio
                 template: "ratsimp(%)".into(),
                 description: "Simplify the expression".into(),
                 action: None,
+                position: None,
             });
         }
     }
@@ -212,6 +251,46 @@ pub fn suggestions_for_output(input: &str, output: &EvalResult) -> Vec<Suggestio
 
     suggestions.truncate(MAX_SUGGESTIONS);
     suggestions
+}
+
+/// Detect unevaluated function calls that come from loadable packages.
+///
+/// When a function like `pdf_normal(0, 0, 1)` is called without loading its
+/// package, Maxima returns it unevaluated. We detect this by checking if any
+/// function name from the input also appears unevaluated in the output and
+/// belongs to a loadable package.
+fn check_unevaluated_package_functions(
+    input: &str,
+    text_output: &str,
+    packages: &PackageCatalog,
+    suggestions: &mut Vec<Suggestion>,
+) {
+    // Collect function names from the input
+    let mut seen_packages = std::collections::HashSet::new();
+
+    for caps in FUNC_NAME_RE.captures_iter(input) {
+        let func_name = &caps[1];
+
+        // Check if this function name appears in the output text (unevaluated)
+        if !text_output.contains(func_name) {
+            continue;
+        }
+
+        // Check if a package provides this function
+        if let Some(pkg_name) = packages.package_for_function(func_name) {
+            if seen_packages.insert(pkg_name.to_string()) {
+                suggestions.push(Suggestion {
+                    label: format!("Load {pkg_name}"),
+                    template: format!("load(\"{pkg_name}\")$"),
+                    description: format!(
+                        "{func_name} is provided by the \"{pkg_name}\" package"
+                    ),
+                    action: None,
+                    position: Some("before".into()),
+                });
+            }
+        }
+    }
 }
 
 #[cfg(test)]
@@ -312,5 +391,36 @@ mod tests {
         result.plot_svg = Some("<svg>...</svg>".into());
         let suggestions = suggestions_for_output("plot2d(sin(x), [x, -5, 5])", &result);
         assert!(suggestions.iter().any(|s| s.action.as_deref() == Some("save_svg")));
+    }
+
+    #[test]
+    fn test_unevaluated_package_function_suggests_load() {
+        let packages = PackageCatalog::load();
+        // pdf_normal is provided by the "distrib" package
+        let result = make_result("pdf_normal(0,0,1)", None);
+        let suggestions =
+            suggestions_for_output_with_packages("pdf_normal(0, 0, 1)", &result, Some(&packages));
+        let load_suggestion = suggestions
+            .iter()
+            .find(|s| s.template.contains("load(\"distrib\")"));
+        assert!(
+            load_suggestion.is_some(),
+            "Expected a suggestion to load distrib, got: {:?}",
+            suggestions
+        );
+    }
+
+    #[test]
+    fn test_no_package_suggestion_when_function_evaluated() {
+        let packages = PackageCatalog::load();
+        // If the output doesn't contain the function name (i.e. it evaluated properly),
+        // no package suggestion should appear
+        let result = make_result("0.3989422804014327", None);
+        let suggestions =
+            suggestions_for_output_with_packages("pdf_normal(0, 0, 1)", &result, Some(&packages));
+        assert!(
+            !suggestions.iter().any(|s| s.template.contains("load(")),
+            "Should not suggest loading when function evaluated successfully"
+        );
     }
 }

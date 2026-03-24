@@ -4,8 +4,8 @@ import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
 import katex from "katex";
-import { getFunctionDocs, getFunction, searchFunctions } from "../lib/catalog-client";
-import type { MaximaFunction, SearchResult } from "../types/catalog";
+import { getFunctionDocs, getFunction, searchFunctions, getPackage, packageForFunction, searchPackageFunctions, searchPackages } from "../lib/catalog-client";
+import type { MaximaFunction, SearchResult, PackageInfo, PackageFunctionSearchResult, PackageSearchResult } from "../types/catalog";
 
 /**
  * Convert single-line `$$...$$` to multi-line format required by remark-math v6.
@@ -25,8 +25,12 @@ interface DocsPanelProps {
 export function DocsPanel({ open, functionName, requestId, onClose }: DocsPanelProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
+  const [pkgFuncResults, setPkgFuncResults] = useState<PackageFunctionSearchResult[]>([]);
+  const [pkgResults, setPkgResults] = useState<PackageSearchResult[]>([]);
   const [currentFunction, setCurrentFunction] = useState<MaximaFunction | null>(null);
   const [currentDocs, setCurrentDocs] = useState<string | null>(null);
+  const [currentPackage, setCurrentPackage] = useState<PackageInfo | null>(null);
+  const [stubFunctionName, setStubFunctionName] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const contentRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -39,20 +43,53 @@ export function DocsPanel({ open, functionName, requestId, onClose }: DocsPanelP
   // Track which request we've already handled
   const handledRequestRef = useRef(0);
 
-  // Navigate to a function's docs — stable reference, no state deps
+  // Navigate to a function's docs or package page — stable reference, no state deps
   const navigateTo = useCallback(async (name: string, addToHistory = true) => {
     setLoading(true);
     setSearchQuery("");
     setSearchResults([]);
+    setPkgFuncResults([]);
+    setPkgResults([]);
 
     try {
-      const [func, docs] = await Promise.all([
-        getFunction(name),
-        getFunctionDocs(name),
-      ]);
+      if (name.startsWith("pkg:")) {
+        // Package page
+        const pkgName = name.slice(4);
+        const pkg = await getPackage(pkgName);
+        setCurrentPackage(pkg);
+        setCurrentFunction(null);
+        setCurrentDocs(null);
+        setStubFunctionName(null);
+      } else {
+        // Function page
+        const [func, docs] = await Promise.all([
+          getFunction(name),
+          getFunctionDocs(name),
+        ]);
 
-      setCurrentFunction(func);
-      setCurrentDocs(docs);
+        if (func) {
+          setCurrentFunction(func);
+          setCurrentDocs(docs);
+          setCurrentPackage(null);
+          setStubFunctionName(null);
+        } else {
+          // Not in catalog — check if it's a package function
+          const pkgName = await packageForFunction(name);
+          if (pkgName) {
+            const pkg = await getPackage(pkgName);
+            setCurrentPackage(pkg);
+            setStubFunctionName(name);
+            setCurrentFunction(null);
+            setCurrentDocs(null);
+          } else {
+            // Unknown function — show empty state
+            setCurrentFunction(null);
+            setCurrentDocs(null);
+            setCurrentPackage(null);
+            setStubFunctionName(null);
+          }
+        }
+      }
 
       if (addToHistory) {
         const newHistory = historyRef.current.slice(0, historyIndexRef.current + 1);
@@ -87,15 +124,25 @@ export function DocsPanel({ open, functionName, requestId, onClose }: DocsPanelP
   useEffect(() => {
     if (!searchQuery.trim()) {
       setSearchResults([]);
+      setPkgFuncResults([]);
+      setPkgResults([]);
       return;
     }
 
     const timer = setTimeout(async () => {
       try {
-        const results = await searchFunctions(searchQuery);
+        const [results, pkgFuncs, pkgs] = await Promise.all([
+          searchFunctions(searchQuery).catch(() => [] as SearchResult[]),
+          searchPackageFunctions(searchQuery).catch(() => [] as PackageFunctionSearchResult[]),
+          searchPackages(searchQuery).catch(() => [] as PackageSearchResult[]),
+        ]);
         setSearchResults(results.slice(0, 20));
+        setPkgFuncResults(pkgFuncs);
+        setPkgResults(pkgs.slice(0, 5));
       } catch {
         setSearchResults([]);
+        setPkgFuncResults([]);
+        setPkgResults([]);
       }
     }, 150);
 
@@ -157,8 +204,18 @@ export function DocsPanel({ open, functionName, requestId, onClose }: DocsPanelP
               } else {
                 onClose();
               }
-            } else if (e.key === "Enter" && searchResults.length > 0) {
-              navigateTo(searchResults[0].function.name);
+            } else if (e.key === "Enter" && (searchResults.length > 0 || pkgFuncResults.length > 0 || pkgResults.length > 0)) {
+              // Navigate to the first sorted result (packages first, then alphabetical)
+              if (pkgResults.length > 0) {
+                navigateTo(`pkg:${pkgResults[0].package.name}`);
+              } else {
+                const allNames = [
+                  ...searchResults.map((r) => r.function.name),
+                  ...pkgFuncResults.map((r) => r.function_name),
+                ];
+                allNames.sort((a, b) => a.localeCompare(b));
+                if (allNames.length > 0) navigateTo(allNames[0]);
+              }
             }
           }}
         />
@@ -167,26 +224,151 @@ export function DocsPanel({ open, functionName, requestId, onClose }: DocsPanelP
         </button>
       </div>
 
-      {searchQuery && searchResults.length > 0 && (
+      {searchQuery && (searchResults.length > 0 || pkgFuncResults.length > 0 || pkgResults.length > 0) && (
         <div className="docs-search-results">
-          {searchResults.map((r) => (
-            <button
-              key={r.function.name}
-              className="docs-search-result"
-              onClick={() => navigateTo(r.function.name)}
-            >
-              <span className="docs-result-name">{r.function.name}</span>
-              <span className="docs-result-sig">
-                {r.function.signatures[0] || ""}
-              </span>
-            </button>
-          ))}
+          {(() => {
+            type DocResult =
+              | { kind: "catalog"; name: string; sig: string; nav: string }
+              | { kind: "pkgFunc"; name: string; pkg: string; nav: string }
+              | { kind: "package"; name: string; count: number; nav: string };
+
+            const items: DocResult[] = [
+              ...searchResults.map((r): DocResult => ({
+                kind: "catalog", name: r.function.name,
+                sig: r.function.signatures[0] || "", nav: r.function.name,
+              })),
+              ...pkgFuncResults.map((r): DocResult => ({
+                kind: "pkgFunc", name: r.function_name,
+                pkg: r.package_name, nav: r.function_name,
+              })),
+              ...pkgResults.map((r): DocResult => ({
+                kind: "package", name: r.package.name,
+                count: r.package.functions.length, nav: `pkg:${r.package.name}`,
+              })),
+            ];
+
+            items.sort((a, b) => {
+              // Packages first
+              const aIsPackage = a.kind === "package" ? 0 : 1;
+              const bIsPackage = b.kind === "package" ? 0 : 1;
+              if (aIsPackage !== bIsPackage) return aIsPackage - bIsPackage;
+              // Then alphabetically
+              return a.name.localeCompare(b.name);
+            });
+
+            return items.map((item) => (
+              <button
+                key={`${item.kind}-${item.name}`}
+                className="docs-search-result"
+                onClick={() => navigateTo(item.nav)}
+              >
+                <span className="docs-result-name">
+                  {item.kind !== "catalog" && (
+                    <span className="palette-package-badge">pkg</span>
+                  )}
+                  {item.name}
+                </span>
+                <span className="docs-result-sig">
+                  {item.kind === "catalog" ? item.sig
+                    : item.kind === "pkgFunc" ? item.pkg
+                    : `${item.count} functions`}
+                </span>
+              </button>
+            ));
+          })()}
         </div>
       )}
 
       <div className="docs-panel-content" ref={contentRef}>
         {loading ? (
           <div className="docs-loading">Loading...</div>
+        ) : currentPackage && stubFunctionName ? (
+          <>
+            <div className="docs-function-header">
+              <h2 className="docs-function-name">{stubFunctionName}</h2>
+              <span className="docs-category-badge">Package Function</span>
+            </div>
+
+            <div className="docs-no-content">
+              <p>
+                Provided by the{" "}
+                <a
+                  className="docs-fn-link"
+                  href="#"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    navigateTo(`pkg:${currentPackage.name}`);
+                  }}
+                >
+                  {currentPackage.name}
+                </a>{" "}
+                package.
+              </p>
+            </div>
+
+            <div className="docs-signatures">
+              <code className="docs-signature">load("{currentPackage.name}")$</code>
+            </div>
+
+            {currentPackage.functions.length > 0 && (
+              <div className="docs-see-also">
+                <h3>Related Functions</h3>
+                <div className="docs-see-also-links">
+                  {currentPackage.functions
+                    .filter((name) => name !== stubFunctionName)
+                    .map((name) => (
+                      <a
+                        key={name}
+                        className="docs-fn-link"
+                        href="#"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          navigateTo(name);
+                        }}
+                      >
+                        {name}
+                      </a>
+                    ))}
+                </div>
+              </div>
+            )}
+          </>
+        ) : currentPackage ? (
+          <>
+            <div className="docs-function-header">
+              <h2 className="docs-function-name">{currentPackage.name}</h2>
+              <span className="docs-category-badge">Package</span>
+            </div>
+
+            <div className="docs-signatures">
+              <code className="docs-signature">load("{currentPackage.name}")$</code>
+            </div>
+
+            <div className="docs-no-content">
+              <p>{currentPackage.description}</p>
+            </div>
+
+            {currentPackage.functions.length > 0 && (
+              <div className="docs-see-also">
+                <h3>Functions ({currentPackage.functions.length})</h3>
+                <div className="docs-see-also-links">
+                  {currentPackage.functions.map((name) => (
+                    <a
+                      key={name}
+                      className="docs-fn-link"
+                      href="#"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        navigateTo(name);
+                      }}
+                    >
+                      {name}
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
+          </>
         ) : currentFunction ? (
           <>
             <div className="docs-function-header">

@@ -63,6 +63,7 @@ pub async fn start_mcp_server(state: AppState, listen_address: String, ct: Cance
         state.session.clone(),
         state.catalog.clone(),
         state.docs.clone(),
+        state.packages.clone(),
         state.notebook.clone(),
         state.capture_sink.clone(),
         process_sink,

@@ -49,13 +49,19 @@ When the Aximar desktop app is running, it can host an MCP streamable HTTP serve
 }
 ```
 
-## Available tools (21)
+## Available tools (24)
 
 ### Documentation
 
 - **search_functions(query)** -- Search the Maxima function catalog by name or description.
 - **get_function_docs(name)** -- Get full documentation for a Maxima function.
 - **complete_function(prefix)** -- Autocomplete a function name prefix.
+
+### Packages
+
+- **search_packages(query)** -- Search available Maxima packages by name or description.
+- **list_packages()** -- List all available Maxima packages that can be loaded with `load("name")`.
+- **get_package(name)** -- Get details of a specific package, including its functions.
 
 ### Cell management
 

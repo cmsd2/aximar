@@ -74,6 +74,28 @@ fn is_safe_svg_path(path_str: &str, backend: &Backend) -> bool {
 }
 
 pub fn parse_output(cell_id: &str, lines: &[String], duration_ms: u64, catalog: &Catalog, backend: &Backend) -> EvalResult {
+    parse_output_inner(cell_id, lines, duration_ms, catalog, None, backend)
+}
+
+pub fn parse_output_with_packages(
+    cell_id: &str,
+    lines: &[String],
+    duration_ms: u64,
+    catalog: &Catalog,
+    packages: &crate::catalog::packages::PackageCatalog,
+    backend: &Backend,
+) -> EvalResult {
+    parse_output_inner(cell_id, lines, duration_ms, catalog, Some(packages), backend)
+}
+
+fn parse_output_inner(
+    cell_id: &str,
+    lines: &[String],
+    duration_ms: u64,
+    catalog: &Catalog,
+    packages: Option<&crate::catalog::packages::PackageCatalog>,
+    backend: &Backend,
+) -> EvalResult {
     let label_re = &*LABEL_RE;
     let error_patterns = [
         " -- an error.",
@@ -268,7 +290,7 @@ pub fn parse_output(cell_id: &str, lines: &[String], duration_ms: u64, catalog: 
 
     let error_info = error
         .as_ref()
-        .and_then(|e| errors::enhance_error(e, catalog));
+        .and_then(|e| errors::enhance_error_with_packages(e, catalog, packages));
 
     // Don't expose an output label for errors (no %oN was assigned)
     let output_label = if has_error { None } else { output_label };

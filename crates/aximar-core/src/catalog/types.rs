@@ -68,6 +68,9 @@ pub struct CompletionResult {
     pub signature: String,
     pub description: String,
     pub insert_text: String,
+    /// If this function requires a package to be loaded first, the package name.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub package: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -82,4 +85,34 @@ pub struct DeprecationInfo {
     pub name: String,
     pub description: String,
     pub replacement: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PackageInfo {
+    /// Load path, e.g. "distrib" or "simplification/absimp"
+    pub name: String,
+    /// Short description of the package
+    pub description: String,
+    /// Function names provided by this package
+    pub functions: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PackageSearchResult {
+    pub package: PackageInfo,
+    pub score: f64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PackageCompletionResult {
+    pub name: String,
+    pub description: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PackageFunctionSearchResult {
+    pub function_name: String,
+    pub package_name: String,
+    pub package_description: String,
+    pub score: f64,
 }

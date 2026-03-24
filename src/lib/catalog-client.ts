@@ -4,6 +4,10 @@ import type {
   CompletionResult,
   MaximaFunction,
   CategoryGroup,
+  PackageSearchResult,
+  PackageCompletionResult,
+  PackageInfo,
+  PackageFunctionSearchResult,
 } from "../types/catalog";
 
 export async function searchFunctions(
@@ -32,4 +36,36 @@ export async function getFunctionDocs(
   name: string
 ): Promise<string | null> {
   return invoke<string | null>("get_function_docs", { name });
+}
+
+// ── Package functions ────────────────────────────────────────────
+
+export async function searchPackages(
+  query: string
+): Promise<PackageSearchResult[]> {
+  return invoke<PackageSearchResult[]>("search_packages", { query });
+}
+
+export async function completePackages(
+  prefix: string
+): Promise<PackageCompletionResult[]> {
+  return invoke<PackageCompletionResult[]>("complete_packages", { prefix });
+}
+
+export async function getPackage(
+  name: string
+): Promise<PackageInfo | null> {
+  return invoke<PackageInfo | null>("get_package", { name });
+}
+
+export async function packageForFunction(
+  name: string
+): Promise<string | null> {
+  return invoke<string | null>("package_for_function", { name });
+}
+
+export async function searchPackageFunctions(
+  query: string
+): Promise<PackageFunctionSearchResult[]> {
+  return invoke<PackageFunctionSearchResult[]>("search_package_functions", { query });
 }

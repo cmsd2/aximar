@@ -434,6 +434,7 @@ pub async fn set_config(app: tauri::AppHandle, updates: ConfigUpdate) -> Result<
                 session: state.session.clone(),
                 catalog: state.catalog.clone(),
                 docs: state.docs.clone(),
+                packages: state.packages.clone(),
                 app_handle: state.app_handle.clone(),
                 notebook: state.notebook.clone(),
                 capture_sink: state.capture_sink.clone(),

@@ -62,7 +62,8 @@ export function CellSuggestions({ cell }: CellSuggestionsProps) {
 
   if (suggestions.length === 0) return null;
 
-  const handleSuggestionClick = async (template: string) => {
+  const handleSuggestionClick = async (suggestion: Suggestion) => {
+    const { template, position } = suggestion;
     const prev = lastSuggestionRef.current;
 
     // Check if we can reuse the cell from the previous suggestion click:
@@ -78,8 +79,15 @@ export function CellSuggestions({ cell }: CellSuggestionsProps) {
       }
     }
 
-    // Create a new cell — backend resolves % via label context
-    const result = await nbAddCell("code", template, cell.id);
+    // Determine insertion point
+    let afterCellId: string | undefined = cell.id;
+    let beforeCellId: string | undefined;
+    if (position === "before") {
+      afterCellId = undefined;
+      beforeCellId = cell.id;
+    }
+
+    const result = await nbAddCell("code", template, afterCellId, beforeCellId);
     lastSuggestionRef.current = { cellId: result.cell_id, template };
     executeCell(result.cell_id, template);
   };
@@ -92,7 +100,7 @@ export function CellSuggestions({ cell }: CellSuggestionsProps) {
           className="suggestion-chip"
           title={s.description}
           onClick={() =>
-            s.action ? handleAction(s.action) : handleSuggestionClick(s.template)
+            s.action ? handleAction(s.action) : handleSuggestionClick(s)
           }
         >
           {s.label}

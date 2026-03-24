@@ -20,12 +20,14 @@ interface NbAddCellResult {
 export async function nbAddCell(
   cellType?: string,
   input?: string,
-  afterCellId?: string
+  afterCellId?: string,
+  beforeCellId?: string
 ): Promise<NbAddCellResult> {
   return invoke<NbAddCellResult>("nb_add_cell", {
     cellType: cellType ?? null,
     input: input ?? null,
     afterCellId: afterCellId ?? null,
+    beforeCellId: beforeCellId ?? null,
   });
 }
 

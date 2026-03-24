@@ -1,10 +1,10 @@
 # Catalog Generator Tool
 
-`catalog-gen` is a standalone Rust tool that generates `catalog.json` and `docs.json` from Maxima's official Texinfo documentation.
+`catalog-gen` is a standalone Rust tool that generates `catalog.json`, `docs.json`, and `packages.json` from Maxima's official Texinfo documentation and installed share packages.
 
 ## Overview
 
-The function catalog (`src-tauri/src/catalog/catalog.json`) is embedded at compile time and provides autocomplete, hover tooltips, and search. The full documentation (`src-tauri/src/catalog/docs.json`) is also embedded and powers the Docs panel with rich Markdown content including code examples, math, cross-references, and figures. The catalog-gen tool parses Maxima's comprehensive Texinfo docs to extract function definitions, signatures, descriptions, examples, and categories — producing a much larger catalog than hand-writing.
+The function catalog (`crates/aximar-core/src/catalog/catalog.json`) is embedded at compile time and provides autocomplete, hover tooltips, and search. The full documentation (`crates/aximar-core/src/catalog/docs.json`) is also embedded and powers the Docs panel with rich Markdown content including code examples, math, cross-references, and figures. The package catalog (`crates/aximar-core/src/catalog/packages.json`) provides loadable package discovery, `load()` autocomplete, and "did you mean to load X?" error suggestions. The catalog-gen tool parses Maxima's comprehensive Texinfo docs to extract function definitions, signatures, descriptions, examples, and categories — producing a much larger catalog than hand-writing.
 
 ## Prerequisites
 
@@ -62,6 +62,22 @@ Options:
 
 The `generate` command also copies PNG figures from the Maxima source (`doc/info/figures/`) into `src-tauri/src/catalog/figures/` for use in the documentation browser.
 
+### `catalog-gen packages`
+
+Scan the Maxima share directory to discover loadable packages and the functions they provide. Produces `packages.json`.
+
+```bash
+cargo run -p catalog-gen -- packages --share-dir /opt/homebrew/share/maxima/5.48.1/share
+```
+
+```
+Options:
+  --share-dir <PATH>       Path to the Maxima share directory (required)
+  -o, --output <PATH>      Output path for packages.json [default: crates/aximar-core/src/catalog/packages.json]
+```
+
+The scanner discovers packages by examining subdirectories of the share directory. It extracts function definitions from `.mac` files using regex, and generates descriptions from well-known package metadata, file header comments, or the function catalog.
+
 ### `catalog-gen from-xml`
 
 Parse a pre-existing Maxima XML file.
@@ -88,10 +104,11 @@ Maxima uses fine-grained categories (e.g., "Differential calculus", "Integral ca
 
 ## Outputs
 
-The tool produces two JSON files and optionally copies figure images:
+The tool produces three JSON files and optionally copies figure images:
 
 - **`catalog.json`** — Lean function catalog with short descriptions, signatures, categories, and examples. Used for autocomplete, hover tooltips, and search.
 - **`docs.json`** — Full Markdown documentation per function (2000+ entries). Maps function names to Markdown strings with code blocks, math, cross-references, lists, tables, and figure images. Used by the Docs panel.
+- **`packages.json`** — Loadable package catalog (100+ packages). Lists each package's load path, description, and exported functions. Used for `load()` autocomplete, command palette package browsing, and "did you mean to load X?" error suggestions.
 - **`figures/`** — PNG figures from Maxima's documentation, copied during `generate`.
 
 ### docs.json format

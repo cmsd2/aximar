@@ -6,6 +6,7 @@ use tokio::sync::Mutex;
 use rmcp::ServiceExt;
 
 use aximar_core::catalog::docs::Docs;
+use aximar_core::catalog::packages::PackageCatalog;
 use aximar_core::catalog::search::Catalog;
 use aximar_core::session::SessionManager;
 
@@ -27,10 +28,11 @@ async fn main() -> anyhow::Result<()> {
 
     tracing::info!("Starting aximar-mcp server v{}", env!("CARGO_PKG_VERSION"));
 
-    // Load catalog and docs
+    // Load catalog, docs, and packages
     let catalog = Arc::new(Catalog::load());
     let docs = Arc::new(Docs::load());
-    tracing::info!("Loaded function catalog and documentation");
+    let packages = Arc::new(PackageCatalog::load());
+    tracing::info!("Loaded function catalog, documentation, and packages");
 
     // Read configuration from environment
     let backend = config::backend_from_env();
@@ -48,6 +50,7 @@ async fn main() -> anyhow::Result<()> {
         session,
         catalog,
         docs,
+        packages,
         notebook,
         output_sink,
         server_log,

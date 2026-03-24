@@ -1,5 +1,6 @@
 mod mapping;
 mod markdown;
+mod package_scanner;
 mod parser;
 
 use std::collections::HashMap;
@@ -15,6 +16,7 @@ const MAXIMA_GIT_URL: &str = "https://git.code.sf.net/p/maxima/code";
 const MAXIMA_TEXI_REL: &str = "doc/info/maxima.texi";
 const CATALOG_REL: &str = "crates/aximar-core/src/catalog/catalog.json";
 const DOCS_REL: &str = "crates/aximar-core/src/catalog/docs.json";
+const PACKAGES_REL: &str = "crates/aximar-core/src/catalog/packages.json";
 const FIGURES_REL: &str = "public/figures";
 const SECCOMP_REL: &str = "docker/seccomp.json";
 /// Upstream Docker default seccomp profile. Pinned to a release tag because
@@ -91,6 +93,17 @@ enum Commands {
 
     /// List functions in the catalog that are deprecated or obsolete.
     Deprecated,
+
+    /// Scan the Maxima share directory to discover loadable packages and their functions.
+    Packages {
+        /// Path to the Maxima share directory (e.g. /opt/homebrew/share/maxima/5.47.0/share)
+        #[arg(long)]
+        share_dir: PathBuf,
+
+        /// Output path for packages.json [default: <workspace>/crates/aximar-core/src/catalog/packages.json]
+        #[arg(short, long)]
+        output: Option<PathBuf>,
+    },
 
     /// Parse a pre-existing Maxima XML file (produced by `makeinfo --xml`).
     FromXml {
@@ -225,6 +238,25 @@ fn main() {
                     println!("    {}\n", d.description);
                 }
             }
+        }
+
+        Commands::Packages {
+            share_dir,
+            output,
+        } => {
+            let output = resolve_output(output, PACKAGES_REL);
+            let catalog = Catalog::load();
+            let packages = package_scanner::scan_packages(&share_dir, &catalog);
+            let json =
+                serde_json::to_string_pretty(&packages).expect("failed to serialize packages");
+            fs::write(&output, &json).unwrap_or_else(|e| {
+                fatal(&format!("Error writing {}: {e}", output.display()));
+            });
+            eprintln!(
+                "Wrote {} packages to {}",
+                packages.len(),
+                output.display()
+            );
         }
 
         Commands::Seccomp {

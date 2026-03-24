@@ -9,6 +9,7 @@ use tokio::sync::Mutex;
 
 use aximar_core::commands::{CommandEffect, NotebookCommand};
 use aximar_core::catalog::docs::Docs;
+use aximar_core::catalog::packages::PackageCatalog;
 use aximar_core::catalog::search::Catalog;
 use aximar_core::maxima::backend::Backend;
 use aximar_core::maxima::labels::{rewrite_labels, LabelContext};
@@ -31,6 +32,7 @@ pub struct AximarMcpServer {
     session: Arc<SessionManager>,
     catalog: Arc<Catalog>,
     docs: Arc<Docs>,
+    packages: Arc<PackageCatalog>,
     notebook: Arc<Mutex<Notebook>>,
     output_sink: Arc<CaptureOutputSink>,
     /// Sink used when spawning the Maxima process.
@@ -51,6 +53,7 @@ impl AximarMcpServer {
         session: Arc<SessionManager>,
         catalog: Arc<Catalog>,
         docs: Arc<Docs>,
+        packages: Arc<PackageCatalog>,
         notebook: Arc<Mutex<Notebook>>,
         output_sink: Arc<CaptureOutputSink>,
         server_log: Arc<ServerLog>,
@@ -65,6 +68,7 @@ impl AximarMcpServer {
             session,
             catalog,
             docs,
+            packages,
             notebook,
             output_sink,
             process_sink,
@@ -82,6 +86,7 @@ impl AximarMcpServer {
         session: Arc<SessionManager>,
         catalog: Arc<Catalog>,
         docs: Arc<Docs>,
+        packages: Arc<PackageCatalog>,
         notebook: Arc<Mutex<Notebook>>,
         output_sink: Arc<CaptureOutputSink>,
         process_sink: Arc<dyn OutputSink>,
@@ -97,6 +102,7 @@ impl AximarMcpServer {
             session,
             catalog,
             docs,
+            packages,
             notebook,
             output_sink,
             process_sink,
@@ -183,6 +189,18 @@ struct GetFunctionDocsParams {
 struct CompleteFunctionParams {
     /// Prefix to complete (e.g. "integ" → "integrate")
     prefix: String,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+struct SearchPackagesParams {
+    /// Search query (matches package names and descriptions)
+    query: String,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+struct GetPackageParams {
+    /// Package name (e.g. "distrib", "simplification/absimp")
+    name: String,
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]
@@ -352,19 +370,97 @@ impl AximarMcpServer {
         &self,
         Parameters(params): Parameters<CompleteFunctionParams>,
     ) -> Result<String, String> {
-        let results = self.catalog.complete(&params.prefix);
+        let mut results = self.catalog.complete(&params.prefix);
+
+        // Also include package functions (deduped)
+        let pkg_results = self.packages.complete_functions(&params.prefix);
+        let existing: std::collections::HashSet<String> =
+            results.iter().map(|r| r.name.to_lowercase()).collect();
+        for r in pkg_results {
+            if !existing.contains(&r.name.to_lowercase()) {
+                results.push(r);
+            }
+        }
+
         let items: Vec<serde_json::Value> = results
             .iter()
             .map(|r| {
-                serde_json::json!({
+                let mut obj = serde_json::json!({
                     "name": r.name,
                     "signature": r.signature,
                     "description": r.description,
                     "insert_text": r.insert_text,
-                })
+                });
+                if let Some(pkg) = &r.package {
+                    obj["package"] = serde_json::json!(pkg);
+                }
+                obj
             })
             .collect();
         success_json(&serde_json::json!({ "completions": items }))
+    }
+
+    // ── Package tools ─────────────────────────────────────────────
+
+    #[tool(description = "Search available Maxima packages by name or description. Returns packages with their load paths and function lists.")]
+    async fn search_packages(
+        &self,
+        Parameters(params): Parameters<SearchPackagesParams>,
+    ) -> Result<String, String> {
+        let results = self.packages.search(&params.query);
+        if results.is_empty() {
+            return success_json(&serde_json::json!({
+                "results": [],
+                "message": format!("No packages matching '{}'", params.query)
+            }));
+        }
+        let items: Vec<serde_json::Value> = results
+            .iter()
+            .map(|r| {
+                serde_json::json!({
+                    "name": r.package.name,
+                    "description": r.package.description,
+                    "functions": r.package.functions,
+                    "score": r.score,
+                })
+            })
+            .collect();
+        success_json(&serde_json::json!({ "results": items }))
+    }
+
+    #[tool(description = "List all available Maxima packages that can be loaded with load(\"name\").")]
+    async fn list_packages(&self) -> Result<String, String> {
+        let all = self.packages.all();
+        let items: Vec<serde_json::Value> = all
+            .iter()
+            .map(|p| {
+                serde_json::json!({
+                    "name": p.name,
+                    "description": p.description,
+                    "function_count": p.functions.len(),
+                })
+            })
+            .collect();
+        success_json(&serde_json::json!({
+            "count": items.len(),
+            "packages": items,
+        }))
+    }
+
+    #[tool(description = "Get details of a specific Maxima package, including description and list of functions it provides.")]
+    async fn get_package(
+        &self,
+        Parameters(params): Parameters<GetPackageParams>,
+    ) -> Result<String, String> {
+        match self.packages.get(&params.name) {
+            Some(pkg) => success_json(&serde_json::json!({
+                "name": pkg.name,
+                "description": pkg.description,
+                "functions": pkg.functions,
+                "load_command": format!("load(\"{}\")$", pkg.name),
+            })),
+            None => error_result(format!("Package '{}' not found", params.name)),
+        }
     }
 
     // ── Cell management tools ─────────────────────────────────────
@@ -421,6 +517,7 @@ impl AximarMcpServer {
             cell_type,
             input,
             after_cell_id: params.after_cell_id,
+            before_cell_id: None,
         })?;
         let cell_id = effect.cell_id().unwrap_or("").to_string();
         drop(nb);
@@ -575,11 +672,12 @@ impl AximarMcpServer {
                 }
             };
 
-            let result = protocol::evaluate(
+            let result = protocol::evaluate_with_packages(
                 process,
                 &params.cell_id,
                 &rewritten,
                 &self.catalog,
+                &self.packages,
                 self.eval_timeout,
             )
             .await;
@@ -698,11 +796,12 @@ impl AximarMcpServer {
         };
 
         let translated = unicode_to_maxima(&params.expression);
-        let result = protocol::evaluate(
+        let result = protocol::evaluate_with_packages(
             process,
             "__ephemeral__",
             &translated,
             &self.catalog,
+            &self.packages,
             self.eval_timeout,
         )
         .await;
@@ -990,7 +1089,12 @@ impl rmcp::handler::server::ServerHandler for AximarMcpServer {
                  implicit equations natively (e.g. `plot2d(x^2+y^2=1, [x,-2,2], [y,-2,2])`).\n\n\
                  At the start of a session, consider calling `list_deprecated` to check \
                  whether any functions you plan to use are deprecated or obsolete. The tool \
-                 returns suggested replacements where available.",
+                 returns suggested replacements where available.\n\n\
+                 Many Maxima functions live in loadable packages (e.g. `distrib`, \
+                 `linearalgebra`, `draw`). Use `search_packages` or `list_packages` to \
+                 discover available packages and `get_package` to see what functions a \
+                 package provides. Load a package with a code cell containing \
+                 `load(\"name\")$`.",
             )
     }
 }

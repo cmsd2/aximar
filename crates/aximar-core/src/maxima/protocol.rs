@@ -1,5 +1,6 @@
 use std::time::Instant;
 
+use crate::catalog::packages::PackageCatalog;
 use crate::catalog::search::Catalog;
 use crate::error::AppError;
 use crate::maxima::parser;
@@ -46,6 +47,45 @@ pub async fn evaluate(
     let duration_ms = start.elapsed().as_millis() as u64;
 
     Ok(parser::parse_output(cell_id, &lines, duration_ms, catalog, process.backend()))
+}
+
+pub async fn evaluate_with_packages(
+    process: &mut MaximaProcess,
+    cell_id: &str,
+    expression: &str,
+    catalog: &Catalog,
+    packages: &PackageCatalog,
+    eval_timeout_secs: u64,
+) -> Result<EvalResult, AppError> {
+    let start = Instant::now();
+
+    let expr = expression.trim();
+    let expr = if expr.ends_with(';') || expr.ends_with('$') {
+        expr.to_string()
+    } else {
+        format!("{};", expr)
+    };
+
+    let input = format!(
+        "{}\ntex(%);\nprint(\"__AXIMAR_LABEL__\", linenum)$\nprint(\"{}\");\n",
+        expr,
+        EVAL_SENTINEL
+    );
+
+    process.write_stdin(&input).await?;
+
+    let lines = tokio::time::timeout(
+        std::time::Duration::from_secs(eval_timeout_secs),
+        process.read_until_sentinel(EVAL_SENTINEL),
+    )
+    .await
+    .map_err(|_| AppError::Timeout(eval_timeout_secs))??;
+
+    let duration_ms = start.elapsed().as_millis() as u64;
+
+    Ok(parser::parse_output_with_packages(
+        cell_id, &lines, duration_ms, catalog, packages, process.backend(),
+    ))
 }
 
 pub async fn query_variables(process: &mut MaximaProcess) -> Result<Vec<String>, AppError> {

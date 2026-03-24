@@ -11,6 +11,7 @@ pub enum NotebookCommand {
         cell_type: CellType,
         input: String,
         after_cell_id: Option<String>,
+        before_cell_id: Option<String>,
     },
     DeleteCell {
         cell_id: String,

@@ -108,8 +108,8 @@ impl Notebook {
         self.cells.iter_mut().find(|c| c.id == id)
     }
 
-    pub fn add_cell(&mut self, cell_type: CellType, input: String, after_cell_id: Option<&str>) -> String {
-        self.add_cell_with_id(new_cell_id(), cell_type, input, after_cell_id)
+    pub fn add_cell(&mut self, cell_type: CellType, input: String, after_cell_id: Option<&str>, before_cell_id: Option<&str>) -> String {
+        self.add_cell_with_id(new_cell_id(), cell_type, input, after_cell_id, before_cell_id)
     }
 
     /// Like `add_cell` but uses the provided ID instead of generating one.
@@ -120,6 +120,7 @@ impl Notebook {
         cell_type: CellType,
         input: String,
         after_cell_id: Option<&str>,
+        before_cell_id: Option<&str>,
     ) -> String {
         let cell = Cell {
             id: id.clone(),
@@ -130,7 +131,13 @@ impl Notebook {
             raw_output: Vec::new(),
         };
 
-        if let Some(after_id) = after_cell_id {
+        if let Some(before_id) = before_cell_id {
+            if let Some(pos) = self.cells.iter().position(|c| c.id == before_id) {
+                self.cells.insert(pos, cell);
+            } else {
+                self.cells.push(cell);
+            }
+        } else if let Some(after_id) = after_cell_id {
             if let Some(pos) = self.cells.iter().position(|c| c.id == after_id) {
                 self.cells.insert(pos + 1, cell);
             } else {
@@ -235,9 +242,10 @@ impl Notebook {
                 cell_type,
                 input,
                 after_cell_id,
+                before_cell_id,
             } => {
                 self.push_undo_snapshot();
-                let id = self.add_cell(cell_type, input, after_cell_id.as_deref());
+                let id = self.add_cell(cell_type, input, after_cell_id.as_deref(), before_cell_id.as_deref());
                 Ok(CommandEffect::CellAdded { cell_id: id })
             }
 
@@ -467,6 +475,7 @@ mod tests {
             cell_type: CellType::Code,
             input: "x: 42;".into(),
             after_cell_id: None,
+            before_cell_id: None,
         }).unwrap();
         assert!(matches!(effect, CommandEffect::CellAdded { .. }));
         assert_eq!(n.cells().len(), 2);
@@ -481,6 +490,7 @@ mod tests {
             cell_type: CellType::Markdown,
             input: "# Title".into(),
             after_cell_id: Some(first.clone()),
+            before_cell_id: None,
         }).unwrap();
         let new_id = match effect {
             CommandEffect::CellAdded { ref cell_id } => cell_id.clone(),
@@ -492,12 +502,33 @@ mod tests {
     }
 
     #[test]
+    fn add_cell_before() {
+        let mut n = nb();
+        let first = first_cell_id(&n);
+        let effect = n.apply(NotebookCommand::AddCell {
+            cell_type: CellType::Code,
+            input: "before first".into(),
+            after_cell_id: None,
+            before_cell_id: Some(first.clone()),
+        }).unwrap();
+        let new_id = match effect {
+            CommandEffect::CellAdded { ref cell_id } => cell_id.clone(),
+            _ => panic!("Expected CellAdded"),
+        };
+        // New cell should be at index 0, before the original first cell
+        assert_eq!(n.cells()[0].id, new_id);
+        assert_eq!(n.cells()[0].input, "before first");
+        assert_eq!(n.cells()[1].id, first);
+    }
+
+    #[test]
     fn delete_cell() {
         let mut n = nb();
         n.apply(NotebookCommand::AddCell {
             cell_type: CellType::Code,
             input: "".into(),
             after_cell_id: None,
+            before_cell_id: None,
         }).unwrap();
         assert_eq!(n.cells().len(), 2);
         let id = n.cells()[1].id.clone();
@@ -524,6 +555,7 @@ mod tests {
             cell_type: CellType::Code,
             input: "second".into(),
             after_cell_id: None,
+            before_cell_id: None,
         }).unwrap();
         let second = match effect {
             CommandEffect::CellAdded { cell_id } => cell_id,
@@ -605,6 +637,7 @@ mod tests {
             cell_type: CellType::Code,
             input: "x".into(),
             after_cell_id: None,
+            before_cell_id: None,
         }).unwrap();
         assert_eq!(n.cells().len(), 2);
         n.apply(NotebookCommand::NewNotebook).unwrap();
@@ -634,6 +667,7 @@ mod tests {
             cell_type: CellType::Code,
             input: "added".into(),
             after_cell_id: None,
+            before_cell_id: None,
         }).unwrap();
         assert_eq!(n.cells().len(), 2);
         assert!(n.can_undo());
@@ -674,6 +708,7 @@ mod tests {
             cell_type: CellType::Code,
             input: "".into(),
             after_cell_id: None,
+            before_cell_id: None,
         }).unwrap();
         n.apply(NotebookCommand::Undo).unwrap();
         assert!(n.can_redo());
@@ -683,6 +718,7 @@ mod tests {
             cell_type: CellType::Code,
             input: "new".into(),
             after_cell_id: None,
+            before_cell_id: None,
         }).unwrap();
         assert!(!n.can_redo());
     }
@@ -708,6 +744,7 @@ mod tests {
             cell_type: CellType::Code,
             input: "".into(),
             after_cell_id: None,
+            before_cell_id: None,
         }).unwrap();
         let result = n.apply(NotebookCommand::DeleteCell {
             cell_id: "nonexistent".into(),
