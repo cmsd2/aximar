@@ -94,15 +94,26 @@ impl McpNotebook {
     }
 
     pub fn add_cell(&mut self, cell_type: CellType, input: String, after_cell_id: Option<&str>) -> String {
+        self.add_cell_with_id(new_cell_id(), cell_type, input, after_cell_id)
+    }
+
+    /// Like `add_cell` but uses the provided ID instead of generating one.
+    /// Used by sync to preserve frontend cell IDs.
+    pub fn add_cell_with_id(
+        &mut self,
+        id: String,
+        cell_type: CellType,
+        input: String,
+        after_cell_id: Option<&str>,
+    ) -> String {
         let cell = McpCell {
-            id: new_cell_id(),
+            id: id.clone(),
             cell_type,
             input,
             output: None,
             status: CellStatus::Idle,
             raw_output: Vec::new(),
         };
-        let id = cell.id.clone();
 
         if let Some(after_id) = after_cell_id {
             if let Some(pos) = self.cells.iter().position(|c| c.id == after_id) {
@@ -184,6 +195,50 @@ impl McpNotebook {
             }
         }
         None
+    }
+
+    /// Replace the cell list from a frontend sync, preserving output/status
+    /// for cells whose ID still exists. New cells get the frontend's ID.
+    /// Cells not in the incoming list are removed. Order matches the incoming list.
+    pub fn set_cells_from_sync(&mut self, incoming: Vec<(String, CellType, String)>) {
+        // Build a map of existing cells by ID for O(1) lookup
+        let mut existing: HashMap<String, McpCell> = self
+            .cells
+            .drain(..)
+            .map(|c| (c.id.clone(), c))
+            .collect();
+
+        for (id, cell_type, input) in incoming {
+            if let Some(mut cell) = existing.remove(&id) {
+                // Existing cell: update input and type, preserve output/status/raw_output
+                cell.input = input;
+                cell.cell_type = cell_type;
+                self.cells.push(cell);
+            } else {
+                // New cell from frontend: create with the frontend's ID
+                self.cells.push(McpCell {
+                    id,
+                    cell_type,
+                    input,
+                    output: None,
+                    status: CellStatus::Idle,
+                    raw_output: Vec::new(),
+                });
+            }
+        }
+        // Cells remaining in `existing` were deleted by the frontend — they're dropped.
+
+        // Ensure at least one cell exists
+        if self.cells.is_empty() {
+            self.cells.push(McpCell {
+                id: new_cell_id(),
+                cell_type: CellType::Code,
+                input: String::new(),
+                output: None,
+                status: CellStatus::Idle,
+                raw_output: Vec::new(),
+            });
+        }
     }
 
     pub fn clear(&mut self) {

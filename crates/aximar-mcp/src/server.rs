@@ -12,6 +12,7 @@ use aximar_core::catalog::search::Catalog;
 use aximar_core::maxima::backend::Backend;
 use aximar_core::maxima::labels::{rewrite_labels, LabelContext};
 use aximar_core::maxima::output::OutputSink;
+use aximar_core::maxima::unicode::unicode_to_maxima;
 use aximar_core::maxima::process::MaximaProcess;
 use aximar_core::maxima::protocol;
 use aximar_core::maxima::types::SessionStatus;
@@ -499,7 +500,8 @@ impl AximarMcpServer {
                     previous_output_label: nb.previous_output_label(&params.cell_id),
                 }
             };
-            let rewritten = rewrite_labels(&input, &label_ctx);
+            let translated = unicode_to_maxima(&input);
+            let rewritten = rewrite_labels(&translated, &label_ctx);
 
             // Evaluate
             let mut guard = self.session.lock().await;
@@ -633,10 +635,11 @@ impl AximarMcpServer {
             Err(e) => return error_result(format!("Session not ready: {e}")),
         };
 
+        let translated = unicode_to_maxima(&params.expression);
         let result = protocol::evaluate(
             process,
             "__ephemeral__",
-            &params.expression,
+            &translated,
             &self.catalog,
             self.eval_timeout,
         )
@@ -901,7 +904,15 @@ impl rmcp::handler::server::ServerHandler for AximarMcpServer {
             .with_instructions(
                 "Aximar provides access to the Maxima computer algebra system. \
                  You can search function documentation, create and run notebook cells \
-                 with Maxima expressions, inspect variables, and manage the session.",
+                 with Maxima expressions, inspect variables, and manage the session.\n\n\
+                 Prefer Unicode Greek letters (α, β, γ, δ, θ, λ, μ, π, σ, φ, ω, etc.) \
+                 everywhere — in Maxima code, markdown cells, comments, and when presenting \
+                 results. Write π rather than %pi, ∞ rather than inf, etc. The Aximar \
+                 protocol translates Unicode Greek to the corresponding Maxima symbols \
+                 automatically, so % forms are not required.\n\n\
+                 When building a notebook, run each code cell immediately after creating it \
+                 before moving on to the next cell. This ensures earlier definitions are \
+                 available to later cells and lets you catch errors early.",
             )
     }
 }

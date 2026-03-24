@@ -29,6 +29,14 @@ interface NotebookSyncPayload {
 
 const SYNC_DEBOUNCE_MS = 200;
 
+function buildSyncCells(cells: Cell[]): SyncCell[] {
+  return cells.map((c) => ({
+    id: c.id,
+    cell_type: c.cellType,
+    input: c.input,
+  }));
+}
+
 /**
  * Hook that keeps the frontend notebook state and the backend McpNotebook
  * in sync for connected-mode MCP.
@@ -40,24 +48,46 @@ const SYNC_DEBOUNCE_MS = 200;
  */
 export function useMcpSync() {
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  // Track whether we're currently applying an MCP update to avoid echo loops
-  const applyingMcpUpdate = useRef(false);
+
+  // Version counter to detect echo loops: incremented each time we apply
+  // an MCP event, checked by the debounced subscriber to skip echoed syncs.
+  const mcpVersionRef = useRef(0);
+
+  // Whether the initial sync has been sent to the backend.
+  const readyRef = useRef(false);
+
+  // --- Initial sync on mount ---
+  useEffect(() => {
+    const syncCells = buildSyncCells(useNotebookStore.getState().cells);
+    invoke("sync_notebook_state", { cells: syncCells })
+      .then(() => {
+        readyRef.current = true;
+      })
+      .catch((e) => {
+        console.warn("Initial MCP sync failed:", e);
+        // Mark ready anyway so the app doesn't stall
+        readyRef.current = true;
+      });
+  }, []);
 
   // --- Frontend → Backend sync (debounced) ---
   useEffect(() => {
     const unsubscribe = useNotebookStore.subscribe((state, prevState) => {
-      // Skip sync if we're applying an MCP-triggered update
-      if (applyingMcpUpdate.current) return;
       // Only sync when cells actually change
       if (state.cells === prevState.cells) return;
 
+      // Capture the MCP version at the time the change was detected
+      const versionAtChange = mcpVersionRef.current;
+
       if (timerRef.current) clearTimeout(timerRef.current);
       timerRef.current = setTimeout(() => {
-        const syncCells: SyncCell[] = state.cells.map((c) => ({
-          id: c.id,
-          cell_type: c.cellType,
-          input: c.input,
-        }));
+        // If an MCP update arrived between scheduling and firing, skip
+        // this sync — the change was triggered by an MCP event.
+        if (mcpVersionRef.current !== versionAtChange) return;
+
+        const syncCells = buildSyncCells(
+          useNotebookStore.getState().cells
+        );
         invoke("sync_notebook_state", { cells: syncCells }).catch((e) =>
           console.warn("MCP sync failed:", e)
         );
@@ -75,8 +105,13 @@ export function useMcpSync() {
     const unlisten = listen<NotebookSyncPayload>(
       "mcp-notebook-sync",
       (event) => {
+        // Don't apply MCP events until initial sync is complete
+        if (!readyRef.current) return;
+
         const { cells: syncCells } = event.payload;
-        applyingMcpUpdate.current = true;
+
+        // Bump version before setState so the subscriber sees the new value
+        mcpVersionRef.current += 1;
 
         useNotebookStore.setState((state) => {
           const newCells: Cell[] = syncCells.map((sc) => {
@@ -105,11 +140,6 @@ export function useMcpSync() {
             };
           });
           return { cells: newCells, isDirty: true };
-        });
-
-        // Reset the flag after a microtask so the subscribe callback sees it
-        Promise.resolve().then(() => {
-          applyingMcpUpdate.current = false;
         });
       }
     );

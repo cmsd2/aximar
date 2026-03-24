@@ -52,30 +52,28 @@ pub fn notebook_state_payload(nb: &McpNotebook) -> NotebookSyncPayload {
 
 /// Tauri command: frontend pushes its current cell state to the backend's
 /// McpNotebook so that MCP sees up-to-date content.
+///
+/// Uses merge-based sync to preserve output/status for cells that are
+/// currently being executed by MCP.
 #[tauri::command]
 pub async fn sync_notebook_state(
     state: State<'_, AppState>,
     cells: Vec<SyncCell>,
 ) -> Result<(), AppError> {
     let mut nb = state.notebook.lock().await;
-    nb.clear();
 
-    for (i, cell) in cells.iter().enumerate() {
-        let cell_type = match cell.cell_type.as_str() {
-            "markdown" => CellType::Markdown,
-            _ => CellType::Code,
-        };
+    let incoming: Vec<(String, CellType, String)> = cells
+        .into_iter()
+        .map(|cell| {
+            let cell_type = match cell.cell_type.as_str() {
+                "markdown" => CellType::Markdown,
+                _ => CellType::Code,
+            };
+            (cell.id, cell_type, cell.input)
+        })
+        .collect();
 
-        if i == 0 {
-            // Update the initial cell created by clear()
-            let first_id = nb.cells().first().map(|c| c.id.clone());
-            if let Some(first_id) = first_id {
-                nb.update_cell(&first_id, Some(cell.input.clone()), Some(cell_type));
-            }
-        } else {
-            nb.add_cell(cell_type, cell.input.clone(), None);
-        }
-    }
+    nb.set_cells_from_sync(incoming);
 
     Ok(())
 }
