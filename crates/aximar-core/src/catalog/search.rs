@@ -1,9 +1,28 @@
+use std::borrow::Cow;
 use std::collections::BTreeMap;
+
+use probly_search::score::bm25;
+use probly_search::Index;
 
 use crate::catalog::types::*;
 
 pub struct Catalog {
     functions: Vec<MaximaFunction>,
+    index: Index<usize>,
+}
+
+fn tokenizer(s: &str) -> Vec<Cow<'_, str>> {
+    s.split_whitespace()
+        .map(|w| Cow::Owned(w.to_lowercase()))
+        .collect()
+}
+
+fn name_extract(d: &MaximaFunction) -> Vec<&str> {
+    vec![d.name.as_str()]
+}
+
+fn description_extract(d: &MaximaFunction) -> Vec<&str> {
+    vec![d.description.as_str()]
 }
 
 impl Catalog {
@@ -11,7 +30,18 @@ impl Catalog {
         let json = include_str!("catalog.json");
         let functions: Vec<MaximaFunction> =
             serde_json::from_str(json).expect("embedded catalog.json must be valid");
-        Catalog { functions }
+
+        let mut index = Index::<usize>::new(2);
+        for (i, f) in functions.iter().enumerate() {
+            index.add_document(
+                &[name_extract, description_extract],
+                tokenizer,
+                i,
+                f,
+            );
+        }
+
+        Catalog { functions, index }
     }
 
     pub fn search(&self, query: &str) -> Vec<SearchResult> {
@@ -26,20 +56,13 @@ impl Catalog {
                 .collect();
         }
 
-        let q = query.to_lowercase();
         let mut results: Vec<SearchResult> = self
-            .functions
-            .iter()
-            .filter_map(|f| {
-                let score = score_match(&f.name, &f.description, &q);
-                if score > 0.0 {
-                    Some(SearchResult {
-                        function: f.clone(),
-                        score,
-                    })
-                } else {
-                    None
-                }
+            .index
+            .query(query, &mut bm25::new(), tokenizer, &[3.0, 1.0])
+            .into_iter()
+            .map(|qr| SearchResult {
+                function: self.functions[qr.key].clone(),
+                score: qr.score as f64,
             })
             .collect();
 
@@ -189,52 +212,6 @@ fn extract_word(s: &str) -> String {
         .collect()
 }
 
-fn score_match(name: &str, description: &str, query: &str) -> f64 {
-    let name_lower = name.to_lowercase();
-    let desc_lower = description.to_lowercase();
-
-    // Exact name match
-    if name_lower == query {
-        return 1000.0;
-    }
-
-    // Name starts with query — prefer higher coverage ratio (query_len / name_len)
-    if name_lower.starts_with(query) {
-        return 500.0 + (query.len() as f64 / name.len() as f64) * 100.0;
-    }
-
-    // Name contains query
-    if name_lower.contains(query) {
-        return 200.0 + (100.0 / name.len() as f64);
-    }
-
-    // Description contains query
-    if desc_lower.contains(query) {
-        return 50.0;
-    }
-
-    // Fuzzy: check if all query chars appear in order in the name
-    if fuzzy_match(&name_lower, query) {
-        return 10.0;
-    }
-
-    0.0
-}
-
-fn fuzzy_match(text: &str, query: &str) -> bool {
-    let mut chars = text.chars();
-    for qc in query.chars() {
-        loop {
-            match chars.next() {
-                Some(tc) if tc == qc => break,
-                Some(_) => continue,
-                None => return false,
-            }
-        }
-    }
-    true
-}
-
 fn levenshtein(a: &str, b: &str) -> usize {
     let a_chars: Vec<char> = a.chars().collect();
     let b_chars: Vec<char> = b.chars().collect();
@@ -290,8 +267,6 @@ mod tests {
         let results = catalog.search("integ");
         assert!(!results.is_empty());
         assert!(results.iter().any(|r| r.function.name == "integrate"));
-        // All prefix matches should score above 500
-        assert!(results[0].score > 500.0);
     }
 
     #[test]
@@ -300,6 +275,26 @@ mod tests {
         let results = catalog.search("derivative");
         assert!(!results.is_empty());
         assert!(results.iter().any(|r| r.function.name == "diff"));
+    }
+
+    #[test]
+    fn test_search_multi_word() {
+        let catalog = Catalog::load();
+
+        // Multi-word query that previously returned zero results
+        let results = catalog.search("taylor series");
+        assert!(!results.is_empty(), "multi-word query 'taylor series' should return results");
+        assert!(
+            results.iter().any(|r| r.function.name == "taylor"),
+            "expected taylor in results for 'taylor series'"
+        );
+
+        let results = catalog.search("solve equation");
+        assert!(!results.is_empty(), "multi-word query 'solve equation' should return results");
+        assert!(
+            results.iter().any(|r| r.function.name == "solve"),
+            "expected solve in results for 'solve equation'"
+        );
     }
 
     #[test]

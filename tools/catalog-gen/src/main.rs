@@ -79,6 +79,16 @@ enum Commands {
         upstream_url: String,
     },
 
+    /// Search the function catalog by name or description.
+    Search {
+        /// Search query (matches function names and descriptions)
+        query: String,
+
+        /// Maximum number of results to show
+        #[arg(short = 'n', long, default_value_t = 20)]
+        limit: usize,
+    },
+
     /// List functions in the catalog that are deprecated or obsolete.
     Deprecated,
 
@@ -172,6 +182,32 @@ fn main() {
             let figures_src = src_dir.join("doc/info/figures");
             let figures_dest = resolve_output(None, FIGURES_REL);
             copy_figures(&figures_src, &figures_dest);
+        }
+
+        Commands::Search { query, limit } => {
+            let catalog = Catalog::load();
+            let results = catalog.search(&query);
+            if results.is_empty() {
+                eprintln!("No results for \"{}\".", query);
+                let similar = catalog.find_similar(&query, 3);
+                if !similar.is_empty() {
+                    eprintln!("Did you mean: {}?", similar.join(", "));
+                }
+            } else {
+                let shown = results.len().min(limit);
+                println!("Top {} results for \"{}\":\n", shown, query);
+                for r in results.iter().take(limit) {
+                    let sig = r.function.signatures.first().map(|s| s.as_str()).unwrap_or(&r.function.name);
+                    println!("  {} (score: {:.0}, category: {})", sig, r.score, r.function.category.label());
+                    // Truncate long descriptions
+                    let desc = &r.function.description;
+                    if desc.len() > 120 {
+                        println!("    {}...\n", &desc[..120]);
+                    } else {
+                        println!("    {}\n", desc);
+                    }
+                }
+            }
         }
 
         Commands::Deprecated => {
