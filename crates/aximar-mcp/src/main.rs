@@ -11,7 +11,7 @@ use aximar_core::session::SessionManager;
 
 use aximar_mcp::capture::CaptureOutputSink;
 use aximar_mcp::log::ServerLog;
-use aximar_mcp::notebook::McpNotebook;
+use aximar_mcp::notebook::Notebook;
 use aximar_mcp::server::AximarMcpServer;
 
 #[tokio::main]
@@ -41,7 +41,7 @@ async fn main() -> anyhow::Result<()> {
     let server_log = Arc::new(ServerLog::new());
     let output_sink = Arc::new(CaptureOutputSink::new(server_log.clone()));
     let session = Arc::new(SessionManager::new());
-    let notebook = Arc::new(Mutex::new(McpNotebook::new()));
+    let notebook = Arc::new(Mutex::new(Notebook::new()));
 
     // Build MCP server
     let server = AximarMcpServer::new(

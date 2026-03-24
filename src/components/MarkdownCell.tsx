@@ -5,6 +5,7 @@ import rehypeKatex from "rehype-katex";
 import type { Cell as CellType } from "../types/notebook";
 import { useNotebookStore } from "../store/notebookStore";
 import { useFindStore } from "../store/findStore";
+import { nbDeleteCell } from "../lib/notebook-commands";
 
 interface MarkdownCellProps {
   cell: CellType;
@@ -14,7 +15,6 @@ export function MarkdownCell({ cell }: MarkdownCellProps) {
   const [editing, setEditing] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const updateCellInput = useNotebookStore((s) => s.updateCellInput);
-  const deleteCell = useNotebookStore((s) => s.deleteCell);
   const cells = useNotebookStore((s) => s.cells);
   const cellCount = cells.length;
   const hasFindMatch = useFindStore((s) => s.matches.some((m) => m.cellId === cell.id));
@@ -98,7 +98,7 @@ export function MarkdownCell({ cell }: MarkdownCellProps) {
         {cellCount > 1 && (
           <button
             className="cell-btn delete-btn"
-            onClick={() => deleteCell(cell.id)}
+            onClick={() => nbDeleteCell(cell.id)}
             title="Delete cell"
           >
             &times;

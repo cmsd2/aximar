@@ -1,6 +1,6 @@
 import { useRef, useEffect, useCallback } from "react";
 import { EditorState, Compartment } from "@codemirror/state";
-import { EditorView, keymap, placeholder as cmPlaceholder, ViewUpdate, tooltips } from "@codemirror/view";
+import { EditorView, drawSelection, keymap, placeholder as cmPlaceholder, ViewUpdate, tooltips } from "@codemirror/view";
 import { defaultKeymap } from "@codemirror/commands";
 import { acceptCompletion, autocompletion, completionKeymap } from "@codemirror/autocomplete";
 import { maximaLanguage } from "../lib/maxima-language";
@@ -70,27 +70,19 @@ export function useCodeMirrorEditor({
     );
 
     const cellKeymap = keymap.of([
-      // Swallow undo/redo so notebook-level zustand undo works
+      // Swallow undo/redo so notebook-level backend undo works
+      // (the keyboard shortcut handler in App.tsx sends these to the backend)
       {
         key: "Mod-z",
-        run: () => {
-          useNotebookStore.getState().undo();
-          return true;
-        },
+        run: () => true,
       },
       {
         key: "Mod-Shift-z",
-        run: () => {
-          useNotebookStore.getState().redo();
-          return true;
-        },
+        run: () => true,
       },
       {
         key: "Mod-y",
-        run: () => {
-          useNotebookStore.getState().redo();
-          return true;
-        },
+        run: () => true,
       },
       // Cell execution — dismiss signature hint before executing
       {
@@ -195,6 +187,7 @@ export function useCodeMirrorEditor({
         maximaLanguage,
         maximaTheme,
         maximaHighlightStyle,
+        drawSelection(),
         EditorView.lineWrapping,
         cmPlaceholder("Enter Maxima expression... (Shift+Enter to evaluate)"),
         autocompleteCompartment.current.of(

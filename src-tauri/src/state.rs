@@ -5,9 +5,9 @@ use aximar_core::catalog::docs::Docs;
 use aximar_core::catalog::search::Catalog;
 use aximar_core::session::SessionManager;
 
-use aximar_mcp::capture::CaptureOutputSink;
-use aximar_mcp::log::ServerLog;
-use aximar_mcp::notebook::McpNotebook;
+use aximar_core::capture::CaptureOutputSink;
+use aximar_core::log::ServerLog;
+use aximar_core::notebook::Notebook;
 
 use crate::mcp::McpController;
 use crate::tauri_output::AppLog;
@@ -18,7 +18,7 @@ pub struct AppState {
     pub docs: Arc<Docs>,
     pub app_handle: Arc<Mutex<Option<tauri::AppHandle>>>,
     /// Shared notebook state (mirrored from the frontend, used by MCP)
-    pub notebook: Arc<Mutex<McpNotebook>>,
+    pub notebook: Arc<Mutex<Notebook>>,
     /// Per-cell output capture for MCP
     pub capture_sink: Arc<CaptureOutputSink>,
     /// Server-wide Maxima output log
@@ -38,7 +38,7 @@ impl AppState {
             catalog: Arc::new(Catalog::load()),
             docs: Arc::new(Docs::load()),
             app_handle: Arc::new(Mutex::new(None)),
-            notebook: Arc::new(Mutex::new(McpNotebook::new())),
+            notebook: Arc::new(Mutex::new(Notebook::new())),
             capture_sink,
             server_log,
             mcp_controller: Arc::new(McpController::new()),

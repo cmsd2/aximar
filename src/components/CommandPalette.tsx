@@ -3,6 +3,7 @@ import { searchFunctions, listCategories } from "../lib/catalog-client";
 import { MATH_SYMBOLS } from "../lib/math-symbols";
 import { useNotebookStore } from "../store/notebookStore";
 import { useLogStore } from "../store/logStore";
+import { nbAddCell } from "../lib/notebook-commands";
 import type { SearchResult, CategoryGroup } from "../types/catalog";
 
 interface CommandPaletteProps {
@@ -23,7 +24,6 @@ export function CommandPalette({ onClose, onViewDocs, initialQuery }: CommandPal
   const insertTextInActiveCell = useNotebookStore(
     (s) => s.insertTextInActiveCell
   );
-  const addCell = useNotebookStore((s) => s.addCell);
   const setActiveCellId = useNotebookStore((s) => s.setActiveCellId);
   const addLogEntry = useLogStore((s) => s.addEntry);
 
@@ -55,42 +55,38 @@ export function CommandPalette({ onClose, onViewDocs, initialQuery }: CommandPal
   const activeCellId = useNotebookStore((s) => s.activeCellId);
 
   const insertFunction = useCallback(
-    (name: string) => {
+    async (name: string) => {
       const text = `${name}()`;
       let targetCellId = activeCellId;
       if (targetCellId) {
         insertTextInActiveCell(text);
       } else {
-        const newId = addCell();
-        setActiveCellId(newId);
-        // addCell creates an empty cell; insert text via store update
-        useNotebookStore.getState().insertTextInActiveCell(text);
-        targetCellId = newId;
+        const result = await nbAddCell("code", text);
+        targetCellId = result.cell_id;
+        setActiveCellId(targetCellId);
       }
       onClose();
       if (targetCellId) {
-        // Get the current cell input length to position cursor inside parens
         const cells = useNotebookStore.getState().cells;
         const cell = cells.find((c) => c.id === targetCellId);
         const pos = cell ? cell.input.length - 1 : 0;
         useNotebookStore.getState().setPendingCursorMove({ cellId: targetCellId, pos });
       }
     },
-    [insertTextInActiveCell, addCell, setActiveCellId, onClose, activeCellId]
+    [insertTextInActiveCell, setActiveCellId, onClose, activeCellId]
   );
 
   const insertSymbol = useCallback(
-    (unicode: string) => {
+    async (unicode: string) => {
       if (activeCellId) {
         insertTextInActiveCell(unicode);
       } else {
-        const newId = addCell();
-        setActiveCellId(newId);
-        useNotebookStore.getState().insertTextInActiveCell(unicode);
+        const result = await nbAddCell("code", unicode);
+        setActiveCellId(result.cell_id);
       }
       onClose();
     },
-    [insertTextInActiveCell, addCell, setActiveCellId, onClose, activeCellId]
+    [insertTextInActiveCell, setActiveCellId, onClose, activeCellId]
   );
 
   // Display mode: "categories" | "categoryFunctions" | "search" | "symbols"

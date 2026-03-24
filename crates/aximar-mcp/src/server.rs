@@ -20,8 +20,9 @@ use aximar_core::notebooks::{data as notebook_data, io as notebook_io, types as 
 use aximar_core::session::SessionManager;
 
 use crate::capture::CaptureOutputSink;
+use crate::commands::NotebookCommand;
 use crate::log::ServerLog;
-use crate::notebook::{CellOutput, CellStatus, CellType, McpNotebook};
+use crate::notebook::{CellOutput, CellStatus, CellType, Notebook};
 
 #[derive(Clone)]
 pub struct AximarMcpServer {
@@ -30,7 +31,7 @@ pub struct AximarMcpServer {
     session: Arc<SessionManager>,
     catalog: Arc<Catalog>,
     docs: Arc<Docs>,
-    notebook: Arc<Mutex<McpNotebook>>,
+    notebook: Arc<Mutex<Notebook>>,
     output_sink: Arc<CaptureOutputSink>,
     /// Sink used when spawning the Maxima process.
     /// In headless mode this equals output_sink; in connected mode this is a
@@ -50,7 +51,7 @@ impl AximarMcpServer {
         session: Arc<SessionManager>,
         catalog: Arc<Catalog>,
         docs: Arc<Docs>,
-        notebook: Arc<Mutex<McpNotebook>>,
+        notebook: Arc<Mutex<Notebook>>,
         output_sink: Arc<CaptureOutputSink>,
         server_log: Arc<ServerLog>,
         backend: Backend,
@@ -81,7 +82,7 @@ impl AximarMcpServer {
         session: Arc<SessionManager>,
         catalog: Arc<Catalog>,
         docs: Arc<Docs>,
-        notebook: Arc<Mutex<McpNotebook>>,
+        notebook: Arc<Mutex<Notebook>>,
         output_sink: Arc<CaptureOutputSink>,
         process_sink: Arc<dyn OutputSink>,
         server_log: Arc<ServerLog>,
@@ -399,10 +400,15 @@ impl AximarMcpServer {
         };
         let input = params.input.unwrap_or_default();
         let mut nb = self.notebook.lock().await;
-        let id = nb.add_cell(cell_type, input, params.after_cell_id.as_deref());
+        let effect = nb.apply(NotebookCommand::AddCell {
+            cell_type,
+            input,
+            after_cell_id: params.after_cell_id,
+        })?;
+        let cell_id = effect.cell_id().unwrap_or("").to_string();
         drop(nb);
         self.notify_notebook_change();
-        success_json(&serde_json::json!({ "cell_id": id }))
+        success_json(&serde_json::json!({ "cell_id": cell_id }))
     }
 
     #[tool(description = "Update a cell's content or type.")]
@@ -410,18 +416,33 @@ impl AximarMcpServer {
         &self,
         Parameters(params): Parameters<UpdateCellParams>,
     ) -> Result<String, String> {
-        let cell_type = params.cell_type.as_deref().map(|t| match t {
-            "markdown" => CellType::Markdown,
-            _ => CellType::Code,
-        });
         let mut nb = self.notebook.lock().await;
-        if nb.update_cell(&params.cell_id, params.input, cell_type) {
-            drop(nb);
-            self.notify_notebook_change();
-            success_json(&serde_json::json!({ "updated": true }))
-        } else {
-            error_result(format!("Cell '{}' not found", params.cell_id))
+        // Apply input update if provided
+        if let Some(input) = params.input {
+            nb.apply(NotebookCommand::UpdateCellInput {
+                cell_id: params.cell_id.clone(),
+                input,
+            })?;
         }
+        // Apply cell type toggle if the requested type differs
+        if let Some(ref type_str) = params.cell_type {
+            let requested = match type_str.as_str() {
+                "markdown" => CellType::Markdown,
+                _ => CellType::Code,
+            };
+            if let Some(cell) = nb.get_cell(&params.cell_id) {
+                if cell.cell_type != requested {
+                    nb.apply(NotebookCommand::ToggleCellType {
+                        cell_id: params.cell_id.clone(),
+                    })?;
+                }
+            } else {
+                return error_result(format!("Cell '{}' not found", params.cell_id));
+            }
+        }
+        drop(nb);
+        self.notify_notebook_change();
+        success_json(&serde_json::json!({ "updated": true }))
     }
 
     #[tool(description = "Delete a cell from the notebook. Cannot delete the last remaining cell.")]
@@ -430,12 +451,16 @@ impl AximarMcpServer {
         Parameters(params): Parameters<CellIdParams>,
     ) -> Result<String, String> {
         let mut nb = self.notebook.lock().await;
-        if nb.delete_cell(&params.cell_id) {
-            drop(nb);
-            self.notify_notebook_change();
-            success_json(&serde_json::json!({ "deleted": true }))
-        } else {
-            error_result("Cannot delete cell (not found or it's the last cell)")
+        let effect = nb.apply(NotebookCommand::DeleteCell {
+            cell_id: params.cell_id.clone(),
+        })?;
+        drop(nb);
+        self.notify_notebook_change();
+        match effect {
+            crate::commands::CommandEffect::NoOp { reason } => {
+                error_result(reason)
+            }
+            _ => success_json(&serde_json::json!({ "deleted": true })),
         }
     }
 
@@ -445,15 +470,17 @@ impl AximarMcpServer {
         Parameters(params): Parameters<MoveCellParams>,
     ) -> Result<String, String> {
         let mut nb = self.notebook.lock().await;
-        if nb.move_cell(&params.cell_id, &params.direction) {
-            drop(nb);
-            self.notify_notebook_change();
-            success_json(&serde_json::json!({ "moved": true }))
-        } else {
-            error_result(format!(
-                "Cannot move cell '{}' {}",
-                params.cell_id, params.direction
-            ))
+        let effect = nb.apply(NotebookCommand::MoveCell {
+            cell_id: params.cell_id.clone(),
+            direction: params.direction.clone(),
+        })?;
+        drop(nb);
+        self.notify_notebook_change();
+        match effect {
+            crate::commands::CommandEffect::NoOp { reason } => {
+                error_result(reason)
+            }
+            _ => success_json(&serde_json::json!({ "moved": true })),
         }
     }
 
@@ -469,8 +496,8 @@ impl AximarMcpServer {
         }
 
         let (input, cell_type) = {
-            let mut nb = self.notebook.lock().await;
-            let cell = match nb.get_cell_mut(&params.cell_id) {
+            let nb = self.notebook.lock().await;
+            let cell = match nb.get_cell(&params.cell_id) {
                 Some(c) => c,
                 None => return error_result(format!("Cell '{}' not found", params.cell_id)),
             };
@@ -480,11 +507,20 @@ impl AximarMcpServer {
                     "message": "Markdown cell — nothing to execute"
                 }));
             }
-            cell.status = CellStatus::Running;
             (cell.input.clone(), cell.cell_type)
         };
 
         if cell_type == CellType::Code {
+            // Set status to Running
+            {
+                let mut nb = self.notebook.lock().await;
+                let _ = nb.apply(NotebookCommand::SetCellStatus {
+                    cell_id: params.cell_id.clone(),
+                    status: CellStatus::Running,
+                });
+            }
+            self.notify_notebook_change();
+
             // Clear previous capture
             self.output_sink.take_cell_output();
 
@@ -509,9 +545,10 @@ impl AximarMcpServer {
                 Ok(p) => p,
                 Err(e) => {
                     let mut nb = self.notebook.lock().await;
-                    if let Some(cell) = nb.get_cell_mut(&params.cell_id) {
-                        cell.status = CellStatus::Error;
-                    }
+                    let _ = nb.apply(NotebookCommand::SetCellStatus {
+                        cell_id: params.cell_id.clone(),
+                        status: CellStatus::Error,
+                    });
                     return error_result(format!("Session not ready: {e}"));
                 }
             };
@@ -541,15 +578,11 @@ impl AximarMcpServer {
 
                     let cell_output = CellOutput::from_eval_result(&eval_result, exec_count);
                     let mut nb = self.notebook.lock().await;
-                    if let Some(cell) = nb.get_cell_mut(&params.cell_id) {
-                        cell.status = if eval_result.is_error {
-                            CellStatus::Error
-                        } else {
-                            CellStatus::Success
-                        };
-                        cell.output = Some(cell_output.clone());
-                        cell.raw_output = raw_output;
-                    }
+                    let _ = nb.apply(NotebookCommand::SetCellOutput {
+                        cell_id: params.cell_id.clone(),
+                        output: cell_output.clone(),
+                        raw_output,
+                    });
                     drop(nb);
                     self.notify_notebook_change();
                     success_json(&serde_json::json!({
@@ -566,8 +599,12 @@ impl AximarMcpServer {
                 }
                 Err(e) => {
                     let mut nb = self.notebook.lock().await;
+                    let _ = nb.apply(NotebookCommand::SetCellStatus {
+                        cell_id: params.cell_id.clone(),
+                        status: CellStatus::Error,
+                    });
+                    // Store raw output even on error
                     if let Some(cell) = nb.get_cell_mut(&params.cell_id) {
-                        cell.status = CellStatus::Error;
                         cell.raw_output = raw_output;
                     }
                     error_result(format!("Evaluation failed: {e}"))
@@ -791,7 +828,7 @@ impl AximarMcpServer {
         Parameters(params): Parameters<NotebookPathParams>,
     ) -> Result<String, String> {
         let nb = self.notebook.lock().await;
-        let notebook = mcp_notebook_to_ipynb(&nb);
+        let notebook = notebook_to_ipynb(&nb);
         drop(nb);
 
         match notebook_io::write_notebook(&params.path, &notebook) {
@@ -810,9 +847,9 @@ impl AximarMcpServer {
     ) -> Result<String, String> {
         match notebook_io::read_notebook(&params.path) {
             Ok(notebook) => {
+                let cells = ipynb_to_cell_tuples(&notebook);
                 let mut nb = self.notebook.lock().await;
-                nb.clear();
-                load_ipynb_into_mcp(&notebook, &mut nb);
+                nb.apply(NotebookCommand::LoadCells { cells })?;
                 let cell_count = nb.cells().len();
                 drop(nb);
                 self.notify_notebook_change();
@@ -850,9 +887,9 @@ impl AximarMcpServer {
     ) -> Result<String, String> {
         match notebook_data::get_template(&params.template_id) {
             Some(notebook) => {
+                let cells = ipynb_to_cell_tuples(&notebook);
                 let mut nb = self.notebook.lock().await;
-                nb.clear();
-                load_ipynb_into_mcp(&notebook, &mut nb);
+                nb.apply(NotebookCommand::LoadCells { cells })?;
                 let cell_count = nb.cells().len();
                 drop(nb);
                 self.notify_notebook_change();
@@ -919,7 +956,7 @@ impl rmcp::handler::server::ServerHandler for AximarMcpServer {
 
 // ── Notebook format conversion ────────────────────────────────────────
 
-fn mcp_notebook_to_ipynb(nb: &McpNotebook) -> notebook_types::Notebook {
+fn notebook_to_ipynb(nb: &Notebook) -> notebook_types::Notebook {
     let cells: Vec<notebook_types::NotebookCell> = nb
         .cells()
         .iter()
@@ -974,26 +1011,27 @@ fn mcp_notebook_to_ipynb(nb: &McpNotebook) -> notebook_types::Notebook {
     }
 }
 
-fn load_ipynb_into_mcp(notebook: &notebook_types::Notebook, nb: &mut McpNotebook) {
-    for (i, cell) in notebook.cells.iter().enumerate() {
-        let cell_type = match cell.cell_type {
-            notebook_types::CellType::Code => CellType::Code,
-            notebook_types::CellType::Markdown => CellType::Markdown,
-            notebook_types::CellType::Raw => CellType::Code,
-        };
-        let input = match &cell.source {
-            notebook_types::CellSource::String(s) => s.clone(),
-            notebook_types::CellSource::Lines(lines) => lines.join(""),
-        };
+/// Convert an ipynb Notebook into a list of (id, cell_type, input) tuples
+/// suitable for the LoadCells command.
+fn ipynb_to_cell_tuples(notebook: &notebook_types::Notebook) -> Vec<(String, CellType, String)> {
+    use std::sync::atomic::{AtomicU64, Ordering};
+    static LOAD_COUNTER: AtomicU64 = AtomicU64::new(1);
 
-        if i == 0 {
-            // Update the existing first cell instead of adding
-            let cells = nb.cells();
-            if let Some(first_id) = cells.first().map(|c| c.id.clone()) {
-                nb.update_cell(&first_id, Some(input), Some(cell_type));
-            }
-        } else {
-            nb.add_cell(cell_type, input, None);
-        }
-    }
+    notebook
+        .cells
+        .iter()
+        .filter_map(|cell| {
+            let cell_type = match cell.cell_type {
+                notebook_types::CellType::Code => CellType::Code,
+                notebook_types::CellType::Markdown => CellType::Markdown,
+                notebook_types::CellType::Raw => return None,
+            };
+            let input = match &cell.source {
+                notebook_types::CellSource::String(s) => s.clone(),
+                notebook_types::CellSource::Lines(lines) => lines.join(""),
+            };
+            let id = format!("load-{}", LOAD_COUNTER.fetch_add(1, Ordering::Relaxed));
+            Some((id, cell_type, input))
+        })
+        .collect()
 }

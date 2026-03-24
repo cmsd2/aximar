@@ -61,104 +61,6 @@ Aximar provides a notebook-style interface (like Jupyter/Mathematica) for Maxima
           └─────────────┘
 ```
 
-## File Structure
-
-```
-aximar/
-├── docs/
-├── package.json
-├── vite.config.ts
-├── index.html
-├── src/                              # Frontend
-│   ├── main.tsx
-│   ├── App.tsx                      # Top-level layout, menu event listener, file ops
-│   ├── types/
-│   │   ├── notebook.ts              # Cell, CellOutput, Notebook types
-│   │   ├── notebooks.ts             # Jupyter nbformat types (NotebookCell, etc.)
-│   │   ├── maxima.ts                # EvalResult, SessionStatus, ErrorInfo
-│   │   └── suggestions.ts           # Suggestion type (with optional action)
-│   ├── store/
-│   │   ├── notebookStore.ts         # Zustand: cells, filePath, isDirty, save/load
-│   │   └── logStore.ts              # Log panel state
-│   ├── components/
-│   │   ├── Notebook.tsx
-│   │   ├── Cell.tsx
-│   │   ├── CellOutput.tsx           # Renders KaTeX, plot SVG, or text
-│   │   ├── CellSuggestions.tsx      # Suggestion chips (eval + actions like Save SVG)
-│   │   ├── KatexOutput.tsx
-│   │   ├── EnhancedErrorOutput.tsx  # Rich error display with did-you-mean
-│   │   ├── Toolbar.tsx              # Toolbar with filename/dirty indicator
-│   │   ├── CommandPalette.tsx       # Cmd+K function browser
-│   │   ├── TemplateChooser.tsx      # Template selection modal
-│   │   ├── SettingsModal.tsx
-│   │   ├── VariablePanel.tsx
-│   │   ├── DocsPanel.tsx
-│   │   └── LogPanel.tsx
-│   ├── hooks/
-│   │   ├── useMaxima.ts             # Cell execution logic
-│   │   ├── useCodeMirrorEditor.ts   # CodeMirror 6 editor lifecycle + store sync
-│   │   └── useTheme.ts
-│   ├── lib/
-│   │   ├── maxima-client.ts         # Tauri invoke wrappers
-│   │   ├── notebooks-client.ts      # Save/open/template client (uses dialog plugin)
-│   │   ├── catalog-client.ts        # Search/complete/get functions
-│   │   ├── suggestions-client.ts
-│   │   ├── config-client.ts
-│   │   ├── maxima-language.ts       # Maxima StreamLanguage tokenizer for CM6
-│   │   ├── codemirror-theme.ts      # CM6 theme using CSS variables
-│   │   ├── maxima-completions.ts    # CM6 autocomplete source via Tauri IPC
-│   │   ├── maxima-signature-hint.ts # CM6 signature hint StateField + tooltips
-│   │   ├── maxima-hover-tooltip.ts  # CM6 hover tooltip via hoverTooltip()
-│   │   ├── param-tracker.ts         # Function call / param index detection
-│   │   └── signature-parser.ts      # Parse signature strings
-│   └── styles/
-│       └── global.css
-└── src-tauri/                        # Rust backend
-    ├── Cargo.toml
-    ├── tauri.conf.json
-    ├── capabilities/default.json     # core, opener, dialog permissions
-    └── src/
-        ├── main.rs
-        ├── lib.rs                    # Plugin + command registration, setup
-        ├── menu.rs                   # Native menu bar (File, Edit, Window)
-        ├── state.rs                  # AppState (Maxima handle, catalog)
-        ├── error.rs
-        ├── maxima/
-        │   ├── mod.rs
-        │   ├── process.rs            # Spawn/kill/restart subprocess
-        │   ├── protocol.rs           # Sentinel-based send/receive
-        │   ├── parser.rs             # Parse LaTeX, errors, SVG plots
-        │   ├── errors.rs             # Error pattern matching + enhancement
-        │   └── types.rs              # EvalResult, SessionStatus, ErrorInfo
-        ├── catalog/
-        │   ├── search.rs             # Function catalog search + completion
-        │   └── catalog.json          # Embedded function metadata
-        ├── notebooks/
-        │   ├── mod.rs
-        │   ├── data.rs               # Embedded template loading
-        │   ├── io.rs                 # Read/write notebook files
-        │   ├── types.rs              # Notebook, NotebookCell (nbformat 4)
-        │   ├── welcome.json
-        │   ├── calculus.json
-        │   ├── linear-algebra.json
-        │   ├── equations.json
-        │   ├── programming.json
-        │   └── plotting.json         # 2D/3D/parametric plot examples
-        ├── suggestions/
-        │   ├── types.rs              # Suggestion (with optional action field)
-        │   └── rules.rs              # Context-aware suggestion generation
-        └── commands/
-            ├── mod.rs
-            ├── evaluate.rs
-            ├── session.rs
-            ├── config.rs
-            ├── catalog.rs
-            ├── suggestions.rs
-            ├── notebooks.rs          # list/get templates, save/open notebooks
-            ├── variables.rs
-            └── plot.rs               # write_plot_svg command
-```
-
 ---
 
 ## Maxima Communication Protocol
@@ -255,7 +157,7 @@ Maxima's `tex()` output needs preprocessing for KaTeX compatibility:
 
 1. ✅ Maxima `StreamLanguage` tokenizer (`maxima-language.ts`): keywords, builtins, nested `/* */` comments, strings, numbers, operators
 2. ✅ Transparent CM theme (`codemirror-theme.ts`) inheriting CSS variables for dark/light
-3. ✅ `useCodeMirrorEditor` hook: CM lifecycle, store sync, undo/redo passthrough to zustand, find/cursor navigation
+3. ✅ `useCodeMirrorEditor` hook: CM lifecycle, store sync, find/cursor navigation
 4. ✅ Autocomplete via CM's `autocompletion()` with Tauri IPC (`maxima-completions.ts`), snippet mode support
 5. ✅ Signature hints via CM `StateField` + tooltip system (`maxima-signature-hint.ts`)
 6. ✅ Hover tooltips via CM `hoverTooltip()` (`maxima-hover-tooltip.ts`)
@@ -339,7 +241,7 @@ SVG is text and serializes efficiently through Tauri's JSON IPC. No need for cus
 
 ### Why Zustand?
 
-Minimal API, excellent TypeScript support, selector-based subscriptions prevent unnecessary re-renders. Our state shape (list of cells) doesn't warrant Redux complexity.
+Minimal API, excellent TypeScript support, selector-based subscriptions prevent unnecessary re-renders. The store holds UI-local state (active cell, theme, dirty flag) and receives cell state from the Rust backend via `applyBackendState`. All structural mutations flow through backend commands (`nb_add_cell`, `nb_run_cell`, etc.) with the Zustand store as a read-through cache.
 
 ### Why CSS Modules instead of Tailwind?
 
@@ -349,18 +251,18 @@ Focused UI with few components. CSS Modules provide scoping without class-name v
 
 ## Dependencies
 
-### Rust (Cargo.toml)
+### Rust (workspace)
 
 ```toml
-tauri = { version = "2", features = [] }
-tauri-plugin-opener = "2"
-tauri-plugin-dialog = "2"
-serde = { version = "1", features = ["derive"] }
-serde_json = "1"
-tokio = { version = "1", features = ["full"] }
-regex = "1"
-thiserror = "2"
-tempfile = "3"
+# aximar-core (shared library)
+serde, serde_json, tokio, regex, thiserror, tempfile, nanoid
+
+# aximar-mcp (MCP server)
+aximar-core, rmcp, schemars, tokio, anyhow
+
+# src-tauri (Tauri app)
+aximar-core, aximar-mcp, tauri, tauri-plugin-opener, tauri-plugin-dialog,
+tauri-plugin-fs, tokio, tokio-util, axum, tracing, tracing-subscriber
 ```
 
 ### npm

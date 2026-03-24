@@ -36,17 +36,13 @@ WSL UNC path construction and Docker host temp directory logic have no test cove
 
 ## Medium
 
-### 7. Undo/redo snapshot timing gap
+### ~~7. Undo/redo snapshot timing gap~~ — RESOLVED
 
-**File:** `src/store/notebookStore.ts` (lines ~71–192)
+Undo/redo moved to the Rust backend (`Notebook::apply()`). Each undoable command pushes a full snapshot before applying. Cell input changes are debounced from the frontend (300ms) and each `UpdateCellInput` command that changes the input pushes an undo snapshot. Cmd+Z dispatches `nb_undo` to the backend, which always has the latest committed state.
 
-`updateCellInput` uses a 500ms debounce for snapshots. If a user types rapidly then immediately hits Ctrl+Z, the last keystrokes may not be in the undo history. The pending snapshot should be flushed when undo/redo is triggered.
+### ~~8. buildLabelLatexMap rebuilds on every cell output~~ — RESOLVED
 
-### 8. buildLabelLatexMap rebuilds on every cell output
-
-**File:** `src/hooks/useMaxima.ts` (line ~145)
-
-`buildLabelLatexMap()` does an O(n) scan of all cells on every evaluation result. Fine for small notebooks but will scale poorly. Consider caching or incremental updates.
+Label context (label map, previous output label) is now built in the backend inside `nb_run_cell`. The frontend no longer tracks or resolves Maxima labels.
 
 ### 9. Parser doesn't bound LaTeX accumulation
 
@@ -72,7 +68,7 @@ Already fixed: all regexes in `errors.rs` (`ARG_COUNT_RE`, `UNDEFINED_VAR_RE`, `
 
 **File:** `src/hooks/useCodeMirrorEditor.ts`
 
-Three levels of state (CM editor state, Zustand store, external cell input) are synchronized via an `isInternalUpdate` flag that isn't async-safe. The filtered keymap is also re-computed on every render. Not currently causing bugs but fragile.
+CM editor state and Zustand store are synchronized via an `isInternalUpdate` flag that isn't async-safe. The flag prevents echo loops when CM dispatches doc changes to the store, and the store change triggers `syncExternalInput` back into CM. With the backend command-effect system, undo/redo no longer passes through CM, reducing the coupling, but the `isInternalUpdate` pattern remains fragile.
 
 ### 13. Settings modal state drift
 

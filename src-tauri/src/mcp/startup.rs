@@ -3,7 +3,6 @@ use std::sync::Arc;
 use rmcp::transport::streamable_http_server::{
     session::local::LocalSessionManager, StreamableHttpServerConfig, StreamableHttpService,
 };
-use tauri::Emitter;
 use tokio_util::sync::CancellationToken;
 
 use aximar_core::maxima::backend::{Backend, BackendKind, ContainerEngine};
@@ -14,7 +13,8 @@ use aximar_mcp::server::AximarMcpServer;
 use crate::state::AppState;
 use crate::tauri_output::{emit_app_log, TauriOutputSink};
 
-use super::sync::notebook_state_payload;
+use crate::commands::notebook::emit_notebook_state;
+use aximar_core::commands::CommandEffect;
 
 /// Start the embedded MCP streamable HTTP server.
 ///
@@ -38,13 +38,13 @@ pub async fn start_mcp_server(state: AppState, listen_address: String, ct: Cance
         // Spawn a task because the callback is called synchronously but we need
         // to lock the async mutex
         tokio::spawn(async move {
-            let payload = {
-                let nb = notebook.lock().await;
-                notebook_state_payload(&nb)
-            };
             if let Ok(guard) = app_handle.try_lock() {
                 if let Some(ref handle) = *guard {
-                    let _ = handle.emit("mcp-notebook-sync", payload);
+                    let nb = notebook.lock().await;
+                    // Use a generic "mcp_changed" effect since we don't know
+                    // which specific command the MCP server applied
+                    let effect = CommandEffect::NotebookReplaced;
+                    emit_notebook_state(handle, &nb, &effect);
                 }
             }
         });

@@ -1,8 +1,7 @@
 use std::sync::Mutex;
 
-use aximar_core::maxima::output::{OutputEvent, OutputSink};
-
 use crate::log::ServerLog;
+use crate::maxima::output::{OutputEvent, OutputSink};
 
 /// OutputSink that captures Maxima I/O per-cell and also logs to a server-wide buffer.
 pub struct CaptureOutputSink {

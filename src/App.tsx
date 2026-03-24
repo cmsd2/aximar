@@ -14,8 +14,16 @@ import { DocsPanel } from "./components/DocsPanel";
 import { FindBar } from "./components/FindBar";
 import { ShortcutHints } from "./components/ShortcutHints";
 import { useMaxima } from "./hooks/useMaxima";
-import { useMcpSync } from "./hooks/useMcpSync";
+import { useNotebookEvents } from "./hooks/useNotebookEvents";
 import { useTheme } from "./hooks/useTheme";
+import {
+  nbDeleteCell,
+  nbMoveCell,
+  nbUndo,
+  nbRedo,
+  nbNewNotebook,
+  nbLoadCells,
+} from "./lib/notebook-commands";
 import {
   getHasSeenWelcome,
   setHasSeenWelcome,
@@ -33,7 +41,7 @@ import "./styles/global.css";
 function App() {
   const { initSession } = useMaxima();
   useTheme();
-  useMcpSync();
+  useNotebookEvents();
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [paletteQuery, setPaletteQuery] = useState<string | undefined>(
     undefined
@@ -44,8 +52,8 @@ function App() {
   const [docsOpen, setDocsOpen] = useState(false);
   const [docsFunctionName, setDocsFunctionName] = useState<string | undefined>(undefined);
   const [docsRequestId, setDocsRequestId] = useState(0);
-  const loadNotebook = useNotebookStore((s) => s.loadNotebook);
-  const newNotebook = useNotebookStore((s) => s.newNotebook);
+  const setFilePath = useNotebookStore((s) => s.setFilePath);
+  const markClean = useNotebookStore((s) => s.markClean);
   const windowOpen = useLogStore((s) => s.windowOpen);
   const toggleWindow = useLogStore((s) => s.toggleWindow);
   const logUnreadCount = useLogStore((s) => s.unreadCount);
@@ -152,13 +160,20 @@ function App() {
         if (!seen) {
           const welcome = await getTemplate("welcome");
           if (welcome) {
-            loadNotebook(welcome.cells);
+            const cells = welcome.cells
+              .filter((c) => c.cell_type !== "raw")
+              .map((c) => ({
+                id: crypto.randomUUID(),
+                cell_type: c.cell_type === "markdown" ? "markdown" : "code",
+                input: typeof c.source === "string" ? c.source : (c.source as string[]).join(""),
+              }));
+            await nbLoadCells(cells);
           }
           await setHasSeenWelcome();
         }
       })
       .catch((e) => addLogEntry("error", `Failed to load welcome notebook: ${e}`, "init"));
-  }, [loadNotebook]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const openDocsFor = useCallback((name: string) => {
     setDocsFunctionName(name);
@@ -199,9 +214,18 @@ function App() {
     }
     const result = await openNotebook();
     if (result) {
-      loadNotebook(result.notebook.cells, result.path);
+      const cells = result.notebook.cells
+        .filter((c) => c.cell_type !== "raw")
+        .map((c) => ({
+          id: crypto.randomUUID(),
+          cell_type: c.cell_type === "markdown" ? "markdown" : "code",
+          input: typeof c.source === "string" ? c.source : (c.source as string[]).join(""),
+        }));
+      await nbLoadCells(cells);
+      setFilePath(result.path);
+      markClean();
     }
-  }, [loadNotebook]);
+  }, [setFilePath, markClean]);
 
   const handleNew = useCallback(async () => {
     const { isDirty } = useNotebookStore.getState();
@@ -212,8 +236,8 @@ function App() {
       });
       if (!confirmed) return;
     }
-    newNotebook();
-  }, [newNotebook]);
+    await nbNewNotebook();
+  }, []);
 
   // --- Listen for native menu events from Tauri ---
 
@@ -292,13 +316,13 @@ function App() {
 
       if (key === "z" && !e.shiftKey) {
         e.preventDefault();
-        useNotebookStore.getState().undo();
+        nbUndo();
       } else if (key === "z" && e.shiftKey) {
         e.preventDefault();
-        useNotebookStore.getState().redo();
+        nbRedo();
       } else if (key === "y") {
         e.preventDefault();
-        useNotebookStore.getState().redo();
+        nbRedo();
       } else if (key === "f" && !e.shiftKey) {
         e.preventDefault();
         useFindStore.getState().open(false);
@@ -307,18 +331,18 @@ function App() {
         useFindStore.getState().open(true);
       } else if (key === "d") {
         e.preventDefault();
-        const { activeCellId, cells, deleteCell } = useNotebookStore.getState();
+        const { activeCellId, cells } = useNotebookStore.getState();
         if (activeCellId && cells.length > 1) {
-          deleteCell(activeCellId);
+          nbDeleteCell(activeCellId);
         }
       } else if (e.shiftKey && key === "arrowup") {
         e.preventDefault();
-        const { activeCellId, moveCell } = useNotebookStore.getState();
-        if (activeCellId) moveCell(activeCellId, "up");
+        const { activeCellId } = useNotebookStore.getState();
+        if (activeCellId) nbMoveCell(activeCellId, "up");
       } else if (e.shiftKey && key === "arrowdown") {
         e.preventDefault();
-        const { activeCellId, moveCell } = useNotebookStore.getState();
-        if (activeCellId) moveCell(activeCellId, "down");
+        const { activeCellId } = useNotebookStore.getState();
+        if (activeCellId) nbMoveCell(activeCellId, "down");
       }
     };
 

@@ -79,8 +79,18 @@ pub fn run() {
             commands::plot::write_plot_svg,
             commands::config::list_wsl_distros,
             commands::config::check_wsl_maxima,
-            mcp::sync::sync_notebook_state,
             commands::config::get_buffered_logs,
+            commands::notebook::nb_get_state,
+            commands::notebook::nb_add_cell,
+            commands::notebook::nb_delete_cell,
+            commands::notebook::nb_move_cell,
+            commands::notebook::nb_toggle_cell_type,
+            commands::notebook::nb_update_cell_input,
+            commands::notebook::nb_undo,
+            commands::notebook::nb_redo,
+            commands::notebook::nb_new_notebook,
+            commands::notebook::nb_load_cells,
+            commands::notebook::nb_run_cell,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -79,11 +79,10 @@ export function FindBar() {
     const match = matches[currentMatchIndex];
     if (!match) return;
 
-    const { forceInputSnapshot, updateCellInput, cells: currentCells } = useNotebookStore.getState();
+    const { updateCellInput, cells: currentCells } = useNotebookStore.getState();
     const cell = currentCells.find((c) => c.id === match.cellId);
     if (!cell) return;
 
-    forceInputSnapshot();
     const newText = cell.input.slice(0, match.start) + replacement + cell.input.slice(match.end);
     updateCellInput(match.cellId, newText);
   }, [matches, currentMatchIndex, replacement]);
@@ -91,8 +90,7 @@ export function FindBar() {
   const handleReplaceAll = useCallback(() => {
     if (matches.length === 0) return;
 
-    const { forceInputSnapshot, updateCellInput, cells: currentCells } = useNotebookStore.getState();
-    forceInputSnapshot();
+    const { updateCellInput, cells: currentCells } = useNotebookStore.getState();
 
     // Group matches by cell
     const byCellId = new Map<string, FindMatch[]>();

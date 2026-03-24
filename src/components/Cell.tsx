@@ -6,6 +6,7 @@ import { useMaxima } from "../hooks/useMaxima";
 import { useCodeMirrorEditor } from "../hooks/useCodeMirrorEditor";
 import { CellOutput } from "./CellOutput";
 import { CellSuggestions } from "./CellSuggestions";
+import { nbDeleteCell, nbMoveCell, nbAddCell } from "../lib/notebook-commands";
 
 interface CellProps {
   cell: CellType;
@@ -13,9 +14,6 @@ interface CellProps {
 }
 
 export function Cell({ cell, onViewDocs }: CellProps) {
-  const deleteCell = useNotebookStore((s) => s.deleteCell);
-  const moveCell = useNotebookStore((s) => s.moveCell);
-  const addCell = useNotebookStore((s) => s.addCell);
   const cells = useNotebookStore((s) => s.cells);
   const cellCount = cells.length;
   const setActiveCellId = useNotebookStore((s) => s.setActiveCellId);
@@ -44,11 +42,11 @@ export function Cell({ cell, onViewDocs }: CellProps) {
     executeCell(cell.id, cell.input).then((success) => {
       if (!success) return;
       if (isLastCell) {
-        addCell(cell.id);
+        nbAddCell("code", undefined, cell.id);
       }
       requestAnimationFrame(focusNextCell);
     });
-  }, [cell.id, cell.input, cells, executeCell, addCell, focusNextCell]);
+  }, [cell.id, cell.input, cells, executeCell, focusNextCell]);
 
   const onExecuteStay = useCallback(() => {
     executeCell(cell.id, cell.input);
@@ -105,7 +103,7 @@ export function Cell({ cell, onViewDocs }: CellProps) {
             <>
               <button
                 className="cell-btn move-btn"
-                onClick={() => moveCell(cell.id, "up")}
+                onClick={() => nbMoveCell(cell.id, "up")}
                 title="Move cell up"
                 disabled={cells[0]?.id === cell.id}
               >
@@ -113,7 +111,7 @@ export function Cell({ cell, onViewDocs }: CellProps) {
               </button>
               <button
                 className="cell-btn move-btn"
-                onClick={() => moveCell(cell.id, "down")}
+                onClick={() => nbMoveCell(cell.id, "down")}
                 title="Move cell down"
                 disabled={cells[cells.length - 1]?.id === cell.id}
               >
@@ -131,7 +129,7 @@ export function Cell({ cell, onViewDocs }: CellProps) {
           {cellCount > 1 && (
             <button
               className="cell-btn delete-btn"
-              onClick={() => deleteCell(cell.id)}
+              onClick={() => nbDeleteCell(cell.id)}
               title="Delete cell"
             >
               &times;

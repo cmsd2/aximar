@@ -1,6 +1,7 @@
 pub mod catalog;
 pub mod config;
 pub mod evaluate;
+pub mod notebook;
 pub mod notebooks;
 pub mod plot;
 pub mod session;

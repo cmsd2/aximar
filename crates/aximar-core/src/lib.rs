@@ -1,6 +1,10 @@
+pub mod capture;
 pub mod catalog;
+pub mod commands;
 pub mod error;
+pub mod log;
 pub mod maxima;
+pub mod notebook;
 pub mod notebooks;
 pub mod session;
 pub mod suggestions;

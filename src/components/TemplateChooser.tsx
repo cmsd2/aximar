@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { listTemplates, getTemplate } from "../lib/notebooks-client";
-import { useNotebookStore } from "../store/notebookStore";
+import { nbLoadCells } from "../lib/notebook-commands";
 import type { TemplateSummary } from "../types/notebooks";
 
 interface TemplateChooserProps {
@@ -9,7 +9,6 @@ interface TemplateChooserProps {
 
 export function TemplateChooser({ onClose }: TemplateChooserProps) {
   const [templates, setTemplates] = useState<TemplateSummary[]>([]);
-  const loadNotebook = useNotebookStore((s) => s.loadNotebook);
 
   useEffect(() => {
     listTemplates()
@@ -21,11 +20,18 @@ export function TemplateChooser({ onClose }: TemplateChooserProps) {
     async (id: string) => {
       const template = await getTemplate(id);
       if (template) {
-        loadNotebook(template.cells);
+        const cells = template.cells
+          .filter((c) => c.cell_type !== "raw")
+          .map((c) => ({
+            id: crypto.randomUUID(),
+            cell_type: c.cell_type === "markdown" ? "markdown" : "code",
+            input: typeof c.source === "string" ? c.source : (c.source as string[]).join(""),
+          }));
+        await nbLoadCells(cells);
       }
       onClose();
     },
-    [loadNotebook, onClose]
+    [onClose]
   );
 
   return (

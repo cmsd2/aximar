@@ -1,10 +1,6 @@
 use serde::{Deserialize, Serialize};
-use tauri::State;
 
-use aximar_core::error::AppError;
-use aximar_mcp::notebook::{CellOutput, CellStatus, CellType, McpNotebook};
-
-use crate::state::AppState;
+use aximar_core::notebook::{CellOutput, CellStatus, CellType, Notebook};
 
 /// Serializable cell state for syncing between frontend and backend.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -20,14 +16,14 @@ pub struct SyncCell {
     pub status: Option<String>,
 }
 
-/// Payload emitted to the frontend when MCP modifies the notebook.
+/// Payload containing cell state for events.
 #[derive(Debug, Clone, Serialize)]
 pub struct NotebookSyncPayload {
     pub cells: Vec<SyncCell>,
 }
 
 /// Build a sync payload from the current notebook state.
-pub fn notebook_state_payload(nb: &McpNotebook) -> NotebookSyncPayload {
+pub fn notebook_state_payload(nb: &Notebook) -> NotebookSyncPayload {
     let cells = nb
         .cells()
         .iter()
@@ -48,32 +44,4 @@ pub fn notebook_state_payload(nb: &McpNotebook) -> NotebookSyncPayload {
         })
         .collect();
     NotebookSyncPayload { cells }
-}
-
-/// Tauri command: frontend pushes its current cell state to the backend's
-/// McpNotebook so that MCP sees up-to-date content.
-///
-/// Uses merge-based sync to preserve output/status for cells that are
-/// currently being executed by MCP.
-#[tauri::command]
-pub async fn sync_notebook_state(
-    state: State<'_, AppState>,
-    cells: Vec<SyncCell>,
-) -> Result<(), AppError> {
-    let mut nb = state.notebook.lock().await;
-
-    let incoming: Vec<(String, CellType, String)> = cells
-        .into_iter()
-        .map(|cell| {
-            let cell_type = match cell.cell_type.as_str() {
-                "markdown" => CellType::Markdown,
-                _ => CellType::Code,
-            };
-            (cell.id, cell_type, cell.input)
-        })
-        .collect();
-
-    nb.set_cells_from_sync(incoming);
-
-    Ok(())
 }

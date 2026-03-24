@@ -1,4 +1,7 @@
-pub mod capture;
-pub mod log;
-pub mod notebook;
+// Re-export from aximar-core for backward compatibility
+pub use aximar_core::capture;
+pub use aximar_core::commands;
+pub use aximar_core::log;
+pub use aximar_core::notebook;
+
 pub mod server;

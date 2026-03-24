@@ -1,19 +1,24 @@
 import { useNotebookStore } from "../store/notebookStore";
 import { Cell } from "./Cell";
 import { MarkdownCell } from "./MarkdownCell";
+import { nbAddCell } from "../lib/notebook-commands";
 
 function InsertBar({ afterId }: { afterId?: string }) {
-  const addCell = useNotebookStore((s) => s.addCell);
-  const addMarkdownCell = useNotebookStore((s) => s.addMarkdownCell);
+  const handleAddCode = async () => {
+    await nbAddCell("code", undefined, afterId);
+  };
+  const handleAddMarkdown = async () => {
+    await nbAddCell("markdown", undefined, afterId);
+  };
 
   return (
     <div className="insert-bar">
       <div className="insert-bar-line" />
       <div className="insert-bar-buttons">
-        <button className="insert-bar-btn" onClick={() => addCell(afterId)}>
+        <button className="insert-bar-btn" onClick={handleAddCode}>
           + Code
         </button>
-        <button className="insert-bar-btn" onClick={() => addMarkdownCell(afterId)}>
+        <button className="insert-bar-btn" onClick={handleAddMarkdown}>
           + Markdown
         </button>
       </div>

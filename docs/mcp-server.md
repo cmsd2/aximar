@@ -93,21 +93,26 @@ When the Aximar desktop app is running, it can host an MCP streamable HTTP serve
 
 ## Architecture
 
+All notebook mutations (add/delete/move cell, toggle type, update input, execute, undo/redo) flow through a **command-effect system** in the Rust backend. Both the GUI frontend and MCP tools dispatch `NotebookCommand` variants to `Notebook::apply()`, which returns a `CommandEffect` describing what changed. The backend is the single source of truth; the frontend receives state updates via `notebook-state-changed` Tauri events.
+
 ```
-crates/aximar-core/     Shared library (session, catalog, protocol, notebooks)
-crates/aximar-mcp/      MCP server logic (lib + binary)
-  src/lib.rs            Library root (server, notebook, capture, log)
-  src/main.rs           Headless binary entry point (stdio transport)
-  src/server.rs         AximarMcpServer with 21 tool implementations
-  src/notebook.rs       In-memory notebook model (McpNotebook, McpCell)
+crates/aximar-core/     Shared library
+  src/notebook.rs       Notebook state + command application + undo/redo
+  src/commands.rs       NotebookCommand and CommandEffect enums
   src/capture.rs        Per-cell output capture (CaptureOutputSink)
   src/log.rs            Server-wide output ring buffer (ServerLog)
+  src/session.rs        SessionManager (Maxima process lifecycle)
+
+crates/aximar-mcp/      MCP server (lib + binary)
+  src/lib.rs            Re-exports notebook, commands, capture, log from aximar-core
+  src/main.rs           Headless binary entry point (stdio transport)
+  src/server.rs         AximarMcpServer with 21 tool implementations
   src/config.rs         Environment variable configuration
 
-src-tauri/src/mcp/      Connected mode integration
-  mod.rs                Module root
-  startup.rs            HTTP server startup (StreamableHttpService on localhost)
-  sync.rs               Frontend<->backend notebook sync (Tauri commands + events)
+src-tauri/src/
+  commands/notebook.rs  Tauri notebook commands (nb_add_cell, nb_run_cell, etc.)
+  mcp/startup.rs        HTTP server startup (StreamableHttpService on localhost)
+  mcp/sync.rs           Event payload helpers (SyncCell, notebook_state_payload)
 ```
 
-In connected mode, the MCP server shares `SessionManager`, `Catalog`, `Docs`, `McpNotebook`, and output sinks with the Tauri app via `Arc`. A `MultiOutputSink` broadcasts Maxima I/O to both the Tauri frontend (for the GUI log) and the `CaptureOutputSink` (for MCP cell output capture).
+In connected mode, the MCP server shares `SessionManager`, `Catalog`, `Docs`, `Notebook`, and output sinks with the Tauri app via `Arc`. A `MultiOutputSink` broadcasts Maxima I/O to both the Tauri frontend (for the GUI log) and the `CaptureOutputSink` (for MCP cell output capture).

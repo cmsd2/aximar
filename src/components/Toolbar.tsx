@@ -1,5 +1,6 @@
 import { useNotebookStore } from "../store/notebookStore";
 import { useMaxima } from "../hooks/useMaxima";
+import { nbAddCell, nbUndo, nbRedo } from "../lib/notebook-commands";
 
 interface ToolbarProps {
   onOpenTemplates: () => void;
@@ -14,18 +15,20 @@ interface ToolbarProps {
 }
 
 export function Toolbar({ onOpenTemplates, onOpenSettings, variablesOpen, onToggleVariables, logOpen, onToggleLog, logUnreadCount, docsOpen, onToggleDocs }: ToolbarProps) {
-  const addCell = useNotebookStore((s) => s.addCell);
-  const addMarkdownCell = useNotebookStore((s) => s.addMarkdownCell);
   const activeCellId = useNotebookStore((s) => s.activeCellId);
   const cells = useNotebookStore((s) => s.cells);
   const sessionStatus = useNotebookStore((s) => s.sessionStatus);
   const filePath = useNotebookStore((s) => s.filePath);
   const isDirty = useNotebookStore((s) => s.isDirty);
-  const undo = useNotebookStore((s) => s.undo);
-  const redo = useNotebookStore((s) => s.redo);
-  const canUndo = useNotebookStore((s) => s._undoPast.length > 0);
-  const canRedo = useNotebookStore((s) => s._undoFuture.length > 0);
+  const canUndo = useNotebookStore((s) => s.canUndo);
+  const canRedo = useNotebookStore((s) => s.canRedo);
   const { executeCell, restartSession } = useMaxima();
+
+  const handleAddCell = async (cellType?: string) => {
+    await nbAddCell(cellType ?? "code", undefined, activeCellId ?? undefined);
+    // Focus is handled automatically: applyBackendState sets activeCellId,
+    // and the CodeMirror hook auto-focuses when the cell becomes active.
+  };
 
   const runAll = async () => {
     for (const cell of cells) {
@@ -54,22 +57,10 @@ export function Toolbar({ onOpenTemplates, onOpenSettings, variablesOpen, onTogg
   return (
     <div className="toolbar">
       <div className="toolbar-left">
-        <button className="toolbar-btn" onClick={() => {
-          const id = addCell(activeCellId ?? undefined);
-          requestAnimationFrame(() => {
-            const el = document.querySelector<HTMLTextAreaElement>(`[data-cell-id="${id}"]`);
-            el?.focus();
-          });
-        }}>
+        <button className="toolbar-btn" onClick={() => handleAddCell("code")}>
           + Cell
         </button>
-        <button className="toolbar-btn" onClick={() => {
-          const id = addMarkdownCell(activeCellId ?? undefined);
-          requestAnimationFrame(() => {
-            const el = document.querySelector<HTMLTextAreaElement>(`[data-cell-id="${id}"]`);
-            el?.focus();
-          });
-        }}>
+        <button className="toolbar-btn" onClick={() => handleAddCell("markdown")}>
           + Markdown
         </button>
         <div className="toolbar-separator" />
@@ -80,10 +71,10 @@ export function Toolbar({ onOpenTemplates, onOpenSettings, variablesOpen, onTogg
           Restart
         </button>
         <div className="toolbar-separator" />
-        <button className="toolbar-btn" onClick={undo} disabled={!canUndo} title="Undo (Cmd+Z)">
+        <button className="toolbar-btn" onClick={() => nbUndo()} disabled={!canUndo} title="Undo (Cmd+Z)">
           Undo
         </button>
-        <button className="toolbar-btn" onClick={redo} disabled={!canRedo} title="Redo (Cmd+Shift+Z)">
+        <button className="toolbar-btn" onClick={() => nbRedo()} disabled={!canRedo} title="Redo (Cmd+Shift+Z)">
           Redo
         </button>
         <div className="toolbar-separator" />

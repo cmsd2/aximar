@@ -1,6 +1,6 @@
 use std::sync::Mutex;
 
-use aximar_core::maxima::output::OutputEvent;
+use crate::maxima::output::OutputEvent;
 
 const MAX_LOG_ENTRIES: usize = 5000;
 

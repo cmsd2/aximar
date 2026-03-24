@@ -4,6 +4,7 @@ import { save } from "@tauri-apps/plugin-dialog";
 import { useNotebookStore } from "../store/notebookStore";
 import { useMaxima } from "../hooks/useMaxima";
 import { getSuggestions } from "../lib/suggestions-client";
+import { nbAddCell } from "../lib/notebook-commands";
 import type { Suggestion } from "../types/suggestions";
 import type { Cell } from "../types/notebook";
 import type { EvalResult } from "../types/maxima";
@@ -14,7 +15,6 @@ interface CellSuggestionsProps {
 
 export function CellSuggestions({ cell }: CellSuggestionsProps) {
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
-  const addCellWithInput = useNotebookStore((s) => s.addCellWithInput);
   const updateCellInput = useNotebookStore((s) => s.updateCellInput);
   const cells = useNotebookStore((s) => s.cells);
   const { executeCell } = useMaxima();
@@ -62,7 +62,7 @@ export function CellSuggestions({ cell }: CellSuggestionsProps) {
 
   if (suggestions.length === 0) return null;
 
-  const handleSuggestionClick = (template: string) => {
+  const handleSuggestionClick = async (template: string) => {
     const prev = lastSuggestionRef.current;
 
     // Check if we can reuse the cell from the previous suggestion click:
@@ -79,9 +79,9 @@ export function CellSuggestions({ cell }: CellSuggestionsProps) {
     }
 
     // Create a new cell — backend resolves % via label context
-    const newCellId = addCellWithInput(cell.id, template);
-    lastSuggestionRef.current = { cellId: newCellId, template };
-    executeCell(newCellId, template);
+    const result = await nbAddCell("code", template, cell.id);
+    lastSuggestionRef.current = { cellId: result.cell_id, template };
+    executeCell(result.cell_id, template);
   };
 
   return (
