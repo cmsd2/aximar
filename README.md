@@ -185,6 +185,10 @@ React Frontend  <->  Tauri IPC  <->  Rust Backend  <->  Maxima subprocess
 | State management | Zustand |
 | Subprocess I/O | tokio::process |
 
+## Alternatives
+
+- **[wxMaxima](https://wxmaxima-developers.github.io/wxmaxima/)** — the long-established GUI for Maxima, built with wxWidgets. wxMaxima offers a mature feature set including interactive animations with slider controls, `table_form()` for tabular data display, and notebook export to HTML/LaTeX. Aximar aims to provide a more modern interface and cross-platform experience via Tauri, but wxMaxima remains an excellent choice — especially if you need animation support or `.wxm`/`.wxmx` file compatibility.
+
 ## License
 
 GPL-3.0-or-later
