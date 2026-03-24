@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
 import type { Cell as CellType } from "../types/notebook";
@@ -73,7 +74,7 @@ export function MarkdownCell({ cell }: MarkdownCellProps) {
           onDoubleClick={() => setEditing(true)}
         >
           {cell.input.trim() ? (
-            <ReactMarkdown remarkPlugins={[remarkMath]} rehypePlugins={[rehypeKatex]}>
+            <ReactMarkdown remarkPlugins={[remarkGfm, remarkMath]} rehypePlugins={[rehypeKatex]}>
               {cell.input}
             </ReactMarkdown>
           ) : (

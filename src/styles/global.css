@@ -1243,6 +1243,29 @@
   color: var(--text-secondary);
 }
 
+.markdown-cell-view table {
+  border-collapse: collapse;
+  margin: 0.5em 0;
+  width: auto;
+  font-size: 0.92em;
+}
+
+.markdown-cell-view th,
+.markdown-cell-view td {
+  border: 1px solid var(--border-color);
+  padding: 4px 10px;
+  text-align: left;
+}
+
+.markdown-cell-view th {
+  background: var(--bg-secondary);
+  font-weight: 600;
+}
+
+.markdown-cell-view tr:nth-child(even) {
+  background: color-mix(in srgb, var(--bg-secondary) 50%, transparent);
+}
+
 .markdown-cell-placeholder {
   color: var(--text-placeholder);
   font-style: italic;

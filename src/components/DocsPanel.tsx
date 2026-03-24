@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
 import katex from "katex";
@@ -206,7 +207,7 @@ export function DocsPanel({ open, functionName, requestId, onClose }: DocsPanelP
             {currentDocs ? (
               <div className="docs-markdown-body">
                 <ReactMarkdown
-                  remarkPlugins={[remarkMath]}
+                  remarkPlugins={[remarkGfm, remarkMath]}
                   rehypePlugins={[rehypeKatex]}
                   components={{
                     a: ({ href, children, ...props }) => {
