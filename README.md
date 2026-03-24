@@ -6,6 +6,8 @@ Built with [Tauri v2](https://tauri.app/) (Rust backend) and React + TypeScript 
 
 ![Aximar screenshot — 2D plot rendered inline](assets/screenshot-2d-plot.png)
 
+See the [vector calculus example](assets/vc.pdf) for a Stokes' theorem verification notebook.
+
 ## Features
 
 - **Notebook interface** — code and markdown cells with drag-to-reorder

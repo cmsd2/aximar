@@ -38,7 +38,7 @@
     },
     {
       "cell_type": "code",
-      "source": "/* Parametrise the hemisphere */\nr_s: [R*sin(th)*cos(ph), R*sin(th)*sin(ph), R*cos(th)]$\n\n/* Tangent vectors */\nr_th: diff(r_s, th)$\nr_ph: diff(r_s, ph)$\n\n/* Normal vector: r_th × r_ph (outward for upper hemisphere) */\nnormal: trigsimp([r_th[2]*r_ph[3] - r_th[3]*r_ph[2],\n                  r_th[3]*r_ph[1] - r_th[1]*r_ph[3],\n                  r_th[1]*r_ph[2] - r_th[2]*r_ph[1]])",
+      "source": "/* Parametrise the hemisphere */\nr_s: [R*sin(θ)*cos(φ), R*sin(θ)*sin(φ), R*cos(θ)]$\n\n/* Tangent vectors */\nr_θ: diff(r_s, θ)$\nr_φ: diff(r_s, φ)$\n\n/* Normal vector: r_θ × r_φ (outward for upper hemisphere) */\nnormal: trigsimp([r_θ[2]*r_φ[3] - r_θ[3]*r_φ[2],\n                  r_θ[3]*r_φ[1] - r_θ[1]*r_φ[3],\n                  r_θ[1]*r_φ[2] - r_θ[2]*r_φ[1]])",
       "metadata": {},
       "execution_count": null,
       "outputs": []
@@ -52,7 +52,7 @@
     },
     {
       "cell_type": "code",
-      "source": "/* Surface integral over hemisphere */\nsurface_result: integrate(integrate(integrand, th, 0, %pi/2), ph, 0, 2*%pi)",
+      "source": "/* Surface integral over hemisphere */\nsurface_result: integrate(integrate(integrand, θ, 0, %pi/2), φ, 0, 2*%pi)",
       "metadata": {},
       "execution_count": null,
       "outputs": []
