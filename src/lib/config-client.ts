@@ -19,6 +19,8 @@ export interface AppConfig {
   docker_image: string;
   wsl_distro: string;
   container_engine: string;
+  mcp_enabled: boolean;
+  mcp_listen_address: string;
 }
 
 export interface ConfigResponse {

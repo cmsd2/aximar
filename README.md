@@ -129,6 +129,36 @@ taylor(exp(x), x, 0, 5);
 plot2d(sin(x), [x, -%pi, %pi]);
 ```
 
+## MCP Server (AI Integration)
+
+Aximar exposes its capabilities via the [Model Context Protocol](https://modelcontextprotocol.io/), letting AI assistants search function docs, manage notebook cells, run Maxima expressions, and inspect session state. There are 21 tools available — see `docs/mcp-server.md` for the full list.
+
+### Connected mode (recommended)
+
+When the Aximar app is running, it automatically starts an MCP server on `localhost:19542`. AI tools share the GUI's Maxima session, so changes appear live in the app.
+
+```bash
+claude mcp add --transport http aximar http://localhost:19542/mcp
+```
+
+### Headless mode
+
+The standalone `aximar-mcp` binary runs its own Maxima session over stdio, without the GUI.
+
+```bash
+# Build it
+cargo build -p aximar-mcp --release
+
+# Register with Claude Code
+claude mcp add aximar -- ./target/release/aximar-mcp
+```
+
+Verify either mode is working:
+
+```bash
+claude mcp list
+```
+
 ## Building from Source
 
 ### Prerequisites
@@ -160,8 +190,8 @@ Build artifacts are placed in `src-tauri/target/release/bundle/`:
 ### Running tests
 
 ```bash
-# Rust unit tests
-cd src-tauri && cargo test
+# Rust unit tests (all workspace crates)
+cargo test --workspace
 
 # TypeScript type checking
 npx tsc --noEmit

@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { listen } from "@tauri-apps/api/event";
+import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { ask } from "@tauri-apps/plugin-dialog";
 import { Toolbar } from "./components/Toolbar";
@@ -13,6 +14,7 @@ import { DocsPanel } from "./components/DocsPanel";
 import { FindBar } from "./components/FindBar";
 import { ShortcutHints } from "./components/ShortcutHints";
 import { useMaxima } from "./hooks/useMaxima";
+import { useMcpSync } from "./hooks/useMcpSync";
 import { useTheme } from "./hooks/useTheme";
 import {
   getHasSeenWelcome,
@@ -31,6 +33,7 @@ import "./styles/global.css";
 function App() {
   const { initSession } = useMaxima();
   useTheme();
+  useMcpSync();
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [paletteQuery, setPaletteQuery] = useState<string | undefined>(
     undefined
@@ -107,6 +110,36 @@ function App() {
         );
       }
     );
+    return () => {
+      unlisten.then((fn) => fn());
+    };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Listen for structured app log events from the backend, and replay
+  // any that were buffered before this listener was ready.
+  useEffect(() => {
+    const unlisten = listen<{ level: string; message: string; source: string }>(
+      "app-log",
+      (event) => {
+        addLogEntry(
+          event.payload.level as "info" | "warning" | "error",
+          event.payload.message,
+          event.payload.source
+        );
+      }
+    );
+    // Drain buffered logs that arrived before the listener was mounted
+    invoke<{ level: string; message: string; source: string }[]>(
+      "get_buffered_logs"
+    ).then((entries) => {
+      for (const e of entries) {
+        addLogEntry(
+          e.level as "info" | "warning" | "error",
+          e.message,
+          e.source
+        );
+      }
+    });
     return () => {
       unlisten.then((fn) => fn());
     };

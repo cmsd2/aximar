@@ -1,12 +1,14 @@
-pub mod catalog;
+pub use aximar_core::catalog;
 mod commands;
-mod error;
-mod maxima;
+pub use aximar_core::error;
+pub use aximar_core::maxima;
+mod mcp;
 mod menu;
-mod notebooks;
-mod session;
+pub use aximar_core::notebooks;
+pub use aximar_core::session;
 mod state;
-mod suggestions;
+pub use aximar_core::suggestions;
+mod tauri_output;
 
 use tauri::Manager;
 use state::AppState;
@@ -24,6 +26,29 @@ pub fn run() {
             tauri::async_runtime::block_on(async {
                 *state.app_handle.lock().await = Some(handle);
             });
+
+            // Conditionally start the embedded MCP HTTP server
+            if commands::config::read_mcp_enabled(app.handle()) {
+                let mcp_state = AppState {
+                    session: state.session.clone(),
+                    catalog: state.catalog.clone(),
+                    docs: state.docs.clone(),
+                    app_handle: state.app_handle.clone(),
+                    notebook: state.notebook.clone(),
+                    capture_sink: state.capture_sink.clone(),
+                    server_log: state.server_log.clone(),
+                    mcp_controller: state.mcp_controller.clone(),
+                    app_log: state.app_log.clone(),
+                };
+                let listen_address = commands::config::read_mcp_listen_address(app.handle());
+                let ct = tokio_util::sync::CancellationToken::new();
+                let controller = state.mcp_controller.clone();
+                tauri::async_runtime::spawn(async move {
+                    controller.set_running(ct.clone()).await;
+                    mcp::start_mcp_server(mcp_state, listen_address, ct).await;
+                });
+            }
+
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -54,6 +79,8 @@ pub fn run() {
             commands::plot::write_plot_svg,
             commands::config::list_wsl_distros,
             commands::config::check_wsl_maxima,
+            mcp::sync::sync_notebook_state,
+            commands::config::get_buffered_logs,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

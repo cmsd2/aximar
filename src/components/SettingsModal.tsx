@@ -430,6 +430,40 @@ export function SettingsModal({ onClose, onSetVariablesOpen }: SettingsModalProp
             </div>
 
             <div className="settings-row">
+              <label className="settings-label">MCP server</label>
+              <div className="settings-control">
+                <input
+                  type="checkbox"
+                  className="settings-checkbox"
+                  checked={config.mcp_enabled}
+                  onChange={(e) =>
+                    update({ mcp_enabled: e.target.checked })
+                  }
+                />
+              </div>
+            </div>
+
+            {config.mcp_enabled && (
+              <div className="settings-row">
+                <label className="settings-label">MCP listen address</label>
+                <div className="settings-control">
+                  <input
+                    type="text"
+                    className="settings-input"
+                    placeholder="127.0.0.1:19542"
+                    value={config.mcp_listen_address}
+                    onBlur={(e) =>
+                      update({ mcp_listen_address: e.target.value })
+                    }
+                    onChange={(e) =>
+                      setLocalConfig({ ...config, mcp_listen_address: e.target.value })
+                    }
+                  />
+                </div>
+              </div>
+            )}
+
+            <div className="settings-row">
               <label className="settings-label">Variable panel open by default</label>
               <div className="settings-control">
                 <input

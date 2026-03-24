@@ -2,10 +2,14 @@ use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::PathBuf;
 use tauri::Manager;
+use tokio_util::sync::CancellationToken;
 
-use crate::error::AppError;
-use crate::maxima::backend::{decode_wsl_output, Backend};
-use crate::maxima::noconsole::hide_console_window;
+use aximar_core::error::AppError;
+use aximar_core::maxima::backend::{decode_wsl_output, Backend, BackendKind, ContainerEngine};
+use aximar_core::maxima::noconsole::hide_console_window;
+
+use crate::state::AppState;
+use crate::tauri_output::{emit_app_log, AppLogEvent};
 
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
@@ -76,33 +80,6 @@ impl Default for MarkdownIndent {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "kebab-case")]
-pub enum BackendKind {
-    Local,
-    Docker,
-    Wsl,
-}
-
-impl Default for BackendKind {
-    fn default() -> Self {
-        Self::Local
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "kebab-case")]
-pub enum ContainerEngine {
-    Docker,
-    Podman,
-}
-
-impl Default for ContainerEngine {
-    fn default() -> Self {
-        Self::Docker
-    }
-}
-
 fn default_font_size() -> u32 {
     14
 }
@@ -122,6 +99,7 @@ fn default_print_margin_right() -> u32 { 24 }
 
 fn default_docker_image() -> String { String::new() }
 fn default_wsl_distro() -> String { String::new() }
+fn default_mcp_listen_address() -> String { "127.0.0.1:19542".to_string() }
 
 #[derive(Debug, Serialize, Deserialize)]
 struct AppConfig {
@@ -163,6 +141,10 @@ struct AppConfig {
     wsl_distro: String,
     #[serde(default)]
     container_engine: ContainerEngine,
+    #[serde(default)]
+    mcp_enabled: bool,
+    #[serde(default = "default_mcp_listen_address")]
+    mcp_listen_address: String,
 }
 
 impl Default for AppConfig {
@@ -187,6 +169,8 @@ impl Default for AppConfig {
             docker_image: default_docker_image(),
             wsl_distro: default_wsl_distro(),
             container_engine: ContainerEngine::default(),
+            mcp_enabled: false,
+            mcp_listen_address: default_mcp_listen_address(),
         }
     }
 }
@@ -229,6 +213,16 @@ impl AppConfig {
                 *val = default_fn();
             }
         }
+        if self.mcp_listen_address.is_empty()
+            || self.mcp_listen_address.parse::<std::net::SocketAddr>().is_err()
+        {
+            warnings.push(format!(
+                "Invalid mcp_listen_address \"{}\", reset to {}",
+                self.mcp_listen_address,
+                default_mcp_listen_address()
+            ));
+            self.mcp_listen_address = default_mcp_listen_address();
+        }
         (self, warnings)
     }
 }
@@ -254,6 +248,8 @@ pub struct PublicConfig {
     pub docker_image: String,
     pub wsl_distro: String,
     pub container_engine: ContainerEngine,
+    pub mcp_enabled: bool,
+    pub mcp_listen_address: String,
 }
 
 /// Config response with validation warnings
@@ -284,6 +280,8 @@ pub struct ConfigUpdate {
     pub docker_image: Option<String>,
     pub wsl_distro: Option<String>,
     pub container_engine: Option<ContainerEngine>,
+    pub mcp_enabled: Option<bool>,
+    pub mcp_listen_address: Option<String>,
 }
 
 fn config_path(app: &tauri::AppHandle) -> Result<PathBuf, AppError> {
@@ -366,6 +364,8 @@ pub async fn get_config(app: tauri::AppHandle) -> Result<ConfigResponse, AppErro
             docker_image: config.docker_image,
             wsl_distro: config.wsl_distro,
             container_engine: config.container_engine,
+            mcp_enabled: config.mcp_enabled,
+            mcp_listen_address: config.mcp_listen_address,
         },
         warnings,
     })
@@ -373,6 +373,8 @@ pub async fn get_config(app: tauri::AppHandle) -> Result<ConfigResponse, AppErro
 
 #[tauri::command]
 pub async fn set_config(app: tauri::AppHandle, updates: ConfigUpdate) -> Result<(), AppError> {
+    let mcp_changed = updates.mcp_enabled.is_some() || updates.mcp_listen_address.is_some();
+
     let (mut config, _) = read_config(&app)?;
     if let Some(theme) = updates.theme {
         config.theme = theme;
@@ -412,7 +414,43 @@ pub async fn set_config(app: tauri::AppHandle, updates: ConfigUpdate) -> Result<
     if let Some(docker_image) = updates.docker_image { config.docker_image = docker_image; }
     if let Some(wsl_distro) = updates.wsl_distro { config.wsl_distro = wsl_distro; }
     if let Some(container_engine) = updates.container_engine { config.container_engine = container_engine; }
+    if let Some(mcp_enabled) = updates.mcp_enabled { config.mcp_enabled = mcp_enabled; }
+    if let Some(mcp_listen_address) = updates.mcp_listen_address { config.mcp_listen_address = mcp_listen_address; }
     write_config(&app, &config)?;
+
+    // Handle MCP server lifecycle changes
+    if mcp_changed {
+        let state = app.state::<AppState>();
+        let controller = state.mcp_controller.clone();
+
+        if controller.is_running().await {
+            emit_app_log(&state.app_handle, &state.app_log, "info", "MCP server stopping...", "mcp");
+            controller.stop().await;
+        }
+
+        if config.mcp_enabled {
+            emit_app_log(&state.app_handle, &state.app_log, "info", &format!("MCP server starting on {}...", config.mcp_listen_address), "mcp");
+            let mcp_state = AppState {
+                session: state.session.clone(),
+                catalog: state.catalog.clone(),
+                docs: state.docs.clone(),
+                app_handle: state.app_handle.clone(),
+                notebook: state.notebook.clone(),
+                capture_sink: state.capture_sink.clone(),
+                server_log: state.server_log.clone(),
+                mcp_controller: state.mcp_controller.clone(),
+                app_log: state.app_log.clone(),
+            };
+            let ct = CancellationToken::new();
+            controller.set_running(ct.clone()).await;
+            tokio::spawn(crate::mcp::start_mcp_server(
+                mcp_state,
+                config.mcp_listen_address,
+                ct,
+            ));
+        }
+    }
+
     Ok(())
 }
 
@@ -466,7 +504,26 @@ pub async fn check_wsl_maxima(distro: String) -> Result<Option<String>, AppError
     }
 }
 
+pub fn read_mcp_enabled(app: &tauri::AppHandle) -> bool {
+    read_config(app).map(|(c, _)| c.mcp_enabled).unwrap_or(false)
+}
+
+pub fn read_mcp_listen_address(app: &tauri::AppHandle) -> String {
+    read_config(app)
+        .map(|(c, _)| c.mcp_listen_address)
+        .unwrap_or_else(|_| default_mcp_listen_address())
+}
+
 pub fn read_backend(app: &tauri::AppHandle) -> Backend {
     let config = read_config(app).map(|(c, _)| c).unwrap_or_default();
     Backend::from_config(config.backend, &config.docker_image, &config.wsl_distro, config.container_engine)
+}
+
+/// Drain all buffered app log entries. Called by the frontend on mount to
+/// replay any logs emitted before the event listener was ready.
+#[tauri::command]
+pub async fn get_buffered_logs(
+    state: tauri::State<'_, AppState>,
+) -> Result<Vec<AppLogEvent>, AppError> {
+    Ok(state.app_log.drain())
 }

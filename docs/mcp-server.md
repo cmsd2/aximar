@@ -1,0 +1,113 @@
+# MCP Server
+
+Aximar exposes its Maxima CAS capabilities via the [Model Context Protocol](https://modelcontextprotocol.io/), allowing AI assistants (Claude Code, etc.) to search function documentation, manage notebook cells, run Maxima expressions, and inspect session state.
+
+## Two modes of operation
+
+### Headless mode (standalone binary)
+
+The `aximar-mcp` binary runs independently with its own Maxima session, using stdio transport. Suitable for scripted/automated use with Claude Code or other MCP clients.
+
+**Setup in Claude Code:**
+
+```json
+{
+  "mcpServers": {
+    "aximar": {
+      "command": "/path/to/aximar-mcp"
+    }
+  }
+}
+```
+
+**Environment variables:**
+
+| Variable | Default | Description |
+|---|---|---|
+| `AXIMAR_BACKEND` | `local` | `local`, `docker`, or `wsl` |
+| `AXIMAR_MAXIMA_PATH` | (system default) | Path to the Maxima binary |
+| `AXIMAR_EVAL_TIMEOUT` | `30` | Evaluation timeout in seconds |
+| `AXIMAR_DOCKER_IMAGE` | (empty) | Docker image name (when backend=docker) |
+| `AXIMAR_WSL_DISTRO` | (empty) | WSL distribution name (when backend=wsl) |
+| `AXIMAR_CONTAINER_ENGINE` | `docker` | `docker` or `podman` |
+
+### Connected mode (embedded in Tauri app)
+
+When the Aximar desktop app is running, it can host an MCP streamable HTTP server that shares the GUI's Maxima session and notebook state, so MCP-triggered changes appear live in the app.
+
+**Enable the MCP server** in Settings by toggling the "MCP server" checkbox. The listen address defaults to `127.0.0.1:19542` and can be changed without restarting the app — the server restarts automatically.
+
+**Setup in Claude Code:**
+
+```json
+{
+  "mcpServers": {
+    "aximar": {
+      "url": "http://localhost:19542/mcp"
+    }
+  }
+}
+```
+
+## Available tools (21)
+
+### Documentation
+
+- **search_functions(query)** -- Search the Maxima function catalog by name or description.
+- **get_function_docs(name)** -- Get full documentation for a Maxima function.
+- **complete_function(prefix)** -- Autocomplete a function name prefix.
+
+### Cell management
+
+- **list_cells()** -- List all cells with IDs, types, status, and content preview.
+- **get_cell(cell_id)** -- Get full details of a specific cell.
+- **add_cell(cell_type?, input?, after_cell_id?)** -- Add a new cell.
+- **update_cell(cell_id, input?, cell_type?)** -- Update a cell's content or type.
+- **delete_cell(cell_id)** -- Delete a cell (cannot delete the last cell).
+- **move_cell(cell_id, direction)** -- Move a cell up or down.
+
+### Execution
+
+- **run_cell(cell_id)** -- Execute a notebook cell (auto-starts session).
+- **run_all_cells()** -- Execute all code cells in order.
+- **evaluate_expression(expression)** -- Quick evaluation without creating a cell.
+
+### Session
+
+- **get_session_status()** -- Get current status (Starting/Ready/Busy/Stopped/Error).
+- **restart_session()** -- Kill and restart the Maxima process.
+- **list_variables()** -- List user-defined variables.
+- **kill_variable(name)** -- Remove a variable from the session.
+
+### Logs
+
+- **get_cell_output_log(cell_id)** -- Raw Maxima I/O for a cell.
+- **get_server_log(stream?, limit?)** -- Server-wide output log.
+
+### Notebook I/O
+
+- **save_notebook(path)** -- Save as Jupyter .ipynb.
+- **open_notebook(path)** -- Open a .ipynb file.
+- **list_templates()** -- List available notebook templates.
+- **load_template(template_id)** -- Load a template into the notebook.
+
+## Architecture
+
+```
+crates/aximar-core/     Shared library (session, catalog, protocol, notebooks)
+crates/aximar-mcp/      MCP server logic (lib + binary)
+  src/lib.rs            Library root (server, notebook, capture, log)
+  src/main.rs           Headless binary entry point (stdio transport)
+  src/server.rs         AximarMcpServer with 21 tool implementations
+  src/notebook.rs       In-memory notebook model (McpNotebook, McpCell)
+  src/capture.rs        Per-cell output capture (CaptureOutputSink)
+  src/log.rs            Server-wide output ring buffer (ServerLog)
+  src/config.rs         Environment variable configuration
+
+src-tauri/src/mcp/      Connected mode integration
+  mod.rs                Module root
+  startup.rs            HTTP server startup (StreamableHttpService on localhost)
+  sync.rs               Frontend<->backend notebook sync (Tauri commands + events)
+```
+
+In connected mode, the MCP server shares `SessionManager`, `Catalog`, `Docs`, `McpNotebook`, and output sinks with the Tauri app via `Arc`. A `MultiOutputSink` broadcasts Maxima I/O to both the Tauri frontend (for the GUI log) and the `CaptureOutputSink` (for MCP cell output capture).
