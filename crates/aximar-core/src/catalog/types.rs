@@ -76,3 +76,10 @@ pub struct CategoryGroup {
     pub label: String,
     pub functions: Vec<MaximaFunction>,
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DeprecationInfo {
+    pub name: String,
+    pub description: String,
+    pub replacement: Option<String>,
+}

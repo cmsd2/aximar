@@ -93,9 +93,24 @@ pub fn parse_output(cell_id: &str, lines: &[String], duration_ms: u64, catalog: 
     let mut output_label: Option<String> = None;
     // Accumulator for multi-line LaTeX (tex() wraps long output)
     let mut latex_buf: Option<String> = None;
+    // Track \begin{verbatim}...\end{verbatim} blocks from tex() on function defs
+    let mut in_verbatim = false;
 
     for line in lines {
         let trimmed = line.trim();
+
+        // Skip lines inside \begin{verbatim}...\end{verbatim} (tex() on := defs)
+        if in_verbatim {
+            if trimmed == "\\end{verbatim}" {
+                in_verbatim = false;
+                skip_next_false = true;
+            }
+            continue;
+        }
+        if trimmed == "\\begin{verbatim}" {
+            in_verbatim = true;
+            continue;
+        }
 
         // Accumulate multi-line LaTeX: started with $$ but not yet closed
         if let Some(ref mut buf) = latex_buf {
@@ -135,11 +150,14 @@ pub fn parse_output(cell_id: &str, lines: &[String], duration_ms: u64, catalog: 
             continue;
         }
 
-        // Skip "false" after LaTeX line (return value of tex())
+        // Skip "false" after LaTeX or verbatim block (return value of tex())
+        // Empty lines don't consume the flag — the false may follow a blank line
         if skip_next_false {
-            skip_next_false = false;
             if trimmed == "false" {
+                skip_next_false = false;
                 continue;
+            } else if !trimmed.is_empty() {
+                skip_next_false = false;
             }
         }
 
@@ -442,6 +460,27 @@ mod tests {
         let lines = vec!["$$\\mbox{hello world}$$".to_string()];
         let result = parse_output("cell-1", &lines, 100, &catalog(), &Backend::Local);
         assert!(result.latex.is_none());
+    }
+
+    #[test]
+    fn test_junk_latex_verbatim_function_def() {
+        // tex() on := function definitions produces \begin{verbatim}...\end{verbatim}
+        let lines = vec![
+            "f(x):=x^3-2*x+1".to_string(),
+            "".to_string(),
+            "\\begin{verbatim}".to_string(),
+            "f(x):=x^3-2*x+1;".to_string(),
+            "\\end{verbatim}".to_string(),
+            "".to_string(),
+            "false".to_string(),
+            "__AXIMAR_LABEL__ 5".to_string(),
+            "__AXIMAR_EVAL_END__".to_string(),
+        ];
+        let result = parse_output("cell-1", &lines, 100, &catalog(), &Backend::Local);
+        assert!(!result.is_error);
+        assert!(result.latex.is_none());
+        // text_output should only contain the actual result, not verbatim or false
+        assert_eq!(result.text_output, "f(x):=x^3-2*x+1");
     }
 
     #[test]

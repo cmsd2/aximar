@@ -108,6 +108,28 @@ impl Catalog {
             .collect()
     }
 
+    pub fn find_deprecated(&self) -> Vec<DeprecationInfo> {
+        self.functions
+            .iter()
+            .filter_map(|f| {
+                let desc_lower = f.description.to_lowercase();
+                // Only "obsolete" and "deprecated" reliably indicate a function
+                // is deprecated. Other phrases like "replaced by" appear throughout
+                // descriptions that merely explain what a function does.
+                if desc_lower.contains("obsolete") || desc_lower.contains("deprecated") {
+                    let replacement = extract_replacement(&desc_lower);
+                    Some(DeprecationInfo {
+                        name: f.name.clone(),
+                        description: f.description.clone(),
+                        replacement,
+                    })
+                } else {
+                    None
+                }
+            })
+            .collect()
+    }
+
     pub fn find_similar(&self, name: &str, max_distance: usize) -> Vec<String> {
         let n = name.to_lowercase();
         let mut matches: Vec<(usize, String)> = self
@@ -127,6 +149,44 @@ impl Catalog {
         matches.truncate(5);
         matches.into_iter().map(|(_, name)| name).collect()
     }
+}
+
+/// Extract a replacement function name from deprecation text.
+/// Looks for patterns like "replaced by X", "use X instead", "superseded by X".
+fn extract_replacement(desc_lower: &str) -> Option<String> {
+    // Try "replaced by X" or "superseded by X"
+    for prefix in &["replaced by ", "superseded by "] {
+        if let Some(pos) = desc_lower.find(prefix) {
+            let after = &desc_lower[pos + prefix.len()..];
+            let name = extract_word(after);
+            if !name.is_empty() {
+                return Some(name);
+            }
+        }
+    }
+
+    // Try "use X instead"
+    if let Some(pos) = desc_lower.find("use ") {
+        let after = &desc_lower[pos + 4..];
+        if let Some(instead_pos) = after.find("instead") {
+            let between = after[..instead_pos].trim();
+            let name = extract_word(between);
+            if !name.is_empty() {
+                return Some(name);
+            }
+        }
+    }
+
+    None
+}
+
+/// Extract the first word (alphanumeric + underscore) from a string.
+fn extract_word(s: &str) -> String {
+    let trimmed = s.trim().trim_start_matches('`').trim_start_matches('\'');
+    trimmed
+        .chars()
+        .take_while(|c| c.is_alphanumeric() || *c == '_')
+        .collect()
 }
 
 fn score_match(name: &str, description: &str, query: &str) -> f64 {
@@ -270,6 +330,36 @@ mod tests {
         assert_eq!(levenshtein("kitten", "sitting"), 3);
         assert_eq!(levenshtein("", "abc"), 3);
         assert_eq!(levenshtein("abc", "abc"), 0);
+    }
+
+    #[test]
+    fn test_find_deprecated() {
+        let catalog = Catalog::load();
+        let deprecated = catalog.find_deprecated();
+        // The catalog should have at least one deprecated entry
+        assert!(!deprecated.is_empty(), "expected at least one deprecated function");
+        // Every entry should have a non-empty name and description
+        for info in &deprecated {
+            assert!(!info.name.is_empty());
+            assert!(!info.description.is_empty());
+        }
+    }
+
+    #[test]
+    fn test_extract_replacement() {
+        assert_eq!(
+            extract_replacement("this is obsolete. replaced by style"),
+            Some("style".to_string())
+        );
+        assert_eq!(
+            extract_replacement("use foo instead"),
+            Some("foo".to_string())
+        );
+        assert_eq!(
+            extract_replacement("superseded by bar_baz"),
+            Some("bar_baz".to_string())
+        );
+        assert_eq!(extract_replacement("this is obsolete"), None);
     }
 
     #[test]

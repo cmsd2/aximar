@@ -7,6 +7,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
+use aximar_core::catalog::search::Catalog;
 use aximar_core::catalog::types::MaximaFunction;
 use clap::{Parser, Subcommand};
 
@@ -77,6 +78,9 @@ enum Commands {
         #[arg(long, default_value = UPSTREAM_SECCOMP_URL)]
         upstream_url: String,
     },
+
+    /// List functions in the catalog that are deprecated or obsolete.
+    Deprecated,
 
     /// Parse a pre-existing Maxima XML file (produced by `makeinfo --xml`).
     FromXml {
@@ -168,6 +172,23 @@ fn main() {
             let figures_src = src_dir.join("doc/info/figures");
             let figures_dest = resolve_output(None, FIGURES_REL);
             copy_figures(&figures_src, &figures_dest);
+        }
+
+        Commands::Deprecated => {
+            let catalog = Catalog::load();
+            let deprecated = catalog.find_deprecated();
+            if deprecated.is_empty() {
+                eprintln!("No deprecated functions found.");
+            } else {
+                println!("Found {} deprecated functions:\n", deprecated.len());
+                for d in &deprecated {
+                    match &d.replacement {
+                        Some(r) => println!("  {} -> {}", d.name, r),
+                        None => println!("  {} (no replacement)", d.name),
+                    }
+                    println!("    {}\n", d.description);
+                }
+            }
         }
 
         Commands::Seccomp {

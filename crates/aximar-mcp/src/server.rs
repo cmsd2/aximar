@@ -338,6 +338,15 @@ impl AximarMcpServer {
         }
     }
 
+    #[tool(description = "List Maxima functions that are deprecated, obsolete, or superseded. Returns names, descriptions, and suggested replacements where available.")]
+    async fn list_deprecated(&self) -> Result<String, String> {
+        let results = self.catalog.find_deprecated();
+        success_json(&serde_json::json!({
+            "count": results.len(),
+            "deprecated": results,
+        }))
+    }
+
     #[tool(description = "Autocomplete a Maxima function name prefix. Returns matching function names with signatures.")]
     async fn complete_function(
         &self,
@@ -969,7 +978,19 @@ impl rmcp::handler::server::ServerHandler for AximarMcpServer {
                  To clear a variable binding, add a code cell with `kill(varname)$` and run it. \
                  This keeps the operation visible in the notebook so it works when re-run from \
                  scratch. The kill_variable tool is fine for ad-hoc cleanup, but when building a \
-                 notebook that should work start to finish, prefer a code cell.",
+                 notebook that should work start to finish, prefer a code cell.\n\n\
+                 Markdown cell escaping: cell input strings are stored verbatim, not \
+                 interpreted as JSON escape sequences. Use real newlines (not \\n literals) \
+                 for line breaks. For LaTeX in markdown, use single backslashes \
+                 (e.g. `\\sin`, `\\circ`, `\\varphi`) — do not double-escape them.\n\n\
+                 For plotting, prefer `plot2d` and `plot3d` over the `draw` package \
+                 (`draw2d`, `draw3d`). The plot functions produce inline SVG that Aximar \
+                 can capture and display in the notebook, while draw outputs to gnuplot \
+                 directly and the resulting plot will not be visible. `plot2d` supports \
+                 implicit equations natively (e.g. `plot2d(x^2+y^2=1, [x,-2,2], [y,-2,2])`).\n\n\
+                 At the start of a session, consider calling `list_deprecated` to check \
+                 whether any functions you plan to use are deprecated or obsolete. The tool \
+                 returns suggested replacements where available.",
             )
     }
 }
