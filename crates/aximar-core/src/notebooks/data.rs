@@ -6,9 +6,10 @@ const LINEAR_ALGEBRA: &str = include_str!("linear-algebra.json");
 const EQUATIONS: &str = include_str!("equations.json");
 const PROGRAMMING: &str = include_str!("programming.json");
 const PLOTTING: &str = include_str!("plotting.json");
+const VECTOR_CALCULUS: &str = include_str!("vector-calculus.json");
 
 fn load_all() -> Vec<Notebook> {
-    [WELCOME, CALCULUS, LINEAR_ALGEBRA, EQUATIONS, PROGRAMMING, PLOTTING]
+    [WELCOME, CALCULUS, LINEAR_ALGEBRA, EQUATIONS, PROGRAMMING, PLOTTING, VECTOR_CALCULUS]
         .iter()
         .map(|json| serde_json::from_str(json).expect("embedded notebook template must be valid JSON"))
         .collect()
@@ -61,7 +62,7 @@ mod tests {
     #[test]
     fn test_templates_load() {
         let templates = list_templates();
-        assert_eq!(templates.len(), 6);
+        assert_eq!(templates.len(), 7);
         assert_eq!(templates[0].id, "welcome");
     }
 

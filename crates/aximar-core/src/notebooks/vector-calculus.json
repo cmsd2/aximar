@@ -1,0 +1,97 @@
+{
+  "nbformat": 4,
+  "nbformat_minor": 0,
+  "metadata": {
+    "kernelspec": {
+      "name": "maxima",
+      "display_name": "Maxima",
+      "language": "maxima"
+    },
+    "aximar": {
+      "template_id": "vector-calculus",
+      "title": "Vector Calculus",
+      "description": "Verify Stokes' theorem for a vector field over a hemisphere."
+    }
+  },
+  "cells": [
+    {
+      "cell_type": "markdown",
+      "source": "# Verifying Stokes' Theorem on a Hemisphere\n\n**Vector field:** $\\mathbf{u} = -y\\,\\mathbf{i} + x\\,\\mathbf{j}$\n\n**Surface $S$:** Upper hemisphere $x^2 + y^2 + z^2 = R^2$, $z \\ge 0$\n\n**Boundary $C$:** Circle $x^2 + y^2 = R^2$ in the $z = 0$ plane\n\n**Stokes' theorem:** $\\oint_C \\mathbf{u} \\cdot d\\mathbf{r} = \\iint_S (\\nabla \\times \\mathbf{u}) \\cdot d\\mathbf{S}$\n\nWe compute both sides independently and check they agree.",
+      "metadata": {}
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## Part 1: Compute curl u",
+      "metadata": {}
+    },
+    {
+      "cell_type": "code",
+      "source": "/* u = (-y, x, 0) — compute curl */\nu: [-y, x, 0]$\ncurl_u: [diff(u[3],y) - diff(u[2],z),\n         diff(u[1],z) - diff(u[3],x),\n         diff(u[2],x) - diff(u[1],y)]",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## Part 2: Surface integral (RHS of Stokes' theorem)\n\nParametrise the hemisphere in spherical coordinates:\n\n$$\\mathbf{r}(\\theta, \\phi) = \\langle R\\sin\\theta\\cos\\phi,\\; R\\sin\\theta\\sin\\phi,\\; R\\cos\\theta \\rangle$$\n\nwith $\\theta \\in [0, \\pi/2]$, $\\phi \\in [0, 2\\pi]$.\n\nThe outward normal is $\\mathbf{r}_\\theta \\times \\mathbf{r}_\\phi$.",
+      "metadata": {}
+    },
+    {
+      "cell_type": "code",
+      "source": "/* Parametrise the hemisphere */\nr_s: [R*sin(th)*cos(ph), R*sin(th)*sin(ph), R*cos(th)]$\n\n/* Tangent vectors */\nr_th: diff(r_s, th)$\nr_ph: diff(r_s, ph)$\n\n/* Normal vector: r_th × r_ph (outward for upper hemisphere) */\nnormal: trigsimp([r_th[2]*r_ph[3] - r_th[3]*r_ph[2],\n                  r_th[3]*r_ph[1] - r_th[1]*r_ph[3],\n                  r_th[1]*r_ph[2] - r_th[2]*r_ph[1]])",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": "/* Integrand: curl(u) · n */\nintegrand: trigsimp(curl_u[1]*normal[1] + curl_u[2]*normal[2] + curl_u[3]*normal[3])",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": "/* Surface integral over hemisphere */\nsurface_result: integrate(integrate(integrand, th, 0, %pi/2), ph, 0, 2*%pi)",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## Part 3: Line integral (LHS of Stokes' theorem)\n\nThe boundary $C$ is the circle $x^2 + y^2 = R^2$ in the $z = 0$ plane, traversed counterclockwise:\n\n$$\\mathbf{r}(t) = \\langle R\\cos t,\\; R\\sin t,\\; 0 \\rangle, \\quad t \\in [0, 2\\pi]$$",
+      "metadata": {}
+    },
+    {
+      "cell_type": "code",
+      "source": "/* Parametrise the boundary circle */\nr_t: [R*cos(t), R*sin(t), 0]$\ndr_t: diff(r_t, t)$\n\n/* u evaluated on the curve */\nu_on_C: subst([x = R*cos(t), y = R*sin(t), z = 0], u)$\n\n/* Integrand: u · r'(t) */\nline_integrand: trigsimp(u_on_C[1]*dr_t[1] + u_on_C[2]*dr_t[2] + u_on_C[3]*dr_t[3])",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": "/* Evaluate the line integral */\nline_result: integrate(line_integrand, t, 0, 2*%pi)",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## Part 4: Verify equality",
+      "metadata": {}
+    },
+    {
+      "cell_type": "code",
+      "source": "/* Check both sides agree */\nis(surface_result = line_result)",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## Result\n\n$$\\oint_C \\mathbf{u} \\cdot d\\mathbf{r} = \\iint_S (\\nabla \\times \\mathbf{u}) \\cdot d\\mathbf{S} = 2\\pi R^2 \\quad \\checkmark$$\n\n**Summary:**\n- $\\nabla \\times \\mathbf{u} = \\langle 0, 0, 2 \\rangle$ — a constant upward vector\n- The surface integral reduces to $2 \\iint_S \\cos\\theta\\,\\sin\\theta\\; d\\theta\\, d\\phi = 2\\pi R^2$\n- The line integrand simplifies to $R^2$ (constant), giving $\\oint_C = 2\\pi R^2$\n- Stokes' theorem is verified.",
+      "metadata": {}
+    }
+  ]
+}
