@@ -1,5 +1,8 @@
 use std::sync::Arc;
 
+use axum::extract::Request;
+use axum::http::StatusCode;
+use axum::middleware::Next;
 use rmcp::transport::streamable_http_server::{
     session::local::LocalSessionManager, StreamableHttpServerConfig, StreamableHttpService,
 };
@@ -21,7 +24,7 @@ use tauri::Emitter;
 ///
 /// The server shares the same notebook registry, catalog, and state as the
 /// Tauri app, so MCP-triggered changes appear live in the GUI and vice versa.
-pub async fn start_mcp_server(state: AppState, listen_address: String, ct: CancellationToken) {
+pub async fn start_mcp_server(state: AppState, listen_address: String, token: String, ct: CancellationToken) {
 
     // Build process sink factory: creates MultiOutputSink(TauriSink + CaptureSink)
     // for each notebook when spawning a Maxima session.
@@ -115,7 +118,22 @@ pub async fn start_mcp_server(state: AppState, listen_address: String, ct: Cance
         },
     );
 
-    let router = axum::Router::new().nest_service("/mcp", service);
+    let expected = format!("Bearer {token}");
+    let router = axum::Router::new()
+        .nest_service("/mcp", service)
+        .layer(axum::middleware::from_fn(move |req: Request, next: Next| {
+            let expected = expected.clone();
+            async move {
+                let auth = req
+                    .headers()
+                    .get(axum::http::header::AUTHORIZATION)
+                    .and_then(|v| v.to_str().ok());
+                match auth {
+                    Some(v) if v == expected => Ok(next.run(req).await),
+                    _ => Err(StatusCode::UNAUTHORIZED),
+                }
+            }
+        }));
 
     let addr = listen_address;
     let app_handle_for_log = state.app_handle.clone();

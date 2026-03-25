@@ -1,3 +1,4 @@
+use rand::Rng;
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::PathBuf;
@@ -101,6 +102,15 @@ fn default_docker_image() -> String { String::new() }
 fn default_wsl_distro() -> String { String::new() }
 fn default_mcp_listen_address() -> String { "127.0.0.1:19542".to_string() }
 
+fn generate_mcp_token() -> String {
+    let bytes: [u8; 32] = rand::rng().random();
+    bytes.iter().map(|b| format!("{b:02x}")).collect()
+}
+
+fn default_mcp_token() -> String {
+    generate_mcp_token()
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 struct AppConfig {
     #[serde(default)]
@@ -145,6 +155,8 @@ struct AppConfig {
     mcp_enabled: bool,
     #[serde(default = "default_mcp_listen_address")]
     mcp_listen_address: String,
+    #[serde(default = "default_mcp_token")]
+    mcp_token: String,
 }
 
 impl Default for AppConfig {
@@ -171,6 +183,7 @@ impl Default for AppConfig {
             container_engine: ContainerEngine::default(),
             mcp_enabled: false,
             mcp_listen_address: default_mcp_listen_address(),
+            mcp_token: default_mcp_token(),
         }
     }
 }
@@ -223,6 +236,9 @@ impl AppConfig {
             ));
             self.mcp_listen_address = default_mcp_listen_address();
         }
+        if self.mcp_token.is_empty() {
+            self.mcp_token = generate_mcp_token();
+        }
         (self, warnings)
     }
 }
@@ -250,6 +266,7 @@ pub struct PublicConfig {
     pub container_engine: ContainerEngine,
     pub mcp_enabled: bool,
     pub mcp_listen_address: String,
+    pub mcp_token: String,
 }
 
 /// Config response with validation warnings
@@ -282,6 +299,7 @@ pub struct ConfigUpdate {
     pub container_engine: Option<ContainerEngine>,
     pub mcp_enabled: Option<bool>,
     pub mcp_listen_address: Option<String>,
+    pub mcp_token: Option<String>,
 }
 
 fn config_path(app: &tauri::AppHandle) -> Result<PathBuf, AppError> {
@@ -366,6 +384,7 @@ pub async fn get_config(app: tauri::AppHandle) -> Result<ConfigResponse, AppErro
             container_engine: config.container_engine,
             mcp_enabled: config.mcp_enabled,
             mcp_listen_address: config.mcp_listen_address,
+            mcp_token: config.mcp_token,
         },
         warnings,
     })
@@ -373,7 +392,7 @@ pub async fn get_config(app: tauri::AppHandle) -> Result<ConfigResponse, AppErro
 
 #[tauri::command]
 pub async fn set_config(app: tauri::AppHandle, updates: ConfigUpdate) -> Result<(), AppError> {
-    let mcp_changed = updates.mcp_enabled.is_some() || updates.mcp_listen_address.is_some();
+    let mcp_changed = updates.mcp_enabled.is_some() || updates.mcp_listen_address.is_some() || updates.mcp_token.is_some();
 
     let (mut config, _) = read_config(&app)?;
     if let Some(theme) = updates.theme {
@@ -416,6 +435,7 @@ pub async fn set_config(app: tauri::AppHandle, updates: ConfigUpdate) -> Result<
     if let Some(container_engine) = updates.container_engine { config.container_engine = container_engine; }
     if let Some(mcp_enabled) = updates.mcp_enabled { config.mcp_enabled = mcp_enabled; }
     if let Some(mcp_listen_address) = updates.mcp_listen_address { config.mcp_listen_address = mcp_listen_address; }
+    if let Some(mcp_token) = updates.mcp_token { config.mcp_token = mcp_token; }
     write_config(&app, &config)?;
 
     // Handle MCP server lifecycle changes
@@ -444,6 +464,7 @@ pub async fn set_config(app: tauri::AppHandle, updates: ConfigUpdate) -> Result<
             tokio::spawn(crate::mcp::start_mcp_server(
                 mcp_state,
                 config.mcp_listen_address,
+                config.mcp_token,
                 ct,
             ));
         }
@@ -502,14 +523,90 @@ pub async fn check_wsl_maxima(distro: String) -> Result<Option<String>, AppError
     }
 }
 
-pub fn read_mcp_enabled(app: &tauri::AppHandle) -> bool {
-    read_config(app).map(|(c, _)| c.mcp_enabled).unwrap_or(false)
+/// MCP startup config returned by `read_mcp_config`.
+pub struct McpConfig {
+    pub enabled: bool,
+    pub listen_address: String,
+    pub token: String,
 }
 
-pub fn read_mcp_listen_address(app: &tauri::AppHandle) -> String {
-    read_config(app)
-        .map(|(c, _)| c.mcp_listen_address)
-        .unwrap_or_else(|_| default_mcp_listen_address())
+/// Read MCP-related config in a single pass and persist any generated defaults
+/// (like `mcp_token`) back to disk. This avoids token mismatches caused by
+/// `default_mcp_token()` generating a different random value on each call.
+pub fn read_mcp_config(app: &tauri::AppHandle) -> McpConfig {
+    let (config, _) = read_config(app).unwrap_or_else(|_| (AppConfig::default(), Vec::new()));
+    // Persist so that generated defaults (especially mcp_token) are saved to disk.
+    let _ = write_config(app, &config);
+    McpConfig {
+        enabled: config.mcp_enabled,
+        listen_address: config.mcp_listen_address,
+        token: config.mcp_token,
+    }
+}
+
+#[derive(Debug, Serialize)]
+pub struct ClaudeMcpStatus {
+    pub installed: bool,
+    pub configured: bool,
+}
+
+#[tauri::command]
+pub async fn claude_mcp_status() -> Result<ClaudeMcpStatus, AppError> {
+    let mut cmd = tokio::process::Command::new("claude");
+    cmd.args(["mcp", "get", "aximar"])
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped());
+    hide_console_window(&mut cmd);
+
+    match cmd.output().await {
+        Ok(output) => Ok(ClaudeMcpStatus {
+            installed: true,
+            configured: output.status.success(),
+        }),
+        Err(_) => Ok(ClaudeMcpStatus {
+            installed: false,
+            configured: false,
+        }),
+    }
+}
+
+#[tauri::command]
+pub async fn claude_mcp_configure(url: String, token: String) -> Result<String, AppError> {
+    // Remove existing entry (ignore errors — may not exist)
+    let mut rm_cmd = tokio::process::Command::new("claude");
+    rm_cmd
+        .args(["mcp", "remove", "aximar"])
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped());
+    hide_console_window(&mut rm_cmd);
+    let _ = rm_cmd.output().await;
+
+    // Add new entry
+    let header = format!("Authorization: Bearer {token}");
+    let mut add_cmd = tokio::process::Command::new("claude");
+    add_cmd
+        .args([
+            "mcp", "add",
+            "--transport", "http",
+            "--header", &header,
+            "--", "aximar", &url,
+        ])
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped());
+    hide_console_window(&mut add_cmd);
+
+    let output = add_cmd.output().await.map_err(|e| {
+        AppError::ProcessStartFailed(format!("Failed to run claude CLI: {e}"))
+    })?;
+
+    if output.status.success() {
+        Ok("Claude Code MCP configured successfully".to_string())
+    } else {
+        let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
+        Err(AppError::ProcessStartFailed(format!(
+            "claude mcp add failed: {stderr}"
+        )))
+    }
 }
 
 pub fn read_backend(app: &tauri::AppHandle) -> Backend {

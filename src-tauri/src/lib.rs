@@ -27,8 +27,11 @@ pub fn run() {
                 *state.app_handle.lock().await = Some(handle);
             });
 
-            // Conditionally start the embedded MCP HTTP server
-            if commands::config::read_mcp_enabled(app.handle()) {
+            // Read MCP config in a single pass (persists generated defaults
+            // like mcp_token so the server and frontend always agree).
+            let mcp_config = commands::config::read_mcp_config(app.handle());
+
+            if mcp_config.enabled {
                 let mcp_state = AppState {
                     registry: state.registry.clone(),
                     catalog: state.catalog.clone(),
@@ -38,12 +41,11 @@ pub fn run() {
                     mcp_controller: state.mcp_controller.clone(),
                     app_log: state.app_log.clone(),
                 };
-                let listen_address = commands::config::read_mcp_listen_address(app.handle());
                 let ct = tokio_util::sync::CancellationToken::new();
                 let controller = state.mcp_controller.clone();
                 tauri::async_runtime::spawn(async move {
                     controller.set_running(ct.clone()).await;
-                    mcp::start_mcp_server(mcp_state, listen_address, ct).await;
+                    mcp::start_mcp_server(mcp_state, mcp_config.listen_address, mcp_config.token, ct).await;
                 });
             }
 
@@ -83,6 +85,8 @@ pub fn run() {
             commands::config::list_wsl_distros,
             commands::config::check_wsl_maxima,
             commands::config::get_buffered_logs,
+            commands::config::claude_mcp_status,
+            commands::config::claude_mcp_configure,
             commands::notebook::nb_get_state,
             commands::notebook::nb_add_cell,
             commands::notebook::nb_delete_cell,

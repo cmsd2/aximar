@@ -21,6 +21,7 @@ export interface AppConfig {
   container_engine: string;
   mcp_enabled: boolean;
   mcp_listen_address: string;
+  mcp_token: string;
 }
 
 export interface ConfigResponse {
@@ -65,4 +66,17 @@ export async function listWslDistros(): Promise<string[]> {
 
 export async function checkWslMaxima(distro: string): Promise<string | null> {
   return invoke<string | null>("check_wsl_maxima", { distro });
+}
+
+export interface ClaudeMcpStatus {
+  installed: boolean;
+  configured: boolean;
+}
+
+export async function claudeMcpStatus(): Promise<ClaudeMcpStatus> {
+  return invoke<ClaudeMcpStatus>("claude_mcp_status");
+}
+
+export async function claudeMcpConfigure(url: string, token: string): Promise<string> {
+  return invoke<string>("claude_mcp_configure", { url, token });
 }

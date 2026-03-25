@@ -1583,6 +1583,57 @@
   cursor: pointer;
 }
 
+.settings-token-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.settings-token-input {
+  width: 250px;
+  font-size: 12px;
+  user-select: all;
+  cursor: default;
+}
+
+.settings-token-btn {
+  padding: 5px 10px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  color: var(--text-primary);
+  font-size: 12px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s;
+}
+
+.settings-token-btn:hover {
+  background: var(--border-color);
+}
+
+.settings-claude-setup {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.settings-claude-status {
+  font-size: 12px;
+}
+
+.settings-claude-ok {
+  color: var(--success-color);
+}
+
+.settings-claude-warn {
+  color: var(--running-color);
+}
+
+.settings-claude-err {
+  color: var(--error-color);
+}
+
 .settings-theme-group {
   display: flex;
   border: 1px solid var(--border-color);

@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from "react";
-import { getConfig, setConfig, listWslDistros, checkWslMaxima, markdownFontStack, applyPrintMargins, type AppConfig } from "../lib/config-client";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { getConfig, setConfig, listWslDistros, checkWslMaxima, markdownFontStack, applyPrintMargins, claudeMcpStatus, claudeMcpConfigure, type AppConfig, type ClaudeMcpStatus } from "../lib/config-client";
 import { useNotebookStore, type Theme, type CellStyle, type AutocompleteMode } from "../store/notebookStore";
 import { useLogStore } from "../store/logStore";
 
@@ -37,6 +37,100 @@ const CONTAINER_ENGINES: { value: string; label: string }[] = [
   { value: "docker", label: "Docker" },
   { value: "podman", label: "Podman" },
 ];
+
+function McpTokenRow({ token, onRegenerate }: { token: string; onRegenerate: (t: string) => void }) {
+  const [copied, setCopied] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+
+  const handleCopy = useCallback(() => {
+    navigator.clipboard.writeText(token).then(() => {
+      setCopied(true);
+      clearTimeout(timerRef.current);
+      timerRef.current = setTimeout(() => setCopied(false), 2000);
+    });
+  }, [token]);
+
+  const handleRegenerate = useCallback(() => {
+    const bytes = new Uint8Array(32);
+    crypto.getRandomValues(bytes);
+    const hex = Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+    onRegenerate(hex);
+  }, [onRegenerate]);
+
+  return (
+    <div className="settings-row">
+      <label className="settings-label">MCP token</label>
+      <div className="settings-control">
+        <div className="settings-token-actions">
+          <input
+            type="text"
+            className="settings-input settings-token-input"
+            readOnly
+            value={token}
+          />
+          <button className="settings-token-btn" onClick={handleCopy} title="Copy token">
+            {copied ? "Copied" : "Copy"}
+          </button>
+          <button className="settings-token-btn" onClick={handleRegenerate} title="Generate new token (restarts MCP server)">
+            Regenerate
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ClaudeCodeSetup({ address, token }: { address: string; token: string }) {
+  const [status, setStatus] = useState<ClaudeMcpStatus | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const checkStatus = useCallback(() => {
+    claudeMcpStatus()
+      .then((s) => { setStatus(s); setError(null); })
+      .catch(() => setStatus({ installed: false, configured: false }));
+  }, []);
+
+  useEffect(() => { checkStatus(); }, [checkStatus, address, token]);
+
+  const handleConfigure = useCallback(() => {
+    const url = `http://${address}/mcp`;
+    setLoading(true);
+    setError(null);
+    claudeMcpConfigure(url, token)
+      .then(() => { checkStatus(); })
+      .catch((e) => setError(String(e)))
+      .finally(() => setLoading(false));
+  }, [address, token, checkStatus]);
+
+  const notInstalled = status !== null && !status.installed;
+
+  return (
+    <div className="settings-row">
+      <label className="settings-label">Claude Code</label>
+      <div className="settings-control">
+        <div className="settings-claude-setup">
+          <button
+            className="settings-token-btn"
+            disabled={loading || notInstalled}
+            onClick={handleConfigure}
+          >
+            {loading ? "Configuring..." : status?.configured ? "Reconfigure" : "Configure"}
+          </button>
+          {status === null ? null : notInstalled ? (
+            <span className="settings-claude-status settings-claude-warn">claude CLI not found</span>
+          ) : status.configured ? (
+            <span className="settings-claude-status settings-claude-ok">Configured</span>
+          ) : error ? (
+            <span className="settings-claude-status settings-claude-err">{error}</span>
+          ) : (
+            <span className="settings-claude-status settings-claude-warn">Not configured</span>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export function SettingsModal({ onClose, onSetVariablesOpen }: SettingsModalProps) {
   const [config, setLocalConfig] = useState<AppConfig | null>(null);
@@ -444,23 +538,29 @@ export function SettingsModal({ onClose, onSetVariablesOpen }: SettingsModalProp
             </div>
 
             {config.mcp_enabled && (
-              <div className="settings-row">
-                <label className="settings-label">MCP listen address</label>
-                <div className="settings-control">
-                  <input
-                    type="text"
-                    className="settings-input"
-                    placeholder="127.0.0.1:19542"
-                    value={config.mcp_listen_address}
-                    onBlur={(e) =>
-                      update({ mcp_listen_address: e.target.value })
-                    }
-                    onChange={(e) =>
-                      setLocalConfig({ ...config, mcp_listen_address: e.target.value })
-                    }
-                  />
+              <>
+                <div className="settings-row">
+                  <label className="settings-label">MCP listen address</label>
+                  <div className="settings-control">
+                    <input
+                      type="text"
+                      className="settings-input"
+                      placeholder="127.0.0.1:19542"
+                      value={config.mcp_listen_address}
+                      onBlur={(e) =>
+                        update({ mcp_listen_address: e.target.value })
+                      }
+                      onChange={(e) =>
+                        setLocalConfig({ ...config, mcp_listen_address: e.target.value })
+                      }
+                    />
+                  </div>
                 </div>
-              </div>
+
+                <McpTokenRow token={config.mcp_token} onRegenerate={(newToken) => update({ mcp_token: newToken })} />
+
+                <ClaudeCodeSetup address={config.mcp_listen_address} token={config.mcp_token} />
+              </>
             )}
 
             <div className="settings-row">
