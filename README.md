@@ -137,10 +137,12 @@ Aximar exposes its capabilities via the [Model Context Protocol](https://modelco
 
 ### Connected mode (recommended)
 
-When the Aximar app is running, it automatically starts an MCP server on `localhost:19542`. AI tools share the GUI's Maxima session, so changes appear live in the app.
+When the Aximar app is running, enable the MCP server in Settings. It listens on `localhost:19542` and requires bearer token authentication — copy the token from Settings and use the **Configure** button to set up Claude Code automatically, or run:
 
 ```bash
-claude mcp add --transport http aximar http://localhost:19542/mcp
+claude mcp add --transport http \
+  --header "Authorization: Bearer <token>" \
+  -- aximar http://localhost:19542/mcp
 ```
 
 ### Headless mode

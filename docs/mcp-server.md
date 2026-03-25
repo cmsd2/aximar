@@ -37,13 +37,33 @@ When the Aximar desktop app is running, it can host an MCP streamable HTTP serve
 
 **Enable the MCP server** in Settings by toggling the "MCP server" checkbox. The listen address defaults to `127.0.0.1:19542` and can be changed without restarting the app — the server restarts automatically.
 
-**Setup in Claude Code:**
+#### Authentication
+
+The connected-mode server requires a **bearer token** on every HTTP request. A random 256-bit token is generated on first launch and stored in the app config. You can view, copy, or regenerate the token in Settings under "MCP token".
+
+#### Configuring Claude Code
+
+The easiest way is the **Configure** button in Settings (next to "Claude Code"). It runs the necessary CLI commands to register the MCP server with the correct URL and bearer token. Click **Reconfigure** after regenerating the token or changing the listen address.
+
+To configure manually via the CLI:
+
+```bash
+claude mcp add --transport http \
+  --header "Authorization: Bearer <token>" \
+  -- aximar http://localhost:19542/mcp
+```
+
+Replace `<token>` with the value shown in Settings. Alternatively, add it to `.mcp.json`:
 
 ```json
 {
   "mcpServers": {
     "aximar": {
-      "url": "http://localhost:19542/mcp"
+      "type": "http",
+      "url": "http://localhost:19542/mcp",
+      "headers": {
+        "Authorization": "Bearer <token>"
+      }
     }
   }
 }

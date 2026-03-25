@@ -76,7 +76,23 @@ The `write_plot_svg` Tauri command accepts a file path and writes content to it.
 
 **Current mitigation:** The backend rejects paths containing `..` segments (directory traversal) and enforces a `.svg` extension.
 
-### 5. Denial of service
+### 5. MCP server (connected mode)
+
+When enabled, the embedded MCP server listens on a local TCP port (default `127.0.0.1:19542`) and exposes tools that can read/write notebook cells, evaluate Maxima expressions, and manage sessions.
+
+**Impact:** An unauthenticated attacker on the same machine (or on the network, if the listen address is changed to `0.0.0.0`) could execute arbitrary Maxima expressions, including `system()` calls, leading to RCE.
+
+**Current mitigation:**
+- **Bearer token authentication.** Every HTTP request must include an `Authorization: Bearer <token>` header. The token is a cryptographically random 256-bit hex string generated on first launch, stored in the app config, and visible/regenerable in Settings. Requests without a valid token receive HTTP 401.
+- **Localhost binding.** The default listen address is `127.0.0.1`, which restricts access to the local machine. Users can change this in Settings but should understand the risk of binding to a non-loopback address.
+- The token is compared in constant-length string comparison (both sides are always 64 hex chars), though timing attacks are low-risk for a localhost service.
+
+**Limitations:**
+- The token is stored in plaintext in the app config JSON file. Anyone with read access to the user's config directory can extract it.
+- There is no TLS — the token is sent in cleartext over HTTP. This is acceptable for localhost but would be insecure over a network.
+- There is no rate limiting on authentication failures.
+
+### 6. Denial of service
 
 - **Large notebooks:** No size limits on notebook JSON. A multi-gigabyte file could exhaust memory during parsing.
 - **Expensive Maxima expressions:** Cell execution has a configurable timeout (default 30 seconds, max 600 seconds) enforced via `tokio::time::timeout` in the protocol layer. However, a user can set a long timeout, and expressions can still consume significant CPU within the allowed window.
@@ -93,6 +109,7 @@ These are low-severity for a desktop application since the user can kill the pro
 | SVG file path reading | User runs plot cell | Arbitrary file read | Mitigated | Path canonicalized and validated: must have `.svg` extension and reside within the system temp directory. |
 | KaTeX trust mode | User runs cell producing LaTeX | XSS via `\href` | Mitigated | `trust` set to `false` in both `KatexOutput` and `MathText`. |
 | `write_plot_svg` IPC | User clicks "Save SVG" | Arbitrary file write | Mitigated | Backend enforces `.svg` extension and rejects paths containing `..` segments. |
+| MCP server (connected mode) | MCP enabled in Settings | RCE via Maxima | Mitigated | Bearer token auth (256-bit random token). Localhost-only by default. |
 | Notebook JSON parsing | User opens file | DoS (memory) | No mitigation | — |
 | Maxima execution time | User runs cell | DoS (CPU) | Partial | Configurable eval timeout (default 30s, max 600s). |
 
