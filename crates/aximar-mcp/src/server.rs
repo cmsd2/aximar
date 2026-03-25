@@ -12,7 +12,6 @@ use aximar_core::catalog::docs::Docs;
 use aximar_core::catalog::packages::PackageCatalog;
 use aximar_core::catalog::search::Catalog;
 use aximar_core::maxima::backend::Backend;
-use aximar_core::maxima::labels::{rewrite_labels, LabelContext};
 use aximar_core::maxima::output::OutputSink;
 use aximar_core::maxima::unicode::{build_texput_init, unicode_to_maxima};
 use aximar_core::maxima::process::MaximaProcess;
@@ -22,7 +21,7 @@ use aximar_core::notebooks::{data as notebook_data, io as notebook_io, types as 
 use aximar_core::registry::{NotebookContextRef, NotebookRegistry};
 
 use crate::capture::CaptureOutputSink;
-use crate::notebook::{CellOutput, CellStatus, CellType, Notebook};
+use crate::notebook::{CellStatus, CellType, Notebook};
 
 /// Factory function that builds a process output sink for a given notebook.
 /// Args: (notebook_id, capture_sink) → process_sink.
@@ -756,132 +755,39 @@ impl AximarMcpServer {
             return error_result(format!("Failed to start session: {e}"));
         }
 
-        let (input, cell_type) = {
-            let nb = ctx.notebook.lock().await;
-            let cell = match nb.get_cell(&params.cell_id) {
-                Some(c) => c,
-                None => return error_result(format!("Cell '{}' not found", params.cell_id)),
-            };
-            if cell.cell_type == CellType::Markdown {
-                return success_json(&serde_json::json!({
+        use aximar_core::error::AppError;
+        use aximar_core::evaluation::evaluate_cell;
+
+        match evaluate_cell(&ctx, &params.cell_id, &self.catalog, &self.packages, self.eval_timeout).await {
+            Ok(result) => {
+                for effect in &result.effects {
+                    self.notify_notebook_change(&ctx.id, effect.clone());
+                }
+                success_json(&serde_json::json!({
+                    "cell_id": params.cell_id,
+                    "execution_count": result.execution_count,
+                    "text_output": result.cell_output.text_output,
+                    "latex": result.cell_output.latex,
+                    "plot_svg": result.cell_output.plot_svg,
+                    "error": result.cell_output.error,
+                    "is_error": result.cell_output.is_error,
+                    "duration_ms": result.cell_output.duration_ms,
+                    "output_label": result.cell_output.output_label,
+                }))
+            }
+            Err(AppError::CellIsMarkdown) => {
+                success_json(&serde_json::json!({
                     "cell_id": params.cell_id,
                     "message": "Markdown cell — nothing to execute"
-                }));
+                }))
             }
-            (cell.input.clone(), cell.cell_type)
-        };
-
-        if cell_type == CellType::Code {
-            // Set status to Running
-            let status_effect = {
-                let mut nb = ctx.notebook.lock().await;
-                nb.apply(NotebookCommand::SetCellStatus {
-                    cell_id: params.cell_id.clone(),
-                    status: CellStatus::Running,
-                }).ok()
-            };
-            if let Some(effect) = status_effect {
-                self.notify_notebook_change(&ctx.id, effect);
+            Err(AppError::EmptyInput) => {
+                success_json(&serde_json::json!({
+                    "cell_id": params.cell_id,
+                    "message": "Empty cell — nothing to execute"
+                }))
             }
-
-            // Clear previous capture
-            ctx.capture_sink.take_cell_output();
-
-            // Rewrite labels for display numbering
-            let exec_count = {
-                let mut nb = ctx.notebook.lock().await;
-                nb.next_execution_count()
-            };
-            let label_ctx = {
-                let nb = ctx.notebook.lock().await;
-                LabelContext {
-                    label_map: nb.label_map().clone(),
-                    previous_output_label: nb.previous_output_label(&params.cell_id),
-                }
-            };
-            let translated = unicode_to_maxima(&input);
-            let rewritten = rewrite_labels(&translated, &label_ctx);
-
-            // Evaluate
-            let mut guard = ctx.session.lock().await;
-            let process = match guard.try_begin_eval() {
-                Ok(p) => p,
-                Err(e) => {
-                    let mut nb = ctx.notebook.lock().await;
-                    let _ = nb.apply(NotebookCommand::SetCellStatus {
-                        cell_id: params.cell_id.clone(),
-                        status: CellStatus::Error,
-                    });
-                    return error_result(format!("Session not ready: {e}"));
-                }
-            };
-
-            let result = protocol::evaluate_with_packages(
-                process,
-                &params.cell_id,
-                &rewritten,
-                &self.catalog,
-                &self.packages,
-                self.eval_timeout,
-            )
-            .await;
-
-            guard.end_eval();
-            drop(guard);
-
-            // Capture raw output
-            let raw_output = ctx.capture_sink.take_cell_output();
-
-            match result {
-                Ok(eval_result) => {
-                    // Record label mapping
-                    if let Some(ref label) = eval_result.output_label {
-                        let mut nb = ctx.notebook.lock().await;
-                        nb.record_label(exec_count, label.clone());
-                    }
-
-                    let cell_output = CellOutput::from_eval_result(&eval_result, exec_count);
-                    let output_effect = {
-                        let mut nb = ctx.notebook.lock().await;
-                        nb.apply(NotebookCommand::SetCellOutput {
-                            cell_id: params.cell_id.clone(),
-                            output: cell_output.clone(),
-                            raw_output,
-                        }).ok()
-                    };
-                    if let Some(effect) = output_effect {
-                        self.notify_notebook_change(&ctx.id, effect);
-                    }
-                    success_json(&serde_json::json!({
-                        "cell_id": params.cell_id,
-                        "execution_count": exec_count,
-                        "text_output": cell_output.text_output,
-                        "latex": cell_output.latex,
-                        "plot_svg": cell_output.plot_svg,
-                        "error": cell_output.error,
-                        "is_error": cell_output.is_error,
-                        "duration_ms": cell_output.duration_ms,
-                        "output_label": cell_output.output_label,
-                    }))
-                }
-                Err(e) => {
-                    let mut nb = ctx.notebook.lock().await;
-                    let _ = nb.apply(NotebookCommand::SetCellStatus {
-                        cell_id: params.cell_id.clone(),
-                        status: CellStatus::Error,
-                    });
-                    // Store raw output even on error
-                    if let Some(cell) = nb.get_cell_mut(&params.cell_id) {
-                        cell.raw_output = raw_output;
-                    }
-                    error_result(format!("Evaluation failed: {e}"))
-                }
-            }
-        } else {
-            success_json(&serde_json::json!({
-                "cell_id": params.cell_id,
-                "message": "Non-code cell — nothing to execute"
-            }))
+            Err(e) => error_result(format!("Evaluation failed: {e}")),
         }
     }
 
@@ -907,7 +813,10 @@ impl AximarMcpServer {
         let mut results = Vec::new();
         for cell_id in &cell_ids {
             let result = self
-                .run_cell_impl(cell_id, Some(&ctx.id))
+                .run_cell(Parameters(CellIdParams {
+                    cell_id: cell_id.to_string(),
+                    notebook_id: Some(ctx.id.clone()),
+                }))
                 .await;
             let is_error = result.is_err();
             results.push(serde_json::json!({
@@ -1200,23 +1109,6 @@ impl AximarMcpServer {
                 ))
             }
         }
-    }
-}
-
-// ── Non-tool helper methods ───────────────────────────────────────────
-
-impl AximarMcpServer {
-    /// Internal helper for run_all_cells to call run_cell logic.
-    async fn run_cell_impl(
-        &self,
-        cell_id: &str,
-        notebook_id: Option<&str>,
-    ) -> Result<String, String> {
-        self.run_cell(Parameters(CellIdParams {
-            cell_id: cell_id.to_string(),
-            notebook_id: notebook_id.map(|s| s.to_string()),
-        }))
-        .await
     }
 }
 

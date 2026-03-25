@@ -2,13 +2,11 @@ use serde::Serialize;
 use tauri::{AppHandle, Emitter, State};
 
 use aximar_core::error::AppError;
-use aximar_core::maxima::labels::{rewrite_labels, LabelContext};
-use aximar_core::maxima::protocol;
+use aximar_core::evaluation::evaluate_cell;
 use aximar_core::maxima::types::EvalResult;
-use aximar_core::maxima::unicode::unicode_to_maxima;
 
 use aximar_core::commands::{CommandEffect, NotebookCommand};
-use aximar_core::notebook::{CellOutput, CellStatus, CellType, Notebook};
+use aximar_core::notebook::{CellType, Notebook};
 use aximar_core::registry::{NotebookContextRef, NotebookInfo};
 
 use crate::mcp::sync::{notebook_state_payload, SyncCell};
@@ -287,117 +285,20 @@ pub async fn nb_run_cell(
 ) -> Result<EvalResult, AppError> {
     let ctx = resolve_context(&state, notebook_id).await?;
 
-    // 1. Get cell input and validate
-    let (input, cell_type) = {
-        let nb = ctx.notebook.lock().await;
-        let cell = nb
-            .get_cell(&cell_id)
-            .ok_or_else(|| AppError::CommunicationError(format!("Cell '{}' not found", cell_id)))?;
-        (cell.input.clone(), cell.cell_type)
-    };
-
-    if cell_type == CellType::Markdown {
-        return Err(AppError::CommunicationError(
-            "Cannot run a markdown cell".into(),
-        ));
-    }
-
-    if input.trim().is_empty() {
-        return Err(AppError::CommunicationError("Cell input is empty".into()));
-    }
-
-    // 2. Set status to Running
-    {
-        let mut nb = ctx.notebook.lock().await;
-        let effect = nb
-            .apply(NotebookCommand::SetCellStatus {
-                cell_id: cell_id.clone(),
-                status: CellStatus::Running,
-            })
-            .map_err(|e| AppError::CommunicationError(e))?;
-        emit_notebook_state(&app, &ctx.id, &nb, &effect);
-    }
-
-    // 3. Prepare label context and rewrite input
-    let (exec_count, label_ctx) = {
-        let mut nb = ctx.notebook.lock().await;
-        let ec = nb.next_execution_count();
-        let lctx = LabelContext {
-            label_map: nb.label_map().clone(),
-            previous_output_label: nb.previous_output_label(&cell_id),
-        };
-        (ec, lctx)
-    };
-
-    let translated = unicode_to_maxima(&input);
-    let rewritten = rewrite_labels(&translated, &label_ctx);
     let eval_timeout = read_eval_timeout(&app);
-
-    // 4. Ensure session is running (auto-start if stopped)
     let backend = read_backend(&app);
     let maxima_path = read_maxima_path(&app);
     ensure_session(&state, &ctx, backend, maxima_path, eval_timeout).await?;
 
-    // 5. Clear capture and evaluate
-    ctx.capture_sink.take_cell_output();
+    let result = evaluate_cell(&ctx, &cell_id, &state.catalog, &state.packages, eval_timeout).await?;
 
-    let mut guard = ctx.session.lock().await;
-    let process = match guard.try_begin_eval() {
-        Ok(p) => p,
-        Err(e) => {
-            let mut nb = ctx.notebook.lock().await;
-            let effect = nb
-                .apply(NotebookCommand::SetCellStatus {
-                    cell_id: cell_id.clone(),
-                    status: CellStatus::Error,
-                })
-                .map_err(|e| AppError::CommunicationError(e))?;
-            emit_notebook_state(&app, &ctx.id, &nb, &effect);
-            return Err(e);
-        }
-    };
-
-    let result = protocol::evaluate_with_packages(process, &cell_id, &rewritten, &state.catalog, &state.packages, eval_timeout).await;
-    guard.end_eval();
-    drop(guard);
-
-    // 5. Capture raw output
-    let raw_output = ctx.capture_sink.take_cell_output();
-
-    // 6. Apply output to notebook
-    match result {
-        Ok(eval_result) => {
-            // Record label mapping
-            if let Some(ref label) = eval_result.output_label {
-                let mut nb = ctx.notebook.lock().await;
-                nb.record_label(exec_count, label.clone());
-            }
-
-            let cell_output = CellOutput::from_eval_result(&eval_result, exec_count);
-            let mut nb = ctx.notebook.lock().await;
-            let effect = nb
-                .apply(NotebookCommand::SetCellOutput {
-                    cell_id: cell_id.clone(),
-                    output: cell_output,
-                    raw_output,
-                })
-                .map_err(|e| AppError::CommunicationError(e))?;
-            emit_notebook_state(&app, &ctx.id, &nb, &effect);
-
-            Ok(eval_result)
-        }
-        Err(e) => {
-            let mut nb = ctx.notebook.lock().await;
-            let effect = nb
-                .apply(NotebookCommand::SetCellStatus {
-                    cell_id: cell_id.clone(),
-                    status: CellStatus::Error,
-                })
-                .map_err(|err| AppError::CommunicationError(err))?;
-            emit_notebook_state(&app, &ctx.id, &nb, &effect);
-            Err(e)
-        }
+    // Emit transport-specific notifications for all effects
+    let nb = ctx.notebook.lock().await;
+    for effect in &result.effects {
+        emit_notebook_state(&app, &ctx.id, &nb, effect);
     }
+
+    Ok(result.eval_result)
 }
 
 // ── Notebook lifecycle commands ──────────────────────────────────────

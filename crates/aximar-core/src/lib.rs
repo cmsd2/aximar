@@ -2,6 +2,7 @@ pub mod capture;
 pub mod catalog;
 pub mod commands;
 pub mod error;
+pub mod evaluation;
 pub mod log;
 pub mod maxima;
 pub mod notebook;

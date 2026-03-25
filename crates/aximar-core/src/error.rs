@@ -19,6 +19,15 @@ pub enum AppError {
 
     #[error("IO error: {0}")]
     Io(#[from] std::io::Error),
+
+    #[error("Cannot run a markdown cell")]
+    CellIsMarkdown,
+
+    #[error("Cell input is empty")]
+    EmptyInput,
+
+    #[error("Cell '{0}' not found")]
+    CellNotFound(String),
 }
 
 impl Serialize for AppError {
