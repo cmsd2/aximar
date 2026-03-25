@@ -1,7 +1,7 @@
 import { StateField, StateEffect, type EditorState } from "@codemirror/state";
 import { showTooltip, type Tooltip } from "@codemirror/view";
 import type { EditorView } from "@codemirror/view";
-import { getFunction } from "./catalog-client";
+import { getFunction, packageForFunction, getPackage } from "./catalog-client";
 import { parseSignature, type ParsedSignature } from "./signature-parser";
 import { findEnclosingCall, getParamIndex } from "./param-tracker";
 
@@ -114,6 +114,22 @@ function renderSignatureHint(data: SignatureHintData): HTMLElement {
 // Cache for function signatures
 const sigCache = new Map<string, ParsedSignature[]>();
 
+/** Look up signatures for a function from the catalog, falling back to package signatures. */
+async function resolveSignatures(funcName: string): Promise<string[]> {
+  const func = await getFunction(funcName);
+  if (func && func.signatures.length > 0) return func.signatures;
+
+  // Fallback: check package functions
+  const pkgName = await packageForFunction(funcName);
+  if (pkgName) {
+    const pkg = await getPackage(pkgName);
+    if (pkg?.signatures?.[funcName]) {
+      return [pkg.signatures[funcName]];
+    }
+  }
+  return [];
+}
+
 export async function triggerSignatureHint(
   view: EditorView,
   funcName: string,
@@ -122,9 +138,9 @@ export async function triggerSignatureHint(
 ) {
   let signatures = sigCache.get(funcName);
   if (!signatures) {
-    const func = await getFunction(funcName);
-    if (!func || func.signatures.length === 0) return;
-    signatures = func.signatures.map(parseSignature);
+    const rawSigs = await resolveSignatures(funcName);
+    if (rawSigs.length === 0) return;
+    signatures = rawSigs.map(parseSignature);
     if (signatures.every((s) => s.params.length === 0)) return;
     sigCache.set(funcName, signatures);
   }
@@ -171,12 +187,12 @@ export function updateSignatureHint(view: EditorView) {
         }),
       });
     } else {
-      getFunction(call.funcName).then((func) => {
-        if (!func || func.signatures.length === 0) {
+      resolveSignatures(call.funcName).then((rawSigs) => {
+        if (rawSigs.length === 0) {
           view.dispatch({ effects: hideSignatureEffect.of(undefined) });
           return;
         }
-        const signatures = func.signatures.map(parseSignature);
+        const signatures = rawSigs.map(parseSignature);
         if (signatures.every((s) => s.params.length === 0)) {
           view.dispatch({ effects: hideSignatureEffect.of(undefined) });
           return;

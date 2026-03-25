@@ -137,7 +137,7 @@ export function CommandPalette({ onClose, onViewDocs, initialQuery }: CommandPal
 
   type SearchItem =
     | { kind: "function"; name: string; sig: string; desc: string }
-    | { kind: "pkgFunc"; name: string; packageName: string }
+    | { kind: "pkgFunc"; name: string; packageName: string; sig: string }
     | { kind: "package"; name: string; desc: string; funcCount: number };
 
   const searchItems: SearchItem[] = useMemo(() => {
@@ -149,6 +149,7 @@ export function CommandPalette({ onClose, onViewDocs, initialQuery }: CommandPal
       })),
       ...pkgFuncResults.map((r): SearchItem => ({
         kind: "pkgFunc", name: r.function_name, packageName: r.package_name,
+        sig: r.signature || "",
       })),
       ...results.map((r): SearchItem => ({
         kind: "function", name: r.function.name,
@@ -460,7 +461,10 @@ export function CommandPalette({ onClose, onViewDocs, initialQuery }: CommandPal
                     )}
                     {item.name}
                   </div>
-                  {item.kind === "function" && (
+                  {item.kind === "function" && item.sig && (
+                    <div className="palette-item-sig">{item.sig}</div>
+                  )}
+                  {item.kind === "pkgFunc" && item.sig && (
                     <div className="palette-item-sig">{item.sig}</div>
                   )}
                   <div className="palette-item-desc">

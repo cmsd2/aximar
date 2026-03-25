@@ -52,6 +52,7 @@ export interface PackageInfo {
   name: string;
   description: string;
   functions: string[];
+  signatures?: Record<string, string>;
 }
 
 export interface PackageSearchResult {
@@ -69,4 +70,5 @@ export interface PackageFunctionSearchResult {
   package_name: string;
   package_description: string;
   score: number;
+  signature: string;
 }

@@ -11,6 +11,8 @@ pub struct PackageCatalog {
     index: Index<usize>,
     /// function_name (lowercase) → package name
     func_to_package: HashMap<String, String>,
+    /// function_name (original case) → signature string
+    func_to_signature: HashMap<String, String>,
 }
 
 fn tokenizer(s: &str) -> Vec<Cow<'_, str>> {
@@ -44,9 +46,13 @@ impl PackageCatalog {
         }
 
         let mut func_to_package = HashMap::new();
+        let mut func_to_signature = HashMap::new();
         for p in &packages {
             for f in &p.functions {
                 func_to_package.insert(f.to_lowercase(), p.name.clone());
+                if let Some(sig) = p.signatures.get(f) {
+                    func_to_signature.insert(f.clone(), sig.clone());
+                }
             }
         }
 
@@ -54,6 +60,7 @@ impl PackageCatalog {
             packages,
             index,
             func_to_package,
+            func_to_signature,
         }
     }
 
@@ -148,11 +155,16 @@ impl PackageCatalog {
                 let func_lower = func.to_lowercase();
                 if func_lower.starts_with(&p) {
                     let score = 50.0 - func.len() as f64; // lower priority than catalog
+                    let signature = self
+                        .func_to_signature
+                        .get(func)
+                        .cloned()
+                        .unwrap_or_default();
                     results.push((
                         score,
                         CompletionResult {
                             name: func.clone(),
-                            signature: String::new(),
+                            signature,
                             description: format!("requires load(\"{}\")", pkg.name),
                             insert_text: format!("{}(", func),
                             package: Some(pkg.name.clone()),
@@ -192,11 +204,17 @@ impl PackageCatalog {
                         .find(|f| f.to_lowercase() == *func_lower)
                         .cloned()
                         .unwrap_or_else(|| func_lower.clone());
+                    let signature = self
+                        .func_to_signature
+                        .get(&original_name)
+                        .cloned()
+                        .unwrap_or_default();
                     results.push(PackageFunctionSearchResult {
                         function_name: original_name,
                         package_name: pkg_name.clone(),
                         package_description: pkg.description.clone(),
                         score,
+                        signature,
                     });
                 }
             }

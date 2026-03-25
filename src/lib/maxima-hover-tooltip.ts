@@ -1,9 +1,14 @@
 import { hoverTooltip, type Tooltip } from "@codemirror/view";
 import katex from "katex";
-import { getFunction } from "./catalog-client";
-import type { MaximaFunction } from "../types/catalog";
+import { getFunction, packageForFunction, getPackage } from "./catalog-client";
+import type { MaximaFunction, PackageInfo } from "../types/catalog";
 
-const hoverCache = new Map<string, MaximaFunction | null>();
+type HoverData =
+  | { kind: "catalog"; func: MaximaFunction }
+  | { kind: "package"; funcName: string; pkg: PackageInfo }
+  | null;
+
+const hoverCache = new Map<string, HoverData>();
 
 export function maximaHoverTooltip(onViewDocs?: (name: string) => void) {
   return hoverTooltip(
@@ -13,25 +18,45 @@ export function maximaHoverTooltip(onViewDocs?: (name: string) => void) {
       if (!word || word.length < 2) return null;
 
       // Check cache
-      let func: MaximaFunction | null | undefined = hoverCache.get(word);
-      if (func === undefined) {
+      let data: HoverData | undefined = hoverCache.get(word);
+      if (data === undefined) {
         try {
-          func = await getFunction(word);
-          hoverCache.set(word, func);
+          const func = await getFunction(word);
+          if (func) {
+            data = { kind: "catalog", func };
+          } else {
+            // Fallback: check package functions
+            const pkgName = await packageForFunction(word);
+            if (pkgName) {
+              const pkg = await getPackage(pkgName);
+              if (pkg) {
+                data = { kind: "package", funcName: word, pkg };
+              } else {
+                data = null;
+              }
+            } else {
+              data = null;
+            }
+          }
+          hoverCache.set(word, data);
         } catch {
           hoverCache.set(word, null);
           return null;
         }
       }
 
-      if (!func) return null;
+      if (!data) return null;
 
       return {
         pos: from,
         end: to,
         above: false,
         create() {
-          return { dom: renderHoverTooltip(func!, onViewDocs) };
+          if (data!.kind === "catalog") {
+            return { dom: renderHoverTooltip(data!.func, onViewDocs) };
+          } else {
+            return { dom: renderPackageFuncTooltip(data!.funcName, data!.pkg, onViewDocs) };
+          }
         },
       };
     },
@@ -116,6 +141,52 @@ function renderHoverTooltip(
 
   container.appendChild(footerDiv);
 
+  return container;
+}
+
+function renderPackageFuncTooltip(
+  funcName: string,
+  pkg: PackageInfo,
+  onViewDocs?: (name: string) => void
+): HTMLElement {
+  const container = document.createElement("div");
+  container.className = "hover-tooltip";
+
+  // Signature (or just name)
+  const sigDiv = document.createElement("div");
+  sigDiv.className = "hover-tooltip-sig";
+  const line = document.createElement("div");
+  line.textContent = pkg.signatures?.[funcName] || `${funcName}()`;
+  sigDiv.appendChild(line);
+  container.appendChild(sigDiv);
+
+  // Description
+  const descDiv = document.createElement("div");
+  descDiv.className = "hover-tooltip-desc";
+  descDiv.textContent = `requires load("${pkg.name}")`;
+  container.appendChild(descDiv);
+
+  // Footer
+  const footerDiv = document.createElement("div");
+  footerDiv.className = "hover-tooltip-footer";
+
+  const catSpan = document.createElement("span");
+  catSpan.className = "hover-tooltip-category";
+  catSpan.textContent = `Package: ${pkg.name}`;
+  footerDiv.appendChild(catSpan);
+
+  if (onViewDocs) {
+    const docsBtn = document.createElement("button");
+    docsBtn.className = "hover-tooltip-link";
+    docsBtn.innerHTML = "Docs &rarr;";
+    docsBtn.addEventListener("mousedown", (e) => {
+      e.preventDefault();
+      onViewDocs(funcName);
+    });
+    footerDiv.appendChild(docsBtn);
+  }
+
+  container.appendChild(footerDiv);
   return container;
 }
 

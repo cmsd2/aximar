@@ -64,19 +64,36 @@ The `generate` command also copies PNG figures from the Maxima source (`doc/info
 
 ### `catalog-gen packages`
 
-Scan the Maxima share directory to discover loadable packages and the functions they provide. Produces `packages.json`.
+Scan the Maxima share directory to discover loadable packages and the functions they provide. Produces `packages.json` with function names, descriptions, and signatures.
+
+Like `generate`, when no `--maxima-src` is given, the tool caches the Maxima clone at `/tmp/maxima-src`. On subsequent runs it fetches and resets to the latest HEAD instead of re-cloning.
 
 ```bash
+# Default: clone/update Maxima source at /tmp/maxima-src
+cargo run -p catalog-gen -- packages
+
+# From a local Maxima source checkout:
+cargo run -p catalog-gen -- packages --maxima-src /path/to/maxima-code
+
+# From an installed Maxima share directory (no git):
 cargo run -p catalog-gen -- packages --share-dir /opt/homebrew/share/maxima/5.48.1/share
+
+# With catalog.json for Texinfo-derived signatures:
+cargo run -p catalog-gen -- packages --catalog crates/aximar-core/src/catalog/catalog.json
 ```
 
 ```
 Options:
-  --share-dir <PATH>       Path to the Maxima share directory (required)
+  --maxima-src <PATH>      Path to existing Maxima source checkout (skips clone/fetch; conflicts with --share-dir)
+  --share-dir <PATH>       Path to an installed Maxima share directory (conflicts with --maxima-src)
+  --git-ref <REF>          Git ref to checkout when cloning/fetching [default: master]
+  --catalog <PATH>         Path to a catalog.json to cross-reference function signatures (Texinfo signatures override regex)
   -o, --output <PATH>      Output path for packages.json [default: crates/aximar-core/src/catalog/packages.json]
 ```
 
-The scanner discovers packages by examining subdirectories of the share directory. It extracts function definitions from `.mac` files using regex, and generates descriptions from well-known package metadata, file header comments, or the function catalog.
+The scanner discovers packages by examining subdirectories of the share directory. It extracts function definitions and signatures from `.mac` files using regex, and generates descriptions from well-known package metadata, file header comments, or the function catalog. When `--catalog` is provided (or when run as part of `generate`), Texinfo-derived signatures from the catalog take priority over regex-extracted ones.
+
+Note: The `generate` command automatically produces `packages.json` alongside `catalog.json` and `docs.json` when a share directory is available (always the case when using `--maxima-src` or the default clone).
 
 ### `catalog-gen from-xml`
 
@@ -108,7 +125,7 @@ The tool produces three JSON files and optionally copies figure images:
 
 - **`catalog.json`** — Lean function catalog with short descriptions, signatures, categories, and examples. Used for autocomplete, hover tooltips, and search.
 - **`docs.json`** — Full Markdown documentation per function (2000+ entries). Maps function names to Markdown strings with code blocks, math, cross-references, lists, tables, and figure images. Used by the Docs panel.
-- **`packages.json`** — Loadable package catalog (100+ packages). Lists each package's load path, description, and exported functions. Used for `load()` autocomplete, command palette package browsing, and "did you mean to load X?" error suggestions.
+- **`packages.json`** — Loadable package catalog (100+ packages). Lists each package's load path, description, exported functions, and function signatures. Used for `load()` autocomplete, command palette package browsing, docs panel signature display, and "did you mean to load X?" error suggestions.
 - **`figures/`** — PNG figures from Maxima's documentation, copied during `generate`.
 
 ### docs.json format
@@ -132,6 +149,24 @@ The tool produces three JSON files and optionally copies figure images:
 | Bold/italic/code | Standard Markdown |
 | Lists | `- ` and `1. ` |
 | Tables | Pipe tables |
+
+### packages.json format
+
+```json
+[
+  {
+    "name": "distrib",
+    "description": "Probability distributions (normal, t, chi-squared, F, beta, etc.)",
+    "functions": ["cdf_normal", "pdf_normal", "..."],
+    "signatures": {
+      "cdf_normal": "cdf_normal(x, m, s)",
+      "pdf_normal": "pdf_normal(x, m, s)"
+    }
+  }
+]
+```
+
+The `signatures` field maps function names to their call signatures. Signatures are extracted from two sources: regex on `.mac` file definitions (fallback) and Texinfo-parsed catalog entries (takes priority when `--catalog` is provided or when run via `generate`). The field is omitted when empty.
 
 ## Architecture
 

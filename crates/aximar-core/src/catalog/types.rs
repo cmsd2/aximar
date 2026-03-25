@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -95,6 +96,9 @@ pub struct PackageInfo {
     pub description: String,
     /// Function names provided by this package
     pub functions: Vec<String>,
+    /// Function name → signature string, e.g. "pdf_normal" → "pdf_normal(x, m, s)"
+    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
+    pub signatures: HashMap<String, String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -115,4 +119,6 @@ pub struct PackageFunctionSearchResult {
     pub package_name: String,
     pub package_description: String,
     pub score: f64,
+    #[serde(default)]
+    pub signature: String,
 }

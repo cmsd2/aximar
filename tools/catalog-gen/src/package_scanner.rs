@@ -1,18 +1,25 @@
+use std::collections::HashMap;
 use std::fs;
 use std::path::Path;
 
 use aximar_core::catalog::search::Catalog;
-use aximar_core::catalog::types::PackageInfo;
+use aximar_core::catalog::types::{MaximaFunction, PackageInfo};
 use regex::Regex;
 
 /// Scan a Maxima share directory and produce a list of loadable packages.
-pub fn scan_packages(share_dir: &Path, catalog: &Catalog) -> Vec<PackageInfo> {
+/// If `functions_catalog` is provided, signatures from the Texinfo-parsed catalog
+/// take priority over regex-extracted ones from .mac files.
+pub fn scan_packages(
+    share_dir: &Path,
+    catalog: &Catalog,
+    functions_catalog: Option<&[MaximaFunction]>,
+) -> Vec<PackageInfo> {
     if !share_dir.is_dir() {
         eprintln!("Error: share directory does not exist: {}", share_dir.display());
         return Vec::new();
     }
 
-    let func_def_re = Regex::new(r"^([a-zA-Z_]\w*)\s*\([^)]*\)\s*:=").unwrap();
+    let func_def_re = Regex::new(r"^([a-zA-Z_]\w*)\s*\(([^)]*)\)\s*:=").unwrap();
 
     let mut packages = Vec::new();
 
@@ -54,12 +61,18 @@ pub fn scan_packages(share_dir: &Path, catalog: &Catalog) -> Vec<PackageInfo> {
             // Simple package: directory has a .mac file matching its name
             // e.g. distrib/distrib.mac → load("distrib")
             let mac_path = path.join(format!("{}.mac", dir_name));
-            let functions = extract_functions(&mac_path, &func_def_re);
+            let func_sigs = extract_functions(&mac_path, &func_def_re);
+            let functions: Vec<String> = func_sigs.iter().map(|(name, _)| name.clone()).collect();
+            let signatures: HashMap<String, String> = func_sigs
+                .into_iter()
+                .filter(|(_, sig)| !sig.is_empty())
+                .collect();
             let description = extract_description(&mac_path, &dir_name, catalog);
             packages.push(PackageInfo {
                 name: dir_name.clone(),
                 description,
                 functions,
+                signatures,
             });
         } else {
             // Multi-package directory: each .mac file is a separate loadable package
@@ -67,12 +80,18 @@ pub fn scan_packages(share_dir: &Path, catalog: &Catalog) -> Vec<PackageInfo> {
             // But if there's a matching .mac, also register the parent package
             if has_matching_mac {
                 let mac_path = path.join(format!("{}.mac", dir_name));
-                let functions = extract_functions(&mac_path, &func_def_re);
+                let func_sigs = extract_functions(&mac_path, &func_def_re);
+                let functions: Vec<String> = func_sigs.iter().map(|(name, _)| name.clone()).collect();
+                let signatures: HashMap<String, String> = func_sigs
+                    .into_iter()
+                    .filter(|(_, sig)| !sig.is_empty())
+                    .collect();
                 let description = extract_description(&mac_path, &dir_name, catalog);
                 packages.push(PackageInfo {
                     name: dir_name.clone(),
                     description,
                     functions,
+                    signatures,
                 });
             }
 
@@ -89,13 +108,18 @@ pub fn scan_packages(share_dir: &Path, catalog: &Catalog) -> Vec<PackageInfo> {
                 }
 
                 let mac_path = path.join(mac_file);
-                let functions = extract_functions(&mac_path, &func_def_re);
+                let func_sigs = extract_functions(&mac_path, &func_def_re);
 
                 // Skip files with no exported functions
-                if functions.is_empty() {
+                if func_sigs.is_empty() {
                     continue;
                 }
 
+                let functions: Vec<String> = func_sigs.iter().map(|(name, _)| name.clone()).collect();
+                let signatures: HashMap<String, String> = func_sigs
+                    .into_iter()
+                    .filter(|(_, sig)| !sig.is_empty())
+                    .collect();
                 let load_name = format!("{}/{}", dir_name, file_stem);
                 let description =
                     extract_description(&mac_path, &file_stem, catalog);
@@ -103,6 +127,7 @@ pub fn scan_packages(share_dir: &Path, catalog: &Catalog) -> Vec<PackageInfo> {
                     name: load_name,
                     description,
                     functions,
+                    signatures,
                 });
             }
         }
@@ -117,6 +142,11 @@ pub fn scan_packages(share_dir: &Path, catalog: &Catalog) -> Vec<PackageInfo> {
         if p.description.contains("-*-") {
             p.description = format!("{} package", p.name.rsplit('/').next().unwrap_or(&p.name));
         }
+    }
+
+    // Enrich with catalog signatures (Texinfo takes priority over regex)
+    if let Some(catalog_functions) = functions_catalog {
+        enrich_with_catalog(&mut packages, catalog_functions);
     }
 
     packages.sort_by(|a, b| a.name.cmp(&b.name));
@@ -144,18 +174,29 @@ fn find_mac_files(dir: &Path) -> Vec<String> {
 }
 
 /// Extract function definitions from a .mac file.
-fn extract_functions(path: &Path, func_def_re: &Regex) -> Vec<String> {
+/// Returns `(name, signature)` pairs where signature is e.g. "pdf_normal(x, m, s)".
+fn extract_functions(path: &Path, func_def_re: &Regex) -> Vec<(String, String)> {
     let content = match fs::read_to_string(path) {
         Ok(c) => c,
         Err(_) => return Vec::new(),
     };
 
-    let mut functions: Vec<String> = content
+    let mut seen = std::collections::HashSet::new();
+    let mut functions: Vec<(String, String)> = content
         .lines()
         .filter_map(|line| {
-            func_def_re.captures(line).map(|caps| caps[1].to_string())
+            func_def_re.captures(line).map(|caps| {
+                let name = caps[1].to_string();
+                let params = caps[2].trim().to_string();
+                let sig = if params.is_empty() {
+                    format!("{}()", name)
+                } else {
+                    format!("{}({})", name, params)
+                };
+                (name, sig)
+            })
         })
-        .filter(|name| {
+        .filter(|(name, _)| {
             // Filter out internal names
             !name.starts_with('_')
                 && !name.starts_with("simpcheck")
@@ -165,11 +206,31 @@ fn extract_functions(path: &Path, func_def_re: &Regex) -> Vec<String> {
                 // Filter out ALL_CAPS names (Lisp-level leakage)
                 && !name.chars().all(|c| c.is_uppercase() || c == '_')
         })
+        .filter(|(name, _)| seen.insert(name.clone()))
         .collect();
 
-    functions.sort();
-    functions.dedup();
+    functions.sort_by(|a, b| a.0.cmp(&b.0));
     functions
+}
+
+/// Enrich package function signatures with data from the parsed Texinfo catalog.
+/// Catalog signatures take priority over regex-extracted ones.
+fn enrich_with_catalog(packages: &mut [PackageInfo], catalog: &[MaximaFunction]) {
+    // Build a map from function name (lowercase) → first signature from the catalog
+    let catalog_sigs: HashMap<String, String> = catalog
+        .iter()
+        .filter(|f| !f.signatures.is_empty())
+        .map(|f| (f.name.to_lowercase(), f.signatures[0].clone()))
+        .collect();
+
+    for pkg in packages.iter_mut() {
+        for func_name in &pkg.functions {
+            if let Some(sig) = catalog_sigs.get(&func_name.to_lowercase()) {
+                // Catalog signature overrides regex
+                pkg.signatures.insert(func_name.clone(), sig.clone());
+            }
+        }
+    }
 }
 
 /// Well-known package descriptions that can't easily be extracted automatically.

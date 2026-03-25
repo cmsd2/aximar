@@ -306,6 +306,12 @@ export function DocsPanel({ open, functionName, requestId, onClose }: DocsPanelP
               </p>
             </div>
 
+            {currentPackage.signatures?.[stubFunctionName] && (
+              <div className="docs-signatures">
+                <code className="docs-signature">{currentPackage.signatures[stubFunctionName]}</code>
+              </div>
+            )}
+
             <div className="docs-signatures">
               <code className="docs-signature">load("{currentPackage.name}")$</code>
             </div>
@@ -326,7 +332,7 @@ export function DocsPanel({ open, functionName, requestId, onClose }: DocsPanelP
                           navigateTo(name);
                         }}
                       >
-                        {name}
+                        {currentPackage.signatures?.[name] || name}
                       </a>
                     ))}
                 </div>
@@ -362,7 +368,7 @@ export function DocsPanel({ open, functionName, requestId, onClose }: DocsPanelP
                         navigateTo(name);
                       }}
                     >
-                      {name}
+                      {currentPackage.signatures?.[name] || name}
                     </a>
                   ))}
                 </div>

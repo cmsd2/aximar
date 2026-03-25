@@ -95,10 +95,28 @@ enum Commands {
     Deprecated,
 
     /// Scan the Maxima share directory to discover loadable packages and their functions.
+    ///
+    /// By default, clones/updates the Maxima source at /tmp/maxima-src (same as `generate`).
+    /// Use --maxima-src to point to an existing checkout, or --share-dir for an installed copy.
     Packages {
-        /// Path to the Maxima share directory (e.g. /opt/homebrew/share/maxima/5.47.0/share)
+        /// Path to an existing Maxima source checkout. If omitted, clones/updates /tmp/maxima-src.
+        /// Mutually exclusive with --share-dir.
+        #[arg(long, conflicts_with = "share_dir")]
+        maxima_src: Option<PathBuf>,
+
+        /// Path to an installed Maxima share directory (e.g. /opt/homebrew/share/maxima/5.47.0/share).
+        /// Mutually exclusive with --maxima-src.
+        #[arg(long, conflicts_with = "maxima_src")]
+        share_dir: Option<PathBuf>,
+
+        /// Git ref (branch, tag, commit) to checkout. Only used when cloning/fetching.
+        #[arg(long, default_value = "master")]
+        git_ref: String,
+
+        /// Path to a catalog.json to cross-reference function signatures.
+        /// When omitted, uses the embedded catalog.
         #[arg(long)]
-        share_dir: PathBuf,
+        catalog: Option<PathBuf>,
 
         /// Output path for packages.json [default: <workspace>/crates/aximar-core/src/catalog/packages.json]
         #[arg(short, long)]
@@ -151,20 +169,7 @@ fn main() {
             let log_unmapped = !quiet;
             let merge_path = if merge { Some(output.clone()) } else { None };
 
-            // Determine maxima source directory — clone or use existing
-            let src_dir = match maxima_src {
-                Some(ref path) => {
-                    if !path.exists() {
-                        fatal(&format!("Maxima source path does not exist: {}", path.display()));
-                    }
-                    path.clone()
-                }
-                None => {
-                    let cache_dir = PathBuf::from("/tmp/maxima-src");
-                    ensure_maxima_source(&cache_dir, &git_ref);
-                    cache_dir
-                }
-            };
+            let src_dir = resolve_maxima_source(maxima_src.as_deref(), &git_ref);
 
             // Run makeinfo to convert texinfo to XML
             let texi_path = src_dir.join(MAXIMA_TEXI_REL);
@@ -195,6 +200,33 @@ fn main() {
             let figures_src = src_dir.join("doc/info/figures");
             let figures_dest = resolve_output(None, FIGURES_REL);
             copy_figures(&figures_src, &figures_dest);
+
+            // Generate packages.json from the source share directory
+            let share_dir = src_dir.join("share");
+            if share_dir.is_dir() {
+                let packages_output = resolve_output(None, PACKAGES_REL);
+                let catalog_for_search = Catalog::load();
+                let packages = package_scanner::scan_packages(
+                    &share_dir,
+                    &catalog_for_search,
+                    Some(&functions),
+                );
+                let pkg_json = serde_json::to_string_pretty(&packages)
+                    .expect("failed to serialize packages");
+                fs::write(&packages_output, &pkg_json).unwrap_or_else(|e| {
+                    fatal(&format!("Error writing {}: {e}", packages_output.display()));
+                });
+                eprintln!(
+                    "Wrote {} packages to {}",
+                    packages.len(),
+                    packages_output.display()
+                );
+            } else {
+                eprintln!(
+                    "Warning: share directory not found at {}, skipping packages.json",
+                    share_dir.display()
+                );
+            }
         }
 
         Commands::Search { query, limit } => {
@@ -241,12 +273,38 @@ fn main() {
         }
 
         Commands::Packages {
+            maxima_src,
             share_dir,
+            git_ref,
+            catalog: catalog_path,
             output,
         } => {
+            let resolved_share_dir = if let Some(sd) = share_dir {
+                sd
+            } else {
+                // Use --maxima-src or default git clone, then derive share/
+                let src_dir = resolve_maxima_source(maxima_src.as_deref(), &git_ref);
+                src_dir.join("share")
+            };
+
             let output = resolve_output(output, PACKAGES_REL);
             let catalog = Catalog::load();
-            let packages = package_scanner::scan_packages(&share_dir, &catalog);
+
+            // Load external catalog for signature enrichment if provided
+            let functions_catalog: Option<Vec<MaximaFunction>> = catalog_path.map(|p| {
+                let json = fs::read_to_string(&p).unwrap_or_else(|e| {
+                    fatal(&format!("Error reading catalog {}: {e}", p.display()));
+                });
+                serde_json::from_str(&json).unwrap_or_else(|e| {
+                    fatal(&format!("Error parsing catalog {}: {e}", p.display()));
+                })
+            });
+
+            let packages = package_scanner::scan_packages(
+                &resolved_share_dir,
+                &catalog,
+                functions_catalog.as_deref(),
+            );
             let json =
                 serde_json::to_string_pretty(&packages).expect("failed to serialize packages");
             fs::write(&output, &json).unwrap_or_else(|e| {
@@ -292,6 +350,28 @@ fn main() {
 }
 
 // --- Pipeline steps ---
+
+/// Resolve the Maxima source directory.
+/// If `explicit` is provided, validates it exists and returns it.
+/// Otherwise, clones or updates the Maxima source at `/tmp/maxima-src`.
+fn resolve_maxima_source(explicit: Option<&Path>, git_ref: &str) -> PathBuf {
+    match explicit {
+        Some(path) => {
+            if !path.exists() {
+                fatal(&format!(
+                    "Maxima source path does not exist: {}",
+                    path.display()
+                ));
+            }
+            path.to_path_buf()
+        }
+        None => {
+            let cache_dir = PathBuf::from("/tmp/maxima-src");
+            ensure_maxima_source(&cache_dir, git_ref);
+            cache_dir
+        }
+    }
+}
 
 /// Ensure a Maxima source checkout exists at `dest`.
 /// If the directory already contains a git repo, fetch and reset to the latest HEAD.

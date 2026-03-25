@@ -19,11 +19,13 @@ export function maximaCompletionSource(autocompleteMode: string) {
       from: word.from,
       options: results.slice(0, 8).map((r) => ({
         label: r.name,
-        detail: r.package ? `load("${r.package}")` : r.signature,
-        info: r.description || undefined,
+        detail: r.signature || (r.package ? `load("${r.package}")` : ""),
+        info: r.package
+          ? `requires load("${r.package}")`
+          : r.description || undefined,
         type: "function" as const,
         apply: autocompleteMode === "snippet"
-          ? createSnippetApply(r.name)
+          ? createSnippetApply(r.name, r.signature)
           : `${r.name}(`,
       })),
     };
@@ -71,11 +73,21 @@ async function loadPackageCompletionSource(
   };
 }
 
-function createSnippetApply(funcName: string) {
+function createSnippetApply(funcName: string, completionSig?: string) {
   // Returns a function that fetches the signature and creates a snippet
   return async (_view: import("@codemirror/view").EditorView, completion: import("@codemirror/autocomplete").Completion, from: number, to: number) => {
-    const func = await getFunction(funcName);
-    if (!func) {
+    // Try the completion result's signature first, then fetch from catalog
+    let signatures: string[] = [];
+    if (completionSig) {
+      signatures = [completionSig];
+    } else {
+      const func = await getFunction(funcName);
+      if (func) {
+        signatures = func.signatures;
+      }
+    }
+
+    if (signatures.length === 0) {
       // Fallback: just insert name(
       _view.dispatch({
         changes: { from, to, insert: `${funcName}(` },
@@ -84,7 +96,7 @@ function createSnippetApply(funcName: string) {
       return;
     }
 
-    const parsed = func.signatures.map(parseSignature);
+    const parsed = signatures.map(parseSignature);
     const withParams = parsed.filter((s) => s.params.length > 0);
 
     if (withParams.length === 0) {
