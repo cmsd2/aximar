@@ -6,5 +6,6 @@ pub mod log;
 pub mod maxima;
 pub mod notebook;
 pub mod notebooks;
+pub mod registry;
 pub mod session;
 pub mod suggestions;

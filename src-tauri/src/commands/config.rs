@@ -431,14 +431,11 @@ pub async fn set_config(app: tauri::AppHandle, updates: ConfigUpdate) -> Result<
         if config.mcp_enabled {
             emit_app_log(&state.app_handle, &state.app_log, "info", &format!("MCP server starting on {}...", config.mcp_listen_address), "mcp");
             let mcp_state = AppState {
-                session: state.session.clone(),
+                registry: state.registry.clone(),
                 catalog: state.catalog.clone(),
                 docs: state.docs.clone(),
                 packages: state.packages.clone(),
                 app_handle: state.app_handle.clone(),
-                notebook: state.notebook.clone(),
-                capture_sink: state.capture_sink.clone(),
-                server_log: state.server_log.clone(),
                 mcp_controller: state.mcp_controller.clone(),
                 app_log: state.app_log.clone(),
             };

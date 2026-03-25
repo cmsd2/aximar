@@ -9,17 +9,20 @@ use aximar_core::maxima::unicode::unicode_to_maxima;
 
 use aximar_core::commands::{CommandEffect, NotebookCommand};
 use aximar_core::notebook::{CellOutput, CellStatus, CellType, Notebook};
+use aximar_core::registry::{NotebookContextRef, NotebookInfo};
 
 use crate::mcp::sync::{notebook_state_payload, SyncCell};
 use crate::state::AppState;
 
-use super::config::read_eval_timeout;
+use super::config::{read_backend, read_eval_timeout, read_maxima_path};
+use super::session::ensure_session;
 
 // ── Event types ──────────────────────────────────────────────────────
 
 /// Payload emitted after every notebook command application.
 #[derive(Debug, Clone, Serialize)]
 pub struct NotebookStateEvent {
+    pub notebook_id: String,
     pub effect: String,
     pub cell_id: Option<String>,
     pub cells: Vec<SyncCell>,
@@ -30,11 +33,13 @@ pub struct NotebookStateEvent {
 /// Emit a `notebook-state-changed` event with the current notebook state.
 pub fn emit_notebook_state(
     app_handle: &AppHandle,
+    notebook_id: &str,
     nb: &Notebook,
     effect: &CommandEffect,
 ) {
     let payload = notebook_state_payload(nb);
     let event = NotebookStateEvent {
+        notebook_id: notebook_id.to_string(),
         effect: effect.effect_name().to_string(),
         cell_id: effect.cell_id().map(|s| s.to_string()),
         cells: payload.cells,
@@ -44,6 +49,18 @@ pub fn emit_notebook_state(
     let _ = app_handle.emit("notebook-state-changed", event);
 }
 
+// ── Helper ───────────────────────────────────────────────────────────
+
+/// Resolve notebook context: if notebook_id is provided, use it; otherwise use the active notebook.
+async fn resolve_context(
+    state: &AppState,
+    notebook_id: Option<String>,
+) -> Result<NotebookContextRef, AppError> {
+    let reg = state.registry.lock().await;
+    reg.resolve(notebook_id.as_deref())
+        .map_err(|e| AppError::CommunicationError(e))
+}
+
 // ── Tauri commands ───────────────────────────────────────────────────
 
 /// Return the current notebook state without modifying anything.
@@ -51,10 +68,13 @@ pub fn emit_notebook_state(
 #[tauri::command]
 pub async fn nb_get_state(
     state: State<'_, AppState>,
+    notebook_id: Option<String>,
 ) -> Result<NotebookStateEvent, AppError> {
-    let nb = state.notebook.lock().await;
+    let ctx = resolve_context(&state, notebook_id).await?;
+    let nb = ctx.notebook.lock().await;
     let payload = notebook_state_payload(&nb);
     Ok(NotebookStateEvent {
+        notebook_id: ctx.id.clone(),
         effect: "notebook_replaced".to_string(),
         cell_id: None,
         cells: payload.cells,
@@ -72,16 +92,18 @@ pub struct NbAddCellResult {
 pub async fn nb_add_cell(
     app: AppHandle,
     state: State<'_, AppState>,
+    notebook_id: Option<String>,
     cell_type: Option<String>,
     input: Option<String>,
     after_cell_id: Option<String>,
     before_cell_id: Option<String>,
 ) -> Result<NbAddCellResult, AppError> {
+    let ctx = resolve_context(&state, notebook_id).await?;
     let ct = match cell_type.as_deref() {
         Some("markdown") => CellType::Markdown,
         _ => CellType::Code,
     };
-    let mut nb = state.notebook.lock().await;
+    let mut nb = ctx.notebook.lock().await;
     let effect = nb
         .apply(NotebookCommand::AddCell {
             cell_type: ct,
@@ -94,7 +116,7 @@ pub async fn nb_add_cell(
         CommandEffect::CellAdded { cell_id } => cell_id.clone(),
         _ => String::new(),
     };
-    emit_notebook_state(&app, &nb, &effect);
+    emit_notebook_state(&app, &ctx.id, &nb, &effect);
     Ok(NbAddCellResult { cell_id })
 }
 
@@ -102,13 +124,15 @@ pub async fn nb_add_cell(
 pub async fn nb_delete_cell(
     app: AppHandle,
     state: State<'_, AppState>,
+    notebook_id: Option<String>,
     cell_id: String,
 ) -> Result<(), AppError> {
-    let mut nb = state.notebook.lock().await;
+    let ctx = resolve_context(&state, notebook_id).await?;
+    let mut nb = ctx.notebook.lock().await;
     let effect = nb
         .apply(NotebookCommand::DeleteCell { cell_id })
         .map_err(|e| AppError::CommunicationError(e))?;
-    emit_notebook_state(&app, &nb, &effect);
+    emit_notebook_state(&app, &ctx.id, &nb, &effect);
     Ok(())
 }
 
@@ -116,17 +140,19 @@ pub async fn nb_delete_cell(
 pub async fn nb_move_cell(
     app: AppHandle,
     state: State<'_, AppState>,
+    notebook_id: Option<String>,
     cell_id: String,
     direction: String,
 ) -> Result<(), AppError> {
-    let mut nb = state.notebook.lock().await;
+    let ctx = resolve_context(&state, notebook_id).await?;
+    let mut nb = ctx.notebook.lock().await;
     let effect = nb
         .apply(NotebookCommand::MoveCell {
             cell_id,
             direction,
         })
         .map_err(|e| AppError::CommunicationError(e))?;
-    emit_notebook_state(&app, &nb, &effect);
+    emit_notebook_state(&app, &ctx.id, &nb, &effect);
     Ok(())
 }
 
@@ -134,13 +160,15 @@ pub async fn nb_move_cell(
 pub async fn nb_toggle_cell_type(
     app: AppHandle,
     state: State<'_, AppState>,
+    notebook_id: Option<String>,
     cell_id: String,
 ) -> Result<(), AppError> {
-    let mut nb = state.notebook.lock().await;
+    let ctx = resolve_context(&state, notebook_id).await?;
+    let mut nb = ctx.notebook.lock().await;
     let effect = nb
         .apply(NotebookCommand::ToggleCellType { cell_id })
         .map_err(|e| AppError::CommunicationError(e))?;
-    emit_notebook_state(&app, &nb, &effect);
+    emit_notebook_state(&app, &ctx.id, &nb, &effect);
     Ok(())
 }
 
@@ -148,16 +176,18 @@ pub async fn nb_toggle_cell_type(
 pub async fn nb_update_cell_input(
     app: AppHandle,
     state: State<'_, AppState>,
+    notebook_id: Option<String>,
     cell_id: String,
     input: String,
 ) -> Result<(), AppError> {
-    let mut nb = state.notebook.lock().await;
+    let ctx = resolve_context(&state, notebook_id).await?;
+    let mut nb = ctx.notebook.lock().await;
     let effect = nb
         .apply(NotebookCommand::UpdateCellInput { cell_id, input })
         .map_err(|e| AppError::CommunicationError(e))?;
     // Only emit if something actually changed
     if !matches!(effect, CommandEffect::NoOp { .. }) {
-        emit_notebook_state(&app, &nb, &effect);
+        emit_notebook_state(&app, &ctx.id, &nb, &effect);
     }
     Ok(())
 }
@@ -166,13 +196,15 @@ pub async fn nb_update_cell_input(
 pub async fn nb_undo(
     app: AppHandle,
     state: State<'_, AppState>,
+    notebook_id: Option<String>,
 ) -> Result<(), AppError> {
-    let mut nb = state.notebook.lock().await;
+    let ctx = resolve_context(&state, notebook_id).await?;
+    let mut nb = ctx.notebook.lock().await;
     let effect = nb
         .apply(NotebookCommand::Undo)
         .map_err(|e| AppError::CommunicationError(e))?;
     if !matches!(effect, CommandEffect::NoOp { .. }) {
-        emit_notebook_state(&app, &nb, &effect);
+        emit_notebook_state(&app, &ctx.id, &nb, &effect);
     }
     Ok(())
 }
@@ -181,13 +213,15 @@ pub async fn nb_undo(
 pub async fn nb_redo(
     app: AppHandle,
     state: State<'_, AppState>,
+    notebook_id: Option<String>,
 ) -> Result<(), AppError> {
-    let mut nb = state.notebook.lock().await;
+    let ctx = resolve_context(&state, notebook_id).await?;
+    let mut nb = ctx.notebook.lock().await;
     let effect = nb
         .apply(NotebookCommand::Redo)
         .map_err(|e| AppError::CommunicationError(e))?;
     if !matches!(effect, CommandEffect::NoOp { .. }) {
-        emit_notebook_state(&app, &nb, &effect);
+        emit_notebook_state(&app, &ctx.id, &nb, &effect);
     }
     Ok(())
 }
@@ -196,12 +230,14 @@ pub async fn nb_redo(
 pub async fn nb_new_notebook(
     app: AppHandle,
     state: State<'_, AppState>,
+    notebook_id: Option<String>,
 ) -> Result<(), AppError> {
-    let mut nb = state.notebook.lock().await;
+    let ctx = resolve_context(&state, notebook_id).await?;
+    let mut nb = ctx.notebook.lock().await;
     let effect = nb
         .apply(NotebookCommand::NewNotebook)
         .map_err(|e| AppError::CommunicationError(e))?;
-    emit_notebook_state(&app, &nb, &effect);
+    emit_notebook_state(&app, &ctx.id, &nb, &effect);
     Ok(())
 }
 
@@ -216,8 +252,10 @@ pub struct LoadCell {
 pub async fn nb_load_cells(
     app: AppHandle,
     state: State<'_, AppState>,
+    notebook_id: Option<String>,
     cells: Vec<LoadCell>,
 ) -> Result<(), AppError> {
+    let ctx = resolve_context(&state, notebook_id).await?;
     let cell_tuples: Vec<(String, CellType, String)> = cells
         .into_iter()
         .map(|c| {
@@ -228,13 +266,13 @@ pub async fn nb_load_cells(
             (c.id, ct, c.input)
         })
         .collect();
-    let mut nb = state.notebook.lock().await;
+    let mut nb = ctx.notebook.lock().await;
     let effect = nb
         .apply(NotebookCommand::LoadCells {
             cells: cell_tuples,
         })
         .map_err(|e| AppError::CommunicationError(e))?;
-    emit_notebook_state(&app, &nb, &effect);
+    emit_notebook_state(&app, &ctx.id, &nb, &effect);
     Ok(())
 }
 
@@ -244,11 +282,14 @@ pub async fn nb_load_cells(
 pub async fn nb_run_cell(
     app: AppHandle,
     state: State<'_, AppState>,
+    notebook_id: Option<String>,
     cell_id: String,
 ) -> Result<EvalResult, AppError> {
+    let ctx = resolve_context(&state, notebook_id).await?;
+
     // 1. Get cell input and validate
     let (input, cell_type) = {
-        let nb = state.notebook.lock().await;
+        let nb = ctx.notebook.lock().await;
         let cell = nb
             .get_cell(&cell_id)
             .ok_or_else(|| AppError::CommunicationError(format!("Cell '{}' not found", cell_id)))?;
@@ -267,46 +308,51 @@ pub async fn nb_run_cell(
 
     // 2. Set status to Running
     {
-        let mut nb = state.notebook.lock().await;
+        let mut nb = ctx.notebook.lock().await;
         let effect = nb
             .apply(NotebookCommand::SetCellStatus {
                 cell_id: cell_id.clone(),
                 status: CellStatus::Running,
             })
             .map_err(|e| AppError::CommunicationError(e))?;
-        emit_notebook_state(&app, &nb, &effect);
+        emit_notebook_state(&app, &ctx.id, &nb, &effect);
     }
 
     // 3. Prepare label context and rewrite input
     let (exec_count, label_ctx) = {
-        let mut nb = state.notebook.lock().await;
+        let mut nb = ctx.notebook.lock().await;
         let ec = nb.next_execution_count();
-        let ctx = LabelContext {
+        let lctx = LabelContext {
             label_map: nb.label_map().clone(),
             previous_output_label: nb.previous_output_label(&cell_id),
         };
-        (ec, ctx)
+        (ec, lctx)
     };
 
     let translated = unicode_to_maxima(&input);
     let rewritten = rewrite_labels(&translated, &label_ctx);
     let eval_timeout = read_eval_timeout(&app);
 
-    // 4. Clear capture and evaluate
-    state.capture_sink.take_cell_output();
+    // 4. Ensure session is running (auto-start if stopped)
+    let backend = read_backend(&app);
+    let maxima_path = read_maxima_path(&app);
+    ensure_session(&state, &ctx, backend, maxima_path, eval_timeout).await?;
 
-    let mut guard = state.session.lock().await;
+    // 5. Clear capture and evaluate
+    ctx.capture_sink.take_cell_output();
+
+    let mut guard = ctx.session.lock().await;
     let process = match guard.try_begin_eval() {
         Ok(p) => p,
         Err(e) => {
-            let mut nb = state.notebook.lock().await;
+            let mut nb = ctx.notebook.lock().await;
             let effect = nb
                 .apply(NotebookCommand::SetCellStatus {
                     cell_id: cell_id.clone(),
                     status: CellStatus::Error,
                 })
                 .map_err(|e| AppError::CommunicationError(e))?;
-            emit_notebook_state(&app, &nb, &effect);
+            emit_notebook_state(&app, &ctx.id, &nb, &effect);
             return Err(e);
         }
     };
@@ -316,19 +362,19 @@ pub async fn nb_run_cell(
     drop(guard);
 
     // 5. Capture raw output
-    let raw_output = state.capture_sink.take_cell_output();
+    let raw_output = ctx.capture_sink.take_cell_output();
 
     // 6. Apply output to notebook
     match result {
         Ok(eval_result) => {
             // Record label mapping
             if let Some(ref label) = eval_result.output_label {
-                let mut nb = state.notebook.lock().await;
+                let mut nb = ctx.notebook.lock().await;
                 nb.record_label(exec_count, label.clone());
             }
 
             let cell_output = CellOutput::from_eval_result(&eval_result, exec_count);
-            let mut nb = state.notebook.lock().await;
+            let mut nb = ctx.notebook.lock().await;
             let effect = nb
                 .apply(NotebookCommand::SetCellOutput {
                     cell_id: cell_id.clone(),
@@ -336,20 +382,69 @@ pub async fn nb_run_cell(
                     raw_output,
                 })
                 .map_err(|e| AppError::CommunicationError(e))?;
-            emit_notebook_state(&app, &nb, &effect);
+            emit_notebook_state(&app, &ctx.id, &nb, &effect);
 
             Ok(eval_result)
         }
         Err(e) => {
-            let mut nb = state.notebook.lock().await;
+            let mut nb = ctx.notebook.lock().await;
             let effect = nb
                 .apply(NotebookCommand::SetCellStatus {
                     cell_id: cell_id.clone(),
                     status: CellStatus::Error,
                 })
                 .map_err(|err| AppError::CommunicationError(err))?;
-            emit_notebook_state(&app, &nb, &effect);
+            emit_notebook_state(&app, &ctx.id, &nb, &effect);
             Err(e)
         }
     }
+}
+
+// ── Notebook lifecycle commands ──────────────────────────────────────
+
+#[derive(Debug, Serialize)]
+pub struct NbCreateResult {
+    pub notebook_id: String,
+}
+
+#[tauri::command]
+pub async fn nb_create(
+    state: State<'_, AppState>,
+) -> Result<NbCreateResult, AppError> {
+    let mut reg = state.registry.lock().await;
+    let id = reg.create();
+    Ok(NbCreateResult { notebook_id: id })
+}
+
+#[tauri::command]
+pub async fn nb_close(
+    state: State<'_, AppState>,
+    notebook_id: String,
+) -> Result<(), AppError> {
+    let ctx = {
+        let mut reg = state.registry.lock().await;
+        reg.close(&notebook_id)
+            .map_err(|e| AppError::CommunicationError(e))?
+    };
+    // Stop the Maxima session for the closed notebook
+    let _ = ctx.session.stop().await;
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn nb_list(
+    state: State<'_, AppState>,
+) -> Result<Vec<NotebookInfo>, AppError> {
+    let reg = state.registry.lock().await;
+    Ok(reg.list())
+}
+
+#[tauri::command]
+pub async fn nb_set_active(
+    state: State<'_, AppState>,
+    notebook_id: String,
+) -> Result<(), AppError> {
+    let mut reg = state.registry.lock().await;
+    reg.set_active(&notebook_id)
+        .map_err(|e| AppError::CommunicationError(e))
 }

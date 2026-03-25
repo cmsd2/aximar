@@ -5,14 +5,39 @@ use tokio::sync::Mutex;
 
 use aximar_core::maxima::output::{OutputEvent, OutputSink};
 
-/// OutputSink implementation that emits events to the Tauri frontend.
+/// Tagged output event that includes the notebook ID for routing.
+#[derive(Debug, Clone, Serialize)]
+struct TaggedOutputEvent {
+    notebook_id: String,
+    line: String,
+    stream: String,
+    timestamp: u64,
+}
+
+/// OutputSink implementation that emits events to the Tauri frontend,
+/// tagged with a notebook ID so the frontend can route to the correct tab.
 pub struct TauriOutputSink {
     app_handle: Arc<Mutex<Option<tauri::AppHandle>>>,
+    notebook_id: Option<String>,
 }
 
 impl TauriOutputSink {
+    #[allow(dead_code)]
     pub fn new(app_handle: Arc<Mutex<Option<tauri::AppHandle>>>) -> Self {
-        TauriOutputSink { app_handle }
+        TauriOutputSink {
+            app_handle,
+            notebook_id: None,
+        }
+    }
+
+    pub fn with_notebook_id(
+        app_handle: Arc<Mutex<Option<tauri::AppHandle>>>,
+        notebook_id: String,
+    ) -> Self {
+        TauriOutputSink {
+            app_handle,
+            notebook_id: Some(notebook_id),
+        }
     }
 }
 
@@ -22,7 +47,17 @@ impl OutputSink for TauriOutputSink {
         // we skip the event rather than blocking the Maxima I/O loop.
         if let Ok(guard) = self.app_handle.try_lock() {
             if let Some(ref handle) = *guard {
-                let _ = handle.emit("maxima-output", event);
+                if let Some(ref nb_id) = self.notebook_id {
+                    let tagged = TaggedOutputEvent {
+                        notebook_id: nb_id.clone(),
+                        line: event.line,
+                        stream: event.stream,
+                        timestamp: event.timestamp,
+                    };
+                    let _ = handle.emit("maxima-output", tagged);
+                } else {
+                    let _ = handle.emit("maxima-output", event);
+                }
             }
         }
     }

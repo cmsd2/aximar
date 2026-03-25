@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { save } from "@tauri-apps/plugin-dialog";
-import { useNotebookStore } from "../store/notebookStore";
+import { useActiveTab, useNotebookStore } from "../store/notebookStore";
 import { useMaxima } from "../hooks/useMaxima";
 import { getSuggestions } from "../lib/suggestions-client";
 import { nbAddCell } from "../lib/notebook-commands";
@@ -16,7 +16,7 @@ interface CellSuggestionsProps {
 export function CellSuggestions({ cell }: CellSuggestionsProps) {
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const updateCellInput = useNotebookStore((s) => s.updateCellInput);
-  const cells = useNotebookStore((s) => s.cells);
+  const cells = useActiveTab().cells;
   const { executeCell } = useMaxima();
 
   // Track the cell created by the last suggestion click so we can reuse it

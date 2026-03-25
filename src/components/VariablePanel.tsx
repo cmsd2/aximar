@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
-import { useNotebookStore } from "../store/notebookStore";
+import { useActiveTab } from "../store/notebookStore";
 import {
   listVariables,
   killVariable,
@@ -13,8 +13,9 @@ interface VariablePanelProps {
 export function VariablePanel({ open }: VariablePanelProps) {
   const [variables, setVariables] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
-  const cells = useNotebookStore((s) => s.cells);
-  const sessionStatus = useNotebookStore((s) => s.sessionStatus);
+  const tab = useActiveTab();
+  const cells = tab.cells;
+  const sessionStatus = tab.sessionStatus;
 
   const refresh = useCallback(async () => {
     if (sessionStatus !== "Ready") return;

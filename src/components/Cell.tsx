@@ -1,6 +1,6 @@
 import { useCallback, useState, useEffect } from "react";
 import type { Cell as CellType } from "../types/notebook";
-import { useNotebookStore } from "../store/notebookStore";
+import { useActiveTab, useNotebookStore } from "../store/notebookStore";
 import { useFindStore } from "../store/findStore";
 import { useMaxima } from "../hooks/useMaxima";
 import { useCodeMirrorEditor } from "../hooks/useCodeMirrorEditor";
@@ -14,7 +14,7 @@ interface CellProps {
 }
 
 export function Cell({ cell, onViewDocs }: CellProps) {
-  const cells = useNotebookStore((s) => s.cells);
+  const cells = useActiveTab().cells;
   const cellCount = cells.length;
   const setActiveCellId = useNotebookStore((s) => s.setActiveCellId);
   const { executeCell } = useMaxima();

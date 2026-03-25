@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { listTemplates, getTemplate } from "../lib/notebooks-client";
-import { nbLoadCells } from "../lib/notebook-commands";
+import { nbCreate, nbSetActive, nbLoadCells } from "../lib/notebook-commands";
+import { useNotebookStore } from "../store/notebookStore";
 import type { TemplateSummary } from "../types/notebooks";
 
 interface TemplateChooserProps {
@@ -27,7 +28,14 @@ export function TemplateChooser({ onClose }: TemplateChooserProps) {
             cell_type: c.cell_type === "markdown" ? "markdown" : "code",
             input: typeof c.source === "string" ? c.source : (c.source as string[]).join(""),
           }));
-        await nbLoadCells(cells);
+        // Create a new notebook and load the template into it
+        const result = await nbCreate();
+        const nbId = result.notebook_id;
+        const store = useNotebookStore.getState();
+        store.addTab(nbId);
+        store.setActiveTab(nbId);
+        await nbSetActive(nbId);
+        await nbLoadCells(cells, nbId);
       }
       onClose();
     },

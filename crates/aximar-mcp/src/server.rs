@@ -19,116 +19,134 @@ use aximar_core::maxima::process::MaximaProcess;
 use aximar_core::maxima::protocol;
 use aximar_core::maxima::types::SessionStatus;
 use aximar_core::notebooks::{data as notebook_data, io as notebook_io, types as notebook_types};
-use aximar_core::session::SessionManager;
+use aximar_core::registry::{NotebookContextRef, NotebookRegistry};
 
 use crate::capture::CaptureOutputSink;
-use crate::log::ServerLog;
 use crate::notebook::{CellOutput, CellStatus, CellType, Notebook};
+
+/// Factory function that builds a process output sink for a given notebook.
+/// Args: (notebook_id, capture_sink) → process_sink.
+///
+/// In standalone mode, the factory returns the capture sink directly.
+/// In connected mode, the factory wraps it in a MultiOutputSink that also
+/// feeds the Tauri frontend.
+pub type ProcessSinkFactory =
+    Arc<dyn Fn(&str, &Arc<CaptureOutputSink>) -> Arc<dyn OutputSink> + Send + Sync>;
 
 #[derive(Clone)]
 pub struct AximarMcpServer {
     #[allow(dead_code)]
     tool_router: rmcp::handler::server::router::tool::ToolRouter<Self>,
-    session: Arc<SessionManager>,
+    registry: Arc<Mutex<NotebookRegistry>>,
     catalog: Arc<Catalog>,
     docs: Arc<Docs>,
     packages: Arc<PackageCatalog>,
-    notebook: Arc<Mutex<Notebook>>,
-    output_sink: Arc<CaptureOutputSink>,
-    /// Sink used when spawning the Maxima process.
-    /// In headless mode this equals output_sink; in connected mode this is a
-    /// MultiOutputSink that also feeds the Tauri frontend.
-    process_sink: Arc<dyn OutputSink>,
-    server_log: Arc<ServerLog>,
     backend: Backend,
     maxima_path: Option<String>,
     eval_timeout: u64,
-    /// Optional callback invoked after any notebook mutation (used by connected mode
-    /// to push state to the Tauri frontend).
-    on_notebook_change: Option<Arc<dyn Fn(CommandEffect) + Send + Sync>>,
+    /// Factory for creating per-notebook process output sinks.
+    process_sink_factory: ProcessSinkFactory,
+    /// Optional callback invoked after any notebook mutation (used by connected
+    /// mode to push state to the Tauri frontend). Args: (notebook_id, effect).
+    on_notebook_change: Option<Arc<dyn Fn(&str, CommandEffect) + Send + Sync>>,
+    /// Optional callback for notebook lifecycle events (create, close, switch).
+    /// Args: (notebook_id, event_type). Event types: "created", "closed", "switched".
+    on_notebook_lifecycle: Option<Arc<dyn Fn(&str, &str) + Send + Sync>>,
 }
 
 impl AximarMcpServer {
+    /// Create a server for standalone mode (headless, stdio transport).
+    ///
+    /// In standalone mode the process output sink is just the capture sink
+    /// and there is no notebook-change callback.
     pub fn new(
-        session: Arc<SessionManager>,
+        registry: Arc<Mutex<NotebookRegistry>>,
         catalog: Arc<Catalog>,
         docs: Arc<Docs>,
         packages: Arc<PackageCatalog>,
-        notebook: Arc<Mutex<Notebook>>,
-        output_sink: Arc<CaptureOutputSink>,
-        server_log: Arc<ServerLog>,
         backend: Backend,
         maxima_path: Option<String>,
         eval_timeout: u64,
     ) -> Self {
-        let process_sink: Arc<dyn OutputSink> = output_sink.clone();
+        let process_sink_factory: ProcessSinkFactory =
+            Arc::new(|_id, capture| capture.clone() as Arc<dyn OutputSink>);
         let tool_router = Self::tool_router();
         AximarMcpServer {
             tool_router,
-            session,
+            registry,
             catalog,
             docs,
             packages,
-            notebook,
-            output_sink,
-            process_sink,
-            server_log,
             backend,
             maxima_path,
             eval_timeout,
+            process_sink_factory,
             on_notebook_change: None,
+            on_notebook_lifecycle: None,
         }
     }
 
     /// Create a server for connected mode (embedded in Tauri) with a custom
-    /// process output sink and a notebook-change callback.
+    /// process sink factory and a notebook-change callback.
     pub fn new_connected(
-        session: Arc<SessionManager>,
+        registry: Arc<Mutex<NotebookRegistry>>,
         catalog: Arc<Catalog>,
         docs: Arc<Docs>,
         packages: Arc<PackageCatalog>,
-        notebook: Arc<Mutex<Notebook>>,
-        output_sink: Arc<CaptureOutputSink>,
-        process_sink: Arc<dyn OutputSink>,
-        server_log: Arc<ServerLog>,
         backend: Backend,
         maxima_path: Option<String>,
         eval_timeout: u64,
-        on_notebook_change: Arc<dyn Fn(CommandEffect) + Send + Sync>,
+        process_sink_factory: ProcessSinkFactory,
+        on_notebook_change: Arc<dyn Fn(&str, CommandEffect) + Send + Sync>,
+        on_notebook_lifecycle: Arc<dyn Fn(&str, &str) + Send + Sync>,
     ) -> Self {
         let tool_router = Self::tool_router();
         AximarMcpServer {
             tool_router,
-            session,
+            registry,
             catalog,
             docs,
             packages,
-            notebook,
-            output_sink,
-            process_sink,
-            server_log,
             backend,
             maxima_path,
             eval_timeout,
+            process_sink_factory,
             on_notebook_change: Some(on_notebook_change),
+            on_notebook_lifecycle: Some(on_notebook_lifecycle),
         }
+    }
+
+    /// Resolve a notebook context from an optional ID (defaults to active).
+    async fn resolve_context(
+        &self,
+        notebook_id: Option<&str>,
+    ) -> Result<NotebookContextRef, String> {
+        let reg = self.registry.lock().await;
+        reg.resolve(notebook_id)
     }
 
     /// Invoke the notebook-change callback if one is registered (connected mode).
-    fn notify_notebook_change(&self, effect: CommandEffect) {
+    fn notify_notebook_change(&self, notebook_id: &str, effect: CommandEffect) {
         if let Some(ref cb) = self.on_notebook_change {
-            cb(effect);
+            cb(notebook_id, effect);
         }
     }
 
-    /// Ensure Maxima session is started; returns Ok(()) if ready.
-    async fn ensure_session(&self) -> Result<(), String> {
-        let status = self.session.status();
+    /// Invoke the lifecycle callback if one is registered (connected mode).
+    fn notify_lifecycle(&self, notebook_id: &str, event_type: &str) {
+        if let Some(ref cb) = self.on_notebook_lifecycle {
+            cb(notebook_id, event_type);
+        }
+    }
+
+    /// Ensure Maxima session is started for the given notebook context.
+    async fn ensure_session(&self, ctx: &NotebookContextRef) -> Result<(), String> {
+        let status = ctx.session.status();
         match status {
             SessionStatus::Ready | SessionStatus::Busy => Ok(()),
             SessionStatus::Stopped | SessionStatus::Error(_) => {
-                self.session.begin_start().await;
-                let sink: Arc<dyn OutputSink> = self.process_sink.clone();
+                ctx.session.begin_start().await;
+                let sink = (self.process_sink_factory)(&ctx.id, &ctx.capture_sink);
                 match MaximaProcess::spawn(
                     self.backend.clone(),
                     self.maxima_path.clone(),
@@ -137,11 +155,10 @@ impl AximarMcpServer {
                 .await
                 {
                     Ok(process) => {
-                        self.session.set_ready(process).await;
+                        ctx.session.set_ready(process).await;
                         // Configure texput so Greek letters render correctly
-                        // (e.g. theta → \theta instead of Maxima's default \vartheta)
                         let init = build_texput_init();
-                        let mut guard = self.session.lock().await;
+                        let mut guard = ctx.session.lock().await;
                         if let Ok(p) = guard.process_mut() {
                             let _ = protocol::evaluate(p, "__init__", &init, &self.catalog, self.eval_timeout).await;
                         }
@@ -150,7 +167,7 @@ impl AximarMcpServer {
                     }
                     Err(e) => {
                         let msg = format!("{e}");
-                        self.session.set_error(msg.clone()).await;
+                        ctx.session.set_error(msg.clone()).await;
                         Err(msg)
                     }
                 }
@@ -158,7 +175,7 @@ impl AximarMcpServer {
             SessionStatus::Starting => {
                 for _ in 0..50 {
                     tokio::time::sleep(std::time::Duration::from_millis(100)).await;
-                    match self.session.status() {
+                    match ctx.session.status() {
                         SessionStatus::Ready | SessionStatus::Busy => return Ok(()),
                         SessionStatus::Error(e) => return Err(e),
                         SessionStatus::Stopped => return Err("Session stopped".into()),
@@ -203,10 +220,19 @@ struct GetPackageParams {
     name: String,
 }
 
+/// Used by tools that only need an optional notebook_id.
+#[derive(Debug, Deserialize, JsonSchema)]
+struct NotebookIdParam {
+    /// Notebook to target (defaults to active notebook if omitted)
+    notebook_id: Option<String>,
+}
+
 #[derive(Debug, Deserialize, JsonSchema)]
 struct CellIdParams {
     /// Cell ID
     cell_id: String,
+    /// Notebook to target (defaults to active notebook if omitted)
+    notebook_id: Option<String>,
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]
@@ -217,6 +243,8 @@ struct AddCellParams {
     input: Option<String>,
     /// Insert after this cell ID (appends to end if omitted)
     after_cell_id: Option<String>,
+    /// Notebook to target (defaults to active notebook if omitted)
+    notebook_id: Option<String>,
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]
@@ -227,6 +255,8 @@ struct UpdateCellParams {
     input: Option<String>,
     /// New cell type: "code" or "markdown"
     cell_type: Option<String>,
+    /// Notebook to target (defaults to active notebook if omitted)
+    notebook_id: Option<String>,
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]
@@ -235,18 +265,24 @@ struct MoveCellParams {
     cell_id: String,
     /// Direction: "up" or "down"
     direction: String,
+    /// Notebook to target (defaults to active notebook if omitted)
+    notebook_id: Option<String>,
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]
 struct EvaluateExpressionParams {
     /// Maxima expression to evaluate
     expression: String,
+    /// Notebook to target (defaults to active notebook if omitted)
+    notebook_id: Option<String>,
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]
 struct KillVariableParams {
     /// Variable name to kill
     name: String,
+    /// Notebook to target (defaults to active notebook if omitted)
+    notebook_id: Option<String>,
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]
@@ -255,18 +291,36 @@ struct GetServerLogParams {
     stream: Option<String>,
     /// Maximum number of entries to return (default: all)
     limit: Option<usize>,
+    /// Notebook to target (defaults to active notebook if omitted)
+    notebook_id: Option<String>,
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]
 struct NotebookPathParams {
     /// File path for the notebook (.ipynb)
     path: String,
+    /// Notebook to target (defaults to active notebook if omitted)
+    notebook_id: Option<String>,
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]
 struct LoadTemplateParams {
     /// Template ID (see list_templates)
     template_id: String,
+    /// Notebook to target (defaults to active notebook if omitted)
+    notebook_id: Option<String>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+struct CloseNotebookParams {
+    /// ID of the notebook to close
+    notebook_id: String,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
+struct SwitchNotebookParams {
+    /// ID of the notebook to switch to
+    notebook_id: String,
 }
 
 // ── Tool result helpers ───────────────────────────────────────────────
@@ -463,11 +517,95 @@ impl AximarMcpServer {
         }
     }
 
+    // ── Notebook lifecycle tools ──────────────────────────────────
+
+    #[tool(description = "List all open notebooks with their IDs, titles, and active status.")]
+    async fn list_notebooks(&self) -> Result<String, String> {
+        let reg = self.registry.lock().await;
+        let notebooks = reg.list();
+        success_json(&serde_json::json!({
+            "active_notebook_id": reg.active_id(),
+            "notebooks": notebooks,
+        }))
+    }
+
+    #[tool(description = "Create a new notebook with its own Maxima session. Returns the new notebook's ID.")]
+    async fn create_notebook(&self) -> Result<String, String> {
+        let mut reg = self.registry.lock().await;
+        let id = reg.create();
+        drop(reg);
+        self.notify_lifecycle(&id, "created");
+        success_json(&serde_json::json!({ "notebook_id": id }))
+    }
+
+    #[tool(description = "Close a notebook and stop its Maxima session. Cannot close the last notebook. In the GUI, the user will be prompted to confirm if there are unsaved changes.")]
+    async fn close_notebook(
+        &self,
+        Parameters(params): Parameters<CloseNotebookParams>,
+    ) -> Result<String, String> {
+        // Validate the notebook exists before doing anything
+        {
+            let reg = self.registry.lock().await;
+            if let Err(e) = reg.get(&params.notebook_id) {
+                return error_result(e);
+            }
+        }
+
+        // In connected mode, emit close_requested and let the frontend mediate
+        if self.on_notebook_lifecycle.is_some() {
+            self.notify_lifecycle(&params.notebook_id, "close_requested");
+            return success_json(&serde_json::json!({
+                "status": "pending_confirmation",
+                "notebook_id": params.notebook_id,
+            }));
+        }
+
+        // Standalone mode: close directly
+        let session = {
+            let reg = self.registry.lock().await;
+            match reg.get(&params.notebook_id) {
+                Ok(ctx) => ctx.session.clone(),
+                Err(e) => return error_result(e),
+            }
+        };
+        let _ = session.stop().await;
+        let mut reg = self.registry.lock().await;
+        match reg.close(&params.notebook_id) {
+            Ok(_) => {
+                drop(reg);
+                self.notify_lifecycle(&params.notebook_id, "closed");
+                success_json(&serde_json::json!({
+                    "closed": true,
+                    "notebook_id": params.notebook_id,
+                }))
+            }
+            Err(e) => error_result(e),
+        }
+    }
+
+    #[tool(description = "Switch the active notebook. Most tools default to the active notebook when notebook_id is omitted.")]
+    async fn switch_notebook(
+        &self,
+        Parameters(params): Parameters<SwitchNotebookParams>,
+    ) -> Result<String, String> {
+        let mut reg = self.registry.lock().await;
+        match reg.set_active(&params.notebook_id) {
+            Ok(()) => success_json(&serde_json::json!({
+                "active_notebook_id": params.notebook_id,
+            })),
+            Err(e) => error_result(e),
+        }
+    }
+
     // ── Cell management tools ─────────────────────────────────────
 
     #[tool(description = "List all cells in the notebook with their IDs, types, status, and content preview.")]
-    async fn list_cells(&self) -> Result<String, String> {
-        let nb = self.notebook.lock().await;
+    async fn list_cells(
+        &self,
+        Parameters(params): Parameters<NotebookIdParam>,
+    ) -> Result<String, String> {
+        let ctx = self.resolve_context(params.notebook_id.as_deref()).await?;
+        let nb = ctx.notebook.lock().await;
         let summaries: Vec<CellSummary> = nb
             .cells()
             .iter()
@@ -495,7 +633,8 @@ impl AximarMcpServer {
         &self,
         Parameters(params): Parameters<CellIdParams>,
     ) -> Result<String, String> {
-        let nb = self.notebook.lock().await;
+        let ctx = self.resolve_context(params.notebook_id.as_deref()).await?;
+        let nb = ctx.notebook.lock().await;
         match nb.get_cell(&params.cell_id) {
             Some(cell) => success_json(cell),
             None => error_result(format!("Cell '{}' not found", params.cell_id)),
@@ -507,12 +646,13 @@ impl AximarMcpServer {
         &self,
         Parameters(params): Parameters<AddCellParams>,
     ) -> Result<String, String> {
+        let ctx = self.resolve_context(params.notebook_id.as_deref()).await?;
         let cell_type = match params.cell_type.as_deref() {
             Some("markdown") => CellType::Markdown,
             _ => CellType::Code,
         };
         let input = params.input.unwrap_or_default();
-        let mut nb = self.notebook.lock().await;
+        let mut nb = ctx.notebook.lock().await;
         let effect = nb.apply(NotebookCommand::AddCell {
             cell_type,
             input,
@@ -521,7 +661,7 @@ impl AximarMcpServer {
         })?;
         let cell_id = effect.cell_id().unwrap_or("").to_string();
         drop(nb);
-        self.notify_notebook_change(effect);
+        self.notify_notebook_change(&ctx.id, effect);
         success_json(&serde_json::json!({ "cell_id": cell_id }))
     }
 
@@ -530,7 +670,8 @@ impl AximarMcpServer {
         &self,
         Parameters(params): Parameters<UpdateCellParams>,
     ) -> Result<String, String> {
-        let mut nb = self.notebook.lock().await;
+        let ctx = self.resolve_context(params.notebook_id.as_deref()).await?;
+        let mut nb = ctx.notebook.lock().await;
         let mut last_effect = None;
         // Apply input update if provided
         if let Some(input) = params.input {
@@ -557,7 +698,7 @@ impl AximarMcpServer {
         }
         drop(nb);
         if let Some(effect) = last_effect {
-            self.notify_notebook_change(effect);
+            self.notify_notebook_change(&ctx.id, effect);
         }
         success_json(&serde_json::json!({ "updated": true }))
     }
@@ -567,14 +708,15 @@ impl AximarMcpServer {
         &self,
         Parameters(params): Parameters<CellIdParams>,
     ) -> Result<String, String> {
-        let mut nb = self.notebook.lock().await;
+        let ctx = self.resolve_context(params.notebook_id.as_deref()).await?;
+        let mut nb = ctx.notebook.lock().await;
         let effect = nb.apply(NotebookCommand::DeleteCell {
             cell_id: params.cell_id.clone(),
         })?;
         drop(nb);
-        self.notify_notebook_change(effect.clone());
+        self.notify_notebook_change(&ctx.id, effect.clone());
         match effect {
-            crate::commands::CommandEffect::NoOp { reason } => {
+            CommandEffect::NoOp { reason } => {
                 error_result(reason)
             }
             _ => success_json(&serde_json::json!({ "deleted": true })),
@@ -586,15 +728,16 @@ impl AximarMcpServer {
         &self,
         Parameters(params): Parameters<MoveCellParams>,
     ) -> Result<String, String> {
-        let mut nb = self.notebook.lock().await;
+        let ctx = self.resolve_context(params.notebook_id.as_deref()).await?;
+        let mut nb = ctx.notebook.lock().await;
         let effect = nb.apply(NotebookCommand::MoveCell {
             cell_id: params.cell_id.clone(),
             direction: params.direction.clone(),
         })?;
         drop(nb);
-        self.notify_notebook_change(effect.clone());
+        self.notify_notebook_change(&ctx.id, effect.clone());
         match effect {
-            crate::commands::CommandEffect::NoOp { reason } => {
+            CommandEffect::NoOp { reason } => {
                 error_result(reason)
             }
             _ => success_json(&serde_json::json!({ "moved": true })),
@@ -608,12 +751,13 @@ impl AximarMcpServer {
         &self,
         Parameters(params): Parameters<CellIdParams>,
     ) -> Result<String, String> {
-        if let Err(e) = self.ensure_session().await {
+        let ctx = self.resolve_context(params.notebook_id.as_deref()).await?;
+        if let Err(e) = self.ensure_session(&ctx).await {
             return error_result(format!("Failed to start session: {e}"));
         }
 
         let (input, cell_type) = {
-            let nb = self.notebook.lock().await;
+            let nb = ctx.notebook.lock().await;
             let cell = match nb.get_cell(&params.cell_id) {
                 Some(c) => c,
                 None => return error_result(format!("Cell '{}' not found", params.cell_id)),
@@ -630,26 +774,26 @@ impl AximarMcpServer {
         if cell_type == CellType::Code {
             // Set status to Running
             let status_effect = {
-                let mut nb = self.notebook.lock().await;
+                let mut nb = ctx.notebook.lock().await;
                 nb.apply(NotebookCommand::SetCellStatus {
                     cell_id: params.cell_id.clone(),
                     status: CellStatus::Running,
                 }).ok()
             };
             if let Some(effect) = status_effect {
-                self.notify_notebook_change(effect);
+                self.notify_notebook_change(&ctx.id, effect);
             }
 
             // Clear previous capture
-            self.output_sink.take_cell_output();
+            ctx.capture_sink.take_cell_output();
 
             // Rewrite labels for display numbering
             let exec_count = {
-                let mut nb = self.notebook.lock().await;
+                let mut nb = ctx.notebook.lock().await;
                 nb.next_execution_count()
             };
             let label_ctx = {
-                let nb = self.notebook.lock().await;
+                let nb = ctx.notebook.lock().await;
                 LabelContext {
                     label_map: nb.label_map().clone(),
                     previous_output_label: nb.previous_output_label(&params.cell_id),
@@ -659,11 +803,11 @@ impl AximarMcpServer {
             let rewritten = rewrite_labels(&translated, &label_ctx);
 
             // Evaluate
-            let mut guard = self.session.lock().await;
+            let mut guard = ctx.session.lock().await;
             let process = match guard.try_begin_eval() {
                 Ok(p) => p,
                 Err(e) => {
-                    let mut nb = self.notebook.lock().await;
+                    let mut nb = ctx.notebook.lock().await;
                     let _ = nb.apply(NotebookCommand::SetCellStatus {
                         cell_id: params.cell_id.clone(),
                         status: CellStatus::Error,
@@ -686,19 +830,19 @@ impl AximarMcpServer {
             drop(guard);
 
             // Capture raw output
-            let raw_output = self.output_sink.take_cell_output();
+            let raw_output = ctx.capture_sink.take_cell_output();
 
             match result {
                 Ok(eval_result) => {
                     // Record label mapping
                     if let Some(ref label) = eval_result.output_label {
-                        let mut nb = self.notebook.lock().await;
+                        let mut nb = ctx.notebook.lock().await;
                         nb.record_label(exec_count, label.clone());
                     }
 
                     let cell_output = CellOutput::from_eval_result(&eval_result, exec_count);
                     let output_effect = {
-                        let mut nb = self.notebook.lock().await;
+                        let mut nb = ctx.notebook.lock().await;
                         nb.apply(NotebookCommand::SetCellOutput {
                             cell_id: params.cell_id.clone(),
                             output: cell_output.clone(),
@@ -706,7 +850,7 @@ impl AximarMcpServer {
                         }).ok()
                     };
                     if let Some(effect) = output_effect {
-                        self.notify_notebook_change(effect);
+                        self.notify_notebook_change(&ctx.id, effect);
                     }
                     success_json(&serde_json::json!({
                         "cell_id": params.cell_id,
@@ -721,7 +865,7 @@ impl AximarMcpServer {
                     }))
                 }
                 Err(e) => {
-                    let mut nb = self.notebook.lock().await;
+                    let mut nb = ctx.notebook.lock().await;
                     let _ = nb.apply(NotebookCommand::SetCellStatus {
                         cell_id: params.cell_id.clone(),
                         status: CellStatus::Error,
@@ -742,13 +886,17 @@ impl AximarMcpServer {
     }
 
     #[tool(description = "Execute all code cells in the notebook in order. Returns results for each cell.")]
-    async fn run_all_cells(&self) -> Result<String, String> {
-        if let Err(e) = self.ensure_session().await {
+    async fn run_all_cells(
+        &self,
+        Parameters(params): Parameters<NotebookIdParam>,
+    ) -> Result<String, String> {
+        let ctx = self.resolve_context(params.notebook_id.as_deref()).await?;
+        if let Err(e) = self.ensure_session(&ctx).await {
             return error_result(format!("Failed to start session: {e}"));
         }
 
         let cell_ids: Vec<String> = {
-            let nb = self.notebook.lock().await;
+            let nb = ctx.notebook.lock().await;
             nb.cells()
                 .iter()
                 .filter(|c| c.cell_type == CellType::Code)
@@ -759,7 +907,7 @@ impl AximarMcpServer {
         let mut results = Vec::new();
         for cell_id in &cell_ids {
             let result = self
-                .run_cell_impl(cell_id)
+                .run_cell_impl(cell_id, Some(&ctx.id))
                 .await;
             let is_error = result.is_err();
             results.push(serde_json::json!({
@@ -782,14 +930,15 @@ impl AximarMcpServer {
         &self,
         Parameters(params): Parameters<EvaluateExpressionParams>,
     ) -> Result<String, String> {
-        if let Err(e) = self.ensure_session().await {
+        let ctx = self.resolve_context(params.notebook_id.as_deref()).await?;
+        if let Err(e) = self.ensure_session(&ctx).await {
             return error_result(format!("Failed to start session: {e}"));
         }
 
         // Clear capture
-        self.output_sink.take_cell_output();
+        ctx.capture_sink.take_cell_output();
 
-        let mut guard = self.session.lock().await;
+        let mut guard = ctx.session.lock().await;
         let process = match guard.try_begin_eval() {
             Ok(p) => p,
             Err(e) => return error_result(format!("Session not ready: {e}")),
@@ -824,37 +973,49 @@ impl AximarMcpServer {
     // ── Session tools ─────────────────────────────────────────────
 
     #[tool(description = "Get the current Maxima session status: Starting, Ready, Busy, Stopped, or Error.")]
-    async fn get_session_status(&self) -> Result<String, String> {
-        let status = self.session.status();
+    async fn get_session_status(
+        &self,
+        Parameters(params): Parameters<NotebookIdParam>,
+    ) -> Result<String, String> {
+        let ctx = self.resolve_context(params.notebook_id.as_deref()).await?;
+        let status = ctx.session.status();
         success_json(&serde_json::json!({
             "status": format!("{:?}", status),
         }))
     }
 
     #[tool(description = "Restart the Maxima session. Kills the current process and starts a new one. All session state (variables, definitions) is lost.")]
-    async fn restart_session(&self) -> Result<String, String> {
+    async fn restart_session(
+        &self,
+        Parameters(params): Parameters<NotebookIdParam>,
+    ) -> Result<String, String> {
+        let ctx = self.resolve_context(params.notebook_id.as_deref()).await?;
         // Stop current session
-        if let Err(e) = self.session.stop().await {
+        if let Err(e) = ctx.session.stop().await {
             tracing::warn!("Error stopping session: {e}");
         }
 
         // Start fresh
-        match self.ensure_session().await {
+        match self.ensure_session(&ctx).await {
             Ok(()) => success_json(&serde_json::json!({
                 "restarted": true,
-                "status": format!("{:?}", self.session.status()),
+                "status": format!("{:?}", ctx.session.status()),
             })),
             Err(e) => error_result(format!("Failed to restart: {e}")),
         }
     }
 
     #[tool(description = "List all user-defined variables in the current Maxima session.")]
-    async fn list_variables(&self) -> Result<String, String> {
-        if let Err(e) = self.ensure_session().await {
+    async fn list_variables(
+        &self,
+        Parameters(params): Parameters<NotebookIdParam>,
+    ) -> Result<String, String> {
+        let ctx = self.resolve_context(params.notebook_id.as_deref()).await?;
+        if let Err(e) = self.ensure_session(&ctx).await {
             return error_result(format!("Failed to start session: {e}"));
         }
 
-        let mut guard = self.session.lock().await;
+        let mut guard = ctx.session.lock().await;
         let process = match guard.try_begin_eval() {
             Ok(p) => p,
             Err(e) => return error_result(format!("Session not ready: {e}")),
@@ -874,11 +1035,12 @@ impl AximarMcpServer {
         &self,
         Parameters(params): Parameters<KillVariableParams>,
     ) -> Result<String, String> {
-        if let Err(e) = self.ensure_session().await {
+        let ctx = self.resolve_context(params.notebook_id.as_deref()).await?;
+        if let Err(e) = self.ensure_session(&ctx).await {
             return error_result(format!("Failed to start session: {e}"));
         }
 
-        let mut guard = self.session.lock().await;
+        let mut guard = ctx.session.lock().await;
         let process = match guard.try_begin_eval() {
             Ok(p) => p,
             Err(e) => return error_result(format!("Session not ready: {e}")),
@@ -900,7 +1062,8 @@ impl AximarMcpServer {
         &self,
         Parameters(params): Parameters<CellIdParams>,
     ) -> Result<String, String> {
-        let nb = self.notebook.lock().await;
+        let ctx = self.resolve_context(params.notebook_id.as_deref()).await?;
+        let nb = ctx.notebook.lock().await;
         match nb.get_cell(&params.cell_id) {
             Some(cell) => {
                 let lines: Vec<serde_json::Value> = cell
@@ -925,7 +1088,8 @@ impl AximarMcpServer {
         &self,
         Parameters(params): Parameters<GetServerLogParams>,
     ) -> Result<String, String> {
-        let entries = self
+        let ctx = self.resolve_context(params.notebook_id.as_deref()).await?;
+        let entries = ctx
             .server_log
             .get(params.limit, params.stream.as_deref());
         let lines: Vec<serde_json::Value> = entries
@@ -951,7 +1115,8 @@ impl AximarMcpServer {
         &self,
         Parameters(params): Parameters<NotebookPathParams>,
     ) -> Result<String, String> {
-        let nb = self.notebook.lock().await;
+        let ctx = self.resolve_context(params.notebook_id.as_deref()).await?;
+        let nb = ctx.notebook.lock().await;
         let notebook = notebook_to_ipynb(&nb);
         drop(nb);
 
@@ -969,14 +1134,15 @@ impl AximarMcpServer {
         &self,
         Parameters(params): Parameters<NotebookPathParams>,
     ) -> Result<String, String> {
+        let ctx = self.resolve_context(params.notebook_id.as_deref()).await?;
         match notebook_io::read_notebook(&params.path) {
             Ok(notebook) => {
                 let cells = ipynb_to_cell_tuples(&notebook);
-                let mut nb = self.notebook.lock().await;
+                let mut nb = ctx.notebook.lock().await;
                 let effect = nb.apply(NotebookCommand::LoadCells { cells })?;
                 let cell_count = nb.cells().len();
                 drop(nb);
-                self.notify_notebook_change(effect);
+                self.notify_notebook_change(&ctx.id, effect);
                 success_json(&serde_json::json!({
                     "opened": true,
                     "path": params.path,
@@ -1009,14 +1175,15 @@ impl AximarMcpServer {
         &self,
         Parameters(params): Parameters<LoadTemplateParams>,
     ) -> Result<String, String> {
+        let ctx = self.resolve_context(params.notebook_id.as_deref()).await?;
         match notebook_data::get_template(&params.template_id) {
             Some(notebook) => {
                 let cells = ipynb_to_cell_tuples(&notebook);
-                let mut nb = self.notebook.lock().await;
+                let mut nb = ctx.notebook.lock().await;
                 let effect = nb.apply(NotebookCommand::LoadCells { cells })?;
                 let cell_count = nb.cells().len();
                 drop(nb);
-                self.notify_notebook_change(effect);
+                self.notify_notebook_change(&ctx.id, effect);
                 success_json(&serde_json::json!({
                     "loaded": true,
                     "template_id": params.template_id,
@@ -1039,10 +1206,15 @@ impl AximarMcpServer {
 // ── Non-tool helper methods ───────────────────────────────────────────
 
 impl AximarMcpServer {
-    /// Internal helper for run_all_cells to call run_cell logic without going through the tool system.
-    async fn run_cell_impl(&self, cell_id: &str) -> Result<String, String> {
+    /// Internal helper for run_all_cells to call run_cell logic.
+    async fn run_cell_impl(
+        &self,
+        cell_id: &str,
+        notebook_id: Option<&str>,
+    ) -> Result<String, String> {
         self.run_cell(Parameters(CellIdParams {
             cell_id: cell_id.to_string(),
+            notebook_id: notebook_id.map(|s| s.to_string()),
         }))
         .await
     }
@@ -1094,7 +1266,12 @@ impl rmcp::handler::server::ServerHandler for AximarMcpServer {
                  `linearalgebra`, `draw`). Use `search_packages` or `list_packages` to \
                  discover available packages and `get_package` to see what functions a \
                  package provides. Load a package with a code cell containing \
-                 `load(\"name\")$`.",
+                 `load(\"name\")$`.\n\n\
+                 When working with multiple notebooks, use `list_notebooks` to see all open \
+                 notebooks, `create_notebook` to open a new one, `close_notebook` to remove \
+                 one, and `switch_notebook` to change the active default. Most tools accept \
+                 an optional `notebook_id` parameter — when omitted, they target the active \
+                 notebook.",
             )
     }
 }

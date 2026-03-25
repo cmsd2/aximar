@@ -30,14 +30,11 @@ pub fn run() {
             // Conditionally start the embedded MCP HTTP server
             if commands::config::read_mcp_enabled(app.handle()) {
                 let mcp_state = AppState {
-                    session: state.session.clone(),
+                    registry: state.registry.clone(),
                     catalog: state.catalog.clone(),
                     docs: state.docs.clone(),
                     packages: state.packages.clone(),
                     app_handle: state.app_handle.clone(),
-                    notebook: state.notebook.clone(),
-                    capture_sink: state.capture_sink.clone(),
-                    server_log: state.server_log.clone(),
                     mcp_controller: state.mcp_controller.clone(),
                     app_log: state.app_log.clone(),
                 };
@@ -97,6 +94,10 @@ pub fn run() {
             commands::notebook::nb_new_notebook,
             commands::notebook::nb_load_cells,
             commands::notebook::nb_run_cell,
+            commands::notebook::nb_create,
+            commands::notebook::nb_close,
+            commands::notebook::nb_list,
+            commands::notebook::nb_set_active,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

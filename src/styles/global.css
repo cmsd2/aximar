@@ -81,6 +81,107 @@
   overflow: hidden;
 }
 
+/* Tab bar */
+.tab-bar {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px 8px 0;
+  background: var(--bg-secondary, #f0f0f0);
+  border-bottom: 1px solid var(--border-color, #ddd);
+  overflow-x: auto;
+  flex-shrink: 0;
+  -webkit-app-region: drag;
+}
+
+.tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 6px 6px 0 0;
+  background: transparent;
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--text-secondary, #666);
+  border: 1px solid transparent;
+  border-bottom: none;
+  white-space: nowrap;
+  -webkit-app-region: no-drag;
+  transition: background 0.1s;
+}
+
+.tab:hover {
+  background: var(--bg-hover, rgba(0,0,0,0.05));
+}
+
+.tab-active {
+  background: var(--bg-primary, #fff);
+  color: var(--text-primary, #333);
+  border-color: var(--border-color, #ddd);
+}
+
+.tab-status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.tab-status-dot.ready { background: #34c759; }
+.tab-status-dot.busy { background: #f0a020; }
+.tab-status-dot.stopped { background: #999; }
+.tab-status-dot.error { background: #ff3b30; }
+
+.tab-title {
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tab-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+  padding: 0 2px;
+  color: var(--text-secondary, #999);
+  border-radius: 3px;
+  -webkit-app-region: no-drag;
+}
+
+.tab-close:hover {
+  background: rgba(0,0,0,0.1);
+  color: var(--text-primary, #333);
+}
+
+.tab-new {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+  padding: 4px 8px;
+  color: var(--text-secondary, #999);
+  border-radius: 4px;
+  -webkit-app-region: no-drag;
+}
+
+.tab-new:hover {
+  background: rgba(0,0,0,0.05);
+  color: var(--text-primary, #333);
+}
+
+.tab-close-pending {
+  animation: tab-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes tab-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
 /* Toolbar */
 .toolbar {
   display: flex;

@@ -15,7 +15,7 @@ import {
 } from "../lib/maxima-signature-hint";
 import { maximaHoverTooltip } from "../lib/maxima-hover-tooltip";
 import { findEnclosingCall } from "../lib/param-tracker";
-import { useNotebookStore } from "../store/notebookStore";
+import { useNotebookStore, getActiveTabState } from "../store/notebookStore";
 import { useFindStore } from "../store/findStore";
 
 interface UseCodeMirrorEditorOptions {
@@ -231,7 +231,7 @@ export function useCodeMirrorEditor({
       }
 
       // Apply pending cursor move (e.g. from command palette insert)
-      const move = useNotebookStore.getState().pendingCursorMove;
+      const move = getActiveTabState().pendingCursorMove;
       if (move && move.cellId === cellId) {
         const pos = Math.min(move.pos, view.state.doc.length);
         view.focus();

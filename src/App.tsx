@@ -3,6 +3,7 @@ import { listen } from "@tauri-apps/api/event";
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { ask } from "@tauri-apps/plugin-dialog";
+import { TabBar } from "./components/TabBar";
 import { Toolbar } from "./components/Toolbar";
 import { VariablePanel } from "./components/VariablePanel";
 import { Notebook } from "./components/Notebook";
@@ -33,7 +34,7 @@ import {
   openNotebook,
 } from "./lib/notebooks-client";
 import { getConfig, markdownFontStack, applyPrintMargins } from "./lib/config-client";
-import { useNotebookStore } from "./store/notebookStore";
+import { useNotebookStore, getActiveTabState } from "./store/notebookStore";
 import { useLogStore } from "./store/logStore";
 import { useFindStore } from "./store/findStore";
 import "./styles/global.css";
@@ -108,7 +109,7 @@ function App() {
 
   // Listen for raw Maxima output events from the backend
   useEffect(() => {
-    const unlisten = listen<{ line: string; stream: string; timestamp: number }>(
+    const unlisten = listen<{ notebook_id?: string; line: string; stream: string; timestamp: number }>(
       "maxima-output",
       (event) => {
         addRawOutput(
@@ -184,9 +185,9 @@ function App() {
   // --- File operations ---
 
   const handleSave = useCallback(async () => {
-    const { cells, filePath, markClean, setFilePath } =
-      useNotebookStore.getState();
-    const savedPath = await saveNotebook(cells, filePath);
+    const { markClean, setFilePath } = useNotebookStore.getState();
+    const tab = getActiveTabState();
+    const savedPath = await saveNotebook(tab.cells, tab.filePath);
     if (savedPath) {
       setFilePath(savedPath);
       markClean();
@@ -194,9 +195,9 @@ function App() {
   }, []);
 
   const handleSaveAs = useCallback(async () => {
-    const { cells, filePath, markClean, setFilePath } =
-      useNotebookStore.getState();
-    const savedPath = await saveNotebookAs(cells, filePath);
+    const { markClean, setFilePath } = useNotebookStore.getState();
+    const tab = getActiveTabState();
+    const savedPath = await saveNotebookAs(tab.cells, tab.filePath);
     if (savedPath) {
       setFilePath(savedPath);
       markClean();
@@ -204,8 +205,8 @@ function App() {
   }, []);
 
   const handleOpen = useCallback(async () => {
-    const { isDirty } = useNotebookStore.getState();
-    if (isDirty) {
+    const tab = getActiveTabState();
+    if (tab.isDirty) {
       const confirmed = await ask("You have unsaved changes. Discard them?", {
         title: "Unsaved Changes",
         kind: "warning",
@@ -228,8 +229,8 @@ function App() {
   }, [setFilePath, markClean]);
 
   const handleNew = useCallback(async () => {
-    const { isDirty } = useNotebookStore.getState();
-    if (isDirty) {
+    const tab = getActiveTabState();
+    if (tab.isDirty) {
       const confirmed = await ask("You have unsaved changes. Discard them?", {
         title: "Unsaved Changes",
         kind: "warning",
@@ -267,8 +268,10 @@ function App() {
 
   useEffect(() => {
     const unlisten = getCurrentWindow().onCloseRequested(async (event) => {
-      const { isDirty } = useNotebookStore.getState();
-      if (isDirty) {
+      // Check if any notebook has unsaved changes
+      const { notebooks } = useNotebookStore.getState();
+      const hasUnsaved = Object.values(notebooks).some((tab) => tab.isDirty);
+      if (hasUnsaved) {
         event.preventDefault();
         const confirmed = await ask(
           "You have unsaved changes. Close without saving?",
@@ -331,18 +334,18 @@ function App() {
         useFindStore.getState().open(true);
       } else if (key === "d") {
         e.preventDefault();
-        const { activeCellId, cells } = useNotebookStore.getState();
-        if (activeCellId && cells.length > 1) {
-          nbDeleteCell(activeCellId);
+        const tab = getActiveTabState();
+        if (tab.activeCellId && tab.cells.length > 1) {
+          nbDeleteCell(tab.activeCellId);
         }
       } else if (e.shiftKey && key === "arrowup") {
         e.preventDefault();
-        const { activeCellId } = useNotebookStore.getState();
-        if (activeCellId) nbMoveCell(activeCellId, "up");
+        const tab = getActiveTabState();
+        if (tab.activeCellId) nbMoveCell(tab.activeCellId, "up");
       } else if (e.shiftKey && key === "arrowdown") {
         e.preventDefault();
-        const { activeCellId } = useNotebookStore.getState();
-        if (activeCellId) nbMoveCell(activeCellId, "down");
+        const tab = getActiveTabState();
+        if (tab.activeCellId) nbMoveCell(tab.activeCellId, "down");
       }
     };
 
@@ -352,6 +355,7 @@ function App() {
 
   return (
     <div className="app">
+      <TabBar />
       <Toolbar
         onOpenTemplates={() => setTemplateChooserOpen(true)}
         onOpenSettings={() => setSettingsOpen(true)}

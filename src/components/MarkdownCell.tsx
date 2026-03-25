@@ -4,7 +4,7 @@ import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
 import type { Cell as CellType } from "../types/notebook";
-import { useNotebookStore } from "../store/notebookStore";
+import { useActiveTab, useNotebookStore } from "../store/notebookStore";
 import { useFindStore } from "../store/findStore";
 import { nbDeleteCell } from "../lib/notebook-commands";
 
@@ -16,7 +16,7 @@ export function MarkdownCell({ cell }: MarkdownCellProps) {
   const [editing, setEditing] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const updateCellInput = useNotebookStore((s) => s.updateCellInput);
-  const cells = useNotebookStore((s) => s.cells);
+  const cells = useActiveTab().cells;
   const cellCount = cells.length;
   const hasFindMatch = useFindStore((s) => s.matches.some((m) => m.cellId === cell.id));
 

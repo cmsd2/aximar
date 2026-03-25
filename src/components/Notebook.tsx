@@ -1,4 +1,4 @@
-import { useNotebookStore } from "../store/notebookStore";
+import { useActiveTab } from "../store/notebookStore";
 import { Cell } from "./Cell";
 import { MarkdownCell } from "./MarkdownCell";
 import { nbAddCell } from "../lib/notebook-commands";
@@ -32,7 +32,7 @@ interface NotebookProps {
 }
 
 export function Notebook({ onViewDocs }: NotebookProps) {
-  const cells = useNotebookStore((s) => s.cells);
+  const cells = useActiveTab().cells;
 
   return (
     <div className="notebook">

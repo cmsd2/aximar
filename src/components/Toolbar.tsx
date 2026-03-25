@@ -1,4 +1,4 @@
-import { useNotebookStore } from "../store/notebookStore";
+import { useActiveTab } from "../store/notebookStore";
 import { useMaxima } from "../hooks/useMaxima";
 import { nbAddCell, nbUndo, nbRedo } from "../lib/notebook-commands";
 
@@ -15,13 +15,14 @@ interface ToolbarProps {
 }
 
 export function Toolbar({ onOpenTemplates, onOpenSettings, variablesOpen, onToggleVariables, logOpen, onToggleLog, logUnreadCount, docsOpen, onToggleDocs }: ToolbarProps) {
-  const activeCellId = useNotebookStore((s) => s.activeCellId);
-  const cells = useNotebookStore((s) => s.cells);
-  const sessionStatus = useNotebookStore((s) => s.sessionStatus);
-  const filePath = useNotebookStore((s) => s.filePath);
-  const isDirty = useNotebookStore((s) => s.isDirty);
-  const canUndo = useNotebookStore((s) => s.canUndo);
-  const canRedo = useNotebookStore((s) => s.canRedo);
+  const tab = useActiveTab();
+  const activeCellId = tab.activeCellId;
+  const cells = tab.cells;
+  const sessionStatus = tab.sessionStatus;
+  const filePath = tab.filePath;
+  const isDirty = tab.isDirty;
+  const canUndo = tab.canUndo;
+  const canRedo = tab.canRedo;
   const { executeCell, restartSession } = useMaxima();
 
   const handleAddCell = async (cellType?: string) => {

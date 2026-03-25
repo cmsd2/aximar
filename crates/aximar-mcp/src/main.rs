@@ -8,11 +8,8 @@ use rmcp::ServiceExt;
 use aximar_core::catalog::docs::Docs;
 use aximar_core::catalog::packages::PackageCatalog;
 use aximar_core::catalog::search::Catalog;
-use aximar_core::session::SessionManager;
+use aximar_core::registry::NotebookRegistry;
 
-use aximar_mcp::capture::CaptureOutputSink;
-use aximar_mcp::log::ServerLog;
-use aximar_mcp::notebook::Notebook;
 use aximar_mcp::server::AximarMcpServer;
 
 #[tokio::main]
@@ -39,21 +36,15 @@ async fn main() -> anyhow::Result<()> {
     let maxima_path = config::maxima_path_from_env();
     let eval_timeout = config::eval_timeout_from_env();
 
-    // Create shared state
-    let server_log = Arc::new(ServerLog::new());
-    let output_sink = Arc::new(CaptureOutputSink::new(server_log.clone()));
-    let session = Arc::new(SessionManager::new());
-    let notebook = Arc::new(Mutex::new(Notebook::new()));
+    // Create registry with one default notebook
+    let registry = Arc::new(Mutex::new(NotebookRegistry::new()));
 
     // Build MCP server
     let server = AximarMcpServer::new(
-        session,
+        registry,
         catalog,
         docs,
         packages,
-        notebook,
-        output_sink,
-        server_log,
         backend,
         maxima_path,
         eval_timeout,

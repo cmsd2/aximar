@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { searchFunctions, listCategories, searchPackages, searchPackageFunctions } from "../lib/catalog-client";
 import { MATH_SYMBOLS } from "../lib/math-symbols";
-import { useNotebookStore } from "../store/notebookStore";
+import { useActiveTab, useNotebookStore, getActiveTabState } from "../store/notebookStore";
 import { useLogStore } from "../store/logStore";
 import { nbAddCell } from "../lib/notebook-commands";
 import type { SearchResult, CategoryGroup, PackageSearchResult, PackageFunctionSearchResult } from "../types/catalog";
@@ -68,7 +68,7 @@ export function CommandPalette({ onClose, onViewDocs, initialQuery }: CommandPal
     }
   }, [query, isSymbolMode]);
 
-  const activeCellId = useNotebookStore((s) => s.activeCellId);
+  const activeCellId = useActiveTab().activeCellId;
 
   const insertFunction = useCallback(
     async (name: string) => {
@@ -83,7 +83,7 @@ export function CommandPalette({ onClose, onViewDocs, initialQuery }: CommandPal
       }
       onClose();
       if (targetCellId) {
-        const cells = useNotebookStore.getState().cells;
+        const cells = getActiveTabState().cells;
         const cell = cells.find((c) => c.id === targetCellId);
         const pos = cell ? cell.input.length - 1 : 0;
         useNotebookStore.getState().setPendingCursorMove({ cellId: targetCellId, pos });

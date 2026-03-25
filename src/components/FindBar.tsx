@@ -1,6 +1,6 @@
 import { useEffect, useRef, useCallback } from "react";
 import { useFindStore } from "../store/findStore";
-import { useNotebookStore } from "../store/notebookStore";
+import { useActiveTab, useNotebookStore, getActiveTabState } from "../store/notebookStore";
 import type { FindMatch } from "../store/findStore";
 
 export function FindBar() {
@@ -20,7 +20,7 @@ export function FindBar() {
   const goToNextMatch = useFindStore((s) => s.goToNextMatch);
   const goToPrevMatch = useFindStore((s) => s.goToPrevMatch);
 
-  const cells = useNotebookStore((s) => s.cells);
+  const cells = useActiveTab().cells;
 
   const findInputRef = useRef<HTMLInputElement>(null);
 
@@ -79,8 +79,9 @@ export function FindBar() {
     const match = matches[currentMatchIndex];
     if (!match) return;
 
-    const { updateCellInput, cells: currentCells } = useNotebookStore.getState();
-    const cell = currentCells.find((c) => c.id === match.cellId);
+    const { updateCellInput } = useNotebookStore.getState();
+    const currentCells = getActiveTabState().cells;
+    const cell = currentCells.find((c: { id: string }) => c.id === match.cellId);
     if (!cell) return;
 
     const newText = cell.input.slice(0, match.start) + replacement + cell.input.slice(match.end);
@@ -90,7 +91,8 @@ export function FindBar() {
   const handleReplaceAll = useCallback(() => {
     if (matches.length === 0) return;
 
-    const { updateCellInput, cells: currentCells } = useNotebookStore.getState();
+    const { updateCellInput } = useNotebookStore.getState();
+    const currentCells = getActiveTabState().cells;
 
     // Group matches by cell
     const byCellId = new Map<string, FindMatch[]>();
@@ -101,7 +103,7 @@ export function FindBar() {
     }
 
     for (const [cellId, cellMatches] of byCellId) {
-      const cell = currentCells.find((c) => c.id === cellId);
+      const cell = currentCells.find((c: { id: string }) => c.id === cellId);
       if (!cell) continue;
       // Process in reverse order so indices stay valid
       let text = cell.input;

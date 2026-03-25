@@ -3,5 +3,6 @@ pub use aximar_core::capture;
 pub use aximar_core::commands;
 pub use aximar_core::log;
 pub use aximar_core::notebook;
+pub use aximar_core::registry;
 
 pub mod server;
