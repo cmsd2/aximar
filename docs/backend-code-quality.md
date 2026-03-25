@@ -1,51 +1,51 @@
 # Backend Code Quality
 
 Audit performed 2026-03-24 against `master` at commit `8d6f1c3`.
+Updated 2026-03-25 after Phase 1 + Phase 2 refactoring.
 
 ## Critical
 
-### 1. server.rs is a god file (1,057 lines)
+### 1. server.rs is a god file ~~(1,057 lines)~~ — Partially resolved
 
-`crates/aximar-mcp/src/server.rs` implements all 21 MCP tools as methods on a single struct. Mixes documentation search, cell management, execution, session control, notebook I/O, logging, and template loading.
+`crates/aximar-mcp/src/server.rs` implements all 21 MCP tools as methods on a single struct.
 
-**Specific issues:**
-- Two constructors (`new`, `new_connected`) with 18-line field assignment duplication
-- Three documentation tools with near-identical JSON serialisation patterns
-- `run_cell` is a 135-line monolith with 4+ nested lock acquisitions across notebook and session mutexes
-- `save_notebook`, `open_notebook`, `load_template` share identical lock-apply-notify-drop boilerplate
+**What was done:**
+- Extracted parameter types, helpers, and `CellSummary` to `params.rs` (164 lines)
+- Extracted notebook format conversion (`notebook_to_ipynb`, `ipynb_to_cell_tuples`) to `convert.rs` (86 lines)
+- Deduplicated constructors: `new` and `new_connected` now delegate to shared `build()` method
+- Extracted `run_cell` logic to shared `evaluate_cell()` in aximar-core (see #2)
+- Removed unnecessary `run_cell_impl` indirection
+- Added 26 integration tests in `server_tests.rs` (20 run by default, 6 require Maxima)
+- **Result: 1,057 → 1,036 lines** (supporting code moved out; tool impl block unchanged)
 
-**Suggested refactoring:**
-- Split into handler modules: `docs_tools.rs`, `cell_tools.rs`, `execution_tools.rs`, `session_tools.rs`, `notebook_io_tools.rs`
-- Extract `run_cell` into smaller functions: `prepare_cell_input()`, `set_cell_running()`, `evaluate_and_capture()`, `apply_output()`
-- Create a helper `apply_notebook_command()` to centralise the lock + apply + notify + drop pattern
+**What remains:**
+- The `#[tool_router]` macro requires all tool methods in a single impl block, so splitting tools across files is not feasible without rmcp changes
+- Three documentation tools still have near-identical JSON serialisation patterns
+- `save_notebook`, `open_notebook`, `load_template` share lock-apply-notify boilerplate that could be extracted into a helper
 
-### 2. Duplicated run_cell logic across MCP and Tauri
+### 2. Duplicated run_cell logic across MCP and Tauri — Resolved
 
-`nb_run_cell` in `src-tauri/src/commands/notebook.rs` (lines 242–353) and `run_cell` in `server.rs` (lines 501–635) are nearly identical 100+ line functions. Both follow the same sequence: set status, prepare labels, lock session, evaluate, capture output, apply output, notify.
+~~`nb_run_cell` in `src-tauri/src/commands/notebook.rs` and `run_cell` in `server.rs` are nearly identical 100+ line functions.~~
 
-**Suggested refactoring:**
-- Extract shared logic to `aximar-core` as a `CellEvaluator` or standalone `evaluate_cell()` async function
-- Both MCP and Tauri commands call the shared implementation
+**What was done:**
+- Created `crates/aximar-core/src/evaluation.rs` (149 lines) with shared `evaluate_cell()` function
+- Both `nb_run_cell` (Tauri) and `run_cell` (MCP) are now thin wrappers (~15–20 lines each)
+- Added `CellIsMarkdown`, `EmptyInput`, `CellNotFound` error variants to `AppError`
+- Effects returned via `Vec<CommandEffect>` for transport-agnostic notification
 
-### 3. Repeated lock acquisitions in notebook commands
+### 3. Repeated lock acquisitions in notebook commands — Resolved
 
-`src-tauri/src/commands/notebook.rs` (353 lines) acquires `state.notebook.lock().await` up to 6 times in `nb_run_cell`:
-1. Lock to read cell input
-2. Lock to set Running status
-3. Lock to get execution count and label context
-4. Session lock for evaluation (separate mutex)
-5. Lock to record label
-6. Lock to set output or error
+~~`nb_run_cell` acquires `notebook.lock().await` up to 6 times per call.~~
 
-Each lock/unlock cycle adds overhead and creates windows for interleaving.
-
-**Suggested refactoring:**
-- Hold the notebook lock across consecutive notebook operations, only releasing before the session lock for Maxima I/O
-- Or create a `NotebookSession` wrapper that batches operations under one guard
+**What was done:**
+- `evaluate_cell()` consolidates locks from 6–7 down to 2 notebook locks + 1 session lock:
+  1. **Lock 1:** read cell input + validate + set Running + get exec count + build label context
+  2. **Session lock:** evaluate via Maxima
+  3. **Lock 2:** record label + apply output (or set error status)
 
 ## High
 
-### 4. config.rs mixes too many concerns (529 lines)
+### 4. config.rs mixes too many concerns (624 lines) — Outstanding
 
 `src-tauri/src/commands/config.rs` handles theme/UI config (13 fields), Maxima backend config (5 fields), MCP server lifecycle control, config I/O, and WSL integration.
 
@@ -59,22 +59,22 @@ Each lock/unlock cycle adds overhead and creates windows for interleaving.
 - Split into `config_ui.rs`, `config_backend.rs`, `wsl.rs`
 - Extract `fn clone_mcp_deps(state: &AppState)` for the repeated Arc cloning
 
-### 5. Deep cloning in undo/redo snapshots
+### 5. Deep cloning in undo/redo snapshots (758 lines) — Outstanding
 
-`crates/aximar-core/src/notebook.rs` (721 lines) deep-clones the entire `Vec<Cell>` on every undoable command. Each Cell includes `Vec<OutputEvent>` with timestamps and line content. With 50 max undo states, this can hold megabytes of cloned data.
+`crates/aximar-core/src/notebook.rs` deep-clones the entire `Vec<Cell>` on every undoable command. Each Cell includes `Vec<OutputEvent>` with timestamps and line content. With 50 max undo states, this can hold megabytes of cloned data.
 
 **Specific locations:**
 - `push_undo_snapshot()` clones `self.cells` on every structural command
 - Undo/Redo operations clone cells again when swapping stacks
 
 **Suggested refactoring:**
-- Use `Arc<Vec<Cell>>` for copy-on-write sharing between snapshots
-- Or store only mutation diffs instead of full snapshots
-- Or exclude output data from snapshots (it can be re-derived)
+- Exclude output data from snapshots (store only id, cell_type, input) — ~50% memory savings
+- Use `VecDeque` instead of `Vec` for O(1) removal when exceeding MAX_UNDO
+- Optionally use `Arc<Vec<Cell>>` for copy-on-write sharing between snapshots
 
-### 6. MCP startup callback complexity
+### 6. MCP startup callback complexity (158 lines) — Outstanding
 
-`src-tauri/src/mcp/startup.rs` (108 lines) builds a 3-layer nested closure (Fn + Arc + async move) for the notebook-change callback. The closure captures multiple Arc clones, spawns a tokio task, and uses `try_lock` which silently drops events on contention.
+`src-tauri/src/mcp/startup.rs` builds a 3-layer nested closure (Fn + Arc + async move) for the notebook-change callback. The closure captures multiple Arc clones, spawns a tokio task, and uses `try_lock` which silently drops events on contention.
 
 **Suggested refactoring:**
 - Use a bounded channel: emit effects to a channel, consume them in a dedicated async task
@@ -82,23 +82,23 @@ Each lock/unlock cycle adds overhead and creates windows for interleaving.
 
 ## Medium
 
-### 7. Parser is a single large state machine
+### 7. Parser is a single large state machine (616 lines) — Outstanding
 
-`crates/aximar-core/src/maxima/parser.rs` (555 lines) — `parse_output()` is a 150+ line function with 7 mutable accumulators (`latex`, `error_lines`, `text_lines`, `skip_next_false`, `in_error`, `output_label`, `latex_buf`).
+`crates/aximar-core/src/maxima/parser.rs` — `parse_output()` is a 150+ line function with 8 mutable accumulators (`latex`, `error_lines`, `text_lines`, `skip_next_false`, `in_error`, `output_label`, `latex_buf`, `in_verbatim`).
 
 **Suggested refactoring:**
 - Create a `ParseState` struct holding all accumulators
 - Break the loop body into `process_line(&mut state, line)` and `finalise_output(&state)`
 
-### 8. Protocol functions repeat the same pattern
+### 8. Protocol functions repeat the same pattern (196 lines) — Outstanding
 
-`crates/aximar-core/src/maxima/protocol.rs` (156 lines) — `evaluate()`, `query_variables()`, `kill_variable()`, `kill_all_variables()` all build a Maxima command string, write to stdin, set up a timeout, read until a sentinel, and parse output.
+`crates/aximar-core/src/maxima/protocol.rs` — `evaluate()`, `query_variables()`, `kill_variable()`, `kill_all_variables()` all build a Maxima command string, write to stdin, set up a timeout, read until a sentinel, and parse output.
 
 **Suggested refactoring:**
 - Abstract the pattern into a single `execute_command()` function
 - Each command becomes a struct or enum variant providing its input string and sentinel
 
-### 9. OutputEvent cloning in MultiOutputSink
+### 9. OutputEvent cloning in MultiOutputSink — Outstanding
 
 `crates/aximar-core/src/maxima/output.rs` — `MultiOutputSink::emit()` clones the `OutputEvent` for each sink in the broadcast list. With high-throughput Maxima output this is wasteful.
 
@@ -107,24 +107,34 @@ Each lock/unlock cycle adds overhead and creates windows for interleaving.
 
 ## Summary
 
-| File | Lines | Priority | Primary issues |
-|------|-------|----------|----------------|
-| `crates/aximar-mcp/src/server.rs` | 1057 | Critical | God file, repeated patterns, excessive locking |
-| `src-tauri/src/commands/notebook.rs` | 353 | Critical | Duplicates MCP run_cell, repeated lock acquisitions |
-| `src-tauri/src/commands/config.rs` | 529 | High | Boilerplate field updates, mixed concerns, Arc cloning |
-| `crates/aximar-core/src/notebook.rs` | 721 | High | Deep cloning of cell snapshots for undo |
-| `src-tauri/src/mcp/startup.rs` | 108 | High | Nested closure complexity, silent event loss |
-| `crates/aximar-core/src/maxima/parser.rs` | 555 | Medium | Large monolithic function |
-| `crates/aximar-core/src/maxima/protocol.rs` | 156 | Medium | Repeated command pattern |
+| File | Audit | Now | Status |
+|------|-------|-----|--------|
+| `crates/aximar-mcp/src/server.rs` | 1,057 | 1,036 | Partially resolved (params, convert, run_cell extracted) |
+| `src-tauri/src/commands/notebook.rs` | 353 | 351 | Resolved (nb_run_cell is thin wrapper) |
+| `crates/aximar-core/src/evaluation.rs` | — | 149 | New — shared evaluate_cell() |
+| `crates/aximar-mcp/src/params.rs` | — | 164 | New — parameter types and helpers |
+| `crates/aximar-mcp/src/convert.rs` | — | 86 | New — notebook format conversion |
+| `src-tauri/src/commands/config.rs` | 529 | 624 | Outstanding |
+| `crates/aximar-core/src/notebook.rs` | 721 | 758 | Outstanding |
+| `src-tauri/src/mcp/startup.rs` | 108 | 158 | Outstanding |
+| `crates/aximar-core/src/maxima/parser.rs` | 555 | 616 | Outstanding |
+| `crates/aximar-core/src/maxima/protocol.rs` | 156 | 196 | Outstanding |
+
+## Test coverage
+
+The MCP server now has 26 integration tests (`crates/aximar-mcp/src/server_tests.rs`):
+- **20 tests** run by default — catalog search, docs, packages, notebook lifecycle, cell CRUD, move/delete, templates, save/open, session status, logs
+- **6 tests** require Maxima (`#[ignore]`) — run_cell, run_all_cells, evaluate_expression, list/kill variables, restart session
+- Run with `cargo test -p aximar-mcp` (default) or `cargo test -p aximar-mcp -- --ignored` (all)
 
 ## Refactoring approach
 
-**Phase 1:** Extract shared `evaluate_cell()` to aximar-core, eliminating the duplication between MCP and Tauri. This also naturally reduces `server.rs` and `notebook.rs` command sizes.
+**Phase 1 — Done:** Extracted shared `evaluate_cell()` to aximar-core, eliminating MCP/Tauri duplication and consolidating lock acquisitions from 6–7 to 2+1.
 
-**Phase 2:** Split `server.rs` into handler modules by domain. Centralise the lock-apply-notify pattern into a helper.
+**Phase 2 — Done:** Extracted parameter types to `params.rs`, notebook conversion to `convert.rs`, deduplicated constructors via `build()`. Added integration test suite.
 
-**Phase 3:** Batch notebook lock acquisitions in command handlers. Hold the lock across consecutive operations.
+**Phase 3:** Reduce config boilerplate (macro or generic update) and split config.rs by concern.
 
-**Phase 4:** Reduce config boilerplate (macro or generic update) and split config.rs by concern.
+**Phase 4:** Optimise undo snapshots (lightweight snapshots + VecDeque) and OutputEvent broadcasting.
 
-**Phase 5:** Optimise undo snapshots (Arc sharing or diff-based) and OutputEvent broadcasting.
+**Phase 5:** Refactor parser into `ParseState` struct and protocol into `execute_command()` abstraction.

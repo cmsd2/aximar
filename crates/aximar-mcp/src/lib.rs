@@ -5,4 +5,6 @@ pub use aximar_core::log;
 pub use aximar_core::notebook;
 pub use aximar_core::registry;
 
+mod convert;
+mod params;
 pub mod server;

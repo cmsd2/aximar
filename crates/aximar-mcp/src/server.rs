@@ -3,8 +3,6 @@ use std::sync::Arc;
 use rmcp::handler::server::wrapper::Parameters;
 use rmcp::model::{Implementation, ServerCapabilities, ServerInfo};
 use rmcp::{tool, tool_handler, tool_router};
-use schemars::JsonSchema;
-use serde::{Deserialize, Serialize};
 use tokio::sync::Mutex;
 
 use aximar_core::commands::{CommandEffect, NotebookCommand};
@@ -17,11 +15,13 @@ use aximar_core::maxima::unicode::{build_texput_init, unicode_to_maxima};
 use aximar_core::maxima::process::MaximaProcess;
 use aximar_core::maxima::protocol;
 use aximar_core::maxima::types::SessionStatus;
-use aximar_core::notebooks::{data as notebook_data, io as notebook_io, types as notebook_types};
+use aximar_core::notebooks::{data as notebook_data, io as notebook_io};
 use aximar_core::registry::{NotebookContextRef, NotebookRegistry};
 
 use crate::capture::CaptureOutputSink;
-use crate::notebook::{CellStatus, CellType, Notebook};
+use crate::convert::{ipynb_to_cell_tuples, notebook_to_ipynb};
+use crate::notebook::CellType;
+use crate::params::*;
 
 /// Factory function that builds a process output sink for a given notebook.
 /// Args: (notebook_id, capture_sink) → process_sink.
@@ -69,9 +69,7 @@ impl AximarMcpServer {
     ) -> Self {
         let process_sink_factory: ProcessSinkFactory =
             Arc::new(|_id, capture| capture.clone() as Arc<dyn OutputSink>);
-        let tool_router = Self::tool_router();
-        AximarMcpServer {
-            tool_router,
+        Self::build(
             registry,
             catalog,
             docs,
@@ -80,9 +78,9 @@ impl AximarMcpServer {
             maxima_path,
             eval_timeout,
             process_sink_factory,
-            on_notebook_change: None,
-            on_notebook_lifecycle: None,
-        }
+            None,
+            None,
+        )
     }
 
     /// Create a server for connected mode (embedded in Tauri) with a custom
@@ -99,9 +97,7 @@ impl AximarMcpServer {
         on_notebook_change: Arc<dyn Fn(&str, CommandEffect) + Send + Sync>,
         on_notebook_lifecycle: Arc<dyn Fn(&str, &str) + Send + Sync>,
     ) -> Self {
-        let tool_router = Self::tool_router();
-        AximarMcpServer {
-            tool_router,
+        Self::build(
             registry,
             catalog,
             docs,
@@ -110,8 +106,35 @@ impl AximarMcpServer {
             maxima_path,
             eval_timeout,
             process_sink_factory,
-            on_notebook_change: Some(on_notebook_change),
-            on_notebook_lifecycle: Some(on_notebook_lifecycle),
+            Some(on_notebook_change),
+            Some(on_notebook_lifecycle),
+        )
+    }
+
+    fn build(
+        registry: Arc<Mutex<NotebookRegistry>>,
+        catalog: Arc<Catalog>,
+        docs: Arc<Docs>,
+        packages: Arc<PackageCatalog>,
+        backend: Backend,
+        maxima_path: Option<String>,
+        eval_timeout: u64,
+        process_sink_factory: ProcessSinkFactory,
+        on_notebook_change: Option<Arc<dyn Fn(&str, CommandEffect) + Send + Sync>>,
+        on_notebook_lifecycle: Option<Arc<dyn Fn(&str, &str) + Send + Sync>>,
+    ) -> Self {
+        AximarMcpServer {
+            tool_router: Self::tool_router(),
+            registry,
+            catalog,
+            docs,
+            packages,
+            backend,
+            maxima_path,
+            eval_timeout,
+            process_sink_factory,
+            on_notebook_change,
+            on_notebook_lifecycle,
         }
     }
 
@@ -185,166 +208,6 @@ impl AximarMcpServer {
             }
         }
     }
-}
-
-// ── Tool parameter types ──────────────────────────────────────────────
-
-#[derive(Debug, Deserialize, JsonSchema)]
-struct SearchFunctionsParams {
-    /// Search query (matches function name and description)
-    query: String,
-}
-
-#[derive(Debug, Deserialize, JsonSchema)]
-struct GetFunctionDocsParams {
-    /// Function name (case-insensitive)
-    name: String,
-}
-
-#[derive(Debug, Deserialize, JsonSchema)]
-struct CompleteFunctionParams {
-    /// Prefix to complete (e.g. "integ" → "integrate")
-    prefix: String,
-}
-
-#[derive(Debug, Deserialize, JsonSchema)]
-struct SearchPackagesParams {
-    /// Search query (matches package names and descriptions)
-    query: String,
-}
-
-#[derive(Debug, Deserialize, JsonSchema)]
-struct GetPackageParams {
-    /// Package name (e.g. "distrib", "simplification/absimp")
-    name: String,
-}
-
-/// Used by tools that only need an optional notebook_id.
-#[derive(Debug, Deserialize, JsonSchema)]
-struct NotebookIdParam {
-    /// Notebook to target (defaults to active notebook if omitted)
-    notebook_id: Option<String>,
-}
-
-#[derive(Debug, Deserialize, JsonSchema)]
-struct CellIdParams {
-    /// Cell ID
-    cell_id: String,
-    /// Notebook to target (defaults to active notebook if omitted)
-    notebook_id: Option<String>,
-}
-
-#[derive(Debug, Deserialize, JsonSchema)]
-struct AddCellParams {
-    /// Cell type: "code" or "markdown" (default: "code")
-    cell_type: Option<String>,
-    /// Initial cell content
-    input: Option<String>,
-    /// Insert after this cell ID (appends to end if omitted)
-    after_cell_id: Option<String>,
-    /// Notebook to target (defaults to active notebook if omitted)
-    notebook_id: Option<String>,
-}
-
-#[derive(Debug, Deserialize, JsonSchema)]
-struct UpdateCellParams {
-    /// Cell ID to update
-    cell_id: String,
-    /// New cell content
-    input: Option<String>,
-    /// New cell type: "code" or "markdown"
-    cell_type: Option<String>,
-    /// Notebook to target (defaults to active notebook if omitted)
-    notebook_id: Option<String>,
-}
-
-#[derive(Debug, Deserialize, JsonSchema)]
-struct MoveCellParams {
-    /// Cell ID to move
-    cell_id: String,
-    /// Direction: "up" or "down"
-    direction: String,
-    /// Notebook to target (defaults to active notebook if omitted)
-    notebook_id: Option<String>,
-}
-
-#[derive(Debug, Deserialize, JsonSchema)]
-struct EvaluateExpressionParams {
-    /// Maxima expression to evaluate
-    expression: String,
-    /// Notebook to target (defaults to active notebook if omitted)
-    notebook_id: Option<String>,
-}
-
-#[derive(Debug, Deserialize, JsonSchema)]
-struct KillVariableParams {
-    /// Variable name to kill
-    name: String,
-    /// Notebook to target (defaults to active notebook if omitted)
-    notebook_id: Option<String>,
-}
-
-#[derive(Debug, Deserialize, JsonSchema)]
-struct GetServerLogParams {
-    /// Filter by stream: "stdout", "stderr", or "stdin"
-    stream: Option<String>,
-    /// Maximum number of entries to return (default: all)
-    limit: Option<usize>,
-    /// Notebook to target (defaults to active notebook if omitted)
-    notebook_id: Option<String>,
-}
-
-#[derive(Debug, Deserialize, JsonSchema)]
-struct NotebookPathParams {
-    /// File path for the notebook (.ipynb)
-    path: String,
-    /// Notebook to target (defaults to active notebook if omitted)
-    notebook_id: Option<String>,
-}
-
-#[derive(Debug, Deserialize, JsonSchema)]
-struct LoadTemplateParams {
-    /// Template ID (see list_templates)
-    template_id: String,
-    /// Notebook to target (defaults to active notebook if omitted)
-    notebook_id: Option<String>,
-}
-
-#[derive(Debug, Deserialize, JsonSchema)]
-struct CloseNotebookParams {
-    /// ID of the notebook to close
-    notebook_id: String,
-}
-
-#[derive(Debug, Deserialize, JsonSchema)]
-struct SwitchNotebookParams {
-    /// ID of the notebook to switch to
-    notebook_id: String,
-}
-
-// ── Tool result helpers ───────────────────────────────────────────────
-
-/// Return a successful JSON-serialized result.
-/// Using Result<String, String> because rmcp's IntoCallToolResult maps
-/// Ok(String) → CallToolResult::success and Err(String) → CallToolResult::error.
-fn success_json<T: Serialize>(value: &T) -> Result<String, String> {
-    serde_json::to_string_pretty(value).map_err(|e| format!("Serialization error: {e}"))
-}
-
-fn error_result(msg: impl Into<String>) -> Result<String, String> {
-    Err(msg.into())
-}
-
-// ── Cell serialization for tool responses ─────────────────────────────
-
-#[derive(Serialize)]
-struct CellSummary {
-    id: String,
-    cell_type: CellType,
-    input: String,
-    status: CellStatus,
-    has_output: bool,
-    output_preview: Option<String>,
 }
 
 // ── Tool implementations ──────────────────────────────────────────────
@@ -1168,84 +1031,6 @@ impl rmcp::handler::server::ServerHandler for AximarMcpServer {
     }
 }
 
-// ── Notebook format conversion ────────────────────────────────────────
-
-fn notebook_to_ipynb(nb: &Notebook) -> notebook_types::Notebook {
-    let cells: Vec<notebook_types::NotebookCell> = nb
-        .cells()
-        .iter()
-        .map(|cell| {
-            let cell_type = match cell.cell_type {
-                CellType::Code => notebook_types::CellType::Code,
-                CellType::Markdown => notebook_types::CellType::Markdown,
-            };
-            let execution_count = cell
-                .output
-                .as_ref()
-                .and_then(|o| o.execution_count)
-                .map(|c| c as u64);
-
-            let outputs = cell.output.as_ref().map(|o| {
-                let mut out = serde_json::json!({
-                    "output_type": "execute_result",
-                    "text/plain": o.text_output,
-                });
-                if let Some(ref latex) = o.latex {
-                    out["text/latex"] = serde_json::json!(latex);
-                }
-                vec![out]
-            });
-
-            notebook_types::NotebookCell {
-                cell_type,
-                source: notebook_types::CellSource::String(cell.input.clone()),
-                metadata: serde_json::json!({}),
-                execution_count,
-                outputs,
-            }
-        })
-        .collect();
-
-    notebook_types::Notebook {
-        nbformat: 4,
-        nbformat_minor: 5,
-        metadata: notebook_types::NotebookMetadata {
-            kernelspec: notebook_types::KernelSpec {
-                name: "maxima".into(),
-                display_name: "Maxima".into(),
-                language: Some("maxima".into()),
-            },
-            aximar: Some(notebook_types::AximarMetadata {
-                template_id: None,
-                title: None,
-                description: None,
-            }),
-        },
-        cells,
-    }
-}
-
-/// Convert an ipynb Notebook into a list of (id, cell_type, input) tuples
-/// suitable for the LoadCells command.
-fn ipynb_to_cell_tuples(notebook: &notebook_types::Notebook) -> Vec<(String, CellType, String)> {
-    use std::sync::atomic::{AtomicU64, Ordering};
-    static LOAD_COUNTER: AtomicU64 = AtomicU64::new(1);
-
-    notebook
-        .cells
-        .iter()
-        .filter_map(|cell| {
-            let cell_type = match cell.cell_type {
-                notebook_types::CellType::Code => CellType::Code,
-                notebook_types::CellType::Markdown => CellType::Markdown,
-                notebook_types::CellType::Raw => return None,
-            };
-            let input = match &cell.source {
-                notebook_types::CellSource::String(s) => s.clone(),
-                notebook_types::CellSource::Lines(lines) => lines.join(""),
-            };
-            let id = format!("load-{}", LOAD_COUNTER.fetch_add(1, Ordering::Relaxed));
-            Some((id, cell_type, input))
-        })
-        .collect()
-}
+#[cfg(test)]
+#[path = "server_tests.rs"]
+mod tests;
