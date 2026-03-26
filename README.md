@@ -100,6 +100,7 @@ Hold Ctrl (or Cmd on Mac) to see all shortcuts. Key bindings include:
 | Ctrl/Cmd+Shift+F | Find & replace |
 | Ctrl/Cmd+D | Delete cell |
 | Ctrl/Cmd+Shift+Up/Down | Move cell |
+| \\ | Symbol entry — type a LaTeX name (e.g. `\alpha`, `\leq`, `\nabla`) to insert Unicode |
 
 ### Settings
 
