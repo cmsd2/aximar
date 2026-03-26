@@ -1,0 +1,95 @@
+{
+  "nbformat": 4,
+  "nbformat_minor": 0,
+  "metadata": {
+    "kernelspec": {
+      "name": "maxima",
+      "display_name": "Maxima",
+      "language": "maxima"
+    },
+    "aximar": {
+      "template_id": "output-display",
+      "title": "Output Display",
+      "description": "How Aximar displays results: single statements, multi-statement cells, print(), and intermediate tex()."
+    }
+  },
+  "cells": [
+    {
+      "cell_type": "markdown",
+      "source": "# Output Display\n\nAximar renders the **final** result of each cell as LaTeX.  Intermediate statement results are suppressed, but `print()` and `tex()` output always appears.",
+      "metadata": {}
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## Single statement\n\nThe result is rendered as LaTeX — no text output.",
+      "metadata": {}
+    },
+    {
+      "cell_type": "code",
+      "source": "integrate(x^2 * cos(x), x);",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## Multiple statements\n\nOnly the **last** statement's result is displayed.  Earlier assignments and expressions still run but their results are not shown.",
+      "metadata": {}
+    },
+    {
+      "cell_type": "code",
+      "source": "expand((x + 2*y)^4);\nfactor(x^4 - 16);",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## Using print() for intermediate output\n\n`print()` writes text that always appears, even alongside a LaTeX result.",
+      "metadata": {}
+    },
+    {
+      "cell_type": "code",
+      "source": "print(\"Computing the integral...\");\nintegrate(sin(x)^3, x);",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## Using tex() for intermediate rendered math\n\nCall `tex(expr)` to render an expression as LaTeX inline with the output.  The final result still appears as the cell's main LaTeX output.",
+      "metadata": {}
+    },
+    {
+      "cell_type": "code",
+      "source": "f: x^3 - 3*x + 1;\nprint(\"f(x) =\");\ntex(f);\nprint(\"f'(x) =\");\ntex(diff(f, x));\nintegrate(f, x);",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## Many statements\n\nAll intermediate results are suppressed — only the final eigenvalue computation is rendered.",
+      "metadata": {}
+    },
+    {
+      "cell_type": "code",
+      "source": "A: matrix([1, 2], [3, 4]);\nB: matrix([0, 1], [1, 0]);\nA . B;\ndeterminant(A);\neigenvalues(A);",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## Loops with print() and tex()\n\nCombine `print()` for labels and `tex()` for rendered math inside a loop.",
+      "metadata": {}
+    },
+    {
+      "cell_type": "code",
+      "source": "for n:1 thru 4 do (\n  print(\"n =\", n, \":\"),\n  tex(integrate(x^n, x))\n);",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    }
+  ]
+}

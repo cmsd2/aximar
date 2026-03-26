@@ -80,3 +80,16 @@ export async function claudeMcpStatus(): Promise<ClaudeMcpStatus> {
 export async function claudeMcpConfigure(url: string, token: string): Promise<string> {
   return invoke<string>("claude_mcp_configure", { url, token });
 }
+
+export interface CodexMcpStatus {
+  installed: boolean;
+  configured: boolean;
+}
+
+export async function codexMcpStatus(): Promise<CodexMcpStatus> {
+  return invoke<CodexMcpStatus>("codex_mcp_status");
+}
+
+export async function codexMcpConfigure(url: string, token: string): Promise<string> {
+  return invoke<string>("codex_mcp_configure", { url, token });
+}

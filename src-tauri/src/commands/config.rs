@@ -609,6 +609,76 @@ pub async fn claude_mcp_configure(url: String, token: String) -> Result<String, 
     }
 }
 
+#[derive(Debug, Serialize)]
+pub struct CodexMcpStatus {
+    pub installed: bool,
+    pub configured: bool,
+}
+
+#[tauri::command]
+pub async fn codex_mcp_status() -> Result<CodexMcpStatus, AppError> {
+    let mut cmd = tokio::process::Command::new("codex");
+    cmd.args(["mcp", "get", "aximar"])
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped());
+    hide_console_window(&mut cmd);
+
+    match cmd.output().await {
+        Ok(output) => Ok(CodexMcpStatus {
+            installed: true,
+            configured: output.status.success(),
+        }),
+        Err(_) => Ok(CodexMcpStatus {
+            installed: false,
+            configured: false,
+        }),
+    }
+}
+
+#[tauri::command]
+pub async fn codex_mcp_configure(url: String, token: String) -> Result<String, AppError> {
+    use toml_edit::{DocumentMut, InlineTable, value};
+
+    // Locate config file
+    let home = std::env::var("HOME")
+        .or_else(|_| std::env::var("USERPROFILE"))
+        .map_err(|_| AppError::ProcessStartFailed("Could not determine home directory".into()))?;
+    let config_dir = std::path::Path::new(&home).join(".codex");
+    let config_path = config_dir.join("config.toml");
+
+    // Read and parse existing config (or start with empty document)
+    let content = if config_path.exists() {
+        tokio::fs::read_to_string(&config_path).await.unwrap_or_default()
+    } else {
+        String::new()
+    };
+    let mut doc = content.parse::<DocumentMut>().map_err(|e| {
+        AppError::ProcessStartFailed(format!("Failed to parse config.toml: {e}"))
+    })?;
+
+    // Ensure [mcp_servers] table exists
+    if !doc.contains_table("mcp_servers") {
+        doc["mcp_servers"] = toml_edit::Item::Table(toml_edit::Table::new());
+    }
+
+    // Build [mcp_servers.aximar] entry
+    let servers = doc["mcp_servers"].as_table_mut().expect("mcp_servers is a table");
+    let mut entry = toml_edit::Table::new();
+    entry["url"] = value(&url);
+    let mut headers = InlineTable::new();
+    headers.insert("Authorization", format!("Bearer {token}").into());
+    entry["http_headers"] = toml_edit::Item::Value(toml_edit::Value::InlineTable(headers));
+    servers["aximar"] = toml_edit::Item::Table(entry);
+
+    // Ensure directory exists and write config
+    tokio::fs::create_dir_all(&config_dir).await.ok();
+    tokio::fs::write(&config_path, doc.to_string()).await.map_err(|e| {
+        AppError::ProcessStartFailed(format!("Failed to write config.toml: {e}"))
+    })?;
+
+    Ok("Codex MCP configured successfully".to_string())
+}
+
 pub fn read_backend(app: &tauri::AppHandle) -> Backend {
     let config = read_config(app).map(|(c, _)| c).unwrap_or_default();
     Backend::from_config(config.backend, &config.docker_image, &config.wsl_distro, config.container_engine)

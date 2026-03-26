@@ -22,7 +22,9 @@ import {
   nbMoveCell,
   nbUndo,
   nbRedo,
-  nbNewNotebook,
+  nbCreate,
+  nbSetActive,
+  nbGetState,
   nbLoadCells,
 } from "./lib/notebook-commands";
 import {
@@ -228,17 +230,30 @@ function App() {
     }
   }, [setFilePath, markClean]);
 
+  const addTab = useNotebookStore((s) => s.addTab);
+  const setActiveTab = useNotebookStore((s) => s.setActiveTab);
+
   const handleNew = useCallback(async () => {
-    const tab = getActiveTabState();
-    if (tab.isDirty) {
-      const confirmed = await ask("You have unsaved changes. Discard them?", {
-        title: "Unsaved Changes",
-        kind: "warning",
-      });
-      if (!confirmed) return;
-    }
-    await nbNewNotebook();
-  }, []);
+    const result = await nbCreate();
+    addTab(result.notebook_id);
+    setActiveTab(result.notebook_id);
+    await nbSetActive(result.notebook_id);
+    const state = await nbGetState(result.notebook_id);
+    useNotebookStore.getState().applyBackendState(
+      state.notebook_id,
+      state.cells.map((sc) => ({
+        id: sc.id,
+        cellType: sc.cell_type as "code" | "markdown",
+        input: sc.input,
+        output: null,
+        status: "idle" as const,
+      })),
+      state.effect,
+      state.cell_id ?? undefined,
+      state.can_undo,
+      state.can_redo,
+    );
+  }, [addTab, setActiveTab]);
 
   // --- Listen for native menu events from Tauri ---
 

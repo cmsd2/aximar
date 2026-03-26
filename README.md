@@ -21,6 +21,7 @@ See the [vector calculus example](assets/vc.pdf) for a Stokes' theorem verificat
 - **Variables panel** — inspect and manage bound variables
 - **Templates** — starter notebooks for calculus, linear algebra, plotting, and more
 - **Dark/light/auto theme** — follows your system preference or set manually
+- **MCP server** — AI integration via Model Context Protocol, with built-in setup for Claude Code and Codex
 - **Multiple backends** — run Maxima locally, in Docker/Podman, or via WSL
 - **Save & load** — persist notebooks in Jupyter-compatible format
 - **Print support** — configurable margins and font sizes for printing
@@ -137,12 +138,22 @@ Aximar exposes its capabilities via the [Model Context Protocol](https://modelco
 
 ### Connected mode (recommended)
 
-When the Aximar app is running, enable the MCP server in Settings. It listens on `localhost:19542` and requires bearer token authentication — copy the token from Settings and use the **Configure** button to set up Claude Code automatically, or run:
+When the Aximar app is running, enable the MCP server in Settings. It listens on `localhost:19542` with bearer token authentication.
+
+**One-click setup** — Settings shows **Configure** buttons for [Claude Code](https://docs.anthropic.com/en/docs/claude-code) and [Codex](https://github.com/openai/codex) that automatically register the MCP server with the correct URL and auth token. No manual config needed.
+
+You can also configure manually:
 
 ```bash
+# Claude Code
 claude mcp add --transport http \
   --header "Authorization: Bearer <token>" \
   -- aximar http://localhost:19542/mcp
+
+# Codex — add to ~/.codex/config.toml:
+# [mcp_servers.aximar]
+# url = "http://localhost:19542/mcp"
+# http_headers = { "Authorization" = "Bearer <token>" }
 ```
 
 ### Headless mode

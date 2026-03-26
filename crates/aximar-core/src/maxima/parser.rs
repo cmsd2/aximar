@@ -131,7 +131,7 @@ fn parse_output_inner(
     // earlier blocks are interleaved back into text_output.
     let mut intermediate_latex: Vec<(usize, String)> = Vec::new();
     // Position in text_lines when the current `latex` was set, used to
-    // identify the 1D result line to skip (it's at latex_pos - 1).
+    // track where intermediate LaTeX blocks should be interleaved.
     let mut latex_pos: Option<usize> = None;
 
     for line in lines {
@@ -266,9 +266,6 @@ fn parse_output_inner(
 
     // Filter junk only from the final LaTeX (our injected tex(%)).
     // Intermediate blocks from user tex() calls are kept unconditionally.
-    // This must happen before computing skip_1d_idx — if the final latex is
-    // junk, its preceding text line is NOT a redundant 1D result (e.g. it may
-    // be a plot file path that SVG detection needs).
     let latex = if has_error {
         None
     } else if latex.as_ref().is_some_and(|l| is_junk_latex(l)) {
@@ -277,20 +274,13 @@ fn parse_output_inner(
         latex
     };
 
-    // The 1D text result (preceding the final tex(%)) is redundant with latex.
-    // Identify its index so we can skip it when building text_output.
-    // Only skip when we actually have a non-junk latex result.
-    let skip_1d_idx = if !has_error && latex.is_some() {
-        latex_pos.and_then(|pos| if pos > 0 { Some(pos - 1) } else { None })
-    } else {
-        None
-    };
-
     // Build text_output by interleaving text_lines with intermediate LaTeX
     // blocks from user tex() calls (preserved as $$...$$ for frontend rendering).
+    // Note: the protocol suppresses all automatic 1D display (`;` → `$`), so
+    // text_lines only contains genuine side-effect output (print, tex, etc.).
     let text_output = if has_error {
         String::new()
-    } else if intermediate_latex.is_empty() && skip_1d_idx.is_none() {
+    } else if intermediate_latex.is_empty() {
         text_lines.join("\n")
     } else {
         let mut parts: Vec<String> = Vec::new();
@@ -300,10 +290,6 @@ fn parse_output_inner(
             while li < intermediate_latex.len() && intermediate_latex[li].0 <= i {
                 parts.push(format!("$${}$$", intermediate_latex[li].1));
                 li += 1;
-            }
-            // Skip the 1D text result (redundant with latex)
-            if Some(i) == skip_1d_idx {
-                continue;
             }
             parts.push(text_line.clone());
         }
@@ -671,11 +657,11 @@ mod tests {
 
     #[test]
     fn test_print_output_preserved_when_latex_present() {
-        // print() output should remain in text_output; only the 1D result is stripped
+        // print() output should remain in text_output (protocol suppresses 1D
+        // display, so no 1D result line appears in the output)
         let lines = vec![
             "hello".to_string(),
             "world".to_string(),
-            "42".to_string(),
             "$$42$$".to_string(),
             "false".to_string(),
             "__AXIMAR_LABEL__ 5".to_string(),
@@ -684,15 +670,13 @@ mod tests {
         let result = parse_output("cell-1", &lines, 100, &catalog(), &Backend::Local);
         assert!(!result.is_error);
         assert_eq!(result.latex, Some("42".to_string()));
-        // "42" (the 1D result) should be stripped; only print output remains
         assert_eq!(result.text_output, "hello\nworld");
     }
 
     #[test]
     fn test_no_print_output_text_empty_when_latex_present() {
-        // When there's no print() output, text_output should be empty
+        // With display suppressed, only the LaTeX from tex(%) appears
         let lines = vec![
-            "x^3/3".to_string(),
             "$${{x^3}\\over{3}}$$".to_string(),
             "false".to_string(),
             "__AXIMAR_EVAL_END__".to_string(),
@@ -707,6 +691,7 @@ mod tests {
     fn test_multiple_tex_calls_preserve_earlier_in_text() {
         // User tex() calls produce $$...$$ blocks that should stay in text_output.
         // Only the last $$...$$ (from our injected tex(%)) becomes the latex field.
+        // No 1D result lines since display is suppressed.
         let lines = vec![
             "Step 1".to_string(),
             "$$1$$".to_string(),            // user tex(1)
@@ -714,7 +699,6 @@ mod tests {
             "Step 2".to_string(),
             "$$4$$".to_string(),            // user tex(4)
             "false".to_string(),
-            "done".to_string(),             // 1D result of for loop
             "$$\\mathit{done}$$".to_string(), // tex(%) on "done"
             "false".to_string(),
             "__AXIMAR_LABEL__ 10".to_string(),
@@ -728,15 +712,12 @@ mod tests {
         assert!(result.text_output.contains("$$1$$"));
         assert!(result.text_output.contains("Step 2"));
         assert!(result.text_output.contains("$$4$$"));
-        // The 1D "done" should be stripped (superseded by LaTeX)
-        assert!(!result.text_output.contains("done"));
     }
 
     #[test]
     fn test_single_tex_still_becomes_latex() {
-        // Normal case: one $$...$$ from tex(%) goes to latex field
+        // Normal case: one $$...$$ from tex(%) goes to latex field, no 1D display
         let lines = vec![
-            "42".to_string(),
             "$$42$$".to_string(),
             "false".to_string(),
             "__AXIMAR_EVAL_END__".to_string(),
@@ -746,7 +727,6 @@ mod tests {
         assert!(result.text_output.is_empty());
     }
 
-    #[test]
     #[test]
     fn test_intermediate_tex_zero_preserved() {
         // User tex(0) produces $$0$$ which is in JUNK_LATEX, but intermediate
@@ -759,7 +739,6 @@ mod tests {
             "Step 2".to_string(),
             "$$4$$".to_string(),               // user tex(4)
             "false".to_string(),
-            "done".to_string(),                // 1D result
             "$$\\mathbf{done}$$".to_string(),  // tex(%) on for-loop result
             "false".to_string(),
             "__AXIMAR_EVAL_END__".to_string(),
@@ -772,8 +751,6 @@ mod tests {
         assert!(result.text_output.contains("$$4$$"));
         assert!(result.text_output.contains("Step 1"));
         assert!(result.text_output.contains("Step 2"));
-        // 1D "done" should be stripped
-        assert!(!result.text_output.contains("done"));
     }
 
     #[test]
@@ -784,7 +761,6 @@ mod tests {
             "Step 1".to_string(),
             "$$x^2$$".to_string(),             // user tex(x^2)
             "false".to_string(),
-            "false".to_string(),               // 1D result
             "$$\\mathbf{false}$$".to_string(), // tex(%) on false — junk
             "false".to_string(),
             "__AXIMAR_EVAL_END__".to_string(),

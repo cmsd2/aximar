@@ -69,6 +69,20 @@ Replace `<token>` with the value shown in Settings. Alternatively, add it to `.m
 }
 ```
 
+#### Configuring Codex
+
+Use the **Configure** button in Settings (next to "Codex") to automatically register the MCP server. This writes the server entry to `~/.codex/config.toml` with the correct URL and bearer token.
+
+To configure manually, add the following to `~/.codex/config.toml`:
+
+```toml
+[mcp_servers.aximar]
+url = "http://localhost:19542/mcp"
+http_headers = { "Authorization" = "Bearer <token>" }
+```
+
+Replace `<token>` with the value shown in Settings.
+
 ## Available tools (24)
 
 ### Documentation

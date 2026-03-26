@@ -28,6 +28,10 @@ pub async fn evaluate(
     } else {
         format!("{};", expr)
     };
+    // Suppress display of intermediate statement results so only the final
+    // result appears (and gets captured by tex(%)).  print()/tex() side
+    // effects still produce output.
+    let expr = suppress_display(&expr);
 
     let input = format!(
         "{}\ntex(%);\nprint(\"__AXIMAR_LABEL__\", linenum)$\nprint(\"{}\");\n",
@@ -71,6 +75,7 @@ pub async fn evaluate_with_packages(
     } else {
         format!("{};", expr)
     };
+    let expr = suppress_display(&expr);
 
     let input = format!(
         "{}\ntex(%);\nprint(\"__AXIMAR_LABEL__\", linenum)$\nprint(\"{}\");\n",
@@ -223,4 +228,135 @@ fn is_internal_variable(name: &str) -> bool {
         "maxima_objdir",
     ];
     INTERNAL_VARS.contains(&name)
+}
+
+/// Find positions of statement terminators (`;` and `$`) in a Maxima expression,
+/// skipping those inside string literals and block comments.
+fn find_terminators(expr: &str) -> Vec<usize> {
+    let bytes = expr.as_bytes();
+    let len = bytes.len();
+    let mut positions = Vec::new();
+    let mut i = 0;
+    while i < len {
+        match bytes[i] {
+            b'"' => {
+                // Skip string literal
+                i += 1;
+                while i < len && bytes[i] != b'"' {
+                    if bytes[i] == b'\\' {
+                        i += 1; // skip escaped char
+                    }
+                    i += 1;
+                }
+            }
+            b'/' if i + 1 < len && bytes[i + 1] == b'*' => {
+                // Skip block comment /* ... */
+                i += 2;
+                while i + 1 < len && !(bytes[i] == b'*' && bytes[i + 1] == b'/') {
+                    i += 1;
+                }
+                if i + 1 < len {
+                    i += 1; // advance past '/'
+                }
+            }
+            b';' | b'$' => {
+                positions.push(i);
+            }
+            _ => {}
+        }
+        i += 1;
+    }
+    positions
+}
+
+/// Replace all `;` terminators with `$` to suppress Maxima's automatic 1D
+/// result display.  The result is still computed and available via `%` — we
+/// capture it as LaTeX with the injected `tex(%)` call.  `print()` and `tex()`
+/// side effects still produce output; only the redundant text display is removed.
+fn suppress_display(expr: &str) -> String {
+    let terminators = find_terminators(expr);
+    if terminators.is_empty() {
+        return expr.to_string();
+    }
+    let mut result = expr.as_bytes().to_vec();
+    for &pos in &terminators {
+        if result[pos] == b';' {
+            result[pos] = b'$';
+        }
+    }
+    // expr is valid UTF-8, and we only replaced ASCII bytes
+    String::from_utf8(result).expect("valid UTF-8")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn single_statement() {
+        assert_eq!(suppress_display("x+1;"), "x+1$");
+    }
+
+    #[test]
+    fn two_statements() {
+        assert_eq!(suppress_display("a:5; b:10;"), "a:5$ b:10$");
+    }
+
+    #[test]
+    fn three_statements() {
+        assert_eq!(
+            suppress_display("a:5; b:10; c:a+b;"),
+            "a:5$ b:10$ c:a+b$"
+        );
+    }
+
+    #[test]
+    fn mixed_terminators() {
+        assert_eq!(
+            suppress_display("a:5; b:10$ c:15;"),
+            "a:5$ b:10$ c:15$"
+        );
+    }
+
+    #[test]
+    fn already_silent() {
+        assert_eq!(suppress_display("a:5$ b:10$"), "a:5$ b:10$");
+    }
+
+    #[test]
+    fn semicolon_in_string_ignored() {
+        assert_eq!(
+            suppress_display(r#"print("a;b"); x;"#),
+            r#"print("a;b")$ x$"#
+        );
+    }
+
+    #[test]
+    fn semicolon_in_comment_ignored() {
+        assert_eq!(
+            suppress_display("/* a; */ x; y;"),
+            "/* a; */ x$ y$"
+        );
+    }
+
+    #[test]
+    fn no_terminator() {
+        assert_eq!(suppress_display("x+1"), "x+1");
+    }
+
+    #[test]
+    fn newlines_between_statements() {
+        assert_eq!(
+            suppress_display("a:5;\nb:10;\nc:15;"),
+            "a:5$\nb:10$\nc:15$"
+        );
+    }
+
+    #[test]
+    fn trailing_dollar() {
+        assert_eq!(
+            suppress_display("a:5; b:10$"),
+            "a:5$ b:10$"
+        );
+    }
 }
