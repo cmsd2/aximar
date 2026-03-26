@@ -23,15 +23,21 @@ export function Cell({ cell, onViewDocs }: CellProps) {
   const hasFindMatch = useFindStore((s) => s.matches.some((m) => m.cellId === cell.id));
 
   const focusNextCell = useCallback(() => {
-    const allInputs = Array.from(
-      document.querySelectorAll<HTMLDivElement>(".cell-input")
+    const allCells = Array.from(
+      document.querySelectorAll<HTMLElement>(".cell")
     );
-    const container = containerRef.current;
-    const currentIdx = container ? allInputs.indexOf(container) : -1;
-    if (currentIdx !== -1 && currentIdx + 1 < allInputs.length) {
-      const nextInput = allInputs[currentIdx + 1];
-      const cmContent = nextInput.querySelector<HTMLElement>(".cm-content");
-      cmContent?.focus();
+    const thisCell = containerRef.current?.closest(".cell");
+    const idx = thisCell ? allCells.indexOf(thisCell as HTMLElement) : -1;
+    if (idx !== -1 && idx + 1 < allCells.length) {
+      const next = allCells[idx + 1];
+      // Try CodeMirror editor first (code cell), fall back to double-clicking (markdown cell)
+      const cmContent = next.querySelector<HTMLElement>(".cm-content");
+      if (cmContent) {
+        cmContent.focus();
+      } else {
+        const view = next.querySelector<HTMLElement>(".markdown-cell-view");
+        view?.dispatchEvent(new MouseEvent("dblclick", { bubbles: true }));
+      }
     }
   }, []);
 

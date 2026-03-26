@@ -14,6 +14,7 @@ interface MarkdownCellProps {
 
 export function MarkdownCell({ cell }: MarkdownCellProps) {
   const [editing, setEditing] = useState(false);
+  const cellRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const updateCellInput = useNotebookStore((s) => s.updateCellInput);
   const cells = useActiveTab().cells;
@@ -43,18 +44,41 @@ export function MarkdownCell({ cell }: MarkdownCellProps) {
     [cell.id, updateCellInput]
   );
 
+  const focusNextCell = useCallback(() => {
+    const allCells = Array.from(
+      document.querySelectorAll<HTMLElement>(".cell")
+    );
+    const thisCell = cellRef.current;
+    const idx = thisCell ? allCells.indexOf(thisCell) : -1;
+    if (idx !== -1 && idx + 1 < allCells.length) {
+      const next = allCells[idx + 1];
+      // Try CodeMirror editor first (code cell), fall back to double-clicking (markdown cell)
+      const cmContent = next.querySelector<HTMLElement>(".cm-content");
+      if (cmContent) {
+        cmContent.focus();
+      } else {
+        const view = next.querySelector<HTMLElement>(".markdown-cell-view");
+        view?.dispatchEvent(new MouseEvent("dblclick", { bubbles: true }));
+      }
+    }
+  }, []);
+
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
       if (e.key === "Escape") {
         e.preventDefault();
         setEditing(false);
+      } else if (e.key === "Enter" && e.shiftKey) {
+        e.preventDefault();
+        setEditing(false);
+        requestAnimationFrame(focusNextCell);
       }
     },
-    []
+    [focusNextCell]
   );
 
   return (
-    <div className={`cell markdown-cell${editing ? " editing" : ""}${hasFindMatch ? " has-find-match" : ""}`}>
+    <div ref={cellRef} className={`cell markdown-cell${editing ? " editing" : ""}${hasFindMatch ? " has-find-match" : ""}`}>
       {editing ? (
         <div className="markdown-cell-edit">
           <textarea

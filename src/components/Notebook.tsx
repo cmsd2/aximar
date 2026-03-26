@@ -3,12 +3,12 @@ import { Cell } from "./Cell";
 import { MarkdownCell } from "./MarkdownCell";
 import { nbAddCell } from "../lib/notebook-commands";
 
-function InsertBar({ afterId }: { afterId?: string }) {
+function InsertBar({ afterId, beforeId }: { afterId?: string; beforeId?: string }) {
   const handleAddCode = async () => {
-    await nbAddCell("code", undefined, afterId);
+    await nbAddCell("code", undefined, afterId, beforeId);
   };
   const handleAddMarkdown = async () => {
-    await nbAddCell("markdown", undefined, afterId);
+    await nbAddCell("markdown", undefined, afterId, beforeId);
   };
 
   return (
@@ -36,7 +36,7 @@ export function Notebook({ onViewDocs }: NotebookProps) {
 
   return (
     <div className="notebook">
-      <InsertBar />
+      <InsertBar beforeId={cells[0]?.id} />
       {cells.map((cell) => (
         <div key={cell.id}>
           {cell.cellType === "markdown" ? (
