@@ -73,7 +73,7 @@ export function useMaxima() {
         // The frontend receives status/output updates via notebook-state-changed events
         const result = await nbRunCell(cellId);
         if (result.type === "pending_approval") {
-          addLog("warn", `Cell needs approval: ${result.dangerous_functions.join(", ")}`, "eval");
+          addLog("warning", `Cell needs approval: ${result.dangerous_functions.join(", ")}`, "eval");
           return false;
         }
         if (result.is_error) {
