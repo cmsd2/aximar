@@ -22,6 +22,8 @@ interface NbStateSyncCell {
     execution_count: number | null;
   } | null;
   status?: string | null;
+  dangerous_functions?: string[] | null;
+  trusted?: boolean | null;
 }
 
 interface NbStateResult {
@@ -99,8 +101,20 @@ export async function nbLoadCells(
   return invoke<void>("nb_load_cells", { notebookId: notebookId ?? activeId(), cells });
 }
 
-export async function nbRunCell(cellId: string): Promise<EvalResult> {
-  return invoke<EvalResult>("nb_run_cell", { notebookId: activeId(), cellId });
+export type RunCellResult =
+  | { type: "evaluated" } & EvalResult
+  | { type: "pending_approval"; dangerous_functions: string[] };
+
+export async function nbRunCell(cellId: string): Promise<RunCellResult> {
+  return invoke<RunCellResult>("nb_run_cell", { notebookId: activeId(), cellId });
+}
+
+export async function nbApproveCell(cellId: string): Promise<EvalResult> {
+  return invoke<EvalResult>("nb_approve_cell", { notebookId: activeId(), cellId });
+}
+
+export async function nbAbortCell(cellId: string): Promise<void> {
+  return invoke<void>("nb_abort_cell", { notebookId: activeId(), cellId });
 }
 
 // ── Notebook lifecycle commands ──────────────────────────────────────

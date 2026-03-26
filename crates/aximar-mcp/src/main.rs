@@ -36,6 +36,12 @@ async fn main() -> anyhow::Result<()> {
     let maxima_path = config::maxima_path_from_env();
     let eval_timeout = config::eval_timeout_from_env();
 
+    // Parse CLI flags
+    let allow_dangerous = std::env::args().any(|a| a == "--allow-dangerous");
+    if allow_dangerous {
+        tracing::warn!("--allow-dangerous: dangerous functions (system, batch, etc.) will be allowed without approval");
+    }
+
     // Create registry with one default notebook
     let registry = Arc::new(Mutex::new(NotebookRegistry::new()));
 
@@ -48,6 +54,7 @@ async fn main() -> anyhow::Result<()> {
         backend,
         maxima_path,
         eval_timeout,
+        allow_dangerous,
     );
 
     // Serve over stdio

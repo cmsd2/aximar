@@ -6,7 +6,7 @@ import { useMaxima } from "../hooks/useMaxima";
 import { useCodeMirrorEditor } from "../hooks/useCodeMirrorEditor";
 import { CellOutput } from "./CellOutput";
 import { CellSuggestions } from "./CellSuggestions";
-import { nbDeleteCell, nbMoveCell, nbAddCell } from "../lib/notebook-commands";
+import { nbDeleteCell, nbMoveCell, nbAddCell, nbApproveCell, nbAbortCell } from "../lib/notebook-commands";
 
 interface CellProps {
   cell: CellType;
@@ -87,6 +87,8 @@ export function Cell({ cell, onViewDocs }: CellProps) {
         <div className="cell-gutter">
           {cell.status === "running" ? (
             <span className="cell-indicator running">*</span>
+          ) : cell.status === "pending_approval" ? (
+            <span className="cell-indicator pending-approval">!</span>
           ) : (
             <span className="cell-indicator">
               {execNum ? `In [${execNum}]` : "In"}
@@ -137,6 +139,19 @@ export function Cell({ cell, onViewDocs }: CellProps) {
           )}
         </div>
       </div>
+      {cell.status === "pending_approval" && (
+        <div className="cell-approval-bar">
+          <span className="approval-warning">
+            &#9888; Dangerous: {cell.dangerousFunctions?.join(", ")}
+          </span>
+          <button className="cell-btn approve-btn" onClick={() => nbApproveCell(cell.id)}>
+            Approve
+          </button>
+          <button className="cell-btn abort-btn" onClick={() => nbAbortCell(cell.id)}>
+            Abort
+          </button>
+        </div>
+      )}
       {cell.output && !outputCollapsed && (
         <div className="cell-output-area">
           <div className="cell-gutter">

@@ -14,12 +14,13 @@ pub enum CellType {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "lowercase")]
+#[serde(rename_all = "snake_case")]
 pub enum CellStatus {
     Idle,
     Running,
     Success,
     Error,
+    PendingApproval,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -57,6 +58,13 @@ pub struct Cell {
     pub output: Option<CellOutput>,
     pub status: CellStatus,
     pub raw_output: Vec<OutputEvent>,
+    /// Whether the user has seen/approved this cell's content.
+    /// Not serialized — always false on load.
+    #[serde(skip)]
+    pub trusted: bool,
+    /// Dangerous functions detected when cell is in PendingApproval status.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub dangerous_functions: Option<Vec<String>>,
 }
 
 const MAX_UNDO: usize = 50;
@@ -86,6 +94,8 @@ impl Notebook {
             output: None,
             status: CellStatus::Idle,
             raw_output: Vec::new(),
+            trusted: false,
+            dangerous_functions: None,
         };
         Notebook {
             cells: vec![initial_cell],
@@ -129,6 +139,8 @@ impl Notebook {
             output: None,
             status: CellStatus::Idle,
             raw_output: Vec::new(),
+            trusted: false,
+            dangerous_functions: None,
         };
 
         if let Some(before_id) = before_cell_id {
@@ -232,6 +244,8 @@ impl Notebook {
             output: None,
             status: CellStatus::Idle,
             raw_output: Vec::new(),
+            trusted: false,
+            dangerous_functions: None,
         });
     }
 
@@ -304,7 +318,7 @@ impl Notebook {
                 Ok(CommandEffect::CellTypeToggled { cell_id })
             }
 
-            NotebookCommand::UpdateCellInput { cell_id, input } => {
+            NotebookCommand::UpdateCellInput { cell_id, input, trusted } => {
                 let unchanged = self
                     .get_cell(&cell_id)
                     .ok_or_else(|| format!("Cell '{}' not found", cell_id))
@@ -317,6 +331,7 @@ impl Notebook {
                 self.push_undo_snapshot();
                 let cell = self.get_cell_mut(&cell_id).unwrap();
                 cell.input = input;
+                cell.trusted = trusted;
                 Ok(CommandEffect::CellInputUpdated { cell_id })
             }
 
@@ -360,6 +375,8 @@ impl Notebook {
                     output: None,
                     status: CellStatus::Idle,
                     raw_output: Vec::new(),
+                    trusted: false,
+                    dangerous_functions: None,
                 });
                 Ok(CommandEffect::NotebookReplaced)
             }
@@ -368,6 +385,37 @@ impl Notebook {
                 self.push_undo_snapshot();
                 self.load_cells_from_list(cells);
                 Ok(CommandEffect::NotebookReplaced)
+            }
+
+            NotebookCommand::SetCellPendingApproval {
+                cell_id,
+                dangerous_functions,
+            } => {
+                let cell = self
+                    .get_cell_mut(&cell_id)
+                    .ok_or_else(|| format!("Cell '{}' not found", cell_id))?;
+                cell.status = CellStatus::PendingApproval;
+                cell.dangerous_functions = Some(dangerous_functions);
+                Ok(CommandEffect::CellPendingApproval { cell_id })
+            }
+
+            NotebookCommand::ApproveCellExecution { cell_id } => {
+                let cell = self
+                    .get_cell_mut(&cell_id)
+                    .ok_or_else(|| format!("Cell '{}' not found", cell_id))?;
+                cell.status = CellStatus::Idle;
+                cell.trusted = true;
+                cell.dangerous_functions = None;
+                Ok(CommandEffect::CellApprovalCleared { cell_id })
+            }
+
+            NotebookCommand::AbortCellExecution { cell_id } => {
+                let cell = self
+                    .get_cell_mut(&cell_id)
+                    .ok_or_else(|| format!("Cell '{}' not found", cell_id))?;
+                cell.status = CellStatus::Idle;
+                cell.dangerous_functions = None;
+                Ok(CommandEffect::CellApprovalCleared { cell_id })
             }
 
             NotebookCommand::Undo => {
@@ -432,6 +480,8 @@ impl Notebook {
                 output: None,
                 status: CellStatus::Idle,
                 raw_output: Vec::new(),
+                trusted: false,
+                dangerous_functions: None,
             });
         }
         if self.cells.is_empty() {
@@ -442,6 +492,8 @@ impl Notebook {
                 output: None,
                 status: CellStatus::Idle,
                 raw_output: Vec::new(),
+                trusted: false,
+                dangerous_functions: None,
             });
         }
     }
@@ -600,6 +652,7 @@ mod tests {
         let effect = n.apply(NotebookCommand::UpdateCellInput {
             cell_id: id.clone(),
             input: "y: 10;".into(),
+            trusted: true,
         }).unwrap();
         assert!(matches!(effect, CommandEffect::CellInputUpdated { .. }));
         assert_eq!(n.cells()[0].input, "y: 10;");
@@ -612,6 +665,7 @@ mod tests {
         let effect = n.apply(NotebookCommand::UpdateCellInput {
             cell_id: id,
             input: "".into(),
+            trusted: true,
         }).unwrap();
         assert!(matches!(effect, CommandEffect::NoOp { .. }));
     }
@@ -730,6 +784,7 @@ mod tests {
             n.apply(NotebookCommand::UpdateCellInput {
                 cell_id: first_cell_id(&n),
                 input: format!("v{}", i),
+                trusted: true,
             }).unwrap();
         }
         // Should cap at MAX_UNDO

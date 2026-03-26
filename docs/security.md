@@ -16,7 +16,15 @@ Maxima is a full programming environment with access to the host system. The `sy
 
 **Impact:** A cell containing `system("rm -rf ~")$` would execute if the user runs it.
 
-**Current mitigation:** None beyond requiring explicit execution for the Local backend. The Docker backend provides partial sandboxing:
+**Current mitigation:** A safety gate detects dangerous function calls (`system`, `batch`, `batchload`, `writefile`, `appendfile`, `closefile`, `stringout`, `with_stdout`, `save`, `store`, and unknown `load()` targets) before execution. The behaviour depends on context:
+
+- **GUI:** Untrusted cells containing dangerous functions show an inline approve/abort bar. Trusted cells (previously user-edited or approved) execute without prompting. "Run All" stops at cells needing approval.
+- **MCP connected mode:** Untrusted cells return a `pending_approval` status so the GUI user can approve them. `evaluate_expression` (no cell) always blocks dangerous calls.
+- **MCP headless mode:** Dangerous calls are blocked by default. The `--allow-dangerous` CLI flag opts in.
+- **Smart `load()` detection:** `load("distrib")` is allowed when the argument matches a known Maxima package; unknown targets are flagged.
+- **Trust model:** Cells start untrusted. User editing in the GUI makes them trusted. MCP editing or loading from disk resets trust.
+
+The Docker backend provides additional sandboxing:
 - `--network none`: no network access from the container
 - `--memory 512m`: memory limit prevents resource exhaustion
 - Non-root user (`maxima`) inside the container
@@ -24,7 +32,6 @@ Maxima is a full programming environment with access to the host system. The `sy
 - Custom seccomp profile: GCL (the Lisp runtime used by Ubuntu's Maxima package) calls `personality(ADDR_NO_RANDOMIZE | READ_IMPLIES_EXEC)` which Docker's default seccomp profile blocks. Rather than disabling seccomp entirely, a custom profile based on Docker's default is used that adds only the three specific `personality` argument values GCL requires (0x40000, 0x400000, 0x440000). All other seccomp restrictions remain in effect.
 
 Possible future mitigations:
-- Warn before executing cells containing `system()`, `load()`, `batchload()`, or similar dangerous functions
 - Run Maxima in a restricted sandbox (e.g. seccomp on Linux, sandbox-exec on macOS)
 - Display untrusted-file warnings when opening notebooks not created by the user
 
@@ -104,7 +111,7 @@ These are low-severity for a desktop application since the user can kill the pro
 
 | Surface | Trigger | Impact | Status | Mitigation |
 |---------|---------|--------|--------|------------|
-| `system()` in Maxima | User runs cell | RCE | No mitigation | — |
+| `system()` in Maxima | User runs cell | RCE | Mitigated | Safety gate detects dangerous functions; untrusted cells require approval. MCP headless blocks by default. |
 | SVG rendering | User runs plot cell | XSS / IPC access | Mitigated | SVG sanitized via `sanitizeSvg()` then rendered as `<img src="blob:...">`. The `<img>` context natively blocks all script execution and event handlers. Sanitization is defence-in-depth. CSP blocks inline scripts as an additional layer. |
 | SVG file path reading | User runs plot cell | Arbitrary file read | Mitigated | Path canonicalized and validated: must have `.svg` extension and reside within the system temp directory. |
 | KaTeX trust mode | User runs cell producing LaTeX | XSS via `\href` | Mitigated | `trust` set to `false` in both `KatexOutput` and `MathText`. |
@@ -118,4 +125,4 @@ These are low-severity for a desktop application since the user can kill the pro
 1. **Never auto-execute.** Opening a notebook must never run any cell. This is the most important safety property.
 2. **Sanitize all rendered output.** Anything originating from Maxima or notebook files must be treated as untrusted before rendering in the WebView.
 3. **Restrict file access.** File reads and writes initiated by the backend should be scoped to expected directories.
-4. **Warn on dangerous operations.** Consider flagging cells that contain known-dangerous Maxima functions before execution.
+4. **Gate dangerous operations.** Detect and require approval for cells containing known-dangerous Maxima functions (`system`, `batch`, `writefile`, etc.) before execution.

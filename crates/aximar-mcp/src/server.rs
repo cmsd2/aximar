@@ -6,6 +6,7 @@ use rmcp::{tool, tool_handler, tool_router};
 use tokio::sync::Mutex;
 
 use aximar_core::commands::{CommandEffect, NotebookCommand};
+use aximar_core::safety;
 use aximar_core::catalog::docs::Docs;
 use aximar_core::catalog::packages::PackageCatalog;
 use aximar_core::catalog::search::Catalog;
@@ -51,6 +52,8 @@ pub struct AximarMcpServer {
     /// Optional callback for notebook lifecycle events (create, close, switch).
     /// Args: (notebook_id, event_type). Event types: "created", "closed", "switched".
     on_notebook_lifecycle: Option<Arc<dyn Fn(&str, &str) + Send + Sync>>,
+    /// Whether to allow dangerous function calls without approval (headless --allow-dangerous).
+    allow_dangerous: bool,
 }
 
 impl AximarMcpServer {
@@ -66,6 +69,7 @@ impl AximarMcpServer {
         backend: Backend,
         maxima_path: Option<String>,
         eval_timeout: u64,
+        allow_dangerous: bool,
     ) -> Self {
         let process_sink_factory: ProcessSinkFactory =
             Arc::new(|_id, capture| capture.clone() as Arc<dyn OutputSink>);
@@ -80,6 +84,7 @@ impl AximarMcpServer {
             process_sink_factory,
             None,
             None,
+            allow_dangerous,
         )
     }
 
@@ -108,6 +113,7 @@ impl AximarMcpServer {
             process_sink_factory,
             Some(on_notebook_change),
             Some(on_notebook_lifecycle),
+            false, // connected mode: GUI handles approval
         )
     }
 
@@ -122,6 +128,7 @@ impl AximarMcpServer {
         process_sink_factory: ProcessSinkFactory,
         on_notebook_change: Option<Arc<dyn Fn(&str, CommandEffect) + Send + Sync>>,
         on_notebook_lifecycle: Option<Arc<dyn Fn(&str, &str) + Send + Sync>>,
+        allow_dangerous: bool,
     ) -> Self {
         AximarMcpServer {
             tool_router: Self::tool_router(),
@@ -135,6 +142,7 @@ impl AximarMcpServer {
             process_sink_factory,
             on_notebook_change,
             on_notebook_lifecycle,
+            allow_dangerous,
         }
     }
 
@@ -540,6 +548,7 @@ impl AximarMcpServer {
             last_effect = Some(nb.apply(NotebookCommand::UpdateCellInput {
                 cell_id: params.cell_id.clone(),
                 input,
+                trusted: false,
             })?);
         }
         // Apply cell type toggle if the requested type differs
@@ -614,6 +623,49 @@ impl AximarMcpServer {
         Parameters(params): Parameters<CellIdParams>,
     ) -> Result<String, String> {
         let ctx = self.resolve_context(params.notebook_id.as_deref()).await?;
+
+        // Safety check for dangerous functions
+        {
+            let nb = ctx.notebook.lock().await;
+            let cell = nb.get_cell(&params.cell_id)
+                .ok_or_else(|| format!("Cell '{}' not found", params.cell_id))?;
+            let trusted = cell.trusted;
+            let input = cell.input.clone();
+            drop(nb);
+
+            if !trusted {
+                let dangerous = safety::detect_dangerous_calls(&input, Some(&self.packages));
+                if !dangerous.is_empty() {
+                    let func_names: Vec<String> = dangerous.iter().map(|d| d.function_name.clone()).collect();
+
+                    if self.allow_dangerous {
+                        // Headless + --allow-dangerous: proceed
+                    } else if self.on_notebook_change.is_some() {
+                        // Connected mode: set pending approval and notify GUI
+                        let mut nb = ctx.notebook.lock().await;
+                        let effect = nb.apply(NotebookCommand::SetCellPendingApproval {
+                            cell_id: params.cell_id.clone(),
+                            dangerous_functions: func_names.clone(),
+                        })?;
+                        drop(nb);
+                        self.notify_notebook_change(&ctx.id, effect);
+                        return success_json(&serde_json::json!({
+                            "cell_id": params.cell_id,
+                            "pending_approval": true,
+                            "dangerous_functions": func_names,
+                            "message": "Cell contains dangerous functions. Approve in the GUI to execute.",
+                        }));
+                    } else {
+                        // Headless without --allow-dangerous: block
+                        return error_result(format!(
+                            "Dangerous function(s) blocked: {}. Use --allow-dangerous to allow.",
+                            func_names.join(", ")
+                        ));
+                    }
+                }
+            }
+        }
+
         if let Err(e) = self.ensure_session(&ctx).await {
             return error_result(format!("Failed to start session: {e}"));
         }
@@ -681,13 +733,29 @@ impl AximarMcpServer {
                     notebook_id: Some(ctx.id.clone()),
                 }))
                 .await;
-            let is_error = result.is_err();
-            results.push(serde_json::json!({
-                "cell_id": cell_id,
-                "success": !is_error,
-            }));
-            if is_error {
-                break;
+            match &result {
+                Err(_) => {
+                    results.push(serde_json::json!({
+                        "cell_id": cell_id,
+                        "success": false,
+                    }));
+                    break;
+                }
+                Ok(json_str) => {
+                    // Check if the result indicates pending approval
+                    let is_pending = serde_json::from_str::<serde_json::Value>(json_str)
+                        .ok()
+                        .and_then(|v| v.get("pending_approval")?.as_bool())
+                        .unwrap_or(false);
+                    results.push(serde_json::json!({
+                        "cell_id": cell_id,
+                        "success": !is_pending,
+                        "pending_approval": is_pending,
+                    }));
+                    if is_pending {
+                        break;
+                    }
+                }
             }
         }
 
@@ -702,6 +770,18 @@ impl AximarMcpServer {
         &self,
         Parameters(params): Parameters<EvaluateExpressionParams>,
     ) -> Result<String, String> {
+        // Safety: evaluate_expression has no cell → no approval path → always block dangerous calls
+        if !self.allow_dangerous {
+            let dangerous = safety::detect_dangerous_calls(&params.expression, Some(&self.packages));
+            if !dangerous.is_empty() {
+                let names: Vec<&str> = dangerous.iter().map(|d| d.function_name.as_str()).collect();
+                return error_result(format!(
+                    "Dangerous function(s) blocked: {}. Use a notebook cell for approval, or --allow-dangerous in headless mode.",
+                    names.join(", ")
+                ));
+            }
+        }
+
         let ctx = self.resolve_context(params.notebook_id.as_deref()).await?;
         if let Err(e) = self.ensure_session(&ctx).await {
             return error_result(format!("Failed to start session: {e}"));

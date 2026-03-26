@@ -23,6 +23,8 @@ interface SyncCell {
   input: string;
   output?: SyncCellOutput | null;
   status?: string | null;
+  dangerous_functions?: string[] | null;
+  trusted?: boolean | null;
 }
 
 interface NotebookStateEvent {
@@ -72,6 +74,8 @@ function mapSyncCells(syncCells: SyncCell[]) {
       input: sc.input,
       output,
       status: (sc.status as CellStatus) ?? "idle",
+      dangerousFunctions: sc.dangerous_functions ?? undefined,
+      trusted: sc.trusted ?? undefined,
     };
   });
 }

@@ -14,7 +14,7 @@ export interface CellOutput {
   executionCount: number | null;
 }
 
-export type CellStatus = "idle" | "running" | "queued" | "error" | "success";
+export type CellStatus = "idle" | "running" | "queued" | "error" | "success" | "pending_approval";
 
 export type CellType = "code" | "markdown";
 
@@ -24,6 +24,8 @@ export interface Cell {
   input: string;
   output: CellOutput | null;
   status: CellStatus;
+  trusted?: boolean;
+  dangerousFunctions?: string[] | null;
 }
 
 export interface Notebook {

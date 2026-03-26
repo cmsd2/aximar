@@ -8,5 +8,6 @@ pub mod maxima;
 pub mod notebook;
 pub mod notebooks;
 pub mod registry;
+pub mod safety;
 pub mod session;
 pub mod suggestions;

@@ -21,6 +21,20 @@ fn build_server() -> AximarMcpServer {
         Backend::Local,
         None,
         30,
+        false,
+    )
+}
+
+fn build_server_allow_dangerous() -> AximarMcpServer {
+    AximarMcpServer::new(
+        Arc::new(Mutex::new(NotebookRegistry::new())),
+        Arc::new(Catalog::load()),
+        Arc::new(Docs::load()),
+        Arc::new(PackageCatalog::load()),
+        Backend::Local,
+        None,
+        30,
+        true,
     )
 }
 
@@ -634,4 +648,137 @@ async fn restart_session_works() {
         .await,
     );
     assert_eq!(v["restarted"], true);
+}
+
+// ── Safety gate tests ─────────────────────────────────────────────────
+
+#[tokio::test]
+async fn evaluate_expression_rejects_dangerous_input() {
+    let s = build_server();
+    let result = s
+        .evaluate_expression(Parameters(EvaluateExpressionParams {
+            expression: "system(\"ls\")".into(),
+            notebook_id: None,
+        }))
+        .await;
+    assert!(result.is_err());
+    let msg = result.unwrap_err();
+    assert!(msg.contains("Dangerous function(s) blocked"));
+    assert!(msg.contains("system"));
+}
+
+#[tokio::test]
+async fn evaluate_expression_allows_safe_input() {
+    let s = build_server();
+    // Safe expression should not be blocked (will fail because no Maxima, but not from safety)
+    let result = s
+        .evaluate_expression(Parameters(EvaluateExpressionParams {
+            expression: "integrate(x^2, x)".into(),
+            notebook_id: None,
+        }))
+        .await;
+    // It will error due to no Maxima session, but NOT from safety gate
+    if let Err(msg) = &result {
+        assert!(!msg.contains("Dangerous function"));
+    }
+}
+
+#[tokio::test]
+async fn evaluate_expression_allows_dangerous_with_flag() {
+    let s = build_server_allow_dangerous();
+    // Should not be blocked by safety (will fail from no Maxima, not safety)
+    let result = s
+        .evaluate_expression(Parameters(EvaluateExpressionParams {
+            expression: "system(\"ls\")".into(),
+            notebook_id: None,
+        }))
+        .await;
+    if let Err(msg) = &result {
+        assert!(!msg.contains("Dangerous function"), "Should not be blocked by safety: {msg}");
+    }
+}
+
+#[tokio::test]
+async fn run_cell_rejects_dangerous_in_headless() {
+    let s = build_server();
+
+    // Add a cell with dangerous content
+    let v = parse_ok(
+        s.add_cell(Parameters(AddCellParams {
+            cell_type: Some("code".into()),
+            input: Some("system(\"ls\")".into()),
+            after_cell_id: None,
+            notebook_id: None,
+        }))
+        .await,
+    );
+    let cell_id = v["cell_id"].as_str().unwrap().to_string();
+
+    // Run it — should be blocked
+    let result = s
+        .run_cell(Parameters(CellIdParams {
+            cell_id,
+            notebook_id: None,
+        }))
+        .await;
+    assert!(result.is_err());
+    let msg = result.unwrap_err();
+    assert!(msg.contains("Dangerous function(s) blocked"));
+}
+
+#[tokio::test]
+async fn run_cell_allows_safe_input_in_headless() {
+    let s = build_server();
+
+    let v = parse_ok(
+        s.add_cell(Parameters(AddCellParams {
+            cell_type: Some("code".into()),
+            input: Some("1 + 1".into()),
+            after_cell_id: None,
+            notebook_id: None,
+        }))
+        .await,
+    );
+    let cell_id = v["cell_id"].as_str().unwrap().to_string();
+
+    // Should not be blocked by safety (will fail from no Maxima, not safety)
+    let result = s
+        .run_cell(Parameters(CellIdParams {
+            cell_id,
+            notebook_id: None,
+        }))
+        .await;
+    if let Err(msg) = &result {
+        assert!(!msg.contains("Dangerous function"), "Should not be blocked by safety: {msg}");
+    }
+}
+
+#[tokio::test]
+async fn evaluate_expression_allows_known_package_load() {
+    let s = build_server();
+    // load("distrib") is a known package — should not be blocked
+    let result = s
+        .evaluate_expression(Parameters(EvaluateExpressionParams {
+            expression: "load(\"distrib\")".into(),
+            notebook_id: None,
+        }))
+        .await;
+    if let Err(msg) = &result {
+        assert!(!msg.contains("Dangerous function"), "Known package should not be blocked: {msg}");
+    }
+}
+
+#[tokio::test]
+async fn evaluate_expression_blocks_unknown_load() {
+    let s = build_server();
+    let result = s
+        .evaluate_expression(Parameters(EvaluateExpressionParams {
+            expression: "load(\"/tmp/evil.mac\")".into(),
+            notebook_id: None,
+        }))
+        .await;
+    assert!(result.is_err());
+    let msg = result.unwrap_err();
+    assert!(msg.contains("Dangerous function(s) blocked"));
+    assert!(msg.contains("load"));
 }

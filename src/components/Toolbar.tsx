@@ -34,7 +34,8 @@ export function Toolbar({ onOpenTemplates, onOpenSettings, variablesOpen, onTogg
   const runAll = async () => {
     for (const cell of cells) {
       if (cell.cellType === "code" && cell.input.trim()) {
-        await executeCell(cell.id, cell.input);
+        const success = await executeCell(cell.id, cell.input);
+        if (!success) break;
       }
     }
   };
