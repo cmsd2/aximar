@@ -108,11 +108,52 @@ pub fn build_texput_init() -> String {
 }
 
 /// Replace Unicode math symbols with their Maxima-compatible ASCII names.
+///
+/// String literals (delimited by `"`) are left untouched so that Unicode
+/// characters in plot labels, print messages, etc. pass through to gnuplot
+/// and other consumers verbatim.
 pub fn unicode_to_maxima(expr: &str) -> String {
-    let mut result = expr.to_string();
-    for &(unicode, maxima) in UNICODE_MAP {
-        if result.contains(unicode) {
-            result = result.replace(unicode, maxima);
+    // Split the expression into alternating segments: code, string, code, string, ...
+    // Maxima strings are delimited by double quotes with no escape for the quote itself.
+    let mut segments: Vec<String> = Vec::new();
+    let mut in_string = false;
+    let mut current = String::new();
+
+    for ch in expr.chars() {
+        if ch == '"' {
+            if in_string {
+                // End of string literal — include closing quote in current segment
+                current.push(ch);
+                segments.push(current);
+                current = String::new();
+                in_string = false;
+            } else {
+                // Start of string literal — flush code segment first
+                segments.push(current);
+                current = String::new();
+                current.push(ch);
+                in_string = true;
+            }
+        } else {
+            current.push(ch);
+        }
+    }
+    segments.push(current);
+
+    // Apply Unicode→Maxima replacements only to non-string segments.
+    // String segments (starting with `"`) are passed through unchanged.
+    let mut result = String::with_capacity(expr.len());
+    for seg in &segments {
+        if seg.starts_with('"') {
+            result.push_str(seg);
+        } else {
+            let mut replaced = seg.clone();
+            for &(unicode, maxima) in UNICODE_MAP {
+                if replaced.contains(unicode) {
+                    replaced = replaced.replace(unicode, maxima);
+                }
+            }
+            result.push_str(&replaced);
         }
     }
     result
@@ -170,5 +211,35 @@ mod tests {
         assert!(init.contains(r#"texput(Gamma, "\\Gamma")"#));
         // Should end with $
         assert!(init.ends_with('$'));
+    }
+
+    #[test]
+    fn string_literals_preserved() {
+        // Unicode inside string literals should NOT be translated
+        assert_eq!(
+            unicode_to_maxima(r#"print("τ/T")"#),
+            r#"print("τ/T")"#
+        );
+        assert_eq!(
+            unicode_to_maxima(r#"[xlabel, "α → ∞"]"#),
+            r#"[xlabel, "α → ∞"]"#
+        );
+    }
+
+    #[test]
+    fn mixed_code_and_strings() {
+        // Code outside strings is translated, strings are preserved
+        assert_eq!(
+            unicode_to_maxima(r#"plot2d(sin(θ), [xlabel, "θ (radians)"])"#),
+            r#"plot2d(sin(theta), [xlabel, "θ (radians)"])"#
+        );
+    }
+
+    #[test]
+    fn multiple_strings() {
+        assert_eq!(
+            unicode_to_maxima(r#"f(τ) + "τ" + g(τ) + "τ""#),
+            r#"f(tau) + "τ" + g(tau) + "τ""#
+        );
     }
 }

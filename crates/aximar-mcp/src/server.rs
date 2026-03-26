@@ -1102,6 +1102,14 @@ impl rmcp::handler::server::ServerHandler for AximarMcpServer {
                  discover available packages and `get_package` to see what functions a \
                  package provides. Load a package with a code cell containing \
                  `load(\"name\")$`.\n\n\
+                 Intermediate output: use `print()` for plain-text labels and `tex(expr)` \
+                 to render symbolic expressions as LaTeX inline with the output. Only the \
+                 last `tex()` call (the one Aximar injects via `tex(%)`) becomes the cell's \
+                 main LaTeX result; earlier `tex()` calls appear as rendered LaTeX blocks \
+                 inside the text output. This is useful in loops — e.g. \
+                 `for n:1 thru 3 do (print(\"n =\", n, \":\"), tex(f(n)))` produces labelled \
+                 rendered math for each iteration. Avoid `tex(0)` or `tex(false)` as those \
+                 are filtered as trivial results.\n\n\
                  When working with multiple notebooks, use `list_notebooks` to see all open \
                  notebooks, `create_notebook` to open a new one, `close_notebook` to remove \
                  one, and `switch_notebook` to change the active default. Most tools accept \

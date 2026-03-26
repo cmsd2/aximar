@@ -177,10 +177,11 @@ incorrect syntax: Premature termination of input at ;.
 
 - Default timeout: 30 seconds per evaluation
 - If sentinel not received within timeout:
-  1. Kill the Maxima process
-  2. Return an error result: "Evaluation timed out after 30 seconds"
-  3. Automatically restart Maxima process
-  4. Notify frontend of restart
+  1. Send an interrupt signal to the Maxima process (SIGINT on Unix, CTRL_BREAK_EVENT on Windows)
+  2. Drain output until the sentinel arrives (5 second timeout for the drain itself)
+  3. Return an error result: "Evaluation timed out after 30 seconds"
+  4. The session remains synchronized and ready for the next evaluation
+- If the drain also times out, the process is truly stuck and the user should restart the session
 
 ## Crash Recovery
 
@@ -198,11 +199,15 @@ Maxima is single-threaded. Evaluations are serialized via a Mutex on the process
 
 ## Interrupting Evaluation
 
-To cancel a long-running computation:
+When a computation exceeds the timeout, Aximar interrupts and resynchronizes:
 
-1. Send SIGINT to the Maxima process (Unix) or equivalent (Windows)
-2. If that doesn't work within 2 seconds, kill and restart
-3. Return an error result: "Evaluation interrupted"
+1. Send SIGINT to the Maxima process (Unix) or CTRL_BREAK_EVENT (Windows, requires `CREATE_NEW_PROCESS_GROUP` at spawn)
+2. Drain stdout/stderr until the sentinel line arrives (5 second drain timeout)
+3. Return a timeout error to the caller
+
+This keeps the protocol synchronized so subsequent evaluations work correctly, avoiding the need to restart the session after every timeout.
+
+If the drain itself times out (Maxima completely unresponsive to interrupt), the session is left in a desynchronized state and the user should restart it manually.
 
 ## LaTeX Preprocessing for KaTeX
 

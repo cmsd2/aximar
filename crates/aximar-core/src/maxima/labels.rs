@@ -50,32 +50,27 @@ pub fn rewrite_labels(input: &str, ctx: &LabelContext) -> String {
 
 /// Replace bare `%` (not followed by `%`, letter, digit, or `_`) with `replacement`.
 fn replace_bare_percent(input: &str, replacement: &str) -> String {
-    let bytes = input.as_bytes();
     let mut result = String::with_capacity(input.len());
-    let mut i = 0;
-    while i < bytes.len() {
-        if bytes[i] == b'%' {
-            let next = bytes.get(i + 1).copied();
-            match next {
+    let mut chars = input.chars().peekable();
+    while let Some(ch) = chars.next() {
+        if ch == '%' {
+            match chars.peek() {
                 // %% is a Maxima construct — emit both and skip past
-                Some(b'%') => {
+                Some(&'%') => {
                     result.push_str("%%");
-                    i += 2;
+                    chars.next();
                 }
-                // Followed by letter, digit, or underscore — not bare
-                Some(c) if matches!(c, b'a'..=b'z' | b'A'..=b'Z' | b'0'..=b'9' | b'_') => {
+                // Followed by ASCII letter, digit, or underscore — not bare
+                Some(&c) if c.is_ascii_alphanumeric() || c == '_' => {
                     result.push('%');
-                    i += 1;
                 }
                 // Bare % (followed by non-identifier char or end of string)
                 _ => {
                     result.push_str(replacement);
-                    i += 1;
                 }
             }
         } else {
-            result.push(bytes[i] as char);
-            i += 1;
+            result.push(ch);
         }
     }
     result
@@ -333,6 +328,25 @@ mod tests {
         assert_eq!(
             rewrite_labels("%", &ctx_full(Some("%o6"), &[(6, "%o99")])),
             "%o6"
+        );
+    }
+
+    // ── Unicode preservation ────────────────────────────────────────
+
+    #[test]
+    fn unicode_preserved_in_strings() {
+        // Multi-byte UTF-8 chars like → (E2 86 92) must not be garbled
+        assert_eq!(
+            rewrite_labels(r#"[title, "error → 0 as T → ∞"]"#, &ctx_bare(None)),
+            r#"[title, "error → 0 as T → ∞"]"#
+        );
+    }
+
+    #[test]
+    fn unicode_greek_preserved() {
+        assert_eq!(
+            rewrite_labels("sin(theta) + % * alpha", &ctx_bare(Some("%o6"))),
+            "sin(theta) + %o6 * alpha"
         );
     }
 }

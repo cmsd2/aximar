@@ -14,3 +14,6 @@ thiserror = "2"
 tempfile = "3"
 nanoid = "0.4"
 probly-search = "2"
+
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"

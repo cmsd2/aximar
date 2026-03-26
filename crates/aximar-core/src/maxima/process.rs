@@ -38,6 +38,11 @@ impl MaximaProcess {
                     .stdout(std::process::Stdio::piped())
                     .stderr(std::process::Stdio::piped())
                     .kill_on_drop(true);
+                #[cfg(windows)]
+                {
+                    use std::os::windows::process::CommandExt;
+                    cmd.creation_flags(0x00000200); // CREATE_NEW_PROCESS_GROUP
+                }
                 hide_console_window(&mut cmd);
                 let child = cmd.spawn()
                     .map_err(|e| AppError::ProcessStartFailed(format!("{}: {}", maxima_path, e)))?;
@@ -98,6 +103,8 @@ impl MaximaProcess {
                         &seccomp_opt,
                         "--name",
                         &container_name,
+                        "-e", "LANG=en_US.UTF-8",
+                        "-e", "LC_ALL=en_US.UTF-8",
                         "-v",
                         &volume_mount,
                         image,
@@ -107,6 +114,11 @@ impl MaximaProcess {
                     .stdout(std::process::Stdio::piped())
                     .stderr(std::process::Stdio::piped())
                     .kill_on_drop(true);
+                #[cfg(windows)]
+                {
+                    use std::os::windows::process::CommandExt;
+                    docker_cmd.creation_flags(0x00000200); // CREATE_NEW_PROCESS_GROUP
+                }
                 hide_console_window(&mut docker_cmd);
                 let child = docker_cmd.spawn()
                     .map_err(|e| {
@@ -143,11 +155,16 @@ impl MaximaProcess {
                 if !distro.is_empty() {
                     cmd.args(["-d", distro]);
                 }
-                cmd.args(["--", "maxima", "--very-quiet"]);
+                cmd.args(["--", "env", "LANG=en_US.UTF-8", "LC_ALL=en_US.UTF-8", "maxima", "--very-quiet"]);
                 cmd.stdin(std::process::Stdio::piped())
                     .stdout(std::process::Stdio::piped())
                     .stderr(std::process::Stdio::piped())
                     .kill_on_drop(true);
+                #[cfg(windows)]
+                {
+                    use std::os::windows::process::CommandExt;
+                    cmd.creation_flags(0x00000200); // CREATE_NEW_PROCESS_GROUP
+                }
                 hide_console_window(&mut cmd);
 
                 let child = cmd.spawn().map_err(|e| {
@@ -194,7 +211,7 @@ impl MaximaProcess {
         };
 
         let init_commands = format!(
-            "{}display2d:false$\nset_plot_option([run_viewer, false])$\nset_plot_option([gnuplot_term, svg])$\nprint(\"{}\")$\n",
+            "{}display2d:false$\nset_plot_option([run_viewer, false])$\nset_plot_option([gnuplot_term, svg])$\nset_plot_option([gnuplot_preamble, \"set encoding utf8\"])$\nprint(\"{}\")$\n",
             tempdir_cmd,
             READY_SENTINEL
         );
@@ -305,6 +322,45 @@ impl MaximaProcess {
                 _ => break,
             }
         }
+    }
+
+    /// Send an interrupt signal to the Maxima process.
+    /// Unix: SIGINT. Windows: CTRL_BREAK_EVENT (requires CREATE_NEW_PROCESS_GROUP at spawn).
+    pub fn interrupt(&self) {
+        let Some(pid) = self.child.id() else { return };
+
+        #[cfg(unix)]
+        unsafe {
+            libc::kill(pid as i32, libc::SIGINT);
+        }
+
+        #[cfg(windows)]
+        {
+            extern "system" {
+                fn GenerateConsoleCtrlEvent(dwCtrlEvent: u32, dwProcessGroupId: u32) -> i32;
+            }
+            const CTRL_BREAK_EVENT: u32 = 1;
+            unsafe {
+                GenerateConsoleCtrlEvent(CTRL_BREAK_EVENT, pid);
+            }
+        }
+    }
+
+    /// Interrupt a running Maxima computation and drain output to
+    /// re-synchronize after a timeout.
+    pub async fn interrupt_and_resync(&mut self, sentinel: &str) {
+        self.interrupt();
+
+        // Drain output until the sentinel arrives. The sentinel print
+        // was already written to stdin before the timeout, so after the
+        // interrupt Maxima should process it shortly.
+        let _ = tokio::time::timeout(
+            std::time::Duration::from_secs(5),
+            self.read_until_sentinel(sentinel),
+        )
+        .await;
+        // If drain also times out, the process is truly stuck.
+        // Caller returns the timeout error; user can restart.
     }
 
     pub async fn kill(&mut self) -> Result<(), AppError> {

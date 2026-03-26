@@ -112,9 +112,21 @@ function escapeRegex(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
-/** Replace Unicode math symbols with their Maxima-compatible ASCII names */
+/**
+ * Replace Unicode math symbols with their Maxima-compatible ASCII names.
+ * String literals (delimited by `"`) are left untouched so that Unicode
+ * characters in plot labels, print messages, etc. pass through verbatim.
+ */
 export function unicodeToMaxima(expr: string): string {
-  return expr.replace(UNICODE_SYMBOL_RE, (ch) => UNICODE_TO_MAXIMA.get(ch) ?? ch);
+  // Split on string literals preserving delimiters: alternating code/string segments
+  const parts = expr.split(/("(?:[^"]*)")/);
+  return parts
+    .map((part) =>
+      part.startsWith('"')
+        ? part // string literal — preserve unchanged
+        : part.replace(UNICODE_SYMBOL_RE, (ch) => UNICODE_TO_MAXIMA.get(ch) ?? ch),
+    )
+    .join("");
 }
 
 /**

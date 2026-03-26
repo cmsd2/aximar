@@ -37,12 +37,18 @@ pub async fn evaluate(
 
     process.write_stdin(&input).await?;
 
-    let lines = tokio::time::timeout(
+    let lines = match tokio::time::timeout(
         std::time::Duration::from_secs(eval_timeout_secs),
         process.read_until_sentinel(EVAL_SENTINEL),
     )
     .await
-    .map_err(|_| AppError::Timeout(eval_timeout_secs))??;
+    {
+        Ok(result) => result?,
+        Err(_) => {
+            process.interrupt_and_resync(EVAL_SENTINEL).await;
+            return Err(AppError::Timeout(eval_timeout_secs));
+        }
+    };
 
     let duration_ms = start.elapsed().as_millis() as u64;
 
@@ -74,12 +80,18 @@ pub async fn evaluate_with_packages(
 
     process.write_stdin(&input).await?;
 
-    let lines = tokio::time::timeout(
+    let lines = match tokio::time::timeout(
         std::time::Duration::from_secs(eval_timeout_secs),
         process.read_until_sentinel(EVAL_SENTINEL),
     )
     .await
-    .map_err(|_| AppError::Timeout(eval_timeout_secs))??;
+    {
+        Ok(result) => result?,
+        Err(_) => {
+            process.interrupt_and_resync(EVAL_SENTINEL).await;
+            return Err(AppError::Timeout(eval_timeout_secs));
+        }
+    };
 
     let duration_ms = start.elapsed().as_millis() as u64;
 
@@ -96,12 +108,18 @@ pub async fn query_variables(process: &mut MaximaProcess) -> Result<Vec<String>,
 
     process.write_stdin(&input).await?;
 
-    let lines = tokio::time::timeout(
+    let lines = match tokio::time::timeout(
         std::time::Duration::from_secs(VARS_TIMEOUT_SECS),
         process.read_until_sentinel(VARS_SENTINEL),
     )
     .await
-    .map_err(|_| AppError::Timeout(VARS_TIMEOUT_SECS))??;
+    {
+        Ok(result) => result?,
+        Err(_) => {
+            process.interrupt_and_resync(VARS_SENTINEL).await;
+            return Err(AppError::Timeout(VARS_TIMEOUT_SECS));
+        }
+    };
 
     // Find __AXIMAR_VARS__ and parse the variable list.
     // Maxima may wrap long lists across multiple lines, so join them first.
@@ -143,12 +161,18 @@ pub async fn kill_variable(process: &mut MaximaProcess, name: &str) -> Result<()
 
     process.write_stdin(&input).await?;
 
-    tokio::time::timeout(
+    match tokio::time::timeout(
         std::time::Duration::from_secs(VARS_TIMEOUT_SECS),
         process.read_until_sentinel(VARS_SENTINEL),
     )
     .await
-    .map_err(|_| AppError::Timeout(VARS_TIMEOUT_SECS))??;
+    {
+        Ok(result) => { result?; }
+        Err(_) => {
+            process.interrupt_and_resync(VARS_SENTINEL).await;
+            return Err(AppError::Timeout(VARS_TIMEOUT_SECS));
+        }
+    }
 
     Ok(())
 }
@@ -161,12 +185,18 @@ pub async fn kill_all_variables(process: &mut MaximaProcess) -> Result<(), AppEr
 
     process.write_stdin(&input).await?;
 
-    tokio::time::timeout(
+    match tokio::time::timeout(
         std::time::Duration::from_secs(VARS_TIMEOUT_SECS),
         process.read_until_sentinel(VARS_SENTINEL),
     )
     .await
-    .map_err(|_| AppError::Timeout(VARS_TIMEOUT_SECS))??;
+    {
+        Ok(result) => { result?; }
+        Err(_) => {
+            process.interrupt_and_resync(VARS_SENTINEL).await;
+            return Err(AppError::Timeout(VARS_TIMEOUT_SECS));
+        }
+    }
 
     Ok(())
 }

@@ -1,6 +1,7 @@
 import { useState, useCallback, useRef, useMemo, useEffect } from "react";
 import type { CellOutput as CellOutputType } from "../types/notebook";
 import { KatexOutput } from "./KatexOutput";
+import { RichTextOutput } from "./RichTextOutput";
 import { EnhancedErrorOutput } from "./EnhancedErrorOutput";
 import { sanitizeSvg } from "../lib/sanitize-svg";
 
@@ -84,10 +85,8 @@ export function CellOutput({ output, cellId }: CellOutputProps) {
           <img src={plotBlobUrl} alt="Plot output" />
         </div>
       )}
+      {hasText && <RichTextOutput text={output.textOutput} />}
       {hasLatex && <KatexOutput latex={output.latex!} />}
-      {hasText && !hasLatex && !hasPlot && (
-        <pre className="text-output">{output.textOutput}</pre>
-      )}
       {!hasLatex && !hasText && !hasPlot && (
         <span className="text-output empty-output">(no output)</span>
       )}

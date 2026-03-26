@@ -2588,6 +2588,7 @@
   }
 
   /* Hide non-content UI */
+  .tab-bar,
   .toolbar,
   .find-bar,
   .variable-panel,

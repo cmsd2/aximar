@@ -14,6 +14,10 @@ static LABEL_RE: LazyLock<Regex> =
 static SVG_PATH_RE: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r#"\[?"([^"]+\.svg)"(?:,\s*"[^"]+\.svg")*\]?"#).unwrap());
 
+/// Matches any line that's part of a plot file path array (gnuplot, svg, data files).
+static PLOT_PATH_LINE_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r#""[^"]+\.(svg|gnuplot|data|plt)""#).unwrap());
+
 /// LaTeX values that indicate tex(%) had no real result (e.g. after an error)
 const JUNK_LATEX: &[&str] = &[
     "\\mathbf{false}",
@@ -32,6 +36,10 @@ fn is_junk_latex(inner: &str) -> bool {
         // String results: tex() wraps them in \mbox{...} which KaTeX can't
         // render well — fall back to text output instead
         || (inner.starts_with("\\mbox{") && inner.ends_with('}'))
+        // Plot results: tex(%) on a list of file paths produces multi-line
+        // LaTeX like \left[\mbox{...gnuplot}, \mbox{...svg}\right].
+        // Detect by checking for .svg in mbox content.
+        || (inner.contains("\\mbox") && inner.contains(".svg"))
 }
 
 /// Check that an SVG path is safe to read: it must have a `.svg` extension and
@@ -117,6 +125,14 @@ fn parse_output_inner(
     let mut latex_buf: Option<String> = None;
     // Track \begin{verbatim}...\end{verbatim} blocks from tex() on function defs
     let mut in_verbatim = false;
+    // Track intermediate LaTeX blocks from user tex() calls.
+    // Each entry is (position_in_text_lines, latex_content_without_delimiters).
+    // The last $$...$$ block (from our injected tex(%)) goes to `latex`;
+    // earlier blocks are interleaved back into text_output.
+    let mut intermediate_latex: Vec<(usize, String)> = Vec::new();
+    // Position in text_lines when the current `latex` was set, used to
+    // identify the 1D result line to skip (it's at latex_pos - 1).
+    let mut latex_pos: Option<usize> = None;
 
     for line in lines {
         let trimmed = line.trim();
@@ -142,9 +158,13 @@ fn parse_output_inner(
                 let full = buf.clone();
                 latex_buf = None;
                 let inner = &full[2..full.len() - 2];
-                if !is_junk_latex(inner) {
-                    latex = Some(inner.to_string());
+                // Accept all LaTeX blocks during the loop — junk filtering
+                // is applied only to the final block (our tex(%)) after the loop.
+                if let Some(prev) = latex.take() {
+                    intermediate_latex.push((latex_pos.unwrap(), prev));
                 }
+                latex = Some(inner.to_string());
+                latex_pos = Some(text_lines.len());
                 skip_next_false = true;
             }
             continue;
@@ -188,9 +208,13 @@ fn parse_output_inner(
             if trimmed.ends_with("$$") && trimmed.len() > 4 {
                 // Single-line LaTeX
                 let inner = &trimmed[2..trimmed.len() - 2];
-                if !is_junk_latex(inner) {
-                    latex = Some(inner.to_string());
+                // Accept all LaTeX blocks during the loop — junk filtering
+                // is applied only to the final block (our tex(%)) after the loop.
+                if let Some(prev) = latex.take() {
+                    intermediate_latex.push((latex_pos.unwrap(), prev));
                 }
+                latex = Some(inner.to_string());
+                latex_pos = Some(text_lines.len());
                 skip_next_false = true;
             } else {
                 // Start of multi-line LaTeX
@@ -240,15 +264,56 @@ fn parse_output_inner(
         None
     };
 
-    // If there's an error, don't show text_lines (they may be noise)
-    let text_output = if has_error {
-        String::new()
+    // Filter junk only from the final LaTeX (our injected tex(%)).
+    // Intermediate blocks from user tex() calls are kept unconditionally.
+    // This must happen before computing skip_1d_idx — if the final latex is
+    // junk, its preceding text line is NOT a redundant 1D result (e.g. it may
+    // be a plot file path that SVG detection needs).
+    let latex = if has_error {
+        None
+    } else if latex.as_ref().is_some_and(|l| is_junk_latex(l)) {
+        None
     } else {
-        text_lines.join("\n")
+        latex
     };
 
-    // If error, discard any junk latex that came from tex(%) on the error state
-    let latex = if has_error { None } else { latex };
+    // The 1D text result (preceding the final tex(%)) is redundant with latex.
+    // Identify its index so we can skip it when building text_output.
+    // Only skip when we actually have a non-junk latex result.
+    let skip_1d_idx = if !has_error && latex.is_some() {
+        latex_pos.and_then(|pos| if pos > 0 { Some(pos - 1) } else { None })
+    } else {
+        None
+    };
+
+    // Build text_output by interleaving text_lines with intermediate LaTeX
+    // blocks from user tex() calls (preserved as $$...$$ for frontend rendering).
+    let text_output = if has_error {
+        String::new()
+    } else if intermediate_latex.is_empty() && skip_1d_idx.is_none() {
+        text_lines.join("\n")
+    } else {
+        let mut parts: Vec<String> = Vec::new();
+        let mut li = 0;
+        for (i, text_line) in text_lines.iter().enumerate() {
+            // Insert intermediate LaTeX blocks that appeared at this position
+            while li < intermediate_latex.len() && intermediate_latex[li].0 <= i {
+                parts.push(format!("$${}$$", intermediate_latex[li].1));
+                li += 1;
+            }
+            // Skip the 1D text result (redundant with latex)
+            if Some(i) == skip_1d_idx {
+                continue;
+            }
+            parts.push(text_line.clone());
+        }
+        // Append remaining intermediate LaTeX
+        while li < intermediate_latex.len() {
+            parts.push(format!("$${}$$", intermediate_latex[li].1));
+            li += 1;
+        }
+        parts.join("\n")
+    };
 
     // Detect SVG plot file paths in text output: Maxima returns e.g. ["/tmp/maxplot.svg"]
     let svg_path_re = &*SVG_PATH_RE;
@@ -265,10 +330,11 @@ fn parse_output_inner(
                     plot_svg = Some(svg_content);
                 }
             }
-            // Strip the file path line from text output
+            // Strip all plot file path lines from text output (both .svg and .gnuplot)
+            let plot_line_re = &*PLOT_PATH_LINE_RE;
             let cleaned: Vec<&str> = text_output
                 .lines()
-                .filter(|line| !svg_path_re.is_match(line))
+                .filter(|line| !plot_line_re.is_match(line))
                 .collect();
             cleaned.join("\n")
         } else {
@@ -601,6 +667,185 @@ mod tests {
         assert!(!result.is_error);
         assert!(result.text_output.is_empty());
         assert!(result.latex.is_none());
+    }
+
+    #[test]
+    fn test_print_output_preserved_when_latex_present() {
+        // print() output should remain in text_output; only the 1D result is stripped
+        let lines = vec![
+            "hello".to_string(),
+            "world".to_string(),
+            "42".to_string(),
+            "$$42$$".to_string(),
+            "false".to_string(),
+            "__AXIMAR_LABEL__ 5".to_string(),
+            "__AXIMAR_EVAL_END__".to_string(),
+        ];
+        let result = parse_output("cell-1", &lines, 100, &catalog(), &Backend::Local);
+        assert!(!result.is_error);
+        assert_eq!(result.latex, Some("42".to_string()));
+        // "42" (the 1D result) should be stripped; only print output remains
+        assert_eq!(result.text_output, "hello\nworld");
+    }
+
+    #[test]
+    fn test_no_print_output_text_empty_when_latex_present() {
+        // When there's no print() output, text_output should be empty
+        let lines = vec![
+            "x^3/3".to_string(),
+            "$${{x^3}\\over{3}}$$".to_string(),
+            "false".to_string(),
+            "__AXIMAR_EVAL_END__".to_string(),
+        ];
+        let result = parse_output("cell-1", &lines, 100, &catalog(), &Backend::Local);
+        assert!(!result.is_error);
+        assert_eq!(result.latex, Some("{{x^3}\\over{3}}".to_string()));
+        assert!(result.text_output.is_empty());
+    }
+
+    #[test]
+    fn test_multiple_tex_calls_preserve_earlier_in_text() {
+        // User tex() calls produce $$...$$ blocks that should stay in text_output.
+        // Only the last $$...$$ (from our injected tex(%)) becomes the latex field.
+        let lines = vec![
+            "Step 1".to_string(),
+            "$$1$$".to_string(),            // user tex(1)
+            "false".to_string(),
+            "Step 2".to_string(),
+            "$$4$$".to_string(),            // user tex(4)
+            "false".to_string(),
+            "done".to_string(),             // 1D result of for loop
+            "$$\\mathit{done}$$".to_string(), // tex(%) on "done"
+            "false".to_string(),
+            "__AXIMAR_LABEL__ 10".to_string(),
+            "__AXIMAR_EVAL_END__".to_string(),
+        ];
+        let result = parse_output("cell-1", &lines, 100, &catalog(), &Backend::Local);
+        assert!(!result.is_error);
+        assert_eq!(result.latex, Some("\\mathit{done}".to_string()));
+        // Earlier tex() blocks should be in text_output as $$...$$
+        assert!(result.text_output.contains("Step 1"));
+        assert!(result.text_output.contains("$$1$$"));
+        assert!(result.text_output.contains("Step 2"));
+        assert!(result.text_output.contains("$$4$$"));
+        // The 1D "done" should be stripped (superseded by LaTeX)
+        assert!(!result.text_output.contains("done"));
+    }
+
+    #[test]
+    fn test_single_tex_still_becomes_latex() {
+        // Normal case: one $$...$$ from tex(%) goes to latex field
+        let lines = vec![
+            "42".to_string(),
+            "$$42$$".to_string(),
+            "false".to_string(),
+            "__AXIMAR_EVAL_END__".to_string(),
+        ];
+        let result = parse_output("cell-1", &lines, 100, &catalog(), &Backend::Local);
+        assert_eq!(result.latex, Some("42".to_string()));
+        assert!(result.text_output.is_empty());
+    }
+
+    #[test]
+    #[test]
+    fn test_intermediate_tex_zero_preserved() {
+        // User tex(0) produces $$0$$ which is in JUNK_LATEX, but intermediate
+        // LaTeX from user tex() calls should be preserved — only the final
+        // tex(%) result is junk-filtered.
+        let lines = vec![
+            "Step 1".to_string(),
+            "$$0$$".to_string(),               // user tex(0) — should be kept
+            "false".to_string(),
+            "Step 2".to_string(),
+            "$$4$$".to_string(),               // user tex(4)
+            "false".to_string(),
+            "done".to_string(),                // 1D result
+            "$$\\mathbf{done}$$".to_string(),  // tex(%) on for-loop result
+            "false".to_string(),
+            "__AXIMAR_EVAL_END__".to_string(),
+        ];
+        let result = parse_output("cell-1", &lines, 100, &catalog(), &Backend::Local);
+        assert!(!result.is_error);
+        assert_eq!(result.latex, Some("\\mathbf{done}".to_string()));
+        // Both intermediate tex() results should be in text_output
+        assert!(result.text_output.contains("$$0$$"), "tex(0) should be preserved");
+        assert!(result.text_output.contains("$$4$$"));
+        assert!(result.text_output.contains("Step 1"));
+        assert!(result.text_output.contains("Step 2"));
+        // 1D "done" should be stripped
+        assert!(!result.text_output.contains("done"));
+    }
+
+    #[test]
+    fn test_final_junk_latex_filtered() {
+        // When the final tex(%) produces junk (e.g. $$false$$), it should be
+        // filtered, but intermediate user tex() blocks should still be kept.
+        let lines = vec![
+            "Step 1".to_string(),
+            "$$x^2$$".to_string(),             // user tex(x^2)
+            "false".to_string(),
+            "false".to_string(),               // 1D result
+            "$$\\mathbf{false}$$".to_string(), // tex(%) on false — junk
+            "false".to_string(),
+            "__AXIMAR_EVAL_END__".to_string(),
+        ];
+        let result = parse_output("cell-1", &lines, 100, &catalog(), &Backend::Local);
+        assert!(!result.is_error);
+        assert_eq!(result.latex, None, "final junk latex should be filtered");
+        assert!(result.text_output.contains("$$x^2$$"), "user tex() should be kept");
+        assert!(result.text_output.contains("Step 1"));
+    }
+
+    #[test]
+    fn test_text_before_junk_latex_not_stripped() {
+        // When the final tex(%) produces junk (e.g. \mbox{...}), the preceding
+        // text line must NOT be stripped as a "redundant 1D result". This matters
+        // for plot commands where the text line is a file path needed for SVG detection.
+        let lines = vec![
+            "some important output".to_string(),
+            "$$\\mbox{ hello }$$".to_string(), // tex(%) — junk (mbox)
+            "false".to_string(),
+            "__AXIMAR_EVAL_END__".to_string(),
+        ];
+        let result = parse_output("cell-1", &lines, 100, &catalog(), &Backend::Local);
+        assert!(!result.is_error);
+        assert_eq!(result.latex, None, "mbox latex should be filtered");
+        // The text line must NOT be stripped — it's not redundant with anything
+        assert!(
+            result.text_output.contains("some important output"),
+            "text before junk latex should be preserved: {:?}",
+            result.text_output
+        );
+    }
+
+    #[test]
+    fn test_multiline_plot_latex_is_junk() {
+        // plot2d returns a list of file paths. tex(%) on this produces multi-line
+        // LaTeX like \left[\mbox{...gnuplot}, \mbox{...svg}\right].
+        // This must be detected as junk so the file path text lines are preserved
+        // for SVG detection. SVG detection then strips ALL plot path lines
+        // (.svg AND .gnuplot) from the final text_output.
+        let lines = vec![
+            "[\"/tmp/aximar/cell-1.gnuplot\",".to_string(),
+            " \"/tmp/aximar/cell-1.svg\"]".to_string(),
+            "$$\\left[\\mbox{ /tmp/aximar/cell-1.gnuplot } , \\mbox{ /tmp/aximar/cell-1.svg }  \\right] $$".to_string(),
+            "false".to_string(),
+            "__AXIMAR_EVAL_END__".to_string(),
+        ];
+        let result = parse_output("cell-1", &lines, 100, &catalog(), &Backend::Local);
+        assert!(!result.is_error);
+        assert_eq!(result.latex, None, "plot path latex should be filtered as junk");
+        // Both .gnuplot and .svg path lines should be stripped
+        assert!(
+            !result.text_output.contains(".gnuplot"),
+            "gnuplot path should be stripped from text_output: {:?}",
+            result.text_output
+        );
+        assert!(
+            !result.text_output.contains(".svg"),
+            "svg path should be stripped from text_output: {:?}",
+            result.text_output
+        );
     }
 
     #[test]
