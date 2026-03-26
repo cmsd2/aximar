@@ -95,21 +95,103 @@ export const MATH_SYMBOLS: MathSymbol[] = [
   { latex: "rightarrow", unicode: "→", maxima: "to" },
   { latex: "Rightarrow", unicode: "⇒", maxima: "implies" },
   { latex: "Leftrightarrow", unicode: "⇔", maxima: "iff" },
+
+  // Subscript digits (for variable subscripts like T₀, x₁)
+  { latex: "_0", unicode: "₀", maxima: "[0]" },
+  { latex: "_1", unicode: "₁", maxima: "[1]" },
+  { latex: "_2", unicode: "₂", maxima: "[2]" },
+  { latex: "_3", unicode: "₃", maxima: "[3]" },
+  { latex: "_4", unicode: "₄", maxima: "[4]" },
+  { latex: "_5", unicode: "₅", maxima: "[5]" },
+  { latex: "_6", unicode: "₆", maxima: "[6]" },
+  { latex: "_7", unicode: "₇", maxima: "[7]" },
+  { latex: "_8", unicode: "₈", maxima: "[8]" },
+  { latex: "_9", unicode: "₉", maxima: "[9]" },
+
+  // Superscript characters (translated to ^(n) power syntax)
+  { latex: "^0", unicode: "⁰", maxima: "^(0)" },
+  { latex: "^1", unicode: "¹", maxima: "^(1)" },
+  { latex: "^2", unicode: "²", maxima: "^(2)" },
+  { latex: "^3", unicode: "³", maxima: "^(3)" },
+  { latex: "^4", unicode: "⁴", maxima: "^(4)" },
+  { latex: "^5", unicode: "⁵", maxima: "^(5)" },
+  { latex: "^6", unicode: "⁶", maxima: "^(6)" },
+  { latex: "^7", unicode: "⁷", maxima: "^(7)" },
+  { latex: "^8", unicode: "⁸", maxima: "^(8)" },
+  { latex: "^9", unicode: "⁹", maxima: "^(9)" },
+  { latex: "^-", unicode: "⁻", maxima: "^(-" },
+  { latex: "^+", unicode: "⁺", maxima: "^(+" },
+  { latex: "^n", unicode: "ⁿ", maxima: "^(n)" },
 ];
+
+/** Symbols handled by the simple per-character regex replacement.
+ *  Subscript/superscript chars are excluded — they need run-grouping
+ *  (e.g. ₁₂ → [12] not [1][2]) and are handled by dedicated functions. */
+const REGEX_SYMBOLS = MATH_SYMBOLS.filter(
+  (s) => !s.latex.startsWith("_") && !s.latex.startsWith("^"),
+);
 
 /** Map from Unicode character to Maxima-compatible name */
 export const UNICODE_TO_MAXIMA: Map<string, string> = new Map(
-  MATH_SYMBOLS.map((s) => [s.unicode, s.maxima]),
+  REGEX_SYMBOLS.map((s) => [s.unicode, s.maxima]),
 );
 
 /** Regex matching any mapped Unicode symbol character */
 export const UNICODE_SYMBOL_RE: RegExp = new RegExp(
-  "[" + [...new Set(MATH_SYMBOLS.map((s) => s.unicode))].map(escapeRegex).join("") + "]",
+  "[" + [...new Set(REGEX_SYMBOLS.map((s) => s.unicode))].map(escapeRegex).join("") + "]",
   "g",
 );
 
 function escapeRegex(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/** Map from Unicode subscript digit to ASCII digit */
+const SUBSCRIPT_DIGITS: Record<string, string> = {
+  "₀": "0", "₁": "1", "₂": "2", "₃": "3", "₄": "4",
+  "₅": "5", "₆": "6", "₇": "7", "₈": "8", "₉": "9",
+};
+
+/** Replace runs of Unicode subscript digits (₀-₉) with Maxima subscript syntax [digits]. */
+function replaceSubscriptDigits(input: string): string {
+  let result = "";
+  let inSubscript = false;
+  for (const ch of input) {
+    const digit = SUBSCRIPT_DIGITS[ch];
+    if (digit !== undefined) {
+      if (!inSubscript) { result += "["; inSubscript = true; }
+      result += digit;
+    } else {
+      if (inSubscript) { result += "]"; inSubscript = false; }
+      result += ch;
+    }
+  }
+  if (inSubscript) result += "]";
+  return result;
+}
+
+/** Map from Unicode superscript character to ASCII equivalent */
+const SUPERSCRIPT_CHARS: Record<string, string> = {
+  "⁰": "0", "¹": "1", "²": "2", "³": "3", "⁴": "4",
+  "⁵": "5", "⁶": "6", "⁷": "7", "⁸": "8", "⁹": "9",
+  "⁻": "-", "⁺": "+", "ⁿ": "n",
+};
+
+/** Replace runs of Unicode superscript chars with Maxima power syntax ^(...). */
+function replaceSuperscripts(input: string): string {
+  let result = "";
+  let run = "";
+  for (const ch of input) {
+    const ascii = SUPERSCRIPT_CHARS[ch];
+    if (ascii !== undefined) {
+      run += ascii;
+    } else {
+      if (run) { result += "^(" + run + ")"; run = ""; }
+      result += ch;
+    }
+  }
+  if (run) result += "^(" + run + ")";
+  return result;
 }
 
 /**
@@ -124,7 +206,11 @@ export function unicodeToMaxima(expr: string): string {
     .map((part) =>
       part.startsWith('"')
         ? part // string literal — preserve unchanged
-        : part.replace(UNICODE_SYMBOL_RE, (ch) => UNICODE_TO_MAXIMA.get(ch) ?? ch),
+        : replaceSuperscripts(
+            replaceSubscriptDigits(
+              part.replace(UNICODE_SYMBOL_RE, (ch) => UNICODE_TO_MAXIMA.get(ch) ?? ch),
+            ),
+          ),
     )
     .join("");
 }

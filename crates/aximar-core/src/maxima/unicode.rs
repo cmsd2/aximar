@@ -107,6 +107,101 @@ pub fn build_texput_init() -> String {
         + "$"
 }
 
+/// Map a Unicode subscript digit (₀-₉) to its ASCII digit equivalent.
+fn subscript_digit(ch: char) -> Option<char> {
+    match ch {
+        '₀' => Some('0'),
+        '₁' => Some('1'),
+        '₂' => Some('2'),
+        '₃' => Some('3'),
+        '₄' => Some('4'),
+        '₅' => Some('5'),
+        '₆' => Some('6'),
+        '₇' => Some('7'),
+        '₈' => Some('8'),
+        '₉' => Some('9'),
+        _ => None,
+    }
+}
+
+/// Replace runs of Unicode subscript digits (₀-₉) with Maxima subscript
+/// syntax `[digits]`.  E.g. `T₀` → `T[0]`, `x₁₂` → `x[12]`.
+fn replace_subscript_digits(input: &str) -> String {
+    let mut result = String::with_capacity(input.len());
+    let mut in_subscript = false;
+
+    for ch in input.chars() {
+        if let Some(digit) = subscript_digit(ch) {
+            if !in_subscript {
+                result.push('[');
+                in_subscript = true;
+            }
+            result.push(digit);
+        } else {
+            if in_subscript {
+                result.push(']');
+                in_subscript = false;
+            }
+            result.push(ch);
+        }
+    }
+
+    if in_subscript {
+        result.push(']');
+    }
+
+    result
+}
+
+/// Map a Unicode superscript character to its ASCII equivalent.
+fn superscript_char(ch: char) -> Option<char> {
+    match ch {
+        '⁰' => Some('0'),
+        '¹' => Some('1'),
+        '²' => Some('2'),
+        '³' => Some('3'),
+        '⁴' => Some('4'),
+        '⁵' => Some('5'),
+        '⁶' => Some('6'),
+        '⁷' => Some('7'),
+        '⁸' => Some('8'),
+        '⁹' => Some('9'),
+        '⁻' => Some('-'),
+        '⁺' => Some('+'),
+        'ⁿ' => Some('n'),
+        _ => None,
+    }
+}
+
+/// Replace runs of Unicode superscript characters with Maxima power syntax `^(...)`.
+/// E.g. `x²` → `x^(2)`, `x⁻¹` → `x^(-1)`, `a²³` → `a^(23)`.
+fn replace_superscripts(input: &str) -> String {
+    let mut result = String::with_capacity(input.len());
+    let mut run = String::new();
+
+    for ch in input.chars() {
+        if let Some(ascii) = superscript_char(ch) {
+            run.push(ascii);
+        } else {
+            if !run.is_empty() {
+                result.push_str("^(");
+                result.push_str(&run);
+                result.push(')');
+                run.clear();
+            }
+            result.push(ch);
+        }
+    }
+
+    if !run.is_empty() {
+        result.push_str("^(");
+        result.push_str(&run);
+        result.push(')');
+    }
+
+    result
+}
+
 /// Replace Unicode math symbols with their Maxima-compatible ASCII names.
 ///
 /// String literals (delimited by `"`) are left untouched so that Unicode
@@ -153,6 +248,10 @@ pub fn unicode_to_maxima(expr: &str) -> String {
                     replaced = replaced.replace(unicode, maxima);
                 }
             }
+            // Convert subscript digits (₀-₉) to Maxima subscript syntax [n]
+            replaced = replace_subscript_digits(&replaced);
+            // Convert superscript chars (²,⁻¹,ⁿ etc.) to Maxima power syntax ^(n)
+            replaced = replace_superscripts(&replaced);
             result.push_str(&replaced);
         }
     }
@@ -241,5 +340,71 @@ mod tests {
             unicode_to_maxima(r#"f(τ) + "τ" + g(τ) + "τ""#),
             r#"f(tau) + "τ" + g(tau) + "τ""#
         );
+    }
+
+    #[test]
+    fn subscript_digit_single() {
+        assert_eq!(unicode_to_maxima("T₀"), "T[0]");
+        assert_eq!(unicode_to_maxima("x₁ + x₂"), "x[1] + x[2]");
+    }
+
+    #[test]
+    fn subscript_digit_multi() {
+        assert_eq!(unicode_to_maxima("a₁₂"), "a[12]");
+    }
+
+    #[test]
+    fn subscript_digit_with_greek() {
+        assert_eq!(unicode_to_maxima("ω₀"), "omega[0]");
+        assert_eq!(unicode_to_maxima("τ₁ + τ₂"), "tau[1] + tau[2]");
+    }
+
+    #[test]
+    fn subscript_digit_in_string_preserved() {
+        assert_eq!(
+            unicode_to_maxima(r#"T₀ + "T₀""#),
+            r#"T[0] + "T₀""#
+        );
+    }
+
+    #[test]
+    fn superscript_single_digit() {
+        assert_eq!(unicode_to_maxima("x²"), "x^(2)");
+        assert_eq!(unicode_to_maxima("x³ + y²"), "x^(3) + y^(2)");
+    }
+
+    #[test]
+    fn superscript_multi_digit() {
+        assert_eq!(unicode_to_maxima("x²³"), "x^(23)");
+    }
+
+    #[test]
+    fn superscript_negative() {
+        assert_eq!(unicode_to_maxima("x⁻¹"), "x^(-1)");
+        assert_eq!(unicode_to_maxima("r⁻²"), "r^(-2)");
+    }
+
+    #[test]
+    fn superscript_n() {
+        assert_eq!(unicode_to_maxima("xⁿ"), "x^(n)");
+    }
+
+    #[test]
+    fn superscript_with_greek() {
+        assert_eq!(unicode_to_maxima("θ²"), "theta^(2)");
+        assert_eq!(unicode_to_maxima("ω⁻¹"), "omega^(-1)");
+    }
+
+    #[test]
+    fn superscript_in_string_preserved() {
+        assert_eq!(
+            unicode_to_maxima(r#"x² + "x²""#),
+            r#"x^(2) + "x²""#
+        );
+    }
+
+    #[test]
+    fn mixed_sub_and_superscript() {
+        assert_eq!(unicode_to_maxima("x₁² + x₂²"), "x[1]^(2) + x[2]^(2)");
     }
 }

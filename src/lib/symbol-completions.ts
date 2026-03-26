@@ -8,7 +8,7 @@ import { MATH_SYMBOLS } from "./math-symbols";
 export function symbolCompletionSource(
   context: CompletionContext,
 ): CompletionResult | null {
-  const match = context.matchBefore(/\\[a-zA-Z]*/);
+  const match = context.matchBefore(/\\[a-zA-Z_^0-9]*/);
   if (!match) return null;
 
   const prefix = match.text.slice(1); // strip leading backslash
