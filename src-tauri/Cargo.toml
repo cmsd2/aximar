@@ -1,6 +1,6 @@
 [package]
 name = "aximar"
-version = "0.10.0"
+version = "0.11.0"
 description = "A modern desktop GUI for the Maxima computer algebra system"
 authors = ["you"]
 edition = "2021"

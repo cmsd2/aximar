@@ -283,7 +283,7 @@ checksum = "c08606f8c3cbf4ce6ec8e28fb0014a2c086708fe954eaa885384a6165172e7e8"
 
 [[package]]
 name = "aximar"
-version = "0.10.0"
+version = "0.11.0"
 dependencies = [
  "aximar-core",
  "aximar-mcp",
@@ -307,7 +307,7 @@ dependencies = [
 
 [[package]]
 name = "aximar-core"
-version = "0.10.0"
+version = "0.11.0"
 dependencies = [
  "libc",
  "nanoid",
@@ -322,7 +322,7 @@ dependencies = [
 
 [[package]]
 name = "aximar-mcp"
-version = "0.10.0"
+version = "0.11.0"
 dependencies = [
  "anyhow",
  "aximar-core",
