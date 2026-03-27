@@ -4,6 +4,7 @@ import { useNotebookStore } from "../store/notebookStore";
 import { useLogStore } from "../store/logStore";
 import { startSession, restartSession } from "../lib/maxima-client";
 import { nbRunCell } from "../lib/notebook-commands";
+import { flushCell } from "../lib/dirty-inputs";
 
 function isMaximaNotFoundError(errorMsg: string): boolean {
   const lower = errorMsg.toLowerCase();
@@ -69,6 +70,8 @@ export function useMaxima() {
       addLog("info", `Evaluating: ${preview}`, "eval");
 
       try {
+        // Ensure the backend has the latest input before evaluating
+        await flushCell(cellId);
         // nb_run_cell handles: set status → evaluate → set output → emit events
         // The frontend receives status/output updates via notebook-state-changed events
         const result = await nbRunCell(cellId);

@@ -1,8 +1,9 @@
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 import { listen } from "@tauri-apps/api/event";
 import { ask } from "@tauri-apps/plugin-dialog";
 import { useNotebookStore } from "../store/notebookStore";
-import { nbGetState, nbUpdateCellInput, nbList, nbClose } from "../lib/notebook-commands";
+import { nbGetState, nbList, nbClose } from "../lib/notebook-commands";
+import { markDirty, cleanup } from "../lib/dirty-inputs";
 import type { CellOutput, CellStatus, CellType } from "../types/notebook";
 import type { SessionStatus } from "../types/maxima";
 
@@ -35,8 +36,6 @@ interface NotebookStateEvent {
   can_undo: boolean;
   can_redo: boolean;
 }
-
-const INPUT_SYNC_DEBOUNCE_MS = 300;
 
 /**
  * Focus the CodeMirror editor inside a cell container.
@@ -86,9 +85,6 @@ function mapSyncCells(syncCells: SyncCell[]) {
  * input sync from local edits to the backend.
  */
 export function useNotebookEvents() {
-  const inputTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  // Track which cell inputs are "dirty" locally so we can debounce sync
-  const dirtyInputsRef = useRef<Map<string, string>>(new Map());
 
   // --- Initial tab setup: discover notebooks from backend ---
   useEffect(() => {
@@ -245,27 +241,14 @@ export function useNotebookEvents() {
       for (const cell of tab.cells) {
         const prev = prevTab.cells.find((c) => c.id === cell.id);
         if (prev && prev.input !== cell.input) {
-          dirtyInputsRef.current.set(cell.id, cell.input);
+          markDirty(cell.id, cell.input);
         }
-      }
-
-      if (dirtyInputsRef.current.size > 0) {
-        if (inputTimerRef.current) clearTimeout(inputTimerRef.current);
-        inputTimerRef.current = setTimeout(() => {
-          const dirty = dirtyInputsRef.current;
-          dirtyInputsRef.current = new Map();
-          for (const [cellId, input] of dirty) {
-            nbUpdateCellInput(cellId, input).catch((e) =>
-              console.warn("Input sync failed:", e)
-            );
-          }
-        }, INPUT_SYNC_DEBOUNCE_MS);
       }
     });
 
     return () => {
       unsubscribe();
-      if (inputTimerRef.current) clearTimeout(inputTimerRef.current);
+      cleanup();
     };
   }, []);
 }
