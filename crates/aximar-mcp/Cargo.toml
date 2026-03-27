@@ -1,6 +1,6 @@
 [package]
 name = "aximar-mcp"
-version = "0.9.0"
+version = "0.10.0"
 edition = "2021"
 description = "Headless MCP server for Aximar — exposes Maxima CAS via Model Context Protocol"
 license = "GPL-3.0-or-later"
