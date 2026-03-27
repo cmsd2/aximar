@@ -3,13 +3,10 @@ use serde::Serialize;
 use tauri::{Emitter, State};
 
 use aximar_core::error::AppError;
-use aximar_core::maxima::backend::Backend;
 use aximar_core::maxima::output::{MultiOutputSink, OutputSink};
-use aximar_core::maxima::process::MaximaProcess;
-use aximar_core::maxima::protocol;
 use aximar_core::maxima::types::SessionStatus;
-use aximar_core::maxima::unicode::build_texput_init;
 use aximar_core::registry::NotebookContextRef;
+use aximar_core::session_ops::{self, SessionStatusCallback};
 use crate::commands::config::{read_backend, read_eval_timeout, read_maxima_path};
 use crate::state::AppState;
 use crate::tauri_output::{emit_app_log, TauriOutputSink};
@@ -20,15 +17,41 @@ struct SessionStatusEvent {
     status: SessionStatus,
 }
 
-fn emit_session_status(state: &AppState, notebook_id: &str, status: SessionStatus) {
-    if let Ok(guard) = state.app_handle.try_lock() {
-        if let Some(ref handle) = *guard {
-            let _ = handle.emit("session-status-changed", SessionStatusEvent {
-                notebook_id: notebook_id.to_string(),
-                status,
-            });
+/// Build a [`SessionStatusCallback`] that emits Tauri events and app logs.
+pub fn build_session_status_callback(state: &AppState) -> SessionStatusCallback {
+    let app_handle = state.app_handle.clone();
+    let app_log = state.app_log.clone();
+    Arc::new(move |notebook_id: &str, status: SessionStatus| {
+        // Emit session-status-changed event for the frontend
+        if let Ok(guard) = app_handle.try_lock() {
+            if let Some(ref handle) = *guard {
+                let _ = handle.emit(
+                    "session-status-changed",
+                    SessionStatusEvent {
+                        notebook_id: notebook_id.to_string(),
+                        status: status.clone(),
+                    },
+                );
+            }
         }
-    }
+        // Emit app log
+        let msg = match &status {
+            SessionStatus::Starting => "Maxima session starting...",
+            SessionStatus::Ready => "Maxima session ready",
+            SessionStatus::Error(e) => {
+                emit_app_log(
+                    &app_handle,
+                    &app_log,
+                    "error",
+                    &format!("Maxima session failed: {e}"),
+                    "session",
+                );
+                return;
+            }
+            _ => return,
+        };
+        emit_app_log(&app_handle, &app_log, "info", msg, "session");
+    })
 }
 
 /// Build a composite output sink that feeds both the Tauri frontend and the MCP
@@ -59,55 +82,21 @@ async fn resolve_context(
 pub async fn ensure_session(
     state: &AppState,
     ctx: &NotebookContextRef,
-    backend: Backend,
+    backend: aximar_core::maxima::backend::Backend,
     maxima_path: Option<String>,
     eval_timeout: u64,
 ) -> Result<(), AppError> {
-    let status = ctx.session.status();
-    match status {
-        SessionStatus::Ready | SessionStatus::Busy => Ok(()),
-        SessionStatus::Stopped | SessionStatus::Error(_) => {
-            let output_sink = build_output_sink(state, ctx);
-            emit_app_log(&state.app_handle, &state.app_log, "info", "Maxima session auto-starting...", "session");
-            ctx.session.begin_start().await;
-            emit_session_status(state, &ctx.id, SessionStatus::Starting);
-
-            match MaximaProcess::spawn(backend, maxima_path, output_sink).await {
-                Ok(process) => {
-                    ctx.session.set_ready(process).await;
-                    let init = build_texput_init();
-                    let mut guard = ctx.session.lock().await;
-                    if let Ok(p) = guard.process_mut() {
-                        let _ = protocol::evaluate(p, "__init__", &init, &state.catalog, eval_timeout).await;
-                    }
-                    drop(guard);
-                    emit_app_log(&state.app_handle, &state.app_log, "info", "Maxima session ready", "session");
-                    emit_session_status(state, &ctx.id, SessionStatus::Ready);
-                    Ok(())
-                }
-                Err(e) => {
-                    let msg = e.to_string();
-                    ctx.session.set_error(msg.clone()).await;
-                    emit_app_log(&state.app_handle, &state.app_log, "error", &format!("Maxima session failed: {msg}"), "session");
-                    emit_session_status(state, &ctx.id, SessionStatus::Error(msg));
-                    Err(e)
-                }
-            }
-        }
-        SessionStatus::Starting => {
-            for _ in 0..50 {
-                tokio::time::sleep(std::time::Duration::from_millis(100)).await;
-                match ctx.session.status() {
-                    SessionStatus::Ready | SessionStatus::Busy => return Ok(()),
-                    SessionStatus::Error(_) | SessionStatus::Stopped => {
-                        return Err(AppError::ProcessNotRunning);
-                    }
-                    _ => continue,
-                }
-            }
-            Err(AppError::ProcessNotRunning)
-        }
-    }
+    let on_status = build_session_status_callback(state);
+    session_ops::ensure_session(
+        ctx,
+        backend,
+        maxima_path,
+        |ctx| build_output_sink(state, ctx),
+        &state.catalog,
+        eval_timeout,
+        Some(&on_status),
+    )
+    .await
 }
 
 #[tauri::command]
@@ -119,32 +108,25 @@ pub async fn start_session(
     let ctx = resolve_context(&state, notebook_id).await?;
     let maxima_path = read_maxima_path(&app);
     let backend = read_backend(&app);
+    let eval_timeout = read_eval_timeout(&app);
     let output_sink = build_output_sink(&state, &ctx);
+    let on_status = build_session_status_callback(&state);
 
-    emit_app_log(&state.app_handle, &state.app_log, "info", "Maxima session starting...", "session");
     ctx.session.begin_start().await;
+    on_status(&ctx.id, SessionStatus::Starting);
 
-    match MaximaProcess::spawn(backend, maxima_path, output_sink).await {
-        Ok(process) => {
-            ctx.session.set_ready(process).await;
-            // Configure texput so Greek letters render correctly in TeX output
-            let init = build_texput_init();
-            let eval_timeout = read_eval_timeout(&app);
-            let mut guard = ctx.session.lock().await;
-            if let Ok(p) = guard.process_mut() {
-                let _ = protocol::evaluate(p, "__init__", &init, &state.catalog, eval_timeout).await;
-            }
-            drop(guard);
-            emit_app_log(&state.app_handle, &state.app_log, "info", "Maxima session ready", "session");
-            Ok(SessionStatus::Ready)
-        }
-        Err(e) => {
-            let msg = e.to_string();
-            ctx.session.set_error(msg.clone()).await;
-            emit_app_log(&state.app_handle, &state.app_log, "error", &format!("Maxima session failed: {msg}"), "session");
-            Err(e)
-        }
-    }
+    session_ops::spawn_and_init_session(
+        &ctx,
+        backend,
+        maxima_path,
+        output_sink,
+        &state.catalog,
+        eval_timeout,
+        Some(&on_status),
+    )
+    .await?;
+
+    Ok(SessionStatus::Ready)
 }
 
 #[tauri::command]
@@ -167,32 +149,26 @@ pub async fn restart_session(
     let ctx = resolve_context(&state, notebook_id).await?;
     let maxima_path = read_maxima_path(&app);
     let backend = read_backend(&app);
+    let eval_timeout = read_eval_timeout(&app);
     let output_sink = build_output_sink(&state, &ctx);
+    let on_status = build_session_status_callback(&state);
 
-    emit_app_log(&state.app_handle, &state.app_log, "info", "Maxima session restarting...", "session");
+    // begin_start kills any existing process via into_starting()
     ctx.session.begin_start().await;
+    on_status(&ctx.id, SessionStatus::Starting);
 
-    match MaximaProcess::spawn(backend, maxima_path, output_sink).await {
-        Ok(process) => {
-            ctx.session.set_ready(process).await;
-            // Configure texput so Greek letters render correctly in TeX output
-            let init = build_texput_init();
-            let eval_timeout = read_eval_timeout(&app);
-            let mut guard = ctx.session.lock().await;
-            if let Ok(p) = guard.process_mut() {
-                let _ = protocol::evaluate(p, "__init__", &init, &state.catalog, eval_timeout).await;
-            }
-            drop(guard);
-            emit_app_log(&state.app_handle, &state.app_log, "info", "Maxima session ready", "session");
-            Ok(SessionStatus::Ready)
-        }
-        Err(e) => {
-            let msg = e.to_string();
-            ctx.session.set_error(msg.clone()).await;
-            emit_app_log(&state.app_handle, &state.app_log, "error", &format!("Maxima session restart failed: {msg}"), "session");
-            Err(e)
-        }
-    }
+    session_ops::spawn_and_init_session(
+        &ctx,
+        backend,
+        maxima_path,
+        output_sink,
+        &state.catalog,
+        eval_timeout,
+        Some(&on_status),
+    )
+    .await?;
+
+    Ok(SessionStatus::Ready)
 }
 
 #[tauri::command]

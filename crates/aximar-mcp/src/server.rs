@@ -12,12 +12,11 @@ use aximar_core::catalog::packages::PackageCatalog;
 use aximar_core::catalog::search::Catalog;
 use aximar_core::maxima::backend::Backend;
 use aximar_core::maxima::output::OutputSink;
-use aximar_core::maxima::unicode::{build_texput_init, unicode_to_maxima};
-use aximar_core::maxima::process::MaximaProcess;
+use aximar_core::maxima::unicode::unicode_to_maxima;
 use aximar_core::maxima::protocol;
-use aximar_core::maxima::types::SessionStatus;
 use aximar_core::notebooks::{data as notebook_data, io as notebook_io};
 use aximar_core::registry::{NotebookContextRef, NotebookRegistry};
+use aximar_core::session_ops::{self, SessionStatusCallback};
 
 use crate::capture::CaptureOutputSink;
 use crate::convert::{ipynb_to_cell_tuples, notebook_to_ipynb};
@@ -52,6 +51,9 @@ pub struct AximarMcpServer {
     /// Optional callback for notebook lifecycle events (create, close, switch).
     /// Args: (notebook_id, event_type). Event types: "created", "closed", "switched".
     on_notebook_lifecycle: Option<Arc<dyn Fn(&str, &str) + Send + Sync>>,
+    /// Optional callback invoked on session status transitions (connected mode).
+    /// Used to push status updates to the Tauri frontend.
+    on_session_status: Option<SessionStatusCallback>,
     /// Whether to allow dangerous function calls without approval (headless --allow-dangerous).
     allow_dangerous: bool,
 }
@@ -84,12 +86,13 @@ impl AximarMcpServer {
             process_sink_factory,
             None,
             None,
+            None,
             allow_dangerous,
         )
     }
 
     /// Create a server for connected mode (embedded in Tauri) with a custom
-    /// process sink factory and a notebook-change callback.
+    /// process sink factory and callbacks for GUI synchronization.
     pub fn new_connected(
         registry: Arc<Mutex<NotebookRegistry>>,
         catalog: Arc<Catalog>,
@@ -101,6 +104,7 @@ impl AximarMcpServer {
         process_sink_factory: ProcessSinkFactory,
         on_notebook_change: Arc<dyn Fn(&str, CommandEffect) + Send + Sync>,
         on_notebook_lifecycle: Arc<dyn Fn(&str, &str) + Send + Sync>,
+        on_session_status: SessionStatusCallback,
     ) -> Self {
         Self::build(
             registry,
@@ -113,6 +117,7 @@ impl AximarMcpServer {
             process_sink_factory,
             Some(on_notebook_change),
             Some(on_notebook_lifecycle),
+            Some(on_session_status),
             false, // connected mode: GUI handles approval
         )
     }
@@ -128,6 +133,7 @@ impl AximarMcpServer {
         process_sink_factory: ProcessSinkFactory,
         on_notebook_change: Option<Arc<dyn Fn(&str, CommandEffect) + Send + Sync>>,
         on_notebook_lifecycle: Option<Arc<dyn Fn(&str, &str) + Send + Sync>>,
+        on_session_status: Option<SessionStatusCallback>,
         allow_dangerous: bool,
     ) -> Self {
         AximarMcpServer {
@@ -142,6 +148,7 @@ impl AximarMcpServer {
             process_sink_factory,
             on_notebook_change,
             on_notebook_lifecycle,
+            on_session_status,
             allow_dangerous,
         }
     }
@@ -171,50 +178,18 @@ impl AximarMcpServer {
 
     /// Ensure Maxima session is started for the given notebook context.
     async fn ensure_session(&self, ctx: &NotebookContextRef) -> Result<(), String> {
-        let status = ctx.session.status();
-        match status {
-            SessionStatus::Ready | SessionStatus::Busy => Ok(()),
-            SessionStatus::Stopped | SessionStatus::Error(_) => {
-                ctx.session.begin_start().await;
-                let sink = (self.process_sink_factory)(&ctx.id, &ctx.capture_sink);
-                match MaximaProcess::spawn(
-                    self.backend.clone(),
-                    self.maxima_path.clone(),
-                    sink,
-                )
-                .await
-                {
-                    Ok(process) => {
-                        ctx.session.set_ready(process).await;
-                        // Configure texput so Greek letters render correctly
-                        let init = build_texput_init();
-                        let mut guard = ctx.session.lock().await;
-                        if let Ok(p) = guard.process_mut() {
-                            let _ = protocol::evaluate(p, "__init__", &init, &self.catalog, self.eval_timeout).await;
-                        }
-                        drop(guard);
-                        Ok(())
-                    }
-                    Err(e) => {
-                        let msg = format!("{e}");
-                        ctx.session.set_error(msg.clone()).await;
-                        Err(msg)
-                    }
-                }
-            }
-            SessionStatus::Starting => {
-                for _ in 0..50 {
-                    tokio::time::sleep(std::time::Duration::from_millis(100)).await;
-                    match ctx.session.status() {
-                        SessionStatus::Ready | SessionStatus::Busy => return Ok(()),
-                        SessionStatus::Error(e) => return Err(e),
-                        SessionStatus::Stopped => return Err("Session stopped".into()),
-                        _ => continue,
-                    }
-                }
-                Err("Timeout waiting for session to start".into())
-            }
-        }
+        let factory = self.process_sink_factory.clone();
+        session_ops::ensure_session(
+            ctx,
+            self.backend.clone(),
+            self.maxima_path.clone(),
+            move |ctx| (factory)(&ctx.id, &ctx.capture_sink),
+            &self.catalog,
+            self.eval_timeout,
+            self.on_session_status.as_ref(),
+        )
+        .await
+        .map_err(|e| e.to_string())
     }
 }
 
@@ -224,7 +199,7 @@ impl AximarMcpServer {
 impl AximarMcpServer {
     // ── Documentation tools ───────────────────────────────────────
 
-    #[tool(description = "Search the Maxima function catalog by name or description. Returns matching functions with signatures and brief descriptions.")]
+    #[tool(description = "Search the Maxima function catalog by name or description. Returns matching functions with signatures and brief descriptions. Searches across 2500+ built-in and package functions. Supports partial name matching (e.g. \"integ\" finds integrate) and description keywords (e.g. \"matrix inverse\").")]
     async fn search_functions(
         &self,
         Parameters(params): Parameters<SearchFunctionsParams>,
@@ -251,7 +226,7 @@ impl AximarMcpServer {
         success_json(&serde_json::json!({ "results": items }))
     }
 
-    #[tool(description = "Get full documentation for a Maxima function, including usage, examples, and related functions.")]
+    #[tool(description = "Get full documentation for a Maxima function, including usage, examples, and related functions. Falls back to a catalog summary if full docs are unavailable. Suggests similar function names if the exact name is not found.")]
     async fn get_function_docs(
         &self,
         Parameters(params): Parameters<GetFunctionDocsParams>,
@@ -280,7 +255,7 @@ impl AximarMcpServer {
         }
     }
 
-    #[tool(description = "List Maxima functions that are deprecated, obsolete, or superseded. Returns names, descriptions, and suggested replacements where available.")]
+    #[tool(description = "List Maxima functions that are deprecated, obsolete, or superseded. Returns names, descriptions, and suggested replacements where available. Consider calling this at the start of a session to avoid using obsolete functions in your notebook.")]
     async fn list_deprecated(&self) -> Result<String, String> {
         let results = self.catalog.find_deprecated();
         success_json(&serde_json::json!({
@@ -289,7 +264,7 @@ impl AximarMcpServer {
         }))
     }
 
-    #[tool(description = "Autocomplete a Maxima function name prefix. Returns matching function names with signatures.")]
+    #[tool(description = "Autocomplete a Maxima function name prefix. Returns matching function names with signatures. Includes both built-in and package functions alongside each other.")]
     async fn complete_function(
         &self,
         Parameters(params): Parameters<CompleteFunctionParams>,
@@ -326,7 +301,7 @@ impl AximarMcpServer {
 
     // ── Package tools ─────────────────────────────────────────────
 
-    #[tool(description = "Search available Maxima packages by name or description. Returns packages with their load paths and function lists.")]
+    #[tool(description = "Search available Maxima packages by name or description. Returns packages with their load paths and function lists. Load a package in a code cell with load(\"name\")$ before using its functions.")]
     async fn search_packages(
         &self,
         Parameters(params): Parameters<SearchPackagesParams>,
@@ -352,7 +327,7 @@ impl AximarMcpServer {
         success_json(&serde_json::json!({ "results": items }))
     }
 
-    #[tool(description = "List all available Maxima packages that can be loaded with load(\"name\").")]
+    #[tool(description = "List all available Maxima packages that can be loaded with load(\"name\")$. Use get_package to see what functions a specific package provides.")]
     async fn list_packages(&self) -> Result<String, String> {
         let all = self.packages.all();
         let items: Vec<serde_json::Value> = all
@@ -371,7 +346,7 @@ impl AximarMcpServer {
         }))
     }
 
-    #[tool(description = "Get details of a specific Maxima package, including description and list of functions it provides.")]
+    #[tool(description = "Get details of a specific Maxima package, including description and list of functions it provides. Load a package in a code cell with load(\"name\")$ before using its functions.")]
     async fn get_package(
         &self,
         Parameters(params): Parameters<GetPackageParams>,
@@ -399,7 +374,7 @@ impl AximarMcpServer {
         }))
     }
 
-    #[tool(description = "Create a new notebook with its own Maxima session. Returns the new notebook's ID.")]
+    #[tool(description = "Create a new notebook with its own independent Maxima session. Returns the new notebook's ID. Variables and definitions in one notebook are isolated from other notebooks.")]
     async fn create_notebook(&self) -> Result<String, String> {
         let mut reg = self.registry.lock().await;
         let id = reg.create();
@@ -469,7 +444,7 @@ impl AximarMcpServer {
 
     // ── Cell management tools ─────────────────────────────────────
 
-    #[tool(description = "List all cells in the notebook with their IDs, types, status, and content preview.")]
+    #[tool(description = "List all cells in the notebook with their IDs, types, status, and content preview. Shows a truncated preview of each cell's input and output. Use get_cell for full content.")]
     async fn list_cells(
         &self,
         Parameters(params): Parameters<NotebookIdParam>,
@@ -498,7 +473,7 @@ impl AximarMcpServer {
         success_json(&summaries)
     }
 
-    #[tool(description = "Get full details of a specific cell, including its input, output, status, and raw Maxima I/O log.")]
+    #[tool(description = "Get full details of a specific cell, including its input, output, status, and raw Maxima I/O log. Output includes text_output (print statements, warnings, provisos), LaTeX-rendered result, plot SVGs, and any errors.")]
     async fn get_cell(
         &self,
         Parameters(params): Parameters<CellIdParams>,
@@ -511,7 +486,13 @@ impl AximarMcpServer {
         }
     }
 
-    #[tool(description = "Add a new cell to the notebook. Returns the new cell's ID.")]
+    #[tool(description = "Add a new cell to the notebook. Returns the new cell's ID.
+
+Unicode Greek letters (α, β, γ, θ, π, etc.) are supported in code cells and translated to Maxima symbols automatically. For markdown cells: use real newlines (not literal \\n) for line breaks, and single backslashes for LaTeX commands (e.g. \\sin, \\varphi).
+
+Output display: only the last statement's result is rendered as LaTeX. Intermediate results are suppressed (but assignments and side effects still execute). Use print(expr) for plain text or tex(expr) for intermediate LaTeX output. End the last statement with $ instead of ; to suppress the final result.
+
+Best practice: run each cell immediately after creating it (using run_cell) to verify the output before moving on.")]
     async fn add_cell(
         &self,
         Parameters(params): Parameters<AddCellParams>,
@@ -535,7 +516,13 @@ impl AximarMcpServer {
         success_json(&serde_json::json!({ "cell_id": cell_id }))
     }
 
-    #[tool(description = "Update a cell's content or type.")]
+    #[tool(description = "Update a cell's content, type, or both in a single call. Provide only the fields you want to change.
+
+Unicode Greek letters (α, β, γ, θ, π, etc.) are supported in code cells and translated to Maxima symbols automatically. For markdown cells: use real newlines (not literal \\n) for line breaks, and single backslashes for LaTeX commands (e.g. \\sin, \\varphi).
+
+Output display: only the last statement's result is rendered as LaTeX. Intermediate results are suppressed (but assignments and side effects still execute). Use print(expr) for plain text or tex(expr) for intermediate LaTeX output. End the last statement with $ instead of ; to suppress the final result.
+
+Best practice: run each cell immediately after updating it (using run_cell) to verify the output before moving on.")]
     async fn update_cell(
         &self,
         Parameters(params): Parameters<UpdateCellParams>,
@@ -617,7 +604,13 @@ impl AximarMcpServer {
 
     // ── Execution tools ───────────────────────────────────────────
 
-    #[tool(description = "Execute a notebook cell. Auto-starts the Maxima session if needed. Returns the evaluation result including text output, LaTeX, plots, and errors.")]
+    #[tool(description = "Execute a notebook cell. Auto-starts the Maxima session if needed. Returns the evaluation result including text output, LaTeX, plots, and errors.
+
+Output display: only the last statement's result is rendered as LaTeX. Intermediate statement results are suppressed (but assignments and side effects still execute). Use print(expr) for plain text output or tex(expr) to render intermediate results as LaTeX. End the last statement with $ instead of ; to suppress the final result entirely.
+
+Plots: plot2d and plot3d produce inline SVG returned in the result. Prefer these over the draw package, which outputs to gnuplot directly and won't be captured.
+
+Best practice: run each cell immediately after creating it before moving on to the next. This ensures earlier definitions are available to later cells and lets you catch errors early.")]
     async fn run_cell(
         &self,
         Parameters(params): Parameters<CellIdParams>,
@@ -706,7 +699,7 @@ impl AximarMcpServer {
         }
     }
 
-    #[tool(description = "Execute all code cells in the notebook in order. Returns results for each cell.")]
+    #[tool(description = "Execute all code cells in the notebook in order. Returns results for each cell. Stops on the first cell that produces an error. When building a notebook, prefer running cells individually with run_cell to verify each result before proceeding.")]
     async fn run_all_cells(
         &self,
         Parameters(params): Parameters<NotebookIdParam>,
@@ -765,7 +758,9 @@ impl AximarMcpServer {
         }))
     }
 
-    #[tool(description = "Evaluate a Maxima expression without creating a notebook cell. Good for quick calculations. Auto-starts the session if needed.")]
+    #[tool(description = "Evaluate a Maxima expression without creating a notebook cell. Good for quick calculations and checks. Auto-starts the session if needed. The expression is ephemeral (no cell is created), but session state persists — variables and definitions set here are available to subsequent cells and expressions.
+
+Unicode Greek letters (α, β, γ, θ, π, etc.) are translated to Maxima symbols automatically. Only the last statement's result is returned. Use print(expr) for plain text or tex(expr) for intermediate LaTeX output. End the last statement with $ instead of ; to suppress the final result.")]
     async fn evaluate_expression(
         &self,
         Parameters(params): Parameters<EvaluateExpressionParams>,
@@ -836,7 +831,7 @@ impl AximarMcpServer {
         }))
     }
 
-    #[tool(description = "Restart the Maxima session. Kills the current process and starts a new one. All session state (variables, definitions) is lost.")]
+    #[tool(description = "Restart the Maxima session. Kills the current process and starts a new one. All session state is lost, including variables, function definitions, and loaded packages. You will need to re-run cells or re-load packages after restarting.")]
     async fn restart_session(
         &self,
         Parameters(params): Parameters<NotebookIdParam>,
@@ -857,7 +852,7 @@ impl AximarMcpServer {
         }
     }
 
-    #[tool(description = "List all user-defined variables in the current Maxima session.")]
+    #[tool(description = "List all user-defined variables in the current Maxima session. Internal Maxima and package variables are filtered out — only variables you have explicitly assigned are shown.")]
     async fn list_variables(
         &self,
         Parameters(params): Parameters<NotebookIdParam>,
@@ -882,7 +877,7 @@ impl AximarMcpServer {
         }
     }
 
-    #[tool(description = "Remove a variable from the Maxima session (equivalent to `kill(name)` in Maxima).")]
+    #[tool(description = "Remove a variable from the Maxima session (equivalent to `kill(name)` in Maxima). For reproducible notebooks, prefer adding a code cell with kill(name)$ instead, so the operation is visible and re-runnable.")]
     async fn kill_variable(
         &self,
         Parameters(params): Parameters<KillVariableParams>,
@@ -909,7 +904,7 @@ impl AximarMcpServer {
 
     // ── Log tools ─────────────────────────────────────────────────
 
-    #[tool(description = "Get the raw Maxima I/O log for a specific cell, showing stdin/stdout/stderr streams.")]
+    #[tool(description = "Get the raw Maxima I/O log for a specific cell, showing stdin/stdout/stderr streams. Useful for debugging unexpected output or protocol-level issues when a cell's parsed result doesn't match expectations.")]
     async fn get_cell_output_log(
         &self,
         Parameters(params): Parameters<CellIdParams>,
@@ -935,7 +930,7 @@ impl AximarMcpServer {
         }
     }
 
-    #[tool(description = "Get the server-wide Maxima output log. Useful for debugging session issues.")]
+    #[tool(description = "Get the server-wide Maxima output log. Useful for debugging session startup or crash issues. Supports optional stream filter (\"stdout\", \"stderr\", or \"stdin\") and a limit on the number of entries returned.")]
     async fn get_server_log(
         &self,
         Parameters(params): Parameters<GetServerLogParams>,
@@ -962,7 +957,7 @@ impl AximarMcpServer {
 
     // ── Notebook I/O tools ────────────────────────────────────────
 
-    #[tool(description = "Save the current notebook to a file in Jupyter .ipynb format.")]
+    #[tool(description = "Save the current notebook to a file in Jupyter .ipynb format. The saved file is compatible with Jupyter and other .ipynb tools.")]
     async fn save_notebook(
         &self,
         Parameters(params): Parameters<NotebookPathParams>,
@@ -981,7 +976,7 @@ impl AximarMcpServer {
         }
     }
 
-    #[tool(description = "Open a Jupyter .ipynb notebook file and load it into the editor, replacing the current notebook state.")]
+    #[tool(description = "Open a Jupyter .ipynb notebook file and load it into the editor, replacing the current notebook state. Supports standard .ipynb format from Jupyter and other compatible tools.")]
     async fn open_notebook(
         &self,
         Parameters(params): Parameters<NotebookPathParams>,
@@ -1022,7 +1017,7 @@ impl AximarMcpServer {
         success_json(&serde_json::json!({ "templates": items }))
     }
 
-    #[tool(description = "Load a template into the notebook, replacing current content. Use list_templates to see available template IDs.")]
+    #[tool(description = "Load a template into the notebook, replacing current content. Use list_templates first to see available template IDs and descriptions. Warning: this replaces all existing cells in the notebook.")]
     async fn load_template(
         &self,
         Parameters(params): Parameters<LoadTemplateParams>,

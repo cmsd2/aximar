@@ -10,4 +10,5 @@ pub mod notebooks;
 pub mod registry;
 pub mod safety;
 pub mod session;
+pub mod session_ops;
 pub mod suggestions;

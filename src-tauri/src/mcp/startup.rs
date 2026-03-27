@@ -17,6 +17,7 @@ use crate::state::AppState;
 use crate::tauri_output::{emit_app_log, TauriOutputSink};
 
 use crate::commands::notebook::emit_notebook_state;
+use crate::commands::session::build_session_status_callback;
 use aximar_core::commands::CommandEffect;
 use tauri::Emitter;
 
@@ -95,6 +96,10 @@ pub async fn start_mcp_server(state: AppState, listen_address: String, token: St
     let maxima_path: Option<String> = None;
     let eval_timeout: u64 = 30;
 
+    // Build session-status callback so MCP-initiated session starts are
+    // reflected in the GUI's session status indicator.
+    let on_session_status = build_session_status_callback(&state);
+
     let server = AximarMcpServer::new_connected(
         state.registry.clone(),
         state.catalog.clone(),
@@ -106,6 +111,7 @@ pub async fn start_mcp_server(state: AppState, listen_address: String, token: St
         process_sink_factory,
         on_notebook_change,
         on_notebook_lifecycle,
+        on_session_status,
     );
 
     let service = StreamableHttpService::new(
