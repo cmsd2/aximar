@@ -83,6 +83,27 @@ http_headers = { "Authorization" = "Bearer <token>" }
 
 Replace `<token>` with the value shown in Settings.
 
+#### Configuring Gemini CLI
+
+Use the **Configure** button in Settings (next to "Gemini CLI") to automatically register the MCP server. This writes the server entry to `~/.gemini/settings.json` with the correct URL and bearer token.
+
+To configure manually, add the following to `~/.gemini/settings.json`:
+
+```json
+{
+  "mcpServers": {
+    "aximar": {
+      "httpUrl": "http://localhost:19542/mcp",
+      "headers": {
+        "Authorization": "Bearer <token>"
+      }
+    }
+  }
+}
+```
+
+Replace `<token>` with the value shown in Settings.
+
 ## Available tools (24)
 
 ### Documentation

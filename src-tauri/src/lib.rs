@@ -89,6 +89,8 @@ pub fn run() {
             commands::config::claude_mcp_configure,
             commands::config::codex_mcp_status,
             commands::config::codex_mcp_configure,
+            commands::config::gemini_mcp_status,
+            commands::config::gemini_mcp_configure,
             commands::notebook::nb_get_state,
             commands::notebook::nb_add_cell,
             commands::notebook::nb_delete_cell,

@@ -21,7 +21,7 @@ See the [vector calculus example](assets/vc.pdf) for a Stokes' theorem verificat
 - **Variables panel** — inspect and manage bound variables
 - **Templates** — starter notebooks for calculus, linear algebra, plotting, and more
 - **Dark/light/auto theme** — follows your system preference or set manually
-- **MCP server** — AI integration via Model Context Protocol, with built-in setup for Claude Code and Codex
+- **MCP server** — AI integration via Model Context Protocol, with built-in setup for Claude Code, Codex, and Gemini CLI
 - **Multiple backends** — run Maxima locally, in Docker/Podman, or via WSL
 - **Save & load** — persist notebooks in Jupyter-compatible format
 - **Print support** — configurable margins and font sizes for printing

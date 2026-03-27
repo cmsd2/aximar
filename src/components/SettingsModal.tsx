@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { getConfig, setConfig, listWslDistros, checkWslMaxima, markdownFontStack, applyPrintMargins, claudeMcpStatus, claudeMcpConfigure, codexMcpStatus, codexMcpConfigure, type AppConfig, type ClaudeMcpStatus, type CodexMcpStatus } from "../lib/config-client";
+import { getConfig, setConfig, listWslDistros, checkWslMaxima, markdownFontStack, applyPrintMargins, claudeMcpStatus, claudeMcpConfigure, codexMcpStatus, codexMcpConfigure, geminiMcpStatus, geminiMcpConfigure, type AppConfig, type ClaudeMcpStatus, type CodexMcpStatus, type GeminiMcpStatus } from "../lib/config-client";
 import { useNotebookStore, type Theme, type CellStyle, type AutocompleteMode } from "../store/notebookStore";
 import { useLogStore } from "../store/logStore";
 
@@ -171,6 +171,58 @@ function CodexSetup({ address, token }: { address: string; token: string }) {
           </button>
           {status === null ? null : notInstalled ? (
             <span className="settings-claude-status settings-claude-warn">codex CLI not found</span>
+          ) : status.configured ? (
+            <span className="settings-claude-status settings-claude-ok">Configured</span>
+          ) : error ? (
+            <span className="settings-claude-status settings-claude-err">{error}</span>
+          ) : (
+            <span className="settings-claude-status settings-claude-warn">Not configured</span>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function GeminiSetup({ address, token }: { address: string; token: string }) {
+  const [status, setStatus] = useState<GeminiMcpStatus | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const checkStatus = useCallback(() => {
+    geminiMcpStatus()
+      .then((s) => { setStatus(s); setError(null); })
+      .catch(() => setStatus({ installed: false, configured: false }));
+  }, []);
+
+  useEffect(() => { checkStatus(); }, [checkStatus, address, token]);
+
+  const handleConfigure = useCallback(() => {
+    const url = `http://${address}/mcp`;
+    setLoading(true);
+    setError(null);
+    geminiMcpConfigure(url, token)
+      .then(() => { checkStatus(); })
+      .catch((e) => setError(String(e)))
+      .finally(() => setLoading(false));
+  }, [address, token, checkStatus]);
+
+  const notInstalled = status !== null && !status.installed;
+
+  return (
+    <div className="settings-row">
+      <label className="settings-label">Gemini CLI</label>
+      <div className="settings-control">
+        <div className="settings-claude-setup">
+          <button
+            className="settings-token-btn"
+            disabled={loading || notInstalled}
+            onClick={handleConfigure}
+          >
+            {loading ? "Configuring..." : status?.configured ? "Reconfigure" : "Configure"}
+          </button>
+          {status === null ? null : notInstalled ? (
+            <span className="settings-claude-status settings-claude-warn">gemini CLI not found</span>
           ) : status.configured ? (
             <span className="settings-claude-status settings-claude-ok">Configured</span>
           ) : error ? (
@@ -613,6 +665,7 @@ export function SettingsModal({ onClose, onSetVariablesOpen }: SettingsModalProp
 
                 <ClaudeCodeSetup address={config.mcp_listen_address} token={config.mcp_token} />
                 <CodexSetup address={config.mcp_listen_address} token={config.mcp_token} />
+                <GeminiSetup address={config.mcp_listen_address} token={config.mcp_token} />
               </>
             )}
 

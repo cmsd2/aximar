@@ -679,6 +679,99 @@ pub async fn codex_mcp_configure(url: String, token: String) -> Result<String, A
     Ok("Codex MCP configured successfully".to_string())
 }
 
+#[derive(Debug, Serialize)]
+pub struct GeminiMcpStatus {
+    pub installed: bool,
+    pub configured: bool,
+}
+
+#[tauri::command]
+pub async fn gemini_mcp_status() -> Result<GeminiMcpStatus, AppError> {
+    // Check if gemini CLI is installed
+    let mut cmd = tokio::process::Command::new("gemini");
+    cmd.args(["--version"])
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped());
+    hide_console_window(&mut cmd);
+
+    let installed = match cmd.output().await {
+        Ok(output) => output.status.success(),
+        Err(_) => false,
+    };
+
+    if !installed {
+        return Ok(GeminiMcpStatus { installed: false, configured: false });
+    }
+
+    // Check if aximar is configured in ~/.gemini/settings.json
+    let home = std::env::var("HOME")
+        .or_else(|_| std::env::var("USERPROFILE"))
+        .unwrap_or_default();
+    let settings_path = std::path::Path::new(&home).join(".gemini").join("settings.json");
+
+    let configured = if settings_path.exists() {
+        match tokio::fs::read_to_string(&settings_path).await {
+            Ok(content) => {
+                if let Ok(json) = serde_json::from_str::<serde_json::Value>(&content) {
+                    json.get("mcpServers")
+                        .and_then(|s| s.get("aximar"))
+                        .is_some()
+                } else {
+                    false
+                }
+            }
+            Err(_) => false,
+        }
+    } else {
+        false
+    };
+
+    Ok(GeminiMcpStatus { installed, configured })
+}
+
+#[tauri::command]
+pub async fn gemini_mcp_configure(url: String, token: String) -> Result<String, AppError> {
+    // Locate settings file
+    let home = std::env::var("HOME")
+        .or_else(|_| std::env::var("USERPROFILE"))
+        .map_err(|_| AppError::ProcessStartFailed("Could not determine home directory".into()))?;
+    let config_dir = std::path::Path::new(&home).join(".gemini");
+    let settings_path = config_dir.join("settings.json");
+
+    // Read existing settings or start with empty object
+    let mut settings: serde_json::Value = if settings_path.exists() {
+        let content = tokio::fs::read_to_string(&settings_path).await.unwrap_or_default();
+        serde_json::from_str(&content).unwrap_or_else(|_| serde_json::json!({}))
+    } else {
+        serde_json::json!({})
+    };
+
+    // Ensure mcpServers object exists
+    if !settings.get("mcpServers").is_some() {
+        settings["mcpServers"] = serde_json::json!({});
+    }
+
+    // Add/update aximar entry
+    settings["mcpServers"]["aximar"] = serde_json::json!({
+        "httpUrl": url,
+        "headers": {
+            "Authorization": format!("Bearer {token}")
+        }
+    });
+
+    // Write back with pretty formatting
+    let output = serde_json::to_string_pretty(&settings).map_err(|e| {
+        AppError::ProcessStartFailed(format!("Failed to serialize settings: {e}"))
+    })?;
+
+    tokio::fs::create_dir_all(&config_dir).await.ok();
+    tokio::fs::write(&settings_path, output).await.map_err(|e| {
+        AppError::ProcessStartFailed(format!("Failed to write settings.json: {e}"))
+    })?;
+
+    Ok("Gemini CLI MCP configured successfully".to_string())
+}
+
 pub fn read_backend(app: &tauri::AppHandle) -> Backend {
     let config = read_config(app).map(|(c, _)| c).unwrap_or_default();
     Backend::from_config(config.backend, &config.docker_image, &config.wsl_distro, config.container_engine)

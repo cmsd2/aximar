@@ -93,3 +93,16 @@ export async function codexMcpStatus(): Promise<CodexMcpStatus> {
 export async function codexMcpConfigure(url: string, token: string): Promise<string> {
   return invoke<string>("codex_mcp_configure", { url, token });
 }
+
+export interface GeminiMcpStatus {
+  installed: boolean;
+  configured: boolean;
+}
+
+export async function geminiMcpStatus(): Promise<GeminiMcpStatus> {
+  return invoke<GeminiMcpStatus>("gemini_mcp_status");
+}
+
+export async function geminiMcpConfigure(url: string, token: string): Promise<string> {
+  return invoke<string>("gemini_mcp_configure", { url, token });
+}
