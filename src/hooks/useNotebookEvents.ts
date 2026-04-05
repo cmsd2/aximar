@@ -11,6 +11,7 @@ interface SyncCellOutput {
   text_output: string;
   latex: string | null;
   plot_svg: string | null;
+  plot_data: string | null;
   error: string | null;
   is_error: boolean;
   duration_ms: number;
@@ -59,6 +60,7 @@ function mapSyncCells(syncCells: SyncCell[]) {
         textOutput: sc.output.text_output,
         latex: sc.output.latex,
         plotSvg: sc.output.plot_svg,
+        plotData: sc.output.plot_data,
         error: sc.output.error,
         errorInfo: null,
         isError: sc.output.is_error,

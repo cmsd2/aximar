@@ -1,0 +1,184 @@
+{
+  "nbformat": 4,
+  "nbformat_minor": 0,
+  "metadata": {
+    "kernelspec": {
+      "name": "maxima",
+      "display_name": "Maxima",
+      "language": "maxima"
+    },
+    "aximar": {
+      "template_id": "interactive-plotting",
+      "title": "Interactive Plotting",
+      "description": "Interactive Plotly.js charts with ax_plot2d, ax_draw2d, and ax_draw3d."
+    }
+  },
+  "cells": [
+    {
+      "cell_type": "markdown",
+      "source": "# Interactive Plotting with Aximar\n\nAximar provides `ax_plot2d`, `ax_draw2d`, and `ax_draw3d` for interactive Plotly.js plots. These functions use the same draw-package object syntax you already know (`explicit`, `parametric`, `points`, `implicit`) but render as interactive charts you can pan, zoom, and hover over.\n\n| Aximar (interactive) | Maxima (static gnuplot) |\n|---|---|\n| `ax_plot2d(...)` | `plot2d(...)` |\n| `ax_draw2d(...)` | `draw2d(...)` |\n| `ax_draw3d(...)` | `draw3d(...)` |",
+      "metadata": {}
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## Quick Start: ax_plot2d\n\nThe simplest way to plot. Same syntax as `plot2d` — just an expression and a range.",
+      "metadata": {}
+    },
+    {
+      "cell_type": "code",
+      "source": "ax_plot2d(sin(x), [x, -%pi, %pi])",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "Multiple functions on the same axes — pass a list of expressions.",
+      "metadata": {}
+    },
+    {
+      "cell_type": "code",
+      "source": "ax_plot2d([sin(x), cos(x), sin(x) + cos(x)], [x, -2*%pi, 2*%pi])",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## Styling Traces\n\nStyle options use **Plotly-native names** rather than gnuplot/draw conventions. Options apply to all subsequent traces until changed.\n\n| Aximar option | draw equivalent | Effect |\n|---|---|---|\n| `color` | `color` | Line/marker color |\n| `line_width` | `line_width` | Line thickness |\n| `dash` | `line_type` | Dash pattern: `\"solid\"`, `\"dot\"`, `\"dash\"`, `\"dashdot\"` |\n| `marker_symbol` | `point_type` | Marker shape: `\"circle\"`, `\"diamond\"`, `\"square\"`, ... |\n| `marker_size` | `point_size` | Marker size |\n| `fill` | `filled_func` | Fill region: `\"tozeroy\"`, `\"tonexty\"`, `\"toself\"` |\n| `opacity` | — | Trace opacity (0–1) |\n| `name` | `key` | Legend label |",
+      "metadata": {}
+    },
+    {
+      "cell_type": "code",
+      "source": "ax_draw2d(\n  color=\"red\", line_width=3, name=\"x²\",\n  explicit(x^2, x, -3, 3),\n  color=\"blue\", dash=\"dash\", name=\"x³\",\n  explicit(x^3, x, -3, 3),\n  title=\"Polynomials\", xlabel=\"x\", ylabel=\"y\"\n)",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## Parametric Curves\n\nSame `parametric(x(t), y(t), t, t₀, t₁)` syntax as the draw package.",
+      "metadata": {}
+    },
+    {
+      "cell_type": "code",
+      "source": "ax_draw2d(\n  color=\"purple\", line_width=2,\n  parametric(cos(t), sin(t), t, 0, 2*%pi),\n  title=\"Unit Circle\",\n  aspect_ratio=1\n)",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "A Lissajous figure — try hovering over the curve to see coordinates.",
+      "metadata": {}
+    },
+    {
+      "cell_type": "code",
+      "source": "ax_draw2d(\n  color=\"teal\", line_width=2, nticks=1000,\n  parametric(sin(3*t), sin(4*t), t, 0, 2*%pi),\n  title=\"Lissajous (3:4)\"\n)",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## Scatter Data\n\nPlot discrete data points with `points`. Marker style is controlled with `marker_symbol` and `marker_size`.",
+      "metadata": {}
+    },
+    {
+      "cell_type": "code",
+      "source": "ax_draw2d(\n  color=\"crimson\", marker_symbol=\"diamond\", marker_size=10,\n  points([[1,1],[2,4],[3,9],[4,16],[5,25]]),\n  name=\"Data\",\n  title=\"Scatter Plot\",\n  xlabel=\"n\", ylabel=\"n²\"\n)",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## Implicit Curves\n\n`implicit(equation, x, x₀, x₁, y, y₀, y₁)` renders level-set contours — useful for curves that can't be written as y = f(x).",
+      "metadata": {}
+    },
+    {
+      "cell_type": "code",
+      "source": "ax_draw2d(\n  implicit(x^2 + y^2 = 4, x, -3, 3, y, -3, 3),\n  title=\"Circle x² + y² = 4\",\n  aspect_ratio=1\n)",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## Combining Multiple Object Types\n\nMix explicit curves, points, and implicit contours in a single plot. Style options apply to each subsequent object.",
+      "metadata": {}
+    },
+    {
+      "cell_type": "code",
+      "source": "ax_draw2d(\n  color=\"steelblue\", line_width=2,\n  explicit(sin(x), x, -%pi, %pi),\n  color=\"orange\", dash=\"dot\",\n  explicit(cos(x), x, -%pi, %pi),\n  color=\"red\", marker_size=8,\n  points([[-2, 0.5], [0, 1], [2, -0.3]]),\n  title=\"Mixed Plot\"\n)",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## Filled Regions\n\nUse `fill=\"tozeroy\"` to shade the area between a curve and the x-axis.",
+      "metadata": {}
+    },
+    {
+      "cell_type": "code",
+      "source": "ax_draw2d(\n  color=\"mediumseagreen\", fill=\"tozeroy\", opacity=0.4,\n  explicit(exp(-x^2), x, -3, 3),\n  title=\"Gaussian Bell Curve (filled)\"\n)",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## 3D Surfaces\n\n`ax_draw3d` produces interactive 3D plots you can rotate and zoom. Drag to orbit, scroll to zoom.",
+      "metadata": {}
+    },
+    {
+      "cell_type": "code",
+      "source": "ax_draw3d(\n  explicit(sin(x)*cos(y), x, -%pi, %pi, y, -%pi, %pi),\n  title=\"sin(x)·cos(y)\",\n  xlabel=\"x\", ylabel=\"y\", zlabel=\"z\"\n)",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "A saddle surface — hover over the surface to read coordinates.",
+      "metadata": {}
+    },
+    {
+      "cell_type": "code",
+      "source": "ax_draw3d(\n  explicit(x^2 - y^2, x, -2, 2, y, -2, 2),\n  title=\"Saddle: x² − y²\"\n)",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## 3D Scatter Data",
+      "metadata": {}
+    },
+    {
+      "cell_type": "code",
+      "source": "ax_draw3d(\n  marker_size=5, color=\"darkorange\",\n  points([[1,1,1],[2,2,8],[3,3,27],[4,4,64],[5,5,125]]),\n  title=\"Cubic Growth\"\n)",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## Plotting Computed Results\n\nCompute a derivative symbolically and plot both the function and its derivative.",
+      "metadata": {}
+    },
+    {
+      "cell_type": "code",
+      "source": "f: x^3 - 3*x$\ndf: diff(f, x)$\nax_draw2d(\n  color=\"navy\", name=\"f(x) = x³ − 3x\",\n  explicit(f, x, -3, 3),\n  color=\"red\", dash=\"dash\", name=\"f'(x) = 3x² − 3\",\n  explicit(df, x, -3, 3),\n  title=\"Function and Derivative\",\n  xlabel=\"x\", ylabel=\"y\"\n)",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## Tips\n\n- **Pan & zoom**: drag to pan, scroll to zoom, double-click to reset\n- **Hover**: hover over any point to see exact coordinates\n- **Legend**: click a legend entry to hide/show that trace\n- **3D rotation**: drag to orbit, scroll to zoom, ctrl+drag to pan\n- Use `nticks=N` to control sampling resolution (default 500 for 2D, 50 for 3D)\n- The original `plot2d`/`plot3d` still work for static gnuplot SVGs",
+      "metadata": {}
+    }
+  ]
+}

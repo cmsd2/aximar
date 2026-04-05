@@ -6,6 +6,7 @@ pub struct EvalResult {
     pub text_output: String,
     pub latex: Option<String>,
     pub plot_svg: Option<String>,
+    pub plot_data: Option<String>,
     pub error: Option<String>,
     pub error_info: Option<ErrorInfo>,
     pub is_error: bool,

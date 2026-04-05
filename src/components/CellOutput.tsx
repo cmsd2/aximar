@@ -4,6 +4,7 @@ import { KatexOutput } from "./KatexOutput";
 import { RichTextOutput } from "./RichTextOutput";
 import { EnhancedErrorOutput } from "./EnhancedErrorOutput";
 import { sanitizeSvg } from "../lib/sanitize-svg";
+import { PlotlyChart } from "./PlotlyChart";
 
 interface CellOutputProps {
   output: CellOutputType;
@@ -28,6 +29,7 @@ export function CellOutput({ output, cellId }: CellOutputProps) {
   const hasLatex = !output.isError && output.latex !== null && output.latex !== "";
   const hasText = !output.isError && output.textOutput !== "";
   const hasPlot = !output.isError && output.plotSvg !== null && output.plotSvg !== undefined && output.plotSvg !== "";
+  const hasPlotData = !output.isError && output.plotData !== null && output.plotData !== undefined && output.plotData !== "";
 
   const plotBlobUrl = useMemo(() => {
     if (!hasPlot) return "";
@@ -58,7 +60,7 @@ export function CellOutput({ output, cellId }: CellOutputProps) {
 
   return (
     <div className="cell-output">
-      {(hasLatex || hasText || hasPlot) && (
+      {(hasLatex || hasText || hasPlot || hasPlotData) && (
         <div className="copy-actions">
           {hasLatex && (
             <button
@@ -80,6 +82,7 @@ export function CellOutput({ output, cellId }: CellOutputProps) {
           )}
         </div>
       )}
+      {hasPlotData && <PlotlyChart plotData={output.plotData!} />}
       {hasPlot && plotBlobUrl && (
         <div className="plot-output">
           <img src={plotBlobUrl} alt="Plot output" />
@@ -87,7 +90,7 @@ export function CellOutput({ output, cellId }: CellOutputProps) {
       )}
       {hasText && <RichTextOutput text={output.textOutput} />}
       {hasLatex && <KatexOutput latex={output.latex!} />}
-      {!hasLatex && !hasText && !hasPlot && (
+      {!hasLatex && !hasText && !hasPlot && !hasPlotData && (
         <span className="text-output empty-output">(no output)</span>
       )}
     </div>

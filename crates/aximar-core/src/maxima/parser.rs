@@ -23,6 +23,10 @@ static PLOT_PATH_LINE_RE: LazyLock<Regex> =
 static LATEX_SVG_PATH_RE: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r#"\\mbox\{\s*([^\}]+\.svg)\s*\}"#).unwrap());
 
+/// Matches a .plotly.json file path in output (from ax_draw2d/ax_draw3d).
+static PLOTLY_PATH_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r#""?([^"\s]+\.plotly\.json)"?"#).unwrap());
+
 /// LaTeX values that indicate tex(%) had no real result (e.g. after an error)
 const JUNK_LATEX: &[&str] = &[
     "\\mathbf{false}",
@@ -31,6 +35,8 @@ const JUNK_LATEX: &[&str] = &[
     "false",
     "\\mathit{\\%}",
     "\\it \\%",
+    "\\mathit{done}",
+    "\\mathbf{done}",
     "0",
 ];
 
@@ -55,6 +61,44 @@ fn is_safe_svg_path(path_str: &str, backend: &Backend) -> bool {
 
     // Must have .svg extension
     if path.extension().and_then(|e| e.to_str()) != Some("svg") {
+        return false;
+    }
+
+    // Canonicalize to resolve symlinks and ..
+    let canonical = match fs::canonicalize(path) {
+        Ok(p) => p,
+        Err(_) => return false,
+    };
+
+    let temp_dir = std::env::temp_dir();
+    let canonical_temp = match fs::canonicalize(&temp_dir) {
+        Ok(p) => p,
+        Err(_) => temp_dir,
+    };
+
+    if canonical.starts_with(&canonical_temp) {
+        return true;
+    }
+
+    // For Docker, also allow the host temp dir used for volume mounts
+    if let Some(host_dir) = backend.host_temp_dir() {
+        if let Ok(canonical_host) = fs::canonicalize(&host_dir) {
+            if canonical.starts_with(&canonical_host) {
+                return true;
+            }
+        }
+    }
+
+    false
+}
+
+/// Check that a Plotly JSON path is safe to read: must have `.plotly.json` extension
+/// and reside within the system temp directory. Same security model as SVG paths.
+fn is_safe_plotly_path(path_str: &str, backend: &Backend) -> bool {
+    let path = Path::new(path_str);
+
+    // Must end with .plotly.json
+    if !path_str.ends_with(".plotly.json") {
         return false;
     }
 
@@ -361,6 +405,45 @@ fn parse_output_inner(
         latex
     };
 
+    // Detect Plotly JSON file paths (from ax_draw2d/ax_draw3d) and read the content.
+    // Same pattern as SVG detection: scan text_output for .plotly.json paths.
+    let plotly_re = &*PLOTLY_PATH_RE;
+    let mut plot_data: Option<String> = None;
+    let text_output = if !has_error {
+        if let Some(caps) = plotly_re.captures(&text_output) {
+            let raw_path = caps[1].to_string();
+            // Translate path for Docker/WSL backends
+            let plotly_path = backend
+                .translate_svg_path(&raw_path)
+                .unwrap_or(raw_path.clone());
+            if is_safe_plotly_path(&plotly_path, backend) {
+                match fs::read_to_string(&plotly_path) {
+                    Ok(content) => {
+                        // Validate JSON before accepting
+                        if serde_json::from_str::<serde_json::Value>(&content).is_ok() {
+                            plot_data = Some(content);
+                        } else {
+                            eprintln!("[parser] Invalid JSON in {}", plotly_path);
+                        }
+                    }
+                    Err(e) => {
+                        eprintln!("[parser] Failed to read {}: {}", plotly_path, e);
+                    }
+                }
+            }
+            // Strip the path line from text output
+            let cleaned: Vec<&str> = text_output
+                .lines()
+                .filter(|line| !line.contains(".plotly.json"))
+                .collect();
+            cleaned.join("\n")
+        } else {
+            text_output
+        }
+    } else {
+        text_output
+    };
+
     let error_info = error
         .as_ref()
         .and_then(|e| errors::enhance_error_with_packages(e, catalog, packages));
@@ -373,6 +456,7 @@ fn parse_output_inner(
         text_output,
         latex,
         plot_svg,
+        plot_data,
         error: error.clone(),
         error_info,
         is_error: has_error,
@@ -727,7 +811,8 @@ mod tests {
         ];
         let result = parse_output("cell-1", &lines, 100, &catalog(), &Backend::Local);
         assert!(!result.is_error);
-        assert_eq!(result.latex, Some("\\mathit{done}".to_string()));
+        // \mathit{done} is junk LaTeX (filtered since ax_draw2d returns 'done)
+        assert_eq!(result.latex, None);
         // Earlier tex() blocks should be in text_output as $$...$$
         assert!(result.text_output.contains("Step 1"));
         assert!(result.text_output.contains("$$1$$"));
@@ -766,7 +851,8 @@ mod tests {
         ];
         let result = parse_output("cell-1", &lines, 100, &catalog(), &Backend::Local);
         assert!(!result.is_error);
-        assert_eq!(result.latex, Some("\\mathbf{done}".to_string()));
+        // \mathbf{done} is junk LaTeX (filtered since ax_draw2d returns 'done)
+        assert_eq!(result.latex, None);
         // Both intermediate tex() results should be in text_output
         assert!(result.text_output.contains("$$0$$"), "tex(0) should be preserved");
         assert!(result.text_output.contains("$$4$$"));
@@ -880,5 +966,146 @@ mod tests {
         ];
         let result = parse_output("cell-1", &lines, 100, &catalog(), &Backend::Local);
         assert!(result.text_output.contains("some output"));
+    }
+
+    // --- Plotly JSON path detection ---
+
+    #[test]
+    fn test_parse_plotly_json_path() {
+        // ax_draw2d prints a .plotly.json path; parser should read the file and populate plot_data
+        let temp_dir = std::env::temp_dir();
+        let plotly_path = temp_dir.join("ax_plot_test_1234.plotly.json");
+        let json_content = r#"{"data":[{"x":[1,2,3],"y":[1,4,9],"type":"scatter"}],"layout":{}}"#;
+        fs::write(&plotly_path, json_content).unwrap();
+
+        let lines = vec![
+            plotly_path.to_str().unwrap().to_string(),
+            "$$\\mathit{done}$$".to_string(),
+            "false".to_string(),
+            "__AXIMAR_EVAL_END__".to_string(),
+        ];
+        let result = parse_output("cell-1", &lines, 100, &catalog(), &Backend::Local);
+        assert!(!result.is_error);
+        assert_eq!(result.plot_data, Some(json_content.to_string()));
+
+        // Clean up
+        let _ = fs::remove_file(&plotly_path);
+    }
+
+    #[test]
+    fn test_parse_plotly_path_stripped_from_text() {
+        // The .plotly.json path line should be stripped from text_output
+        let temp_dir = std::env::temp_dir();
+        let plotly_path = temp_dir.join("ax_plot_test_strip.plotly.json");
+        let json_content = r#"{"data":[],"layout":{}}"#;
+        fs::write(&plotly_path, json_content).unwrap();
+
+        let lines = vec![
+            "some warning".to_string(),
+            plotly_path.to_str().unwrap().to_string(),
+            "$$\\mathit{done}$$".to_string(),
+            "false".to_string(),
+            "__AXIMAR_EVAL_END__".to_string(),
+        ];
+        let result = parse_output("cell-1", &lines, 100, &catalog(), &Backend::Local);
+        assert!(!result.is_error);
+        assert!(result.plot_data.is_some());
+        assert!(
+            !result.text_output.contains(".plotly.json"),
+            "plotly path should be stripped from text_output: {:?}",
+            result.text_output
+        );
+        assert!(
+            result.text_output.contains("some warning"),
+            "non-path text should be preserved: {:?}",
+            result.text_output
+        );
+
+        let _ = fs::remove_file(&plotly_path);
+    }
+
+    #[test]
+    fn test_parse_plotly_path_safety_rejects_outside_temp() {
+        // Paths outside the temp directory should be rejected
+        let result = is_safe_plotly_path("/etc/passwd.plotly.json", &Backend::Local);
+        assert!(!result, "paths outside temp dir should be rejected");
+    }
+
+    #[test]
+    fn test_parse_plotly_path_safety_rejects_wrong_extension() {
+        let result = is_safe_plotly_path("/tmp/evil.json", &Backend::Local);
+        assert!(!result, "non-.plotly.json extension should be rejected");
+    }
+
+    #[test]
+    fn test_no_plot_data_for_regular_output() {
+        // Normal expression output should not have plot_data
+        let lines = vec![
+            "$$42$$".to_string(),
+            "false".to_string(),
+            "__AXIMAR_EVAL_END__".to_string(),
+        ];
+        let result = parse_output("cell-1", &lines, 100, &catalog(), &Backend::Local);
+        assert!(!result.is_error);
+        assert!(result.plot_data.is_none());
+        assert!(result.plot_svg.is_none());
+    }
+
+    #[test]
+    fn test_plot_data_done_latex_filtered() {
+        // ax_draw2d returns 'done, so tex(%) produces $$\mathit{done}$$
+        // which should be filtered as junk LaTeX
+        let temp_dir = std::env::temp_dir();
+        let plotly_path = temp_dir.join("ax_plot_test_done.plotly.json");
+        let json_content = r#"{"data":[{"x":[1],"y":[1],"type":"scatter"}],"layout":{}}"#;
+        fs::write(&plotly_path, json_content).unwrap();
+
+        let lines = vec![
+            plotly_path.to_str().unwrap().to_string(),
+            "$$\\mathit{done}$$".to_string(),
+            "false".to_string(),
+            "__AXIMAR_LABEL__ 5".to_string(),
+            "__AXIMAR_EVAL_END__".to_string(),
+        ];
+        let result = parse_output("cell-1", &lines, 100, &catalog(), &Backend::Local);
+        assert!(!result.is_error);
+        assert!(result.plot_data.is_some());
+        assert_eq!(result.latex, None, "done should be filtered as junk LaTeX");
+
+        let _ = fs::remove_file(&plotly_path);
+    }
+
+    #[test]
+    fn test_plotly_invalid_json_rejected() {
+        // If the file contains invalid JSON, plot_data should be None
+        let temp_dir = std::env::temp_dir();
+        let plotly_path = temp_dir.join("ax_plot_test_invalid.plotly.json");
+        fs::write(&plotly_path, "not valid json {{{").unwrap();
+
+        let lines = vec![
+            plotly_path.to_str().unwrap().to_string(),
+            "$$\\mathit{done}$$".to_string(),
+            "false".to_string(),
+            "__AXIMAR_EVAL_END__".to_string(),
+        ];
+        let result = parse_output("cell-1", &lines, 100, &catalog(), &Backend::Local);
+        assert!(!result.is_error);
+        assert!(result.plot_data.is_none(), "invalid JSON should be rejected");
+
+        let _ = fs::remove_file(&plotly_path);
+    }
+
+    #[test]
+    fn test_plotly_nonexistent_file() {
+        // If the file doesn't exist, plot_data should be None (no crash)
+        let lines = vec![
+            "/tmp/ax_plot_nonexistent_99999.plotly.json".to_string(),
+            "$$\\mathit{done}$$".to_string(),
+            "false".to_string(),
+            "__AXIMAR_EVAL_END__".to_string(),
+        ];
+        let result = parse_output("cell-1", &lines, 100, &catalog(), &Backend::Local);
+        assert!(!result.is_error);
+        assert!(result.plot_data.is_none());
     }
 }

@@ -28,8 +28,14 @@ fn description_extract(d: &MaximaFunction) -> Vec<&str> {
 impl Catalog {
     pub fn load() -> Self {
         let json = include_str!("catalog.json");
-        let functions: Vec<MaximaFunction> =
+        let mut functions: Vec<MaximaFunction> =
             serde_json::from_str(json).expect("embedded catalog.json must be valid");
+
+        // Append Aximar-specific plotting functions (alongside the .mac file)
+        let ax_json = include_str!("../maxima/ax_plotting_catalog.json");
+        let ax_functions: Vec<MaximaFunction> =
+            serde_json::from_str(ax_json).expect("embedded ax_plotting_catalog.json must be valid");
+        functions.extend(ax_functions);
 
         let mut index = Index::<usize>::new(2);
         for (i, f) in functions.iter().enumerate() {
@@ -364,5 +370,33 @@ mod tests {
         let groups = catalog.by_category();
         assert!(!groups.is_empty());
         assert!(groups.iter().any(|g| g.label == "Calculus"));
+    }
+
+    #[test]
+    fn test_ax_plotting_functions_in_catalog() {
+        let catalog = Catalog::load();
+        // All three Aximar plotting functions should be findable
+        assert!(catalog.get("ax_plot2d").is_some());
+        assert!(catalog.get("ax_draw2d").is_some());
+        assert!(catalog.get("ax_draw3d").is_some());
+        // They should be in the Plotting category
+        assert_eq!(catalog.get("ax_plot2d").unwrap().category, FunctionCategory::Plotting);
+    }
+
+    #[test]
+    fn test_ax_plotting_functions_complete() {
+        let catalog = Catalog::load();
+        let results = catalog.complete("ax_");
+        assert!(results.iter().any(|c| c.name == "ax_plot2d"));
+        assert!(results.iter().any(|c| c.name == "ax_draw2d"));
+        assert!(results.iter().any(|c| c.name == "ax_draw3d"));
+    }
+
+    #[test]
+    fn test_ax_plotting_functions_searchable() {
+        let catalog = Catalog::load();
+        let results = catalog.search("ax_plot2d");
+        assert!(!results.is_empty());
+        assert_eq!(results[0].function.name, "ax_plot2d");
     }
 }

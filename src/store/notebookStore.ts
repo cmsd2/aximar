@@ -262,14 +262,15 @@ export const useNotebookStore = create<NotebookState>((set) => ({
       const tab = state.notebooks[notebookId];
       if (!tab) return state;
 
-      // Merge backend cells with local state, preserving local input edits
+      // Merge backend cells with local state, preserving local input edits.
+      // For cell_input_updated events (echoes of frontend debounced syncs),
+      // always keep the local input — it may have advanced past what the
+      // backend echoed back.  Undo/redo use distinct effects (undone/redone)
+      // and fall through to useBackendInput via isReplace/!localCell.
       const isReplace = effect === "notebook_replaced";
       const mergedCells = cells.map((backendCell) => {
         const localCell = tab.cells.find((c) => c.id === backendCell.id);
-        const isInputEffect =
-          effect === "cell_input_updated" && cellId === backendCell.id;
-        const useBackendInput =
-          isInputEffect || isReplace || !localCell;
+        const useBackendInput = isReplace || !localCell;
         const input = useBackendInput
           ? backendCell.input
           : localCell.input;

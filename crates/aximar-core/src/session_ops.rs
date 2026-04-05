@@ -13,6 +13,7 @@ use crate::maxima::output::OutputSink;
 use crate::maxima::process::MaximaProcess;
 use crate::maxima::protocol;
 use crate::maxima::types::SessionStatus;
+use crate::maxima::plotting::{plotting_init_code, plotting_lisp_stdin};
 use crate::maxima::unicode::build_texput_init;
 use crate::registry::NotebookContextRef;
 
@@ -47,6 +48,14 @@ pub async fn spawn_and_init_session(
             if let Ok(p) = guard.process_mut() {
                 let _ =
                     protocol::evaluate(p, "__init__", &init, catalog, eval_timeout).await;
+                // Load Lisp helpers for plotting (ax__mktemp via mkstemp)
+                let lisp_init = plotting_lisp_stdin();
+                p.write_stdin(lisp_init).await.ok();
+                // Load Aximar plotting functions (ax_plot2d, ax_draw2d, ax_draw3d)
+                let plot_init = plotting_init_code();
+                let _ =
+                    protocol::evaluate(p, "__init__", plot_init, catalog, eval_timeout)
+                        .await;
             }
             drop(guard);
 

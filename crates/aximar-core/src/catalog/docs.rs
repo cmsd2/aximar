@@ -8,8 +8,15 @@ pub struct Docs {
 impl Docs {
     pub fn load() -> Self {
         let json = include_str!("docs.json");
-        let entries: HashMap<String, String> =
+        let mut entries: HashMap<String, String> =
             serde_json::from_str(json).expect("embedded docs.json must be valid");
+
+        // Append Aximar-specific plotting function docs (alongside the .mac file)
+        let ax_json = include_str!("../maxima/ax_plotting_docs.json");
+        let ax_entries: HashMap<String, String> =
+            serde_json::from_str(ax_json).expect("embedded ax_plotting_docs.json must be valid");
+        entries.extend(ax_entries);
+
         Docs { entries }
     }
 

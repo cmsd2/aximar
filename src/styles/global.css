@@ -580,6 +580,29 @@
   height: auto;
 }
 
+.plotly-output {
+  max-width: 700px;
+  min-height: 400px;
+  margin: 4px auto;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.plotly-output .modebar {
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.plotly-output:hover .modebar {
+  opacity: 1;
+}
+
+.plot-error {
+  color: var(--error-color, #ef4444);
+  padding: 8px;
+  font-size: 13px;
+}
+
 .empty-output {
   color: var(--text-placeholder);
   font-style: italic;
@@ -2699,6 +2722,18 @@
 
   /* Hide empty markdown cells (only placeholder, no content) */
   .markdown-cell:has(.markdown-cell-placeholder) {
+    display: none !important;
+  }
+
+  /* Plotly charts: constrain to page, hide interactive chrome */
+  .plotly-output {
+    max-width: 100% !important;
+    max-height: 500px !important;
+    margin: 4px auto !important;
+    break-inside: avoid;
+  }
+
+  .plotly-output .modebar-container {
     display: none !important;
   }
 

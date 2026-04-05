@@ -225,8 +225,13 @@ export function useCodeMirrorEditor({
       if (!view || isInternalUpdate.current) return;
       const current = view.state.doc.toString();
       if (current !== input) {
+        // Preserve cursor position when syncing external content changes
+        const prevSel = view.state.selection.main;
+        const anchor = Math.min(prevSel.anchor, input.length);
+        const head = Math.min(prevSel.head, input.length);
         view.dispatch({
           changes: { from: 0, to: current.length, insert: input },
+          selection: { anchor, head },
         });
       }
 

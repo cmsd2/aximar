@@ -4,6 +4,7 @@ pub mod labels;
 pub mod noconsole;
 pub mod output;
 pub mod parser;
+pub mod plotting;
 pub mod process;
 pub mod protocol;
 pub mod types;
