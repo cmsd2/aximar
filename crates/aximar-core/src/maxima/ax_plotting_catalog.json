@@ -1,34 +1,101 @@
 [
   {
-    "name": "ax_plot2d",
+    "name": "ax_bar",
     "signatures": [
-      "ax_plot2d(expr, [var, min, max], options)",
-      "ax_plot2d([expr_1, ..., expr_n], [var, min, max], options)"
+      "ax_bar(categories, values)",
+      "ax_bar(values)"
     ],
-    "description": "Plot one or more expressions as interactive Plotly.js charts. A convenience wrapper around ax_draw2d that automatically creates explicit() objects from expressions. Supports Plotly-native style options (color, dash, marker_symbol, etc.) and layout options (title, xlabel, ylabel, xrange, yrange, width, height, aspect_ratio, etc.).",
+    "description": "Bar chart. Use inside ax_draw2d. Two forms: (1) string categories and numeric values, (2) just values with auto-numbered categories. Supports color, bar_width, and name options. Use bar_mode layout option for grouped or stacked multi-series charts.",
     "category": "Plotting",
     "examples": [
-      {"input": "ax_plot2d(sin(x), [x, -%pi, %pi])$", "description": null},
-      {"input": "ax_plot2d([sin(x), cos(x)], [x, -5, 5])$", "description": null},
-      {"input": "ax_plot2d(x^2, [x, -3, 3], title=\"Parabola\", color=\"red\")$", "description": null}
+      {
+        "input": "ax_draw2d(ax_bar([\"A\",\"B\",\"C\"], [10,20,30]), title=\"Sales\")$",
+        "description": null
+      },
+      {
+        "input": "ax_draw2d(ax_bar([5,10,15,20]))$",
+        "description": null
+      },
+      {
+        "input": "ax_draw2d(name=\"2024\", ax_bar([\"Q1\",\"Q2\"], [100,150]), name=\"2025\", ax_bar([\"Q1\",\"Q2\"], [120,180]), bar_mode=\"group\")$",
+        "description": null
+      }
     ],
-    "see_also": ["ax_draw2d", "ax_draw3d", "plot2d"]
+    "see_also": [
+      "ax_draw2d",
+      "ax_histogram"
+    ]
+  },
+  {
+    "name": "ax_contour",
+    "signatures": [
+      "ax_contour(expr, xvar, xlo, xhi, yvar, ylo, yhi)"
+    ],
+    "description": "Filled contour plot of a 2D expression. Use inside ax_draw2d. Samples f(x,y) on a grid and renders as a Plotly contour chart with multiple filled levels. Distinct from implicit() which renders a single contour line at zero. Supports colorscale, ncontours, and showscale options.",
+    "category": "Plotting",
+    "examples": [
+      {
+        "input": "ax_draw2d(ax_contour(x^2 + y^2, x, -3, 3, y, -3, 3))$",
+        "description": null
+      },
+      {
+        "input": "ax_draw2d(ax_contour(sin(x)*cos(y), x, -%pi, %pi, y, -%pi, %pi), colorscale=\"Viridis\", ncontours=20)$",
+        "description": null
+      }
+    ],
+    "see_also": [
+      "ax_draw2d",
+      "ax_heatmap",
+      "implicit"
+    ]
   },
   {
     "name": "ax_draw2d",
     "signatures": [
       "ax_draw2d(options, ..., graphic_object, ...)"
     ],
-    "description": "Draw 2D interactive plots using Plotly.js. Accepts draw package objects (explicit, parametric, points, implicit) and renders them as interactive charts with pan, zoom, and hover. Style options use Plotly-native naming: color, line_width, dash, marker_symbol, marker_size, fill, opacity, name. Layout options: title, xlabel, ylabel, xrange, yrange, grid, showlegend, aspect_ratio, width, height.",
+    "description": "Draw 2D interactive plots using Plotly.js. Accepts draw package objects (explicit, parametric, points, implicit) and Aximar objects (ax_contour, ax_heatmap, ax_bar, ax_histogram). Renders as interactive charts with pan, zoom, and hover. Style options: color, line_width, dash, marker_symbol, marker_size, fill, opacity, name, colorscale, showscale, nbins, ncontours, bar_width. Layout options: title, xlabel, ylabel, xrange, yrange, grid, showlegend, aspect_ratio, width, height, bar_mode.",
     "category": "Plotting",
     "examples": [
-      {"input": "ax_draw2d(explicit(sin(x), x, -%pi, %pi))$", "description": null},
-      {"input": "ax_draw2d(color=\"red\", explicit(x^2, x, -3, 3), color=\"blue\", explicit(x^3, x, -2, 2))$", "description": null},
-      {"input": "ax_draw2d(parametric(cos(t), sin(t), t, 0, 2*%pi), line_width=3)$", "description": null},
-      {"input": "ax_draw2d(points([[1,1],[2,4],[3,9]]), marker_symbol=\"diamond\")$", "description": null},
-      {"input": "ax_draw2d(implicit(x^2 + y^2 = 4, x, -3, 3, y, -3, 3))$", "description": null}
+      {
+        "input": "ax_draw2d(explicit(sin(x), x, -%pi, %pi))$",
+        "description": null
+      },
+      {
+        "input": "ax_draw2d(color=\"red\", explicit(x^2, x, -3, 3), color=\"blue\", explicit(x^3, x, -2, 2))$",
+        "description": null
+      },
+      {
+        "input": "ax_draw2d(parametric(cos(t), sin(t), t, 0, 2*%pi), line_width=3)$",
+        "description": null
+      },
+      {
+        "input": "ax_draw2d(points([[1,1],[2,4],[3,9]]), marker_symbol=\"diamond\")$",
+        "description": null
+      },
+      {
+        "input": "ax_draw2d(implicit(x^2 + y^2 = 4, x, -3, 3, y, -3, 3))$",
+        "description": null
+      },
+      {
+        "input": "ax_draw2d(ax_contour(x^2+y^2, x, -3, 3, y, -3, 3), colorscale=\"Viridis\")$",
+        "description": null
+      },
+      {
+        "input": "ax_draw2d(ax_bar([\"A\",\"B\",\"C\"], [10,20,30]), title=\"Sales\")$",
+        "description": null
+      },
+      {
+        "input": "ax_draw2d(ax_histogram(makelist(random(100)/10.0, i, 1, 500)))$",
+        "description": null
+      }
     ],
-    "see_also": ["ax_plot2d", "ax_draw3d", "draw2d"]
+    "see_also": [
+      "ax_plot2d",
+      "ax_draw3d",
+      "ax_polar",
+      "draw2d"
+    ]
   },
   {
     "name": "ax_draw3d",
@@ -38,10 +105,134 @@
     "description": "Draw 3D interactive plots using Plotly.js with WebGL. Accepts draw package objects (explicit for surfaces, points for 3D scatter) and renders them as rotatable, zoomable 3D charts. Style options: color, opacity, colorscale, marker_size, marker_symbol, name. Layout options: title, xlabel, ylabel, zlabel, xrange, yrange, zrange, showlegend, width, height.",
     "category": "Plotting",
     "examples": [
-      {"input": "ax_draw3d(explicit(sin(x)*cos(y), x, -%pi, %pi, y, -%pi, %pi))$", "description": null},
-      {"input": "ax_draw3d(points([[1,1,1],[2,2,4],[3,3,9]]), marker_size=5)$", "description": null},
-      {"input": "ax_draw3d(explicit(x^2 - y^2, x, -2, 2, y, -2, 2), title=\"Saddle\", colorscale=\"Viridis\")$", "description": null}
+      {
+        "input": "ax_draw3d(explicit(sin(x)*cos(y), x, -%pi, %pi, y, -%pi, %pi))$",
+        "description": null
+      },
+      {
+        "input": "ax_draw3d(points([[1,1,1],[2,2,4],[3,3,9]]), marker_size=5)$",
+        "description": null
+      },
+      {
+        "input": "ax_draw3d(explicit(x^2 - y^2, x, -2, 2, y, -2, 2), title=\"Saddle\", colorscale=\"Viridis\")$",
+        "description": null
+      }
     ],
-    "see_also": ["ax_plot2d", "ax_draw2d", "draw3d"]
+    "see_also": [
+      "ax_plot2d",
+      "ax_draw2d",
+      "ax_polar",
+      "draw3d"
+    ]
+  },
+  {
+    "name": "ax_heatmap",
+    "signatures": [
+      "ax_heatmap(z_matrix)",
+      "ax_heatmap(z_matrix, x_labels, y_labels)",
+      "ax_heatmap(expr, xvar, xlo, xhi, yvar, ylo, yhi)"
+    ],
+    "description": "Heatmap visualization. Use inside ax_draw2d. Three forms: (1) a Maxima matrix, (2) a matrix with string axis labels, (3) a symbolic expression sampled on a grid. Renders as a Plotly heatmap with continuous color gradient. Supports colorscale and showscale options.",
+    "category": "Plotting",
+    "examples": [
+      {
+        "input": "ax_draw2d(ax_heatmap(matrix([1,2,3],[4,5,6],[7,8,9])))$",
+        "description": null
+      },
+      {
+        "input": "ax_draw2d(ax_heatmap(sin(x)*cos(y), x, -%pi, %pi, y, -%pi, %pi), colorscale=\"Hot\")$",
+        "description": null
+      },
+      {
+        "input": "ax_draw2d(ax_heatmap(M, [\"A\",\"B\",\"C\"], [\"X\",\"Y\",\"Z\"]))$",
+        "description": null
+      }
+    ],
+    "see_also": [
+      "ax_draw2d",
+      "ax_contour"
+    ]
+  },
+  {
+    "name": "ax_histogram",
+    "signatures": [
+      "ax_histogram(data)"
+    ],
+    "description": "Histogram of numeric data. Use inside ax_draw2d. Takes a flat list of numbers; Plotly handles binning automatically. Use nbins to control the number of bins. Use bar_mode=\"overlay\" with opacity for overlaid histograms comparing distributions.",
+    "category": "Plotting",
+    "examples": [
+      {
+        "input": "ax_draw2d(ax_histogram(makelist(random(100)/10.0, i, 1, 500)))$",
+        "description": null
+      },
+      {
+        "input": "ax_draw2d(ax_histogram(data), nbins=20, title=\"Distribution\")$",
+        "description": null
+      },
+      {
+        "input": "ax_draw2d(color=\"blue\", opacity=0.5, ax_histogram(data1), color=\"red\", opacity=0.5, ax_histogram(data2), bar_mode=\"overlay\")$",
+        "description": null
+      }
+    ],
+    "see_also": [
+      "ax_draw2d",
+      "ax_bar"
+    ]
+  },
+  {
+    "name": "ax_plot2d",
+    "signatures": [
+      "ax_plot2d(expr, [var, min, max], options)",
+      "ax_plot2d([expr_1, ..., expr_n], [var, min, max], options)"
+    ],
+    "description": "Plot one or more expressions as interactive Plotly.js charts. A convenience wrapper around ax_draw2d that automatically creates explicit() objects from expressions. Supports Plotly-native style options (color, dash, marker_symbol, etc.) and layout options (title, xlabel, ylabel, xrange, yrange, width, height, aspect_ratio, etc.).",
+    "category": "Plotting",
+    "examples": [
+      {
+        "input": "ax_plot2d(sin(x), [x, -%pi, %pi])$",
+        "description": null
+      },
+      {
+        "input": "ax_plot2d([sin(x), cos(x)], [x, -5, 5])$",
+        "description": null
+      },
+      {
+        "input": "ax_plot2d(x^2, [x, -3, 3], title=\"Parabola\", color=\"red\")$",
+        "description": null
+      }
+    ],
+    "see_also": [
+      "ax_draw2d",
+      "ax_draw3d",
+      "ax_polar",
+      "plot2d"
+    ]
+  },
+  {
+    "name": "ax_polar",
+    "signatures": [
+      "ax_polar(expr, [var, min, max], options)",
+      "ax_polar([expr_1, ..., expr_n], [var, min, max], options)"
+    ],
+    "description": "Plot r(θ) curves in polar coordinates as interactive Plotly.js charts. Standalone function (like ax_plot2d). Samples the radial expression along the angular range and renders as a scatterpolar trace. Supports style options: color, line_width, dash, name. Layout options: title, showlegend, width, height.",
+    "category": "Plotting",
+    "examples": [
+      {
+        "input": "ax_polar(1 + cos(θ), [θ, 0, 2*%pi])$",
+        "description": "Cardioid"
+      },
+      {
+        "input": "ax_polar([1 + cos(θ), sin(2*θ)], [θ, 0, 2*%pi], title=\"Polar Curves\")$",
+        "description": null
+      },
+      {
+        "input": "ax_polar(sin(3*θ), [θ, 0, 2*%pi], color=\"red\", title=\"Rose Curve\")$",
+        "description": null
+      }
+    ],
+    "see_also": [
+      "ax_plot2d",
+      "ax_draw2d"
+    ]
   }
 ]

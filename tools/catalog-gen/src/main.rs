@@ -1,3 +1,4 @@
+mod ax_plotting;
 mod mapping;
 mod markdown;
 mod package_scanner;
@@ -19,6 +20,10 @@ const DOCS_REL: &str = "crates/aximar-core/src/catalog/docs.json";
 const PACKAGES_REL: &str = "crates/aximar-core/src/catalog/packages.json";
 const FIGURES_REL: &str = "public/figures";
 const SECCOMP_REL: &str = "docker/seccomp.json";
+const AX_DRAW_CONTEXT_REL: &str = "crates/aximar-core/src/maxima/ax_draw_context.json";
+const AX_PLOTTING_CATALOG_REL: &str = "crates/aximar-core/src/maxima/ax_plotting_catalog.json";
+const AX_PLOTTING_DOCS_REL: &str = "crates/aximar-core/src/maxima/ax_plotting_docs.json";
+const DRAW_COMPLETIONS_TS_REL: &str = "src/lib/draw-completions.generated.ts";
 /// Upstream Docker default seccomp profile. Pinned to a release tag because
 /// the file was removed from master. Update the tag when upgrading.
 const UPSTREAM_SECCOMP_URL: &str =
@@ -121,6 +126,13 @@ enum Commands {
         /// Output path for packages.json [default: <workspace>/crates/aximar-core/src/catalog/packages.json]
         #[arg(short, long)]
         output: Option<PathBuf>,
+    },
+
+    /// Generate ax_plotting catalog, docs, and TypeScript completions from ax_draw_context.json.
+    AxPlotting {
+        /// Input ax_draw_context.json [default: <workspace>/crates/aximar-core/src/maxima/ax_draw_context.json]
+        #[arg(short, long)]
+        input: Option<PathBuf>,
     },
 
     /// Parse a pre-existing Maxima XML file (produced by `makeinfo --xml`).
@@ -315,6 +327,48 @@ fn main() {
                 packages.len(),
                 output.display()
             );
+        }
+
+        Commands::AxPlotting { input } => {
+            let input = resolve_output(input, AX_DRAW_CONTEXT_REL);
+            let catalog_output = resolve_output(None, AX_PLOTTING_CATALOG_REL);
+            let docs_output = resolve_output(None, AX_PLOTTING_DOCS_REL);
+            let ts_output = resolve_output(None, DRAW_COMPLETIONS_TS_REL);
+
+            let ctx = ax_plotting::load(&input);
+
+            // Generate catalog
+            let catalog = ax_plotting::generate_catalog(&ctx);
+            let catalog_json =
+                serde_json::to_string_pretty(&catalog).expect("failed to serialize catalog");
+            fs::write(&catalog_output, &catalog_json).unwrap_or_else(|e| {
+                fatal(&format!("Error writing {}: {e}", catalog_output.display()));
+            });
+            eprintln!(
+                "Wrote {} functions to {}",
+                catalog.len(),
+                catalog_output.display()
+            );
+
+            // Generate docs
+            let docs = ax_plotting::generate_docs(&ctx);
+            let docs_json =
+                serde_json::to_string_pretty(&docs).expect("failed to serialize docs");
+            fs::write(&docs_output, &docs_json).unwrap_or_else(|e| {
+                fatal(&format!("Error writing {}: {e}", docs_output.display()));
+            });
+            eprintln!(
+                "Wrote {} doc entries to {}",
+                docs.len(),
+                docs_output.display()
+            );
+
+            // Generate TypeScript
+            let ts = ax_plotting::generate_typescript(&ctx);
+            fs::write(&ts_output, &ts).unwrap_or_else(|e| {
+                fatal(&format!("Error writing {}: {e}", ts_output.display()));
+            });
+            eprintln!("Wrote TypeScript completions to {}", ts_output.display());
         }
 
         Commands::Seccomp {
