@@ -26,6 +26,11 @@ pub fn setup_menu(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>
         .accelerator("CmdOrCtrl+Shift+S")
         .build(app)?;
 
+    let export_latex_item = MenuItemBuilder::new("Export as LaTeX...")
+        .id("export_latex")
+        .accelerator("CmdOrCtrl+Shift+E")
+        .build(app)?;
+
     let print_item = MenuItemBuilder::new("Print...")
         .id("print")
         .accelerator("CmdOrCtrl+P")
@@ -55,6 +60,8 @@ pub fn setup_menu(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>
         .separator()
         .item(&save_item)
         .item(&save_as_item)
+        .separator()
+        .item(&export_latex_item)
         .separator()
         .item(&print_item)
         .separator()
@@ -92,7 +99,7 @@ pub fn setup_menu(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>
     app.on_menu_event(move |app_handle, event| {
         let id = event.id().0.as_str();
         match id {
-            "new" | "open" | "save" | "save_as" => {
+            "new" | "open" | "save" | "save_as" | "export_latex" => {
                 let _ = app_handle.emit("menu-event", id);
             }
             "print" => {

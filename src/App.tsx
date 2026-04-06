@@ -10,6 +10,7 @@ import { Notebook } from "./components/Notebook";
 import { CommandPalette } from "./components/CommandPalette";
 import { TemplateChooser } from "./components/TemplateChooser";
 import { SettingsModal } from "./components/SettingsModal";
+import { ExportLatexModal } from "./components/ExportLatexModal";
 import { StatusBar, LogWindow } from "./components/LogPanel";
 import { DocsPanel } from "./components/DocsPanel";
 import { FindBar } from "./components/FindBar";
@@ -52,6 +53,7 @@ function App() {
   const [templateChooserOpen, setTemplateChooserOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [variablesOpen, setVariablesOpen] = useState(false);
+  const [exportLatexOpen, setExportLatexOpen] = useState(false);
   const [docsOpen, setDocsOpen] = useState(false);
   const [docsFunctionName, setDocsFunctionName] = useState<string | undefined>(undefined);
   const [docsRequestId, setDocsRequestId] = useState(0);
@@ -272,6 +274,9 @@ function App() {
         case "save_as":
           handleSaveAs();
           break;
+        case "export_latex":
+          setExportLatexOpen(true);
+          break;
       }
     });
     return () => {
@@ -411,6 +416,9 @@ function App() {
       )}
       {settingsOpen && (
         <SettingsModal onClose={() => setSettingsOpen(false)} onSetVariablesOpen={setVariablesOpen} />
+      )}
+      {exportLatexOpen && (
+        <ExportLatexModal onClose={() => setExportLatexOpen(false)} />
       )}
     </div>
   );

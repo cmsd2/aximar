@@ -22,6 +22,7 @@
     "@tauri-apps/plugin-opener": "^2",
     "computer-modern": "^0.1.3",
     "katex": "^0.16.0",
+    "mdast-util-to-string": "^4.0.0",
     "nanoid": "^5.0.0",
     "plotly.js-dist-min": "^3.5.0",
     "react": "^19.1.0",
@@ -30,6 +31,8 @@
     "rehype-katex": "^7.0.1",
     "remark-gfm": "^4.0.1",
     "remark-math": "^6.0.0",
+    "remark-parse": "^11.0.0",
+    "unified": "^11.0.5",
     "zustand": "^5.0.0"
   },
   "devDependencies": {

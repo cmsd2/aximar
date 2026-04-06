@@ -62,6 +62,8 @@ wxMaxima can export entire workbooks as HTML or LaTeX documents. Individual cell
 
 **Why it matters:** Important for sharing work with others who don't have Aximar installed, and for incorporating results into papers or reports.
 
+**Status:** LaTeX export implemented via File > Export as LaTeX (Cmd+Shift+E). Supports multi-cell selection (shift-click range), toggles for code input and plot inclusion, and exports plots as images alongside the `.tex` file. HTML export is not yet implemented.
+
 ### Minor
 
 #### `wxstatusbar(message)`
@@ -102,7 +104,7 @@ Controls whether variable names like `x_1` are displayed with subscript formatti
 |---------|--------|--------|----------|
 | Animation / sliders | High | High | 1 |
 | `table_form()` | Medium | Low | 2 |
-| Notebook export (HTML/LaTeX) | Medium | Medium | 3 |
+| Notebook export (HTML/LaTeX) | Medium | Medium | 3 | LaTeX done |
 | `wxstatusbar()` progress | Low-Medium | Low | 4 |
 | `.wxm` import | Low-Medium | Medium | 5 |
 | `show_image()` | Low | Low | 6 |
