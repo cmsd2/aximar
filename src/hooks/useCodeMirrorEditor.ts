@@ -7,6 +7,7 @@ import { maximaLanguage } from "../lib/maxima-language";
 import { maximaTheme, maximaHighlightStyle } from "../lib/codemirror-theme";
 import { maximaCompletionSource } from "../lib/maxima-completions";
 import { symbolCompletionSource } from "../lib/symbol-completions";
+import { drawContextCompletionSource } from "../lib/draw-completions";
 import {
   signatureHintField,
   hideSignatureEffect,
@@ -192,7 +193,7 @@ export function useCodeMirrorEditor({
         cmPlaceholder("Enter Maxima expression... (Shift+Enter to evaluate)"),
         autocompleteCompartment.current.of(
           autocompletion({
-            override: [symbolCompletionSource, maximaCompletionSource(initialAutocompleteMode)],
+            override: [drawContextCompletionSource, symbolCompletionSource, maximaCompletionSource(initialAutocompleteMode)],
             activateOnTyping: true,
             maxRenderedOptions: 8,
           })
@@ -297,7 +298,7 @@ export function useCodeMirrorEditor({
           hideSignatureEffect.of(undefined),
           autocompleteCompartment.current.reconfigure(
             autocompletion({
-              override: [symbolCompletionSource, maximaCompletionSource(state.autocompleteMode)],
+              override: [drawContextCompletionSource, symbolCompletionSource, maximaCompletionSource(state.autocompleteMode)],
               activateOnTyping: true,
               maxRenderedOptions: 8,
             })
