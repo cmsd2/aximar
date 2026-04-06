@@ -183,8 +183,11 @@ pub async fn kill_variable(process: &mut MaximaProcess, name: &str) -> Result<()
 }
 
 pub async fn kill_all_variables(process: &mut MaximaProcess) -> Result<(), AppError> {
+    // Kill user variables but preserve ax__ internal variables used by
+    // Aximar's plotting functions (ax__layout_option_names, etc.).
+    // Uses ssearch from stringproc (loaded during session init by ax_plotting.mac).
     let input = format!(
-        "kill(values)$\nprint(\"{}\");\n",
+        "block([ax__kill_list], ax__kill_list: sublist(values, lambda([v], not is(ssearch(\"ax__\", string(v)) = 1))), apply(kill, ax__kill_list))$\nprint(\"{}\");\n",
         VARS_SENTINEL
     );
 
@@ -227,7 +230,7 @@ fn is_internal_variable(name: &str) -> bool {
         "maxima_userdir",
         "maxima_objdir",
     ];
-    INTERNAL_VARS.contains(&name)
+    INTERNAL_VARS.contains(&name) || name.starts_with("ax__")
 }
 
 /// Find positions of statement terminators (`;` and `$`) in a Maxima expression,
