@@ -80,7 +80,11 @@ ax__default_style() := [
   [marker_size, 6],
   [name, false],            /* false = auto-generate from expression */
   [fill, false],
-  [nticks, 500]
+  [nticks, 500],
+  [nbins, false],           /* histogram: number of bins (auto if false) */
+  [ncontours, false],       /* contour: number of contour levels (auto if false) */
+  [showscale, 'auto],       /* heatmap/contour: 'auto = Plotly default, true/false = explicit */
+  [bar_width, false]        /* bar: bar width fraction (auto if false) */
 ]$
 
 /* Get a style value from the style state */
@@ -99,14 +103,16 @@ ax__style_set(style, key, val) := block([result],
 
 /* Layout option names */
 ax__layout_option_names : [title, xrange, yrange, zrange, grid, xaxis, yaxis,
-  xlabel, ylabel, zlabel, showlegend, aspect_ratio, width, height]$
+  xlabel, ylabel, zlabel, showlegend, aspect_ratio, width, height, bar_mode]$
 
 /* Trace/style option names */
 ax__trace_option_names : [color, fill_color, opacity, line_width, dash,
-  marker_symbol, marker_size, name, fill, colorscale, hover_text, nticks]$
+  marker_symbol, marker_size, name, fill, colorscale, hover_text, nticks,
+  nbins, ncontours, showscale, bar_width]$
 
 /* Draw object names we recognize */
-ax__draw_object_names : [explicit, parametric, points, implicit]$
+ax__draw_object_names : [explicit, parametric, points, implicit,
+  ax_contour, ax_heatmap, ax_bar, ax_histogram]$
 
 /* Check if an argument is a layout option (e.g. title="Foo") */
 ax__is_layout_option(item) :=
@@ -364,6 +370,138 @@ ax__trace_points_3d(obj, style) := block(
   parts: append(parts, ax__build_trace_style(style, "points")),
   sconcat("{", simplode(parts, ","), "}"))$
 
+/* 2D filled contour trace: ax_contour(expr, xvar, xlo, xhi, yvar, ylo, yhi) → contour */
+ax__trace_contour_2d(obj, style) := block(
+  [a, expr, xvar, xlo, xhi, yvar, ylo, yhi, n, data, xs, ys, zmat, parts, cs, nc, ss],
+  a: args(obj),
+  if length(a) # 7 then
+    error("ax_contour requires 7 arguments: ax_contour(expr, xvar, xlo, xhi, yvar, ylo, yhi)"),
+  expr: a[1], xvar: a[2], xlo: a[3], xhi: a[4], yvar: a[5], ylo: a[6], yhi: a[7],
+  n: ax__style_get(style, nticks),
+  if n = false or n > 200 then n: 80,
+  data: ax__sample_2d(expr, xvar, xlo, xhi, yvar, ylo, yhi, n, n),
+  xs: data[1], ys: data[2], zmat: data[3],
+  cs: ax__style_get(style, colorscale),
+  nc: ax__style_get(style, ncontours),
+  ss: ax__style_get(style, showscale),
+  parts: [
+    sconcat("\"x\":", ax__float_list_to_json(xs)),
+    sconcat("\"y\":", ax__float_list_to_json(ys)),
+    sconcat("\"z\":", ax__float_matrix_to_json(zmat)),
+    "\"type\":\"contour\""
+  ],
+  if cs # false then
+    parts: endcons(sconcat("\"colorscale\":", ax__json_string(cs)), parts),
+  if nc # false then
+    parts: endcons(sconcat("\"ncontours\":", string(nc)), parts),
+  if ss = true then
+    parts: endcons("\"showscale\":true", parts)
+  else if ss = false then
+    parts: endcons("\"showscale\":false", parts),
+  /* ss = 'auto → omit, use Plotly default */
+  parts: append(parts, ax__build_trace_style(style, string(expr))),
+  sconcat("{", simplode(parts, ","), "}"))$
+
+/* 2D heatmap trace: ax_heatmap(z_matrix) or ax_heatmap(z_matrix, x_labels, y_labels)
+   or ax_heatmap(expr, xvar, xlo, xhi, yvar, ylo, yhi) */
+ax__trace_heatmap_2d(obj, style) := block(
+  [a, nargs, parts, cs, ss, zmat, xs, ys, n, data, expr, xvar, xlo, xhi, yvar, ylo, yhi],
+  a: args(obj),
+  nargs: length(a),
+  cs: ax__style_get(style, colorscale),
+  ss: ax__style_get(style, showscale),
+  if nargs = 7 then (
+    /* Expression form: ax_heatmap(expr, xvar, xlo, xhi, yvar, ylo, yhi) */
+    expr: a[1], xvar: a[2], xlo: a[3], xhi: a[4], yvar: a[5], ylo: a[6], yhi: a[7],
+    n: ax__style_get(style, nticks),
+    if n = false or n > 200 then n: 50,
+    data: ax__sample_2d(expr, xvar, xlo, xhi, yvar, ylo, yhi, n, n),
+    xs: data[1], ys: data[2], zmat: data[3],
+    parts: [
+      sconcat("\"x\":", ax__float_list_to_json(xs)),
+      sconcat("\"y\":", ax__float_list_to_json(ys)),
+      sconcat("\"z\":", ax__float_matrix_to_json(zmat)),
+      "\"type\":\"heatmap\""
+    ]
+  ) else if nargs = 3 then (
+    /* Matrix with labels: ax_heatmap(z_matrix, x_labels, y_labels) */
+    zmat: args(a[1]),  /* matrix → list of rows */
+    xs: a[2], ys: a[3],
+    parts: [
+      sconcat("\"x\":", ax__string_list_to_json(xs)),
+      sconcat("\"y\":", ax__string_list_to_json(ys)),
+      sconcat("\"z\":", ax__float_matrix_to_json(zmat)),
+      "\"type\":\"heatmap\""
+    ]
+  ) else if nargs = 1 then (
+    /* Matrix only: ax_heatmap(z_matrix) */
+    zmat: args(a[1]),  /* matrix → list of rows */
+    parts: [
+      sconcat("\"z\":", ax__float_matrix_to_json(zmat)),
+      "\"type\":\"heatmap\""
+    ]
+  ) else
+    error("ax_heatmap: expected 1, 3, or 7 arguments"),
+  if cs # false then
+    parts: endcons(sconcat("\"colorscale\":", ax__json_string(cs)), parts),
+  if ss # false and ss = false then
+    parts: endcons("\"showscale\":false", parts),
+  parts: append(parts, ax__build_trace_style(style, "heatmap")),
+  sconcat("{", simplode(parts, ","), "}"))$
+
+/* Convert a list of strings to a JSON array: ["a","b","c"] */
+ax__string_list_to_json(lst) :=
+  sconcat("[", simplode(map(lambda([s], sconcat("\"", s, "\"")), lst), ","), "]")$
+
+/* 2D bar trace: ax_bar(categories, values) or ax_bar(values) */
+ax__trace_bar_2d(obj, style) := block(
+  [a, nargs, cats, vals, parts, c, bw],
+  a: args(obj),
+  nargs: length(a),
+  if nargs = 2 then (
+    cats: a[1], vals: a[2]
+  ) else if nargs = 1 then (
+    vals: a[1],
+    cats: makelist(i, i, 1, length(vals))
+  ) else
+    error("ax_bar: expected 1 or 2 arguments"),
+  c: ax__style_get(style, color),
+  bw: ax__style_get(style, bar_width),
+  parts: [
+    if listp(cats) and length(cats) > 0 and stringp(first(cats)) then
+      sconcat("\"x\":", ax__string_list_to_json(cats))
+    else
+      sconcat("\"x\":", ax__float_list_to_json(cats)),
+    sconcat("\"y\":", ax__float_list_to_json(vals)),
+    "\"type\":\"bar\""
+  ],
+  if c # false then
+    parts: endcons(sconcat("\"marker\":{\"color\":", ax__json_string(ax__color_to_css(c)), "}"), parts),
+  if bw # false then
+    parts: endcons(sconcat("\"width\":", string(float(bw))), parts),
+  parts: append(parts, ax__build_trace_style(style, "bar")),
+  sconcat("{", simplode(parts, ","), "}"))$
+
+/* 2D histogram trace: ax_histogram(data) */
+ax__trace_histogram_2d(obj, style) := block(
+  [a, data, parts, c, nb],
+  a: args(obj),
+  if length(a) # 1 then
+    error("ax_histogram: expected 1 argument (data list)"),
+  data: a[1],
+  c: ax__style_get(style, color),
+  nb: ax__style_get(style, nbins),
+  parts: [
+    sconcat("\"x\":", ax__float_list_to_json(data)),
+    "\"type\":\"histogram\""
+  ],
+  if c # false then
+    parts: endcons(sconcat("\"marker\":{\"color\":", ax__json_string(ax__color_to_css(c)), "}"), parts),
+  if nb # false then
+    parts: endcons(sconcat("\"nbinsx\":", string(nb)), parts),
+  parts: append(parts, ax__build_trace_style(style, "histogram")),
+  sconcat("{", simplode(parts, ","), "}"))$
+
 /* Dispatch to the correct 2D trace builder based on object type */
 ax__build_trace_2d(obj, style) := block([objop],
   objop: op(obj),
@@ -371,6 +509,10 @@ ax__build_trace_2d(obj, style) := block([objop],
   else if objop = parametric then ax__trace_parametric_2d(obj, style)
   else if objop = points then ax__trace_points_2d(obj, style)
   else if objop = implicit then ax__trace_implicit_2d(obj, style)
+  else if objop = ax_contour then ax__trace_contour_2d(obj, style)
+  else if objop = ax_heatmap then ax__trace_heatmap_2d(obj, style)
+  else if objop = ax_bar then ax__trace_bar_2d(obj, style)
+  else if objop = ax_histogram then ax__trace_histogram_2d(obj, style)
   else error("ax_draw2d: unsupported object type:", objop))$
 
 /* Dispatch to the correct 3D trace builder based on object type */
@@ -419,6 +561,8 @@ ax__build_layout_2d(opts) := block(
       parts: endcons(sconcat("\"width\":", string(val)), parts)
     else if key = height then
       parts: endcons(sconcat("\"height\":", string(val)), parts)
+    else if key = bar_mode then
+      parts: endcons(sconcat("\"barmode\":", ax__json_string(val)), parts)
   ),
   if xaxis_parts # [] then
     parts: endcons(sconcat("\"xaxis\":{", simplode(xaxis_parts, ","), "}"), parts),
@@ -550,4 +694,90 @@ ax_plot2d([ax__args]) := block(
     draw_args: endcons(explicit(e, var, lo, hi), draw_args),
   draw_args: append(draw_args, opts),
   apply(ax_draw2d, draw_args)
+)$
+
+/* ========================================================================
+ * ax_polar: standalone polar coordinate plotting
+ * ======================================================================== */
+
+/* Build polar layout from options */
+ax__build_layout_polar(opts) := block(
+  [parts, polar_parts, radial_parts, angular_parts],
+  parts: [],
+  polar_parts: [],
+  radial_parts: [],
+  angular_parts: [],
+  for item in opts do block([key, val],
+    key: lhs(item), val: rhs(item),
+    if key = title then
+      parts: endcons(sconcat("\"title\":{\"text\":", ax__json_string(val), "}"), parts)
+    else if key = showlegend then
+      parts: endcons(sconcat("\"showlegend\":", if val then "true" else "false"), parts)
+    else if key = width then
+      parts: endcons(sconcat("\"width\":", string(val)), parts)
+    else if key = height then
+      parts: endcons(sconcat("\"height\":", string(val)), parts)
+  ),
+  if radial_parts # [] then
+    polar_parts: endcons(sconcat("\"radialaxis\":{", simplode(radial_parts, ","), "}"), polar_parts),
+  if angular_parts # [] then
+    polar_parts: endcons(sconcat("\"angularaxis\":{", simplode(angular_parts, ","), "}"), polar_parts),
+  /* Always include polar key so Plotly knows it's a polar subplot */
+  parts: endcons(sconcat("\"polar\":{", simplode(polar_parts, ","), "}"), parts),
+  sconcat("{", simplode(parts, ","), "}"))$
+
+/* ax_polar: plot r(θ) in polar coordinates.
+   ax_polar(expr, [θ, lo, hi], opts...)
+   ax_polar([e1, e2, ...], [θ, lo, hi], opts...) */
+ax_polar([ax__args]) := block(
+  [exprs, range, var, lo, hi, opts, traces, layout_opts, style,
+   n, data, xs, ys, rs, thetas, parts, expr],
+  if length(ax__args) < 2 then
+    error("ax_polar requires at least an expression and a range"),
+  /* First arg: expression or list of expressions */
+  if listp(ax__args[1]) and length(ax__args[1]) = 3
+     and atom(ax__args[1][1]) then
+    error("ax_polar: first argument must be an expression or list of expressions"),
+  if listp(ax__args[1]) then
+    exprs: ax__args[1]
+  else
+    exprs: [ax__args[1]],
+  /* Second arg: range [θ, lo, hi] */
+  range: ax__args[2],
+  if not listp(range) or length(range) # 3 then
+    error("ax_polar: range must be [variable, min, max]"),
+  var: range[1], lo: range[2], hi: range[3],
+  /* Remaining args are options */
+  opts: rest(ax__args, 2),
+  traces: [],
+  layout_opts: [],
+  style: ax__default_style(),
+  for item in opts do (
+    if ax__is_layout_option(item) then
+      layout_opts: endcons(item, layout_opts)
+    else if ax__is_trace_option(item) then
+      style: ax__apply_option(style, item)
+  ),
+  /* Build scatterpolar traces */
+  for expr in exprs do block(
+    [n, data, rs, thetas_deg],
+    n: ax__style_get(style, nticks),
+    if n = false then n: 500,
+    data: ax__sample_1d(expr, var, lo, hi, n),
+    /* data[1] = theta values (radians), data[2] = r values */
+    /* Plotly scatterpolar expects theta in degrees */
+    thetas_deg: map(lambda([t], float(t * 180 / %pi)), data[1]),
+    rs: data[2],
+    parts: [
+      sconcat("\"r\":", ax__float_list_to_json(rs)),
+      sconcat("\"theta\":", ax__float_list_to_json(thetas_deg)),
+      "\"type\":\"scatterpolar\"",
+      "\"mode\":\"lines\"",
+      sconcat("\"line\":", ax__build_line_style(style))
+    ],
+    parts: append(parts, ax__build_trace_style(style, string(expr))),
+    traces: endcons(sconcat("{", simplode(parts, ","), "}"), traces)
+  ),
+  ax__emit_plotly(traces, ax__build_layout_polar(layout_opts)),
+  'done
 )$

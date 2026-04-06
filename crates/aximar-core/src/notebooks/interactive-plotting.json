@@ -165,6 +165,66 @@
     },
     {
       "cell_type": "markdown",
+      "source": "## Filled Contour Plots\n\n`ax_contour` renders a 2D expression f(x,y) as a filled contour chart with multiple level curves. Use `colorscale` to change the color palette and `ncontours` to control the number of levels.",
+      "metadata": {}
+    },
+    {
+      "cell_type": "code",
+      "source": "ax_draw2d(\n  ax_contour(sin(x)*cos(y), x, -%pi, %pi, y, -%pi, %pi),\n  colorscale=\"Viridis\", ncontours=20,\n  title=\"sin(x)·cos(y)\",\n  xlabel=\"x\", ylabel=\"y\"\n)",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## Heatmaps\n\n`ax_heatmap` displays data as a color-coded grid. Pass a Maxima matrix directly, or sample a symbolic expression on a grid.",
+      "metadata": {}
+    },
+    {
+      "cell_type": "code",
+      "source": "ax_draw2d(\n  ax_heatmap(matrix([1,2,3,4],[5,6,7,8],[9,10,11,12])),\n  colorscale=\"Blues\",\n  title=\"Matrix Heatmap\"\n)",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## Bar Charts\n\n`ax_bar` creates bar charts from categorical data. Pass string categories and numeric values. Use `bar_mode` for grouped or stacked multi-series charts.",
+      "metadata": {}
+    },
+    {
+      "cell_type": "code",
+      "source": "ax_draw2d(\n  name=\"2024\", color=\"steelblue\",\n  ax_bar([\"Q1\",\"Q2\",\"Q3\",\"Q4\"], [100,150,120,180]),\n  name=\"2025\", color=\"coral\",\n  ax_bar([\"Q1\",\"Q2\",\"Q3\",\"Q4\"], [110,160,140,200]),\n  bar_mode=\"group\",\n  title=\"Quarterly Revenue\"\n)",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## Histograms\n\n`ax_histogram` bins numeric data into a frequency distribution. Plotly handles binning automatically — use `nbins` to control the number of bins.",
+      "metadata": {}
+    },
+    {
+      "cell_type": "code",
+      "source": "data: makelist(random(100)/10.0, i, 1, 500)$\nax_draw2d(\n  color=\"mediumseagreen\",\n  ax_histogram(data),\n  nbins=25,\n  title=\"Random Distribution\"\n)",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## Polar Plots\n\n`ax_polar` plots r(θ) curves in polar coordinates. It's a standalone function like `ax_plot2d`.",
+      "metadata": {}
+    },
+    {
+      "cell_type": "code",
+      "source": "ax_polar(\n  [1 + cos(θ), sin(3*θ)],\n  [θ, 0, 2*%pi],\n  title=\"Polar Curves\"\n)",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
       "source": "## Plotting Computed Results\n\nCompute a derivative symbolically and plot both the function and its derivative.",
       "metadata": {}
     },
