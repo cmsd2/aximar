@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { save } from "@tauri-apps/plugin-dialog";
+import Plotly from "plotly.js-dist-min";
 import { useActiveTab, useNotebookStore } from "../store/notebookStore";
 import { useMaxima } from "../hooks/useMaxima";
 import { getSuggestions } from "../lib/suggestions-client";
@@ -32,9 +33,47 @@ export function CellSuggestions({ cell }: CellSuggestionsProps) {
         if (path) {
           await invoke("write_plot_svg", { path, content: cell.output.plotSvg });
         }
+      } else if (
+        (action === "save_plotly_svg" || action === "save_plotly_png") &&
+        cell.output?.plotData
+      ) {
+        // Find the Plotly chart DOM element for this cell
+        const inputEl = document.querySelector(`[data-cell-id="${cell.id}"]`);
+        const cellEl = inputEl?.closest(".cell");
+        const plotEl = cellEl?.querySelector(".plotly-output") as HTMLElement | null;
+        if (!plotEl) return;
+
+        const isSvg = action === "save_plotly_svg";
+        const format = isSvg ? "svg" : "png";
+        const ext = format;
+
+        const path = await save({
+          defaultPath: `plot.${ext}`,
+          filters: [{ name: `${ext.toUpperCase()} Image`, extensions: [ext] }],
+        });
+        if (!path) return;
+
+        const imgData = await Plotly.toImage(plotEl, {
+          format,
+          width: plotEl.clientWidth || 800,
+          height: plotEl.clientHeight || 500,
+        });
+
+        if (isSvg) {
+          // SVG: data URL → text content
+          const svgContent = imgData.startsWith("data:")
+            ? decodeURIComponent(imgData.split(",")[1])
+            : imgData;
+          await invoke("write_plot_svg", { path, content: svgContent });
+        } else {
+          // PNG: data URL → binary via base64
+          const base64 = imgData.split(",")[1];
+          const bytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
+          await invoke("write_binary_file", { path, data: Array.from(bytes) });
+        }
       }
     },
-    [cell.output],
+    [cell.id, cell.output],
   );
 
   useEffect(() => {
@@ -48,6 +87,7 @@ export function CellSuggestions({ cell }: CellSuggestionsProps) {
       text_output: cell.output.textOutput,
       latex: cell.output.latex,
       plot_svg: cell.output.plotSvg,
+      plot_data: cell.output.plotData,
       error: cell.output.error,
       error_info: cell.output.errorInfo,
       is_error: cell.output.isError,

@@ -1,21 +1,34 @@
 use std::fs;
 use std::path::Path;
 
-#[tauri::command]
-pub fn write_plot_svg(path: String, content: String) -> Result<(), String> {
-    let p = Path::new(&path);
-
-    // Reject paths containing ".." segments to prevent directory traversal
-    for component in p.components() {
+/// Validate a user-provided file path: no directory traversal, required extension.
+fn validate_path(path: &Path, allowed_extensions: &[&str]) -> Result<(), String> {
+    for component in path.components() {
         if matches!(component, std::path::Component::ParentDir) {
             return Err("Invalid path: directory traversal not allowed".to_string());
         }
     }
-
-    // Must have .svg extension
-    if p.extension().and_then(|e| e.to_str()) != Some("svg") {
-        return Err("Invalid path: file must have .svg extension".to_string());
+    let ext = path
+        .extension()
+        .and_then(|e| e.to_str())
+        .unwrap_or("");
+    if !allowed_extensions.contains(&ext) {
+        return Err(format!(
+            "Invalid path: file must have one of these extensions: {}",
+            allowed_extensions.join(", ")
+        ));
     }
+    Ok(())
+}
 
+#[tauri::command]
+pub fn write_plot_svg(path: String, content: String) -> Result<(), String> {
+    validate_path(Path::new(&path), &["svg"])?;
     fs::write(&path, &content).map_err(|e| format!("Failed to save SVG: {e}"))
+}
+
+#[tauri::command]
+pub fn write_binary_file(path: String, data: Vec<u8>) -> Result<(), String> {
+    validate_path(Path::new(&path), &["png", "jpg", "jpeg", "svg", "pdf"])?;
+    fs::write(&path, &data).map_err(|e| format!("Failed to save file: {e}"))
 }

@@ -82,6 +82,7 @@ pub fn run() {
             commands::variables::kill_variable,
             commands::variables::kill_all_variables,
             commands::plot::write_plot_svg,
+            commands::plot::write_binary_file,
             commands::config::list_wsl_distros,
             commands::config::check_wsl_maxima,
             commands::config::get_buffered_logs,

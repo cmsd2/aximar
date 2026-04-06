@@ -48,6 +48,25 @@ pub fn suggestions_for_output_with_packages(
         return suggestions;
     }
 
+    // Plotly (interactive) plot output: offer export actions
+    if output.plot_data.is_some() {
+        suggestions.push(Suggestion {
+            label: "Save SVG".into(),
+            template: String::new(),
+            description: "Export plot as SVG file".into(),
+            action: Some("save_plotly_svg".into()),
+            position: None,
+        });
+        suggestions.push(Suggestion {
+            label: "Save PNG".into(),
+            template: String::new(),
+            description: "Export plot as PNG image".into(),
+            action: Some("save_plotly_png".into()),
+            position: None,
+        });
+        return suggestions;
+    }
+
     // After diff(): suggest integrate
     if input_lower.contains("diff(") || input_lower.contains("diff (") {
         suggestions.push(Suggestion {
@@ -393,6 +412,28 @@ mod tests {
         result.plot_svg = Some("<svg>...</svg>".into());
         let suggestions = suggestions_for_output("plot2d(sin(x), [x, -5, 5])", &result);
         assert!(suggestions.iter().any(|s| s.action.as_deref() == Some("save_svg")));
+    }
+
+    #[test]
+    fn test_plotly_suggestions() {
+        let mut result = make_result("", None);
+        result.plot_data = Some("{\"data\":[],\"layout\":{}}".into());
+        let suggestions =
+            suggestions_for_output("ax_draw2d(explicit(sin(x), x, -%pi, %pi))", &result);
+        assert!(
+            suggestions
+                .iter()
+                .any(|s| s.action.as_deref() == Some("save_plotly_svg")),
+            "Expected save_plotly_svg suggestion, got: {:?}",
+            suggestions,
+        );
+        assert!(
+            suggestions
+                .iter()
+                .any(|s| s.action.as_deref() == Some("save_plotly_png")),
+            "Expected save_plotly_png suggestion, got: {:?}",
+            suggestions,
+        );
     }
 
     #[test]
