@@ -56,8 +56,37 @@ export function PlotlyChart({ plotData }: PlotlyChartProps) {
 
     Plotly.newPlot(containerRef.current, spec.data, layout, config);
 
+    // Resize Plotly charts for print: the print CSS changes the container
+    // dimensions, so we need to tell Plotly to re-fit.
     const el = containerRef.current;
+    const resizePlot = () => {
+      if (!el) return;
+      // Use matchMedia to get the actual container width under print layout
+      const isPrint = window.matchMedia("print").matches;
+      if (isPrint) {
+        // Force Plotly to use the container's print-constrained size
+        const rect = el.getBoundingClientRect();
+        Plotly.relayout(el, { width: rect.width, height: Math.min(rect.height || 400, 500) });
+      } else {
+        // Restore autosize for screen
+        if (hasFixedSize) {
+          Plotly.relayout(el, {
+            width: spec.layout?.width ?? undefined,
+            height: spec.layout?.height ?? undefined,
+          });
+        } else {
+          Plotly.relayout(el, { autosize: true, width: undefined, height: undefined });
+          Plotly.Plots.resize(el);
+        }
+      }
+    };
+
+    window.addEventListener("beforeprint", resizePlot);
+    window.addEventListener("afterprint", resizePlot);
+
     return () => {
+      window.removeEventListener("beforeprint", resizePlot);
+      window.removeEventListener("afterprint", resizePlot);
       Plotly.purge(el);
     };
   }, [spec]);
