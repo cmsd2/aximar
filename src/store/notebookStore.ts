@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import type { Cell } from "../types/notebook";
 import type { SessionStatus } from "../types/maxima";
+import { computeRange } from "../lib/selection-utils";
 
 export type Theme = "auto" | "light" | "dark";
 export type CellStyle = "card" | "bracket";
@@ -12,6 +13,7 @@ export interface NotebookTab {
   cells: Cell[];
   sessionStatus: SessionStatus;
   activeCellId: string | null;
+  selectedCellIds: string[];
   executionCounter: number;
   filePath: string | null;
   isDirty: boolean;
@@ -28,6 +30,7 @@ function createDefaultTab(id: string): NotebookTab {
     cells: [],
     sessionStatus: "Stopped",
     activeCellId: null,
+    selectedCellIds: [],
     executionCounter: 0,
     filePath: null,
     isDirty: false,
@@ -66,6 +69,9 @@ interface NotebookState {
   setCellStyle: (style: CellStyle) => void;
   setAutocompleteMode: (mode: AutocompleteMode) => void;
   setActiveCellId: (id: string | null) => void;
+  setSelectedCellIds: (ids: string[]) => void;
+  clearSelection: () => void;
+  toggleCellSelected: (cellId: string, range?: boolean) => void;
   setFilePath: (path: string | null) => void;
   setClosePending: (notebookId: string, pending: boolean) => void;
   markClean: () => void;
@@ -191,6 +197,56 @@ export const useNotebookStore = create<NotebookState>((set) => ({
       return {
         notebooks: updateTab(state.notebooks, nbId, () => ({
           activeCellId: id,
+        })),
+      };
+    }),
+
+  setSelectedCellIds: (ids: string[]) =>
+    set((state) => {
+      const nbId = state.activeNotebookId;
+      if (!nbId) return state;
+      return {
+        notebooks: updateTab(state.notebooks, nbId, () => ({
+          selectedCellIds: ids,
+        })),
+      };
+    }),
+
+  clearSelection: () =>
+    set((state) => {
+      const nbId = state.activeNotebookId;
+      if (!nbId) return state;
+      return {
+        notebooks: updateTab(state.notebooks, nbId, () => ({
+          selectedCellIds: [],
+        })),
+      };
+    }),
+
+  toggleCellSelected: (cellId: string, range?: boolean) =>
+    set((state) => {
+      const nbId = state.activeNotebookId;
+      if (!nbId) return state;
+      const tab = state.notebooks[nbId];
+      if (!tab) return state;
+
+      let newSelected: string[];
+      if (range && tab.selectedCellIds.length > 0) {
+        // Shift-click: select range from last selected to target
+        const anchor = tab.selectedCellIds[tab.selectedCellIds.length - 1];
+        newSelected = computeRange(tab.cells, anchor, cellId);
+      } else {
+        // Toggle single cell
+        if (tab.selectedCellIds.includes(cellId)) {
+          newSelected = tab.selectedCellIds.filter((id) => id !== cellId);
+        } else {
+          newSelected = [...tab.selectedCellIds, cellId];
+        }
+      }
+
+      return {
+        notebooks: updateTab(state.notebooks, nbId, () => ({
+          selectedCellIds: newSelected,
         })),
       };
     }),
@@ -334,6 +390,7 @@ export function useActiveTab(): NotebookTab {
 export const useCells = () => useActiveTab().cells;
 export const useSessionStatus = () => useActiveTab().sessionStatus;
 export const useActiveCellId = () => useActiveTab().activeCellId;
+export const useSelectedCellIds = () => useActiveTab().selectedCellIds;
 export const useFilePath = () => useActiveTab().filePath;
 export const useIsDirty = () => useActiveTab().isDirty;
 export const useCanUndo = () => useActiveTab().canUndo;

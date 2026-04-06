@@ -10,9 +10,10 @@ import { nbDeleteCell } from "../lib/notebook-commands";
 
 interface MarkdownCellProps {
   cell: CellType;
+  selectBracket?: React.ReactNode;
 }
 
-export function MarkdownCell({ cell }: MarkdownCellProps) {
+export function MarkdownCell({ cell, selectBracket }: MarkdownCellProps) {
   const [editing, setEditing] = useState(false);
   const cellRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -130,6 +131,7 @@ export function MarkdownCell({ cell }: MarkdownCellProps) {
           </button>
         )}
       </div>
+      {selectBracket}
     </div>
   );
 }

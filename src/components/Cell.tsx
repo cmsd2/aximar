@@ -11,9 +11,10 @@ import { nbDeleteCell, nbMoveCell, nbAddCell, nbApproveCell, nbAbortCell } from 
 interface CellProps {
   cell: CellType;
   onViewDocs?: (name: string) => void;
+  selectBracket?: React.ReactNode;
 }
 
-export function Cell({ cell, onViewDocs }: CellProps) {
+export function Cell({ cell, onViewDocs, selectBracket }: CellProps) {
   const cells = useActiveTab().cells;
   const cellCount = cells.length;
   const setActiveCellId = useNotebookStore((s) => s.setActiveCellId);
@@ -168,6 +169,7 @@ export function Cell({ cell, onViewDocs }: CellProps) {
           <CellOutput output={cell.output} cellId={cell.id} />
         </div>
       )}
+      {selectBracket}
     </div>
     <CellSuggestions cell={cell} />
     </>

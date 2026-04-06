@@ -294,6 +294,7 @@
   flex: 1;
   overflow-y: auto;
   padding: 16px;
+  padding-right: 48px;
 }
 
 /* Insert Bar */
@@ -350,6 +351,7 @@
 
 /* Cell */
 .cell {
+  position: relative;
   margin-bottom: 8px;
   border: 1px solid var(--border-color);
   border-radius: 8px;
@@ -1694,6 +1696,17 @@
   text-align: center;
 }
 
+/* Export LaTeX modal */
+.export-latex-modal {
+  max-width: 420px;
+}
+
+.export-latex-scope {
+  padding: 8px 20px 4px;
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
 /* Bracket cell style */
 [data-cell-style="bracket"] .cell {
   background: transparent;
@@ -1838,6 +1851,94 @@
 
 [data-cell-style="bracket"] .markdown-cell.editing {
   border: none;
+}
+
+/* ── Selection bracket ── */
+/* Positioned to the right of the cell's collapse bracket */
+
+.cell-select-bracket {
+  display: none;
+}
+
+[data-cell-style="bracket"] .cell-select-bracket {
+  display: block;
+  position: absolute;
+  top: 0;
+  right: -18px;
+  bottom: 0;
+  width: 32px;
+  cursor: pointer;
+  z-index: 4;
+}
+
+[data-cell-style="bracket"] .cell-select-bracket::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 8px;
+  right: 8px;
+  border-right: 1px solid var(--border-color);
+  border-top: 1px solid var(--border-color);
+  border-bottom: 1px solid var(--border-color);
+  transition: border-color 0.1s ease, background 0.1s ease;
+  pointer-events: none;
+}
+
+[data-cell-style="bracket"] .cell-select-bracket:hover::after {
+  border-right-color: var(--accent);
+  border-top-color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
+[data-cell-style="bracket"] .cell-select-bracket.selected::after {
+  border-right-color: var(--accent);
+  border-top-color: var(--accent);
+  border-bottom-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+}
+
+/* Card-mode selection bracket */
+[data-cell-style="card"] .cell-select-bracket,
+:not([data-cell-style]) .cell-select-bracket {
+  display: block;
+  position: absolute;
+  top: 0;
+  right: -18px;
+  bottom: 0;
+  width: 26px;
+  cursor: pointer;
+  z-index: 2;
+}
+
+[data-cell-style="card"] .cell-select-bracket::after,
+:not([data-cell-style]) .cell-select-bracket::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 8px;
+  right: 8px;
+  border-right: 1px solid var(--border-color);
+  border-top: 1px solid var(--border-color);
+  border-bottom: 1px solid var(--border-color);
+  transition: border-color 0.1s ease, background 0.1s ease;
+  pointer-events: none;
+}
+
+[data-cell-style="card"] .cell-select-bracket:hover::after,
+:not([data-cell-style]) .cell-select-bracket:hover::after {
+  border-right-color: var(--accent);
+  border-top-color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
+[data-cell-style="card"] .cell-select-bracket.selected::after,
+:not([data-cell-style]) .cell-select-bracket.selected::after {
+  border-right-color: var(--accent);
+  border-top-color: var(--accent);
+  border-bottom-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
 }
 
 /* Log Panel */
