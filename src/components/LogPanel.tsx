@@ -1,6 +1,40 @@
 import { useEffect, useRef, useState, useCallback } from "react";
+import { Virtuoso, type VirtuosoHandle } from "react-virtuoso";
 import { useLogStore } from "../store/logStore";
-import type { LogTab } from "../types/log";
+import type { LogEntry, RawOutputEntry, LogTab } from "../types/log";
+
+const formatTime = (ts: number) => {
+  const d = new Date(ts);
+  return d.toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    fractionalSecondDigits: 3,
+  } as Intl.DateTimeFormatOptions);
+};
+
+function AppLogRow({ entry }: { entry: LogEntry }) {
+  return (
+    <div className={`log-entry log-entry-${entry.level}`}>
+      <span className="log-entry-time">{formatTime(entry.timestamp)}</span>
+      <span className="log-entry-level">{entry.level}</span>
+      <span className="log-entry-source">{entry.source}</span>
+      <span className="log-entry-message">{entry.message}</span>
+    </div>
+  );
+}
+
+function RawOutputRow({ entry }: { entry: RawOutputEntry }) {
+  return (
+    <div className={`log-raw log-raw-${entry.stream}`}>
+      <span className="log-raw-time">{formatTime(entry.timestamp)}</span>
+      <span className="log-raw-stream">
+        {entry.stream === "stdin" ? ">" : entry.stream === "stderr" ? "!" : " "}
+      </span>
+      <span className="log-raw-line">{entry.line}</span>
+    </div>
+  );
+}
 
 /** Persistent single-line status bar at the bottom of the app. */
 export function StatusBar() {
@@ -10,11 +44,6 @@ export function StatusBar() {
   const openWindow = useLogStore((s) => s.openWindow);
 
   const latest = entries.length > 0 ? entries[entries.length - 1] : null;
-
-  const formatTime = (ts: number) => {
-    const d = new Date(ts);
-    return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
-  };
 
   return (
     <div className="status-bar" onClick={openWindow}>
@@ -50,18 +79,23 @@ export function LogWindow() {
   const rawOutput = useLogStore((s) => s.rawOutput);
   const clearLog = useLogStore((s) => s.clearLog);
   const clearRawOutput = useLogStore((s) => s.clearRawOutput);
-  const bottomRef = useRef<HTMLDivElement>(null);
   const [height, setHeight] = useState(DEFAULT_HEIGHT);
   const dragging = useRef(false);
   const startY = useRef(0);
   const startH = useRef(0);
 
-  const onPointerDown = useCallback((e: React.PointerEvent) => {
-    dragging.current = true;
-    startY.current = e.clientY;
-    startH.current = height;
-    (e.target as HTMLElement).setPointerCapture(e.pointerId);
-  }, [height]);
+  const appVirtuosoRef = useRef<VirtuosoHandle>(null);
+  const rawVirtuosoRef = useRef<VirtuosoHandle>(null);
+
+  const onPointerDown = useCallback(
+    (e: React.PointerEvent) => {
+      dragging.current = true;
+      startY.current = e.clientY;
+      startH.current = height;
+      (e.target as HTMLElement).setPointerCapture(e.pointerId);
+    },
+    [height],
+  );
 
   const onPointerMove = useCallback((e: React.PointerEvent) => {
     if (!dragging.current) return;
@@ -74,10 +108,18 @@ export function LogWindow() {
     dragging.current = false;
   }, []);
 
-  const scrollDeps = activeTab === "app" ? entries.length : rawOutput.length;
+  // Auto-follow: scroll to bottom when new entries arrive
+  const [atBottom, setAtBottom] = useState(true);
+
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [scrollDeps]);
+    if (!atBottom) return;
+    const ref = activeTab === "app" ? appVirtuosoRef : rawVirtuosoRef;
+    ref.current?.scrollToIndex({ index: "LAST", behavior: "smooth" });
+  }, [
+    activeTab === "app" ? entries.length : rawOutput.length,
+    atBottom,
+    activeTab,
+  ]);
 
   if (!windowOpen) return null;
 
@@ -85,11 +127,6 @@ export function LogWindow() {
     { key: "app", label: "App Log" },
     { key: "maxima", label: "Maxima Output" },
   ];
-
-  const formatTime = (ts: number) => {
-    const d = new Date(ts);
-    return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit", fractionalSecondDigits: 3 } as Intl.DateTimeFormatOptions);
-  };
 
   return (
     <div className="log-window" style={{ height }}>
@@ -125,35 +162,31 @@ export function LogWindow() {
       </div>
       <div className="log-window-body">
         {activeTab === "app" && (
-          <>
-            {entries.length === 0 && (
-              <div className="log-window-empty">No log entries</div>
-            )}
-            {entries.map((entry) => (
-              <div key={entry.id} className={`log-entry log-entry-${entry.level}`}>
-                <span className="log-entry-time">{formatTime(entry.timestamp)}</span>
-                <span className="log-entry-level">{entry.level}</span>
-                <span className="log-entry-source">{entry.source}</span>
-                <span className="log-entry-message">{entry.message}</span>
-              </div>
-            ))}
-          </>
+          entries.length === 0 ? (
+            <div className="log-window-empty">No log entries</div>
+          ) : (
+            <Virtuoso
+              ref={appVirtuosoRef}
+              data={entries}
+              atBottomStateChange={setAtBottom}
+              itemContent={(_index, entry) => <AppLogRow entry={entry} />}
+              followOutput="smooth"
+            />
+          )
         )}
         {activeTab === "maxima" && (
-          <>
-            {rawOutput.length === 0 && (
-              <div className="log-window-empty">No Maxima output</div>
-            )}
-            {rawOutput.map((entry) => (
-              <div key={entry.id} className={`log-raw log-raw-${entry.stream}`}>
-                <span className="log-raw-time">{formatTime(entry.timestamp)}</span>
-                <span className="log-raw-stream">{entry.stream === "stdin" ? ">" : entry.stream === "stderr" ? "!" : " "}</span>
-                <span className="log-raw-line">{entry.line}</span>
-              </div>
-            ))}
-          </>
+          rawOutput.length === 0 ? (
+            <div className="log-window-empty">No Maxima output</div>
+          ) : (
+            <Virtuoso
+              ref={rawVirtuosoRef}
+              data={rawOutput}
+              atBottomStateChange={setAtBottom}
+              itemContent={(_index, entry) => <RawOutputRow entry={entry} />}
+              followOutput="smooth"
+            />
+          )
         )}
-        <div ref={bottomRef} />
       </div>
     </div>
   );

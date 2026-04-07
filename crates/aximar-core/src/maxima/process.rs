@@ -40,7 +40,6 @@ impl MaximaProcess {
                     .kill_on_drop(true);
                 #[cfg(windows)]
                 {
-                    use std::os::windows::process::CommandExt;
                     cmd.creation_flags(0x00000200); // CREATE_NEW_PROCESS_GROUP
                 }
                 hide_console_window(&mut cmd);
@@ -116,7 +115,6 @@ impl MaximaProcess {
                     .kill_on_drop(true);
                 #[cfg(windows)]
                 {
-                    use std::os::windows::process::CommandExt;
                     docker_cmd.creation_flags(0x00000200); // CREATE_NEW_PROCESS_GROUP
                 }
                 hide_console_window(&mut docker_cmd);
@@ -162,7 +160,6 @@ impl MaximaProcess {
                     .kill_on_drop(true);
                 #[cfg(windows)]
                 {
-                    use std::os::windows::process::CommandExt;
                     cmd.creation_flags(0x00000200); // CREATE_NEW_PROCESS_GROUP
                 }
                 hide_console_window(&mut cmd);

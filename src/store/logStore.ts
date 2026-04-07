@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { nanoid } from "nanoid";
 import type { LogEntry, LogLevel, RawOutputEntry, LogTab } from "../types/log";
 
+const MAX_ENTRIES = 5000;
 const MAX_RAW_ENTRIES = 5000;
 
 interface LogState {
@@ -36,13 +37,19 @@ export const useLogStore = create<LogState>((set, get) => ({
       message,
       source,
     };
-    set((state) => ({
-      entries: [...state.entries, entry],
-      unreadCount:
-        level === "error" && !state.windowOpen
-          ? state.unreadCount + 1
-          : state.unreadCount,
-    }));
+    set((state) => {
+      const next = [...state.entries, entry];
+      if (next.length > MAX_ENTRIES) {
+        next.splice(0, next.length - MAX_ENTRIES);
+      }
+      return {
+        entries: next,
+        unreadCount:
+          level === "error" && !state.windowOpen
+            ? state.unreadCount + 1
+            : state.unreadCount,
+      };
+    });
   },
 
   addRawOutput: (line, stream, timestamp) => {
