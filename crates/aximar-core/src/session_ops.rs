@@ -48,7 +48,7 @@ pub async fn spawn_and_init_session(
             if let Ok(p) = guard.process_mut() {
                 let _ =
                     protocol::evaluate(p, "__init__", &init, catalog, eval_timeout).await;
-                // Load Lisp helpers for plotting (ax__mktemp via mkstemp)
+                // Load Lisp helpers for plotting (ax__mktemp)
                 let lisp_init = plotting_lisp_stdin();
                 p.write_stdin(lisp_init).await.ok();
                 // Load Aximar plotting functions (ax_plot2d, ax_draw2d, ax_draw3d)

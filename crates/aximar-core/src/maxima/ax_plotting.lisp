@@ -5,13 +5,20 @@
 
 (in-package :maxima)
 
-;; Create a unique temp file with .plotly.json extension using mkstemp.
+;; Counter for generating unique temp file names.
+(defvar *ax--plot-counter* 0)
+
+;; Isolated random state so we don't disturb the user's *random-state*.
+;; (make-random-state t) uses OS entropy — each process gets a different seed.
+(defvar *ax--plot-random-state* (make-random-state t))
+
+;; Create a unique temp file path with .plotly.json extension.
+;; Counter ensures within-process uniqueness; isolated RNG ensures
+;; cross-process uniqueness.  Fully portable — no sb-posix dependency.
 ;; Returns the path as a Maxima string.
 (defun $ax__mktemp ()
-  (multiple-value-bind (fd path)
-      (sb-posix:mkstemp
-       (format nil "~A/ax_plot_XXXXXX" $maxima_tempdir))
-    (sb-posix:close fd)
-    (let ((final (concatenate 'string path ".plotly.json")))
-      (rename-file path final)
-      final)))
+  (incf *ax--plot-counter*)
+  (format nil "~A/ax_plot_~9,'0D_~D.plotly.json"
+    $maxima_tempdir
+    (random 1000000000 *ax--plot-random-state*)
+    *ax--plot-counter*))
