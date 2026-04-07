@@ -73,6 +73,7 @@ pub fn scan_packages(
                 description,
                 functions,
                 signatures,
+                builtin: false,
             });
         } else {
             // Multi-package directory: each .mac file is a separate loadable package
@@ -92,6 +93,7 @@ pub fn scan_packages(
                     description,
                     functions,
                     signatures,
+                    builtin: false,
                 });
             }
 
@@ -128,6 +130,7 @@ pub fn scan_packages(
                     description,
                     functions,
                     signatures,
+                    builtin: false,
                 });
             }
         }

@@ -205,17 +205,20 @@ export function DocsPanel({ open, functionName, requestId, onClose }: DocsPanelP
                 onClose();
               }
             } else if (e.key === "Enter" && (searchResults.length > 0 || pkgFuncResults.length > 0 || pkgResults.length > 0)) {
-              // Navigate to the first sorted result (packages first, then alphabetical)
-              if (pkgResults.length > 0) {
-                navigateTo(`pkg:${pkgResults[0].package.name}`);
-              } else {
-                const allNames = [
-                  ...searchResults.map((r) => r.function.name),
-                  ...pkgFuncResults.map((r) => r.function_name),
-                ];
-                allNames.sort((a, b) => a.localeCompare(b));
-                if (allNames.length > 0) navigateTo(allNames[0]);
-              }
+              // Navigate to the highest-scoring result (normalized across backends)
+              const normMax = (arr: { score: number }[]) => arr.reduce((m, r) => Math.max(m, r.score), 0);
+              const norm = (score: number, max: number) => max > 0 ? score / max : 0;
+              const maxCat = normMax(searchResults);
+              const maxPkgF = normMax(pkgFuncResults);
+              const maxPkg = normMax(pkgResults);
+              type Scored = { nav: string; score: number };
+              const all: Scored[] = [
+                ...searchResults.map((r) => ({ nav: r.function.name, score: norm(r.score, maxCat) })),
+                ...pkgFuncResults.map((r) => ({ nav: r.function_name, score: norm(r.score, maxPkgF) })),
+                ...pkgResults.map((r) => ({ nav: `pkg:${r.package.name}`, score: norm(r.score, maxPkg) })),
+              ];
+              all.sort((a, b) => b.score - a.score);
+              if (all.length > 0) navigateTo(all[0].nav);
             }
           }}
         />
@@ -232,29 +235,34 @@ export function DocsPanel({ open, functionName, requestId, onClose }: DocsPanelP
               | { kind: "pkgFunc"; name: string; pkg: string; nav: string }
               | { kind: "package"; name: string; count: number; nav: string };
 
-            const items: DocResult[] = [
-              ...searchResults.map((r): DocResult => ({
+            // Normalize scores to [0, 1] within each result set so different
+            // backends (BM25 vs manual scoring) are comparable when merged.
+            const normalize = <T extends { score: number }>(arr: T[]): (T & { norm: number })[] => {
+              const max = arr.reduce((m, r) => Math.max(m, r.score), 0);
+              return arr.map((r) => ({ ...r, norm: max > 0 ? r.score / max : 0 }));
+            };
+
+            type ScoredDocResult = DocResult & { score: number };
+            const items: ScoredDocResult[] = [
+              ...normalize(searchResults).map((r): ScoredDocResult => ({
                 kind: "catalog", name: r.function.name,
                 sig: r.function.signatures[0] || "", nav: r.function.name,
+                score: r.norm,
               })),
-              ...pkgFuncResults.map((r): DocResult => ({
+              ...normalize(pkgFuncResults).map((r): ScoredDocResult => ({
                 kind: "pkgFunc", name: r.function_name,
                 pkg: r.package_name, nav: r.function_name,
+                score: r.norm,
               })),
-              ...pkgResults.map((r): DocResult => ({
+              ...normalize(pkgResults).map((r): ScoredDocResult => ({
                 kind: "package", name: r.package.name,
                 count: r.package.functions.length, nav: `pkg:${r.package.name}`,
+                score: r.norm,
               })),
             ];
 
-            items.sort((a, b) => {
-              // Packages first
-              const aIsPackage = a.kind === "package" ? 0 : 1;
-              const bIsPackage = b.kind === "package" ? 0 : 1;
-              if (aIsPackage !== bIsPackage) return aIsPackage - bIsPackage;
-              // Then alphabetically
-              return a.name.localeCompare(b.name);
-            });
+            // Sort by normalized relevance score (descending)
+            items.sort((a, b) => b.score - a.score);
 
             return items.map((item) => (
               <button
@@ -312,9 +320,11 @@ export function DocsPanel({ open, functionName, requestId, onClose }: DocsPanelP
               </div>
             )}
 
-            <div className="docs-signatures">
-              <code className="docs-signature">load("{currentPackage.name}")$</code>
-            </div>
+            {!currentPackage.builtin && (
+              <div className="docs-signatures">
+                <code className="docs-signature">load("{currentPackage.name}")$</code>
+              </div>
+            )}
 
             {currentPackage.functions.length > 0 && (
               <div className="docs-see-also">
@@ -346,9 +356,11 @@ export function DocsPanel({ open, functionName, requestId, onClose }: DocsPanelP
               <span className="docs-category-badge">Package</span>
             </div>
 
-            <div className="docs-signatures">
-              <code className="docs-signature">load("{currentPackage.name}")$</code>
-            </div>
+            {!currentPackage.builtin && (
+              <div className="docs-signatures">
+                <code className="docs-signature">load("{currentPackage.name}")$</code>
+              </div>
+            )}
 
             <div className="docs-no-content">
               <p>{currentPackage.description}</p>

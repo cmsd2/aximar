@@ -26,6 +26,7 @@ export interface MaximaFunction {
   category: FunctionCategory;
   examples: FunctionExample[];
   see_also: string[];
+  search_keywords?: string;
 }
 
 export interface SearchResult {
@@ -53,6 +54,8 @@ export interface PackageInfo {
   description: string;
   functions: string[];
   signatures?: Record<string, string>;
+  /** Built-in packages are auto-loaded and don't need `load("...")$`. */
+  builtin?: boolean;
 }
 
 export interface PackageSearchResult {

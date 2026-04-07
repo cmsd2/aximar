@@ -139,6 +139,7 @@ fn parse_definition(node: Node, tag: &str, chapter: &str, log_unmapped: bool) ->
         category,
         examples,
         see_also,
+        search_keywords: String::new(),
     })
 }
 

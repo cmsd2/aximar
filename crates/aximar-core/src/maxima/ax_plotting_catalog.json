@@ -24,7 +24,8 @@
     "see_also": [
       "ax_draw2d",
       "ax_histogram"
-    ]
+    ],
+    "search_keywords": "bar chart barplot barchart category column"
   },
   {
     "name": "ax_contour",
@@ -47,7 +48,8 @@
       "ax_draw2d",
       "ax_heatmap",
       "implicit"
-    ]
+    ],
+    "search_keywords": "contour plot level curve topographic filled"
   },
   {
     "name": "ax_draw2d",
@@ -103,7 +105,8 @@
       "ax_draw3d",
       "ax_polar",
       "draw2d"
-    ]
+    ],
+    "search_keywords": "draw plot chart graph 2d canvas interactive plotly contour heatmap bar histogram vector streamline"
   },
   {
     "name": "ax_draw3d",
@@ -131,7 +134,8 @@
       "ax_draw2d",
       "ax_polar",
       "draw3d"
-    ]
+    ],
+    "search_keywords": "draw plot chart graph 3d surface webgl interactive plotly rotate"
   },
   {
     "name": "ax_heatmap",
@@ -159,7 +163,8 @@
     "see_also": [
       "ax_draw2d",
       "ax_contour"
-    ]
+    ],
+    "search_keywords": "heatmap heat map matrix visualization color gradient density"
   },
   {
     "name": "ax_histogram",
@@ -185,7 +190,8 @@
     "see_also": [
       "ax_draw2d",
       "ax_bar"
-    ]
+    ],
+    "search_keywords": "histogram distribution frequency bins statistics"
   },
   {
     "name": "ax_plot2d",
@@ -214,7 +220,8 @@
       "ax_draw3d",
       "ax_polar",
       "plot2d"
-    ]
+    ],
+    "search_keywords": "plot chart graph 2d function curve interactive plotly"
   },
   {
     "name": "ax_polar",
@@ -241,7 +248,8 @@
     "see_also": [
       "ax_plot2d",
       "ax_draw2d"
-    ]
+    ],
+    "search_keywords": "polar plot chart graph curve cardioid rose spiral"
   },
   {
     "name": "ax_streamline",
@@ -267,7 +275,8 @@
     "see_also": [
       "ax_draw2d",
       "ax_vector_field"
-    ]
+    ],
+    "search_keywords": "streamline phase portrait trajectory ode flow integral curve"
   },
   {
     "name": "ax_vector_field",
@@ -293,6 +302,7 @@
     "see_also": [
       "ax_draw2d",
       "ax_streamline"
-    ]
+    ],
+    "search_keywords": "vector field quiver arrows direction gradient flow ode"
   }
 ]

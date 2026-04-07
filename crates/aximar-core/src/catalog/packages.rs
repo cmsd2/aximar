@@ -16,9 +16,21 @@ pub struct PackageCatalog {
 }
 
 fn tokenizer(s: &str) -> Vec<Cow<'_, str>> {
-    s.split_whitespace()
-        .map(|w| Cow::Owned(w.to_lowercase()))
-        .collect()
+    let mut tokens = Vec::new();
+    for word in s.split_whitespace() {
+        let lower = word.to_lowercase();
+        tokens.push(lower.clone());
+        // Also split on underscores for compound names
+        let parts: Vec<&str> = lower.split('_').filter(|p| !p.is_empty()).collect();
+        if parts.len() > 1 {
+            for part in parts {
+                tokens.push(part.to_string());
+            }
+        }
+    }
+    tokens.sort();
+    tokens.dedup();
+    tokens.into_iter().map(Cow::Owned).collect()
 }
 
 fn name_extract(d: &PackageInfo) -> Vec<&str> {
@@ -165,7 +177,11 @@ impl PackageCatalog {
                         CompletionResult {
                             name: func.clone(),
                             signature,
-                            description: format!("requires load(\"{}\")", pkg.name),
+                            description: if pkg.builtin {
+                                pkg.name.clone()
+                            } else {
+                                format!("requires load(\"{}\")", pkg.name)
+                            },
                             insert_text: format!("{}(", func),
                             package: Some(pkg.name.clone()),
                         },
@@ -179,8 +195,8 @@ impl PackageCatalog {
         results.into_iter().map(|(_, r)| r).collect()
     }
 
-    /// Search package function names by substring match.
-    /// Prefix matches score higher than substring matches.
+    /// Search package function names by substring and token match.
+    /// Prefix matches score highest, substring next, token-part matches lowest.
     pub fn search_functions(&self, query: &str) -> Vec<PackageFunctionSearchResult> {
         if query.is_empty() {
             return Vec::new();
@@ -190,33 +206,41 @@ impl PackageCatalog {
         let mut results: Vec<PackageFunctionSearchResult> = Vec::new();
 
         for (func_lower, pkg_name) in &self.func_to_package {
-            if func_lower.contains(&q) {
-                let score = if func_lower.starts_with(&q) {
-                    100.0 - func_lower.len() as f64
+            let score = if func_lower.starts_with(&q) {
+                // Exact prefix match (highest)
+                100.0 - func_lower.len() as f64
+            } else if func_lower.contains(&q) {
+                // Substring match
+                50.0 - func_lower.len() as f64
+            } else {
+                // Check underscore-split parts for token match
+                let parts: Vec<&str> = func_lower.split('_').collect();
+                if parts.iter().any(|part| part.starts_with(&q)) {
+                    30.0 - func_lower.len() as f64
                 } else {
-                    50.0 - func_lower.len() as f64
-                };
-                // Look up the original-case function name and package description
-                if let Some(pkg) = self.packages.iter().find(|p| p.name == *pkg_name) {
-                    let original_name = pkg
-                        .functions
-                        .iter()
-                        .find(|f| f.to_lowercase() == *func_lower)
-                        .cloned()
-                        .unwrap_or_else(|| func_lower.clone());
-                    let signature = self
-                        .func_to_signature
-                        .get(&original_name)
-                        .cloned()
-                        .unwrap_or_default();
-                    results.push(PackageFunctionSearchResult {
-                        function_name: original_name,
-                        package_name: pkg_name.clone(),
-                        package_description: pkg.description.clone(),
-                        score,
-                        signature,
-                    });
+                    continue;
                 }
+            };
+            // Look up the original-case function name and package description
+            if let Some(pkg) = self.packages.iter().find(|p| p.name == *pkg_name) {
+                let original_name = pkg
+                    .functions
+                    .iter()
+                    .find(|f| f.to_lowercase() == *func_lower)
+                    .cloned()
+                    .unwrap_or_else(|| func_lower.clone());
+                let signature = self
+                    .func_to_signature
+                    .get(&original_name)
+                    .cloned()
+                    .unwrap_or_default();
+                results.push(PackageFunctionSearchResult {
+                    function_name: original_name,
+                    package_name: pkg_name.clone(),
+                    package_description: pkg.description.clone(),
+                    score,
+                    signature,
+                });
             }
         }
 

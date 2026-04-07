@@ -7,7 +7,7 @@ use std::path::Path;
 
 use serde::Deserialize;
 
-use aximar_core::catalog::types::{FunctionCategory, FunctionExample, MaximaFunction};
+use aximar_core::catalog::types::{FunctionCategory, FunctionExample, MaximaFunction, PackageInfo};
 
 // --- Deserialization types for ax_draw_context.json ---
 
@@ -33,6 +33,8 @@ pub struct FunctionDef {
     #[serde(default)]
     pub style_options: bool,
     pub layout_group: Option<String>,
+    #[serde(default)]
+    pub search_keywords: String,
 }
 
 #[derive(Deserialize)]
@@ -107,8 +109,28 @@ pub fn generate_catalog(ctx: &DrawContext) -> Vec<MaximaFunction> {
                 })
                 .collect(),
             see_also: f.see_also.clone(),
+            search_keywords: f.search_keywords.clone(),
         })
         .collect()
+}
+
+/// Generate a `PackageInfo` entry for ax_plotting so these functions
+/// appear in the Packages browser alongside Maxima's loadable packages.
+pub fn generate_package_info(ctx: &DrawContext) -> PackageInfo {
+    let mut functions: Vec<String> = ctx.functions.keys().cloned().collect();
+    functions.sort();
+    let signatures = ctx
+        .functions
+        .iter()
+        .map(|(name, f)| (name.clone(), f.signatures[0].clone()))
+        .collect();
+    PackageInfo {
+        name: "ax_plotting".to_string(),
+        description: "Aximar interactive plotting with Plotly.js — charts, contours, heatmaps, bar charts, histograms, vector fields, and phase portraits".to_string(),
+        functions,
+        signatures,
+        builtin: true,
+    }
 }
 
 /// Generate the docs map (`ax_plotting_docs.json`).

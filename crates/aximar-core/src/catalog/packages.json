@@ -13,14 +13,14 @@
       "tchirn"
     ],
     "signatures": {
-      "jcubic": "jcubic(g,x)",
-      "central_elements": "central_elements(variables,deg)",
       "jinv": "jinv(bb,cc)",
-      "free_ideal_generated_by": "free_ideal_generated_by(a_list,variables)",
-      "tchirn": "tchirn(f,x)",
-      "skew_centralizer": "skew_centralizer(variables,elements,zet,deg)",
       "central_elements_and_check_dot_simplifications": "central_elements_and_check_dot_simplifications(variables,deg)",
-      "hhh": "hhh(x)"
+      "central_elements": "central_elements(variables,deg)",
+      "free_ideal_generated_by": "free_ideal_generated_by(a_list,variables)",
+      "skew_centralizer": "skew_centralizer(variables,elements,zet,deg)",
+      "hhh": "hhh(x)",
+      "jcubic": "jcubic(g,x)",
+      "tchirn": "tchirn(f,x)"
     }
   },
   {
@@ -31,8 +31,8 @@
       "igcdex"
     ],
     "signatures": {
-      "gcdex": "gcdex(f, g)",
-      "igcdex": "igcdex(n, k)"
+      "igcdex": "igcdex(a,b)",
+      "gcdex": "gcdex(f, g, [var])"
     }
   },
   {
@@ -58,23 +58,23 @@
       "unsum"
     ],
     "signatures": {
-      "funcsol": "funcsol(%a,%f,l%)",
+      "nusuml": "nusuml(%a,%n,%l,%h,l%)",
+      "unsum": "unsum(%g,%n)",
+      "nusum": "nusum(%a,%n,%l,%h)",
+      "funcsolve": "funcsolve(%a,%f)",
+      "prodshift": "prodshift(%0,%2)",
       "rform": "rform(%r)",
-      "funcsolve": "funcsolve(eqn, g(t))",
-      "produ": "produ(%0,%1,%,%3)",
+      "funcsol": "funcsol(%a,%f,l%)",
       "genpol": "genpol(n)",
-      "ratsolve": "ratsolve(p,x)",
-      "hicoef": "hicoef(x,n)",
       "dimsum": "dimsum(%cl)",
-      "unsum": "unsum(f, n)",
       "prodgunch": "prodgunch(%0,%n,%2)",
-      "nusum": "nusum(expr, x, i_0, i_1)",
+      "hicoef": "hicoef(x,n)",
+      "algebraicp": "algebraicp(%1)",
       "prodflip": "prodflip(%0)",
       "clist": "clist(p)",
-      "prodshift": "prodshift(%0,%2)",
+      "produ": "produ(%0,%1,%,%3)",
       "rforn": "rforn(%3)",
-      "nusuml": "nusuml(%a,%n,%l,%h,l%)",
-      "algebraicp": "algebraicp(%1)"
+      "ratsolve": "ratsolve(p,x)"
     }
   },
   {
@@ -91,14 +91,14 @@
       "varc2"
     ],
     "signatures": {
+      "polyp": "polyp(g,n)",
+      "genf": "genf(e,g,u,n,k,iv)",
       "besselcheck": "besselcheck(e,k)",
       "polyinn": "polyinn(x,n)",
-      "genf": "genf(e,g,u,n,k,iv)",
-      "polyp": "polyp(g,n)",
-      "varc1": "varc1(e,g,u,n,k,iv)",
-      "char": "char(e,g,u,n,k,iv)",
       "varc2": "varc2(e,g,u,n,k,iv)",
-      "newrat": "newrat(f)"
+      "varc1": "varc1(e,g,u,n,k,iv)",
+      "newrat": "newrat(f)",
+      "char": "char(e,g,u,n,k,iv)"
     }
   },
   {
@@ -129,28 +129,28 @@
       "submatrix_by_indices_and_flags"
     ],
     "signatures": {
-      "copy_array": "copy_array(a)",
-      "decprop": "decprop(aa, bb)",
-      "random_matrix": "random_matrix(nr, nc)",
-      "elements": "elements(m)",
-      "submatrix_by_flags_and_flags": "submatrix_by_flags_and_flags(u%, i0%, x%, v%, j0%, y%, a%, MB1%, MB2%)",
-      "incprop": "incprop(aa, bb)",
-      "new2old_matrix": "new2old_matrix(M)",
-      "old2new_matrix": "old2new_matrix(M)",
-      "amatrix_mean": "amatrix_mean(x)",
-      "integer_listp": "integer_listp(e)",
-      "submatrix_by_flags_and_all": "submatrix_by_flags_and_all(u%, i0%, x%, v%, j0%, y%, a%, MB%)",
-      "submatrix_by_flags_and_indices": "submatrix_by_flags_and_indices(u%, i0%, x%, v%, j0%, y%, a%, MB%, LI%)",
-      "putative_boolean_amatrixp": "putative_boolean_amatrixp(e)",
-      "submatrix_by_all_and_flags": "submatrix_by_all_and_flags(u%, i0%, x%, v%, j0%, y%, a%, MB%)",
-      "make_matrix": "make_matrix(nr, nc, [a])",
-      "submatrix_by_indices_and_flags": "submatrix_by_indices_and_flags(u%, i0%, x%, v%, j0%, y%, a%, LI%, MB%)",
-      "compute_index0": "compute_index0(aa, i, j)",
       "booleanp": "booleanp(e)",
-      "copy_amatrix": "copy_amatrix(m)",
+      "new2old_matrix": "new2old_matrix(M)",
+      "submatrix_by_all_and_flags": "submatrix_by_all_and_flags(u%, i0%, x%, v%, j0%, y%, a%, MB%)",
+      "submatrix_by_indices_and_flags": "submatrix_by_indices_and_flags(u%, i0%, x%, v%, j0%, y%, a%, LI%, MB%)",
       "get_element": "get_element(m%, ii%, jj%)",
+      "submatrix_by_flags_and_all": "submatrix_by_flags_and_all(u%, i0%, x%, v%, j0%, y%, a%, MB%)",
+      "elements": "elements(m)",
+      "compute_index0": "compute_index0(aa, i, j)",
+      "make_matrix": "make_matrix(nr, nc, [a])",
+      "submatrix_by_flags_and_flags": "submatrix_by_flags_and_flags(u%, i0%, x%, v%, j0%, y%, a%, MB1%, MB2%)",
       "compute_index1": "compute_index1(aa, i, j)",
-      "submatrix_by_indices": "submatrix_by_indices(u%, i0%, x%, v%, j0%, y%, a%, LI1%, LI2%)"
+      "decprop": "decprop(aa, bb)",
+      "old2new_matrix": "old2new_matrix(M)",
+      "random_matrix": "random_matrix(nr, nc)",
+      "copy_amatrix": "copy_amatrix(m)",
+      "integer_listp": "integer_listp(e)",
+      "submatrix_by_flags_and_indices": "submatrix_by_flags_and_indices(u%, i0%, x%, v%, j0%, y%, a%, MB%, LI%)",
+      "submatrix_by_indices": "submatrix_by_indices(u%, i0%, x%, v%, j0%, y%, a%, LI1%, LI2%)",
+      "incprop": "incprop(aa, bb)",
+      "amatrix_mean": "amatrix_mean(x)",
+      "copy_array": "copy_array(a)",
+      "putative_boolean_amatrixp": "putative_boolean_amatrixp(e)"
     }
   },
   {
@@ -160,7 +160,7 @@
       "bernstein_expand"
     ],
     "signatures": {
-      "bernstein_expand": "bernstein_expand(e, [x1, x1, ..., xn])"
+      "bernstein_expand": "bernstein_expand(p,v)"
     }
   },
   {
@@ -192,29 +192,29 @@
       "update"
     ],
     "signatures": {
-      "theta": "theta(ex)",
-      "cfasymp": "cfasymp(term)",
-      "theta1": "theta1(ex)",
-      "mrge": "mrge(sav,term,lim)",
-      "update": "update(saved,term)",
-      "incomensurate": "incomensurate(l1,l2)",
-      "multilim": "multilim(ratio)",
-      "oom": "oom(ex,bigo)",
-      "omega": "omega(ex)",
-      "asimp": "asimp(ex)",
       "asymp": "asymp(fn)",
-      "argscomplexity": "argscomplexity(args)",
-      "asympseries": "asympseries(uu,nt)",
-      "asympdata": "asympdata(ex)",
-      "complexity": "complexity(expr)",
+      "multilim": "multilim(ratio)",
       "leadterm": "leadterm(ex)",
-      "lo": "lo(ex)",
-      "lomega": "lomega(ex)",
-      "asympsimp": "asympsimp(ex)",
-      "mypartition": "mypartition(nonsum,var)",
+      "mrge": "mrge(sav,term,lim)",
+      "oom": "oom(ex,bigo)",
       "ooromega": "ooromega(ex,flag)",
+      "update": "update(saved,term)",
+      "theta": "theta(ex)",
+      "complexity": "complexity(expr)",
+      "asympdata": "asympdata(ex)",
+      "argscomplexity": "argscomplexity(args)",
+      "incomensurate": "incomensurate(l1,l2)",
+      "asympsimp": "asympsimp(ex)",
+      "asympseries": "asympseries(uu,nt)",
       "pass1": "pass1(ex)",
-      "pass2": "pass2(saved)"
+      "pass2": "pass2(saved)",
+      "cfasymp": "cfasymp(term)",
+      "omega": "omega(ex)",
+      "theta1": "theta1(ex)",
+      "lomega": "lomega(ex)",
+      "asimp": "asimp(ex)",
+      "lo": "lo(ex)",
+      "mypartition": "mypartition(nonsum,var)"
     }
   },
   {
@@ -257,40 +257,40 @@
       "totalfourier"
     ],
     "signatures": {
-      "fourint": "fourint(f, x)",
-      "remfunn": "remfunn(fun,exp,[var])",
-      "totalfourier": "totalfourier(f, x, p)",
-      "funp2": "funp2(fun,exp,var)",
-      "parint1": "parint1(f%,x)",
-      "delfunn1": "delfunn1(fun,exp)",
-      "adefint": "adefint(f%,x,a,b)",
-      "equalp": "equalp(x, y)",
-      "indefint": "indefint(f%,x,halfplane)",
-      "fourexpand": "fourexpand(l, x, p, limit)",
-      "funp": "funp(f, expr)",
-      "fourintsin": "fourintsin(f, x)",
-      "fourcoeff": "fourcoeff(f%,x,p)",
-      "fourcos": "fourcos(f, x, p)",
-      "evenfunp": "evenfunp(f%,x)",
-      "remfunn2": "remfunn2(fun,exp,var)",
-      "absint": "absint(f, x, halfplane)",
-      "remfun": "remfun(f, expr)",
-      "fourier": "fourier(f, x, p)",
-      "delfunn2": "delfunn2(fun,exp,var)",
-      "remfun1": "remfun1(fun,exp)",
-      "fourintcoeff": "fourintcoeff(f%,x)",
-      "remfunn1": "remfunn1(fun,exp)",
       "delfun2": "delfun2(fun,exp,var)",
-      "parint": "parint(f%,x,a,b)",
-      "oddfunp": "oddfunp(f%,x)",
-      "foursimp": "foursimp(l)",
-      "parity": "parity(f%,x)",
-      "foursin": "foursin(f, x, p)",
-      "fourintcos": "fourintcos(f, x)",
-      "delfun1": "delfun1(fun,exp)",
+      "fourexpand": "fourexpand(l,x,p,nn)",
       "foursimple": "foursimple(exp)",
+      "remfun": "remfun(fun,exp,[var])",
+      "funp2": "funp2(fun,exp,var)",
+      "delfunn2": "delfunn2(fun,exp,var)",
+      "fourcos": "fourcos(f%,x,p)",
+      "parity": "parity(f%,x)",
+      "foursimp": "foursimp(exp)",
+      "fourintcos": "fourintcos(f%,x)",
+      "fourcoeff": "fourcoeff(f%,x,p)",
+      "adefint": "adefint(f%,x,a,b)",
+      "totalfourier": "totalfourier(f%,x,p)",
+      "indefint": "indefint(f%,x,halfplane)",
+      "absint": "absint(f%,x,[range])",
+      "oddfunp": "oddfunp(f%,x)",
+      "fourintcoeff": "fourintcoeff(f%,x)",
+      "foursin": "foursin(f%,x,p)",
+      "remfun2": "remfun2(fun,exp,var)",
+      "fourier": "fourier(f%,x,p)",
+      "fourint": "fourint(f%,x)",
+      "fourintsin": "fourintsin(f%,x)",
+      "equalp": "equalp(x,y)",
+      "delfunn1": "delfunn1(fun,exp)",
+      "funp": "funp(fun,exp,[var])",
       "funp1": "funp1(fun,exp)",
-      "remfun2": "remfun2(fun,exp,var)"
+      "remfunn1": "remfunn1(fun,exp)",
+      "evenfunp": "evenfunp(f%,x)",
+      "remfunn": "remfunn(fun,exp,[var])",
+      "delfun1": "delfun1(fun,exp)",
+      "parint": "parint(f%,x,a,b)",
+      "remfun1": "remfun1(fun,exp)",
+      "parint1": "parint1(f%,x)",
+      "remfunn2": "remfunn2(fun,exp,var)"
     }
   },
   {
@@ -301,8 +301,8 @@
       "stapoints"
     ],
     "signatures": {
-      "gradient": "gradient(decslkmults)",
-      "stapoints": "stapoints(objective, lezeros, eqzeros, decisionvars)"
+      "stapoints": "stapoints(objective, lezeros, eqzeros, decisionvars)",
+      "gradient": "gradient(decslkmults)"
     }
   },
   {
@@ -315,9 +315,9 @@
       "ic"
     ],
     "signatures": {
-      "el": "el(f, ylist, tlist)",
-      "convert": "convert(expr, list)",
+      "convert": "convert(odes, ylist, t)",
       "ham": "ham(odes)",
+      "el": "el(f, ylist, tlist)",
       "ic": "ic(soln,xa,ya,dya)"
     }
   },
@@ -329,8 +329,8 @@
       "pade2"
     ],
     "signatures": {
-      "pade2": "pade2(f,IndVarList, pointlist, norderlist,dorderlist)",
-      "alength": "alength(x)"
+      "alength": "alength(x)",
+      "pade2": "pade2(f,IndVarList, pointlist, norderlist,dorderlist)"
     }
   },
   {
@@ -398,65 +398,65 @@
       "zp1"
     ],
     "signatures": {
-      "variablep": "variablep(u)",
-      "bndspan1tonn": "bndspan1tonn(u,v)",
-      "type": "type(type,v1...vn)",
-      "bndlem1tonn": "bndlem1tonn(u,v)",
-      "bounds1": "bounds1(w)",
-      "lem1u": "lem1u(ub)",
-      "qual_hessian": "qual_hessian(g,v)",
-      "symmetry2": "symmetry2(u,x)",
-      "periods1": "periods1(u,v)",
-      "qual1": "qual1(u,v)",
-      "bounds": "bounds(w)",
-      "ge1u": "ge1u(ub)",
-      "slopes2": "slopes2(u,x)",
-      "ubatom": "ubatom(w)",
-      "bndge1to": "bndge1to(u,v)",
-      "lem1l": "lem1l(lb)",
-      "negu": "negu(ub)",
-      "slopes1": "slopes1(u,v)",
-      "limits1": "limits1(u,v)",
+      "qual_listify": "qual_listify(u)",
+      "bndnptonnevn": "bndnptonnevn(u,v)",
+      "bndminus": "bndminus(u)",
+      "nonnegl": "nonnegl(lb)",
       "gem1l": "gem1l(lb)",
-      "bndrecip": "bndrecip(u)",
-      "nonposu": "nonposu(ub)",
+      "lem1l": "lem1l(lb)",
+      "addbnd": "addbnd(b1,b2)",
+      "periods1": "periods1(u,v)",
+      "qual_hessian": "qual_hessian(g,v)",
+      "ubatom": "ubatom(w)",
+      "bndnegtimes": "bndnegtimes(u,v)",
+      "ge1u": "ge1u(ub)",
+      "recipl": "recipl(ub)",
+      "mgez": "mgez(x,y)",
+      "stationarypoints1": "stationarypoints1(u,v)",
+      "symmetry1": "symmetry1(u,v)",
+      "zp1": "zp1(n,zp)",
+      "slopes2": "slopes2(u,x)",
+      "evnp": "evnp(b)",
       "negl": "negl(lb)",
       "posl": "posl(lb)",
-      "ge1l": "ge1l(lb)",
-      "definitecode": "definitecode(a)",
-      "bndnntimnn": "bndnntimnn(u,v)",
-      "bndlem1to": "bndlem1to(u,v)",
-      "bndnegtimes": "bndnegtimes(u,v)",
       "zerosandsingularities": "zerosandsingularities(u)",
-      "evnp": "evnp(b)",
-      "bndunary": "bndunary(name,u)",
-      "gradient": "gradient(u,v)",
-      "lcmspec": "lcmspec(u,v)",
-      "stationarypoints1": "stationarypoints1(u,v)",
-      "lbatom": "lbatom(w)",
-      "bndminus": "bndminus(u)",
-      "bndrestrict": "bndrestrict(p,w)",
-      "conssingularities": "conssingularities(p,u)",
-      "le1u": "le1u(ub)",
-      "unarybnd": "unarybnd(name, b, d)",
-      "zp1": "zp1(n,zp)",
-      "recipu": "recipu(lb)",
-      "qual_listify": "qual_listify(u)",
-      "bndnntimes": "bndnntimes(u,v)",
+      "bndge1to": "bndge1to(u,v)",
+      "symmetry2": "symmetry2(u,x)",
+      "bounds": "bounds(w)",
       "nntonn": "nntonn(x,y)",
       "posu": "posu(ub)",
       "revelation1": "revelation1(u,umin,revmax)",
-      "recipl": "recipl(ub)",
-      "addbnd": "addbnd(b1,b2)",
-      "curvature": "curvature(u)",
-      "neg8": "neg8(b)",
+      "lem1u": "lem1u(ub)",
+      "variablep": "variablep(u)",
+      "bounds1": "bounds1(w)",
+      "bndunary": "bndunary(name,u)",
+      "lbatom": "lbatom(w)",
+      "le1u": "le1u(ub)",
+      "recipu": "recipu(lb)",
+      "limits1": "limits1(u,v)",
       "bndge1tonn": "bndge1tonn(u,v)",
-      "bndmayspan1tonn": "bndmayspan1tonn(u,v)",
-      "nonnegl": "nonnegl(lb)",
-      "mgez": "mgez(x,y)",
-      "bndnptonnevn": "bndnptonnevn(u,v)",
+      "conssingularities": "conssingularities(p,u)",
+      "bndlem1tonn": "bndlem1tonn(u,v)",
+      "bndspan1tonn": "bndspan1tonn(u,v)",
+      "bndlem1to": "bndlem1to(u,v)",
+      "bndnntimnn": "bndnntimnn(u,v)",
+      "negu": "negu(ub)",
+      "unarybnd": "unarybnd(name, b, d)",
+      "gradient": "gradient(u,v)",
+      "bndrestrict": "bndrestrict(p,w)",
+      "nonposu": "nonposu(ub)",
+      "neg8": "neg8(b)",
+      "slopes1": "slopes1(u,v)",
       "period2": "period2(u,x)",
-      "symmetry1": "symmetry1(u,v)"
+      "bndrecip": "bndrecip(u)",
+      "ge1l": "ge1l(lb)",
+      "definitecode": "definitecode(a)",
+      "type": "type(u)",
+      "curvature": "curvature(u)",
+      "qual1": "qual1(u,v)",
+      "lcmspec": "lcmspec(u,v)",
+      "bndnntimes": "bndnntimes(u,v)",
+      "bndmayspan1tonn": "bndmayspan1tonn(u,v)"
     }
   },
   {
@@ -467,7 +467,7 @@
       "revert2"
     ],
     "signatures": {
-      "revert": "revert(expr, x)",
+      "revert": "revert(exp, t)",
       "revert2": "revert2(exp, var, n)"
     }
   },
@@ -493,8 +493,8 @@
     ],
     "signatures": {
       "dgsub": "dgsub(i, z1, z2, z3, z4)",
-      "gsub": "gsub(i, z1, z2, z3, z4)",
       "exact": "exact(x)",
+      "gsub": "gsub(i, z1, z2, z3, z4)",
       "fsub": "fsub(x, z1, z2, z3, z4)",
       "dfsub": "dfsub(x, z1, z2, z3, z4)"
     }
@@ -510,11 +510,11 @@
       "solutn"
     ],
     "signatures": {
-      "gsub": "gsub(i, z1, z2, z3, z4)",
-      "fsub": "fsub(x, z1, z2, z3, z4)",
+      "dgsub": "dgsub(i, z1, z2, z3, z4)",
       "solutn": "solutn(x)",
-      "dfsub": "dfsub(x, z1, z2, z3, z4)",
-      "dgsub": "dgsub(i, z1, z2, z3, z4)"
+      "fsub": "fsub(x, z1, z2, z3, z4)",
+      "gsub": "gsub(i, z1, z2, z3, z4)",
+      "dfsub": "dfsub(x, z1, z2, z3, z4)"
     }
   },
   {
@@ -528,11 +528,11 @@
       "init_guess"
     ],
     "signatures": {
-      "dgsub": "dgsub(i,z1,z2,z3,z4)",
-      "init_guess": "init_guess(x)",
       "gsub": "gsub(i,z1,z2,z3,z4)",
       "dfsub": "dfsub(x,z1,z2,z3,z4)",
-      "fsub": "fsub(x,z1,z2,z3,z4)"
+      "fsub": "fsub(x,z1,z2,z3,z4)",
+      "dgsub": "dgsub(i,z1,z2,z3,z4)",
+      "init_guess": "init_guess(x)"
     }
   },
   {
@@ -546,11 +546,11 @@
       "init_guess"
     ],
     "signatures": {
+      "fsub": "fsub(x,z1,z2,z3,z4)",
+      "init_guess": "init_guess(x)",
       "dfsub": "dfsub(x,z1,z2,z3,z4)",
       "gsub": "gsub(i,z1,z2,z3,z4)",
-      "init_guess": "init_guess(x)",
-      "dgsub": "dgsub(i,z1,z2,z3,z4)",
-      "fsub": "fsub(x,z1,z2,z3,z4)"
+      "dgsub": "dgsub(i,z1,z2,z3,z4)"
     }
   },
   {
@@ -575,8 +575,8 @@
       "fboundp"
     ],
     "signatures": {
-      "fboundp": "fboundp(a)",
-      "augmented_lagrangian_method": "augmented_lagrangian_method(FOM, xx, C, yy)"
+      "augmented_lagrangian_method": "augmented_lagrangian_method(FOM, xx, constraints, yy, [optional_args])",
+      "fboundp": "fboundp(a)"
     }
   },
   {
@@ -590,9 +590,9 @@
     ],
     "signatures": {
       "carg_unwrapped": "carg_unwrapped(z)",
-      "log10": "log10(x)",
-      "bode_phase": "bode_phase(H, range, ...plot_opts...)",
-      "bode_gain": "bode_gain(H, range, ...plot_opts...)"
+      "bode_gain": "bode_gain(H, range, [plot_opts])",
+      "bode_phase": "bode_phase(H, range, [plot_opts])",
+      "log10": "log10(x)"
     }
   },
   {
@@ -618,13 +618,13 @@
       "wigner_9j"
     ],
     "signatures": {
-      "racah_v": "racah_v(a, b, c, a1, b1, c1)",
-      "wigner_3j": "wigner_3j(j1, j2, j3, m1, m2, m3)",
-      "racah_w": "racah_w(j1, j2, j5, j4, j3, j6)",
-      "wigner_9j": "wigner_9j(a, b, c, d, e, f, g, h, i, j, )",
-      "clebsch_gordan": "clebsch_gordan(j1, j2, m1, m2, j, m)",
-      "wigner_6j": "wigner_6j(j1, j2, j3, j4, j5, j6)",
-      "racah_delta": "racah_delta(a,b,c)"
+      "clebsch_gordan": "clebsch_gordan(j1,j2,m1,m2,j,m)",
+      "racah_delta": "racah_delta(a,b,c)",
+      "racah_v": "racah_v(a,b,c,a1,b1,c1)",
+      "racah_w": "racah_w(j1,j2,j5,j4,j3,j6)",
+      "wigner_6j": "wigner_6j(j1,j2,j3,j4,j5,j6)",
+      "wigner_3j": "wigner_3j(j1,j2,j3,m1,m2,m3)",
+      "wigner_9j": "wigner_9j(a,b,c,d,e,f,h,i,j)"
     }
   },
   {
@@ -637,8 +637,8 @@
     ],
     "signatures": {
       "guess": "guess(l, [optargs])",
-      "rationalinterpolation": "rationalinterpolation(xlist, ylist, x, m, k)",
-      "guesscons": "guesscons(l, t)"
+      "guesscons": "guesscons(l, t)",
+      "rationalinterpolation": "rationalinterpolation(xlist, ylist, x, m, k)"
     }
   },
   {
@@ -665,24 +665,24 @@
       "minimalPoly"
     ],
     "signatures": {
-      "jordan": "jordan(mat)",
-      "diag_calculate_mult_partition": "diag_calculate_mult_partition(A, multiplicity, eival)",
-      "diag_jordan_info_check": "diag_jordan_info_check(lst)",
-      "diag_mat_function_jordan": "diag_mat_function_jordan(jordan, expr, var)",
-      "minimalPoly": "minimalPoly(l)",
-      "diag_kernel_element": "diag_kernel_element(A)",
-      "diag_mode_matrix": "diag_mode_matrix(a, F)",
-      "diag_find_li_chain": "diag_find_li_chain(li_rows, chain_expr, variables)",
-      "ModeMatrix": "ModeMatrix(A, [jordan_info])",
-      "diag_general_jordan_chain": "diag_general_jordan_chain(A, eival, degree)",
-      "diag_matrixify": "diag_matrixify(expr)",
       "diag_taylor_coefficients": "diag_taylor_coefficients(expr, var, maxpow)",
-      "dispJordan": "dispJordan(l)",
-      "diag": "diag(lm)",
-      "diag_taylor_expand_block": "diag_taylor_expand_block(coeffs, var, eigenvalue, size)",
-      "diag_sorted_list_histogram": "diag_sorted_list_histogram(list)",
+      "diag_find_li_chain": "diag_find_li_chain(li_rows, chain_expr, variables)",
       "mat_function": "mat_function(f, A)",
-      "diag_zeropad_row": "diag_zeropad_row(r, indent, width)"
+      "minimalPoly": "minimalPoly(jordan_info)",
+      "diag_jordan_info_check": "diag_jordan_info_check(lst)",
+      "diag_mode_matrix": "diag_mode_matrix(a, F)",
+      "diag_mat_function_jordan": "diag_mat_function_jordan(jordan, expr, var)",
+      "diag": "diag(lst)",
+      "diag_sorted_list_histogram": "diag_sorted_list_histogram(list)",
+      "diag_zeropad_row": "diag_zeropad_row(r, indent, width)",
+      "jordan": "jordan(A)",
+      "diag_general_jordan_chain": "diag_general_jordan_chain(A, eival, degree)",
+      "diag_taylor_expand_block": "diag_taylor_expand_block(coeffs, var, eigenvalue, size)",
+      "dispJordan": "dispJordan(jordan_info)",
+      "diag_matrixify": "diag_matrixify(expr)",
+      "diag_kernel_element": "diag_kernel_element(A)",
+      "ModeMatrix": "ModeMatrix(A, [jordan_info])",
+      "diag_calculate_mult_partition": "diag_calculate_mult_partition(A, multiplicity, eival)"
     }
   },
   {
@@ -706,9 +706,9 @@
     ],
     "signatures": {
       "display_array": "display_array('a)",
-      "display_array_hashed": "display_array_hashed(a, indices)",
-      "implicit_derivative": "implicit_derivative(f, indvarlist, orderlist, depvar)",
-      "display_array_declared": "display_array_declared(a, dimensions)"
+      "implicit_derivative": "implicit_derivative(f,indvarlist,orderlist,depvar)",
+      "display_array_declared": "display_array_declared(a, dimensions)",
+      "display_array_hashed": "display_array_hashed(a, indices)"
     }
   },
   {
@@ -723,12 +723,12 @@
       "second"
     ],
     "signatures": {
-      "LindstedtProcessEquation": "LindstedtProcessEquation(eq, dvar, ivar, z, zp, z2p, T)",
-      "second": "second(expr)",
+      "second": "second(l)",
+      "LindstedtRemoveSecularTerms": "LindstedtRemoveSecularTerms(sol,ivar)",
       "LindstedtFindDiffVars": "LindstedtFindDiffVars(exp)",
       "LindstedtProcessIC2": "LindstedtProcessIC2(sol, ic, dvar, ivar)",
-      "LindstedtRemoveSecularTerms": "LindstedtRemoveSecularTerms(sol,ivar)",
-      "Lindstedt": "Lindstedt(eq, pvar, torder, ic)"
+      "Lindstedt": "Lindstedt(eq,pvar, torder, [ic])",
+      "LindstedtProcessEquation": "LindstedtProcessEquation(eq, dvar, ivar, z, zp, z2p, T)"
     }
   },
   {
@@ -743,12 +743,12 @@
       "power_of"
     ],
     "signatures": {
+      "not10": "not10(e)",
+      "divp": "divp(e)",
       "exponp": "exponp(e)",
-      "divisible_by10": "divisible_by10(e)",
       "multp": "multp(e)",
       "power_of": "power_of(m, n)",
-      "not10": "not10(e)",
-      "divp": "divp(e)"
+      "divisible_by10": "divisible_by10(e)"
     }
   },
   {
@@ -758,12 +758,12 @@
       "makeOrders"
     ],
     "signatures": {
-      "makeOrders": "makeOrders(indvarlist, orderlist)"
+      "makeOrders": "makeOrders(indvarlist,orderlist)"
     }
   },
   {
     "name": "contrib/meijer_gv2",
-    "description": "meijer_gv2 package",
+    "description": "Draw 2D interactive plots using Plotly.js.",
     "functions": [
       "macrobert_ered",
       "meijer_gred",
@@ -771,8 +771,8 @@
     ],
     "signatures": {
       "meijer_gred": "meijer_gred(x,b,a,c,d)",
-      "macrobert_ered": "macrobert_ered(a,b,x)",
-      "test_int_diff": "test_int_diff(a)"
+      "test_int_diff": "test_int_diff(a)",
+      "macrobert_ered": "macrobert_ered(a,b,x)"
     }
   },
   {
@@ -790,25 +790,15 @@
       "vectorpart4"
     ],
     "signatures": {
-      "invdecomp4": "invdecomp4(_exlist)",
+      "scalarpart4": "scalarpart4(_ex1)",
       "decomp4": "decomp4(_ex1)",
-      "conj4": "conj4(_ex1)",
-      "matcoeff4": "matcoeff4(_xx,_basematrix)",
-      "expand4": "expand4(_ex)",
+      "invdecomp4": "invdecomp4(_exlist)",
       "norm4": "norm4(_ex1)",
       "vectorpart4": "vectorpart4(_ex1)",
-      "scalarpart4": "scalarpart4(_ex1)",
+      "expand4": "expand4(_ex)",
+      "matcoeff4": "matcoeff4(_xx,_basematrix)",
+      "conj4": "conj4(_ex1)",
       "inv4": "inv4(_ex)"
-    }
-  },
-  {
-    "name": "contrib/rk_adaptive",
-    "description": "Todo: We could sometimes recycle values of deriv_1step or deriv_2steps",
-    "functions": [
-      "rk_adaptive"
-    ],
-    "signatures": {
-      "rk_adaptive": "rk_adaptive(expr, vars, vars_initval, var, "
     }
   },
   {
@@ -818,61 +808,29 @@
       "stirling"
     ],
     "signatures": {
-      "stirling": "stirling(z, n)"
+      "stirling": "stirling(z, [a])"
     }
   },
   {
     "name": "contrib/wrstcse",
     "description": "%wc_tols lists all tol[n] contained in the list, nested list",
     "functions": [
-      "wc_distrib2rssparams",
-      "wc_distrib2toldata",
-      "wc_ewc_simplify",
-      "wc_getrssparams",
-      "wc_inputvalueassumptions",
       "wc_inputvalueranges",
-      "wc_inputvalues_max",
-      "wc_inputvalues_min",
-      "wc_max",
-      "wc_min",
       "wc_mintypmax",
       "wc_mintypmax2tol",
-      "wc_mintypmax_num",
-      "wc_mintypmax_percent",
-      "wc_mintypmax_rss",
-      "wc_mintypmax_rss_percent",
       "wc_montecarlo",
-      "wc_sensitivities",
       "wc_systematic",
       "wc_tolappend",
-      "wc_tolassumptions",
-      "wc_toltaylor",
       "wc_typicalvalues"
     ],
     "signatures": {
-      "wc_distrib2rssparams": "wc_distrib2rssparams(data)",
-      "wc_mintypmax_num": "wc_mintypmax_num(equation, var, range_min, ",
-      "wc_inputvalueassumptions": "wc_inputvalueassumptions(expr)",
-      "wc_inputvalueranges": "wc_inputvalueranges(expression, [show_tols])",
-      "wc_sensitivities": "wc_sensitivities(expr)",
-      "wc_systematic": "wc_systematic(expression, [num])",
-      "wc_mintypmax_percent": "wc_mintypmax_percent(expr, sigmas)",
-      "wc_getrssparams": "wc_getrssparams(x)",
-      "wc_max": "wc_max(expr, [num])",
-      "wc_inputvalues_min": "wc_inputvalues_min(listofinputvalues)",
-      "wc_mintypmax": "wc_mintypmax(expr, [n])",
-      "wc_min": "wc_min(expr, [num])",
-      "wc_mintypmax_rss_percent": "wc_mintypmax_rss_percent(expr, sigmas)",
-      "wc_mintypmax2tol": "wc_mintypmax2tol(tolname, minval, typval, maxval)",
-      "wc_montecarlo": "wc_montecarlo(expression, num)",
-      "wc_inputvalues_max": "wc_inputvalues_max(listofinputvalues)",
-      "wc_tolappend": "wc_tolappend(list1, list2, ...)",
-      "wc_toltaylor": "wc_toltaylor(x,[maxorder])",
-      "wc_tolassumptions": "wc_tolassumptions(expr)",
-      "wc_mintypmax_rss": "wc_mintypmax_rss(expr, sigmas)",
-      "wc_typicalvalues": "wc_typicalvalues(expression)",
-      "wc_distrib2toldata": "wc_distrib2toldata(tol,data,[sigmas])",
-      "wc_ewc_simplify": "wc_ewc_simplify(expression, definitions...)"
+      "wc_inputvalueranges": "wc_inputvalueranges(wc_x)",
+      "wc_montecarlo": "wc_montecarlo(wc_x,wc_samples)",
+      "wc_tolappend": "wc_tolappend([wc_args])",
+      "wc_typicalvalues": "wc_typicalvalues(wc_x)",
+      "wc_mintypmax": "wc_mintypmax(wc_x,[wc_params])",
+      "wc_mintypmax2tol": "wc_mintypmax2tol(wc_tol,wc_min,wc_typ,wc_max)",
+      "wc_systematic": "wc_systematic(wc_x,[wc_valuespertol])"
     }
   },
   {
@@ -901,6 +859,8 @@
       "find_index_first_1",
       "find_index_last",
       "find_index_last_1",
+      "find_runs",
+      "find_runs_inverse",
       "geometric_mean",
       "global_variances",
       "harmonic_mean",
@@ -956,86 +916,88 @@
       "wxstarplot"
     ],
     "signatures": {
-      "global_variances": "global_variances(matrix)",
       "wxscatterplot": "wxscatterplot([desc])",
-      "qrange": "qrange(x)",
-      "cov1": "cov1(matrix)",
-      "cv": "cv(list)",
-      "verify_weights": "verify_weights(fn, w, n)",
-      "listoflistsp": "listoflistsp(y)",
-      "count_by_bins": "count_by_bins(xx, bins)",
-      "noncentral_moment": "noncentral_moment(x, k)",
-      "barsplot": "barsplot(data1, data2, ..., option_1, option_2, ...)",
-      "std": "std(x)",
-      "mean_deviation": "mean_deviation(list)",
-      "maxi": "maxi(x)",
-      "count_array_by_bins": "count_array_by_bins(xx, bins)",
-      "listofnumbersp": "listofnumbersp(y)",
-      "quartile_skewness": "quartile_skewness(list)",
       "ratsimp_nonnumeric": "ratsimp_nonnumeric(e)",
-      "scatterplot": "scatterplot(list)",
-      "skewness": "skewness(list)",
-      "transform_sample": "transform_sample(matrix, varlist, exprlist)",
-      "find_index_first_1": "find_index_first_1(xx, x, i0, i1, comparison)",
-      "wxbarsplot": "wxbarsplot([desc])",
-      "harmonic_mean": "harmonic_mean(list)",
-      "km": "km(list, option...)",
-      "principal_components": "principal_components(matrix)",
-      "boxplot": "boxplot(data)",
-      "find_index_first": "find_index_first(xx, x, comparison)",
-      "discrete_freq": "discrete_freq(data)",
-      "continuous_freq": "continuous_freq(data)",
-      "boxplot_description": "boxplot_description(...)",
-      "piechart_description": "piechart_description(...)",
-      "starplot_description": "starplot_description(...)",
-      "matrixtrace": "matrixtrace(m)",
-      "listsofequalsize": "listsofequalsize(y)",
-      "geometric_mean": "geometric_mean(list)",
-      "build_sample": "build_sample(list)",
-      "discrete_freq_array": "discrete_freq_array(a)",
-      "stemplot": "stemplot(data)",
-      "mean": "mean(x)",
-      "wxstarplot": "wxstarplot([desc])",
-      "wxhistogram": "wxhistogram([desc])",
-      "quantile": "quantile(list, p)",
+      "discrete_freq": "discrete_freq(l)",
       "mini": "mini(x)",
-      "list_correlations": "list_correlations(matrix)",
-      "smax": "smax(list)",
-      "histogram_description": "histogram_description(...)",
-      "listofexpr": "listofexpr(y)",
-      "var1": "var1(list)",
-      "subsample": "subsample(data_matrix, predicate_function)",
-      "cov": "cov(X)",
-      "histogram": "histogram(list)",
-      "kurtosis": "kurtosis(list)",
-      "median_deviation": "median_deviation(list)",
-      "find_index_last_1": "find_index_last_1(xx, x, i0, i1, comparison)",
-      "wxboxplot": "wxboxplot([desc])",
-      "cor": "cor(matrix)",
-      "standardize": "standardize(list)",
-      "piechart": "piechart(list)",
-      "extract_options": "extract_options(s,[mo])",
-      "random_color": "random_color()",
-      "central_moment": "central_moment(x, k)",
-      "starplot": "starplot(data1, data2, ..., option_1, option_2, ...)",
       "wxpiechart": "wxpiechart([desc])",
+      "transform_sample": "transform_sample(m, varnames, expressions)",
+      "skewness": "skewness(x)",
+      "central_moment": "central_moment(x, m, [w])",
+      "smax": "smax(x)",
+      "principal_components": "principal_components(x,[select])",
+      "continuous_freq": "continuous_freq(lis, [opt])",
+      "std": "std(x, [w])",
+      "starplot": "starplot([desc])",
+      "continuous_freq_array": "continuous_freq_array(lis,[opt])",
+      "find_index_last_1": "find_index_last_1(xx, x, i0, i1, comparison)",
+      "stemplot": "stemplot(m,[select])",
+      "cov1": "cov1(x)",
+      "geometric_mean": "geometric_mean(x)",
+      "histogram_description": "histogram_description(m,[select])",
+      "km": "km(x,[var])",
+      "listofexpr": "listofexpr(y)",
+      "quartile_skewness": "quartile_skewness(x)",
+      "extract_options": "extract_options(s,[mo])",
+      "smin": "smin(x)",
+      "maxi": "maxi(x)",
+      "listsofequalsize": "listsofequalsize(y)",
+      "cdf_empirical": "cdf_empirical(x,[var])",
+      "count_array_by_bins": "count_array_by_bins(xx, bins)",
+      "boxplot_description": "boxplot_description(m,[select])",
+      "range": "range(x)",
+      "kurtosis": "kurtosis(x)",
+      "find_index_first_1": "find_index_first_1(xx, x, i0, i1, comparison)",
+      "scatterplot": "scatterplot([desc])",
+      "cov": "cov(x, [w])",
+      "mean": "mean(x, [w])",
+      "list_correlations": "list_correlations(x,[select])",
+      "random_color": "random_color()",
+      "matrixtrace": "matrixtrace(m)",
+      "histogram": "histogram([desc])",
+      "wxstarplot": "wxstarplot([desc])",
+      "wxboxplot": "wxboxplot([desc])",
+      "quantile": "quantile(x,p)",
+      "find_runs_inverse": "find_runs_inverse(r)",
       "find_index_last": "find_index_last(xx, x, comparison)",
-      "std1": "std1(list)",
-      "var": "var(x)",
+      "scatterplot_description": "scatterplot_description(m,[select])",
+      "wxhistogram": "wxhistogram([desc])",
+      "listoflistsp": "listoflistsp(y)",
+      "verify_weights": "verify_weights(fn, w, n)",
+      "global_variances": "global_variances(x,[select])",
+      "discrete_freq_array": "discrete_freq_array(a)",
+      "median": "median(x)",
+      "starplot_description": "starplot_description([args])",
+      "find_runs": "find_runs(x)",
+      "subsample": "subsample(mat,cond,[cols])",
+      "var1": "var1(x, [w])",
+      "boxplot": "boxplot([desc])",
+      "piechart": "piechart([desc])",
+      "median_deviation": "median_deviation(x)",
+      "listofnumbersp": "listofnumbersp(y)",
+      "wxbarsplot": "wxbarsplot([desc])",
+      "var": "var(x, [w])",
+      "standardize": "standardize(m)",
+      "count_by_bins": "count_by_bins(xx, bins)",
+      "cv": "cv(x)",
+      "harmonic_mean": "harmonic_mean(x)",
+      "noncentral_moment": "noncentral_moment(x, m, [w])",
+      "pearson_skewness": "pearson_skewness(x)",
+      "qrange": "qrange(x)",
+      "build_sample": "build_sample(tbl)",
+      "barsplot": "barsplot([desc])",
+      "cor": "cor(x,[select])",
       "make_skyline": "make_skyline(xx, yy, fill_color, fill_density)",
-      "barsplot_description": "barsplot_description(...)",
-      "scatterplot_description": "scatterplot_description(...)",
-      "pearson_skewness": "pearson_skewness(list)",
-      "smin": "smin(list)",
-      "median": "median(list)",
-      "range": "range(list)",
-      "cdf_empirical": "cdf_empirical(list, option...)",
-      "continuous_freq_array": "continuous_freq_array(lis,[opt])"
+      "std1": "std1(x, [w])",
+      "mean_deviation": "mean_deviation(x)",
+      "piechart_description": "piechart_description(m,[select])",
+      "find_index_first": "find_index_first(xx, x, comparison)",
+      "barsplot_description": "barsplot_description([args])"
     }
   },
   {
     "name": "diff_form/curvture2",
-    "description": "curvture2 package",
+    "description": "Draw 2D interactive plots using Plotly.js.",
     "functions": [
       "add_tan",
       "cross",
@@ -1043,10 +1005,10 @@
       "make_tan"
     ],
     "signatures": {
-      "cross2": "cross2(_u1,_v1)",
-      "make_tan": "make_tan()",
       "add_tan": "add_tan(_m)",
-      "cross": "cross(_a,_b)"
+      "cross": "cross(_a,_b)",
+      "cross2": "cross2(_u1,_v1)",
+      "make_tan": "make_tan()"
     }
   },
   {
@@ -1060,11 +1022,11 @@
       "inner"
     ],
     "signatures": {
-      "fstar_with_clf": "fstar_with_clf(newcoords,n_table,'a_form)",
-      "Lie": "Lie(_f1,_g1)",
-      "inner": "inner(_f,_g)",
       "clif_norm": "clif_norm(list_,coords_)",
-      "f_star": "f_star(newcoords,'a_form)"
+      "fstar_with_clf": "fstar_with_clf(newcoords,n_table,'a_form)",
+      "f_star": "f_star(newcoords,'a_form)",
+      "Lie": "Lie(_f1,_g1)",
+      "inner": "inner(_f,_g)"
     }
   },
   {
@@ -1091,12 +1053,12 @@
     ],
     "signatures": {
       "triple_pmat": "triple_pmat(u_,v_,w_)",
-      "vtof1": "vtof1(_vector)",
+      "antid": "antid(_g)",
       "vtof2": "vtof2(_vector)",
-      "antid": "antid(expr, x, u(x))",
-      "matdmake": "matdmake(_list,_base)",
       "inv_i1": "inv_i1(_pform)",
-      "Liebkt": "Liebkt(_pform1,_pform2)"
+      "Liebkt": "Liebkt(_pform1,_pform2)",
+      "matdmake": "matdmake(_list,_base)",
+      "vtof1": "vtof1(_vector)"
     }
   },
   {
@@ -1108,21 +1070,21 @@
       "inop"
     ],
     "signatures": {
-      "inop": "inop(q)",
+      "inargs": "inargs(q)",
       "h_st": "h_st(_f)",
-      "inargs": "inargs(q)"
+      "inop": "inop(q)"
     }
   },
   {
     "name": "diff_form/new_cartan_test4",
-    "description": "new_cartan_test4 package",
+    "description": "Initializes some global variables for the package.",
     "functions": [
       "nest2",
       "nest3"
     ],
     "signatures": {
-      "nest3": "nest3(_f,_x,_n)",
-      "nest2": "nest2(_f,_x)"
+      "nest2": "nest2(_f,_x)",
+      "nest3": "nest3(_f,_x,_n)"
     }
   },
   {
@@ -1147,12 +1109,12 @@
       "nonlin1"
     ],
     "signatures": {
-      "berno": "berno(de,y,x)",
-      "makecoeflist3": "makecoeflist3(de)",
-      "nonlin": "nonlin(de,y,x)",
-      "nonlin1": "nonlin1(de,y,x)",
+      "elements": "elements(a)",
       "abel": "abel(de,a,x)",
-      "elements": "elements(a)"
+      "nonlin1": "nonlin1(de,y,x)",
+      "makecoeflist3": "makecoeflist3(de)",
+      "berno": "berno(de,y,x)",
+      "nonlin": "nonlin(de,y,x)"
     }
   },
   {
@@ -1162,7 +1124,7 @@
       "desolve"
     ],
     "signatures": {
-      "desolve": "desolve(eqn, y)"
+      "desolve": "desolve(eqns,vars)"
     }
   },
   {
@@ -1189,24 +1151,24 @@
       "wxdrawdf"
     ],
     "signatures": {
-      "df_graphics": "df_graphics(derivs_spec, [params])",
-      "make_f_rk_4": "make_f_rk_4(dxdt_expr, dydt_expr, x_var, y_var, x_min, x_max, y_min, y_max, partition_expr)",
-      "linearize_at": "linearize_at(pt, derivs, vars)",
-      "calc_point_vars": "calc_point_vars(pt)",
-      "list_of_points_from": "list_of_points_from(params)",
-      "solution_arrows": "solution_arrows(curve)",
-      "confirm_solution_arrow": "confirm_solution_arrow(pt)",
-      "equipotential_plot": "equipotential_plot(pt)",
-      "normalize_vec": "normalize_vec(v)",
-      "valid_var_lo_hi_spec": "valid_var_lo_hi_spec(spec)",
+      "wxdrawdf": "wxdrawdf([params])",
       "calc_dir_soln_curve": "calc_dir_soln_curve(derivs, vars, init, mins, maxs, max_step, dir, max_tstep, min_tstep, duration, max_nsteps, partition_expr)",
-      "disallow_arrows_in": "disallow_arrows_in(x_lo, y_lo, x_hi, y_hi)",
+      "drawdf": "drawdf([params])",
+      "saddle_plot": "saddle_plot(pt)",
+      "calc_point_vars": "calc_point_vars(pt)",
+      "make_f_rk_4": "make_f_rk_4(dxdt_expr, dydt_expr, x_var, y_var, x_min, x_max, y_min, y_max, partition_expr)",
+      "calc_soln_curve": "calc_soln_curve(derivs, vars, init, mins, maxs, max_step, max_tstep, min_tstep, duration, max_nsteps, partition_expr)",
       "solution_plot": "solution_plot(pt)",
       "vec_mag": "vec_mag(v)",
-      "saddle_plot": "saddle_plot(pt)",
-      "wxdrawdf": "wxdrawdf([params])",
-      "drawdf": "drawdf(dydx, ...optionsandobjects...)",
-      "calc_soln_curve": "calc_soln_curve(derivs, vars, init, mins, maxs, max_step, max_tstep, min_tstep, duration, max_nsteps, partition_expr)"
+      "equipotential_plot": "equipotential_plot(pt)",
+      "solution_arrows": "solution_arrows(curve)",
+      "linearize_at": "linearize_at(pt, derivs, vars)",
+      "list_of_points_from": "list_of_points_from(params)",
+      "confirm_solution_arrow": "confirm_solution_arrow(pt)",
+      "valid_var_lo_hi_spec": "valid_var_lo_hi_spec(spec)",
+      "disallow_arrows_in": "disallow_arrows_in(x_lo, y_lo, x_hi, y_hi)",
+      "normalize_vec": "normalize_vec(v)",
+      "df_graphics": "df_graphics(derivs_spec, [params])"
     }
   },
   {
@@ -1219,10 +1181,10 @@
       "soldiff"
     ],
     "signatures": {
-      "ivpsol": "ivpsol(diffeq,y,x,a,bceq)",
+      "consmat3": "consmat3(l1,l2,l3)",
       "soldiff": "soldiff(eq1,y,x,a)",
-      "evec": "evec(m,mu,modes)",
-      "consmat3": "consmat3(l1,l2,l3)"
+      "ivpsol": "ivpsol(diffeq,y,x,a,bceq)",
+      "evec": "evec(m,mu,modes)"
     }
   },
   {
@@ -1265,40 +1227,40 @@
       "xcc2"
     ],
     "signatures": {
-      "cc2": "cc2(%f%,%g%,y,x)",
       "nlx": "nlx(eq)",
-      "hom2": "hom2(a1,a2,a3)",
-      "ic2": "ic2(solution, xval, yval, dval)",
-      "reduce": "reduce(eq)",
+      "ic1": "ic1(soln,xc,yc)",
+      "noteqn": "noteqn(x)",
       "integfactor": "integfactor(m,n)",
-      "varp": "varp(soln,%g%)",
-      "bc2": "bc2(solution, xval1, yval1, xval2, yval2)",
-      "genhom": "genhom(eq)",
-      "separable": "separable(eq)",
-      "solve1": "solve1(eq,y)",
-      "euler2": "euler2(a,b,pt)",
-      "ode2a": "ode2a(eq,y,x)",
-      "solvebernoulli": "solvebernoulli(eq)",
-      "failure": "failure(msg,eq)",
-      "linear2": "linear2(expr,x)",
+      "bessel2": "bessel2(a,b,pt)",
+      "hom2": "hom2(a1,a2,a3)",
+      "ic2": "ic2(soln,xa,ya,dya)",
       "nlxy": "nlxy(eq,de)",
+      "ftest": "ftest(call)",
+      "exact": "exact(m,n)",
+      "ode1a": "ode1a(eq,y,x)",
+      "xcc2": "xcc2(ap,aq)",
+      "pttest": "pttest(a)",
+      "genhom": "genhom(eq)",
+      "cc2": "cc2(%f%,%g%,y,x)",
       "desimp": "desimp(eq)",
       "pr2": "pr2(%f%)",
-      "exact2": "exact2(a1,a2,a3)",
-      "ode1a": "ode1a(eq,y,x)",
-      "nly": "nly(eq)",
-      "bessel2": "bessel2(a,b,pt)",
-      "exact": "exact(m,n)",
-      "noteqn": "noteqn(x)",
-      "ode2": "ode2(eqn, dvar, ivar)",
-      "solvelnr": "solvelnr(eq)",
+      "ode2a": "ode2a(eq,y,x)",
+      "reduce": "reduce(eq)",
+      "failure": "failure(msg,eq)",
+      "linear2": "linear2(expr,x)",
+      "separable": "separable(eq)",
       "boundtest": "boundtest(x,y)",
-      "xcc2": "xcc2(ap,aq)",
-      "ftest": "ftest(call)",
-      "ic1": "ic1(solution, xval, yval)",
+      "solvebernoulli": "solvebernoulli(eq)",
+      "bc2": "bc2(soln,xa,ya,xb,yb)",
+      "ode2": "ode2(eq,yold,x)",
       "solvehom": "solvehom(eq)",
-      "pttest": "pttest(a)",
-      "modifiedbessel2": "modifiedbessel2(a,b,pt)"
+      "exact2": "exact2(a1,a2,a3)",
+      "nly": "nly(eq)",
+      "solvelnr": "solvelnr(eq)",
+      "modifiedbessel2": "modifiedbessel2(a,b,pt)",
+      "varp": "varp(soln,%g%)",
+      "euler2": "euler2(a,b,pt)",
+      "solve1": "solve1(eq,y)"
     }
   },
   {
@@ -1316,15 +1278,15 @@
       "win"
     ],
     "signatures": {
-      "subsf": "subsf(eq,oldy,oldx)",
-      "purify": "purify(sol,y,x)",
-      "win": "win(fun,eq,y,x)",
-      "homog": "homog(eq,y,x)",
-      "eqsimp": "eqsimp(de)",
-      "riccati_test": "riccati_test(de,y,x)",
       "solveode": "solveode(eq,y,x,option)",
       "odeaux": "odeaux(eq,oldy,oldx,option)",
-      "testli": "testli(de,y,x)"
+      "testli": "testli(de,y,x)",
+      "win": "win(fun,eq,y,x)",
+      "purify": "purify(sol,y,x)",
+      "subsf": "subsf(eq,oldy,oldx)",
+      "homog": "homog(eq,y,x)",
+      "riccati_test": "riccati_test(de,y,x)",
+      "eqsimp": "eqsimp(de)"
     }
   },
   {
@@ -1344,17 +1306,17 @@
       "ldf6"
     ],
     "signatures": {
-      "gpt442": "gpt442(wb,wc)",
-      "ldf6": "ldf6(i)",
-      "dvtexp": "dvtexp(wb,wc,wr,r,lam1)",
-      "dvtmxp": "dvtmxp(a,wb,wc,wr,alpha)",
-      "gpt078": "gpt078(wb,wc)",
       "gpt128": "gpt128(wb,wc)",
+      "gpt442": "gpt442(wb,wc)",
       "dvtrns": "dvtrns(a,wb,wc,wr,ro,lam1)",
-      "eqpt6": "eqpt6(wb,wc)",
+      "gpt078": "gpt078(wb,wc)",
       "degenc": "degenc(w1,w2,w3)",
+      "dvtexp": "dvtexp(wb,wc,wr,r,lam1)",
       "gptm": "gptm(wb,wc)",
-      "dvt60": "dvt60(dum)"
+      "ldf6": "ldf6(i)",
+      "eqpt6": "eqpt6(wb,wc)",
+      "dvt60": "dvt60(dum)",
+      "dvtmxp": "dvtmxp(a,wb,wc,wr,alpha)"
     }
   },
   {
@@ -1398,41 +1360,41 @@
       "wlength"
     ],
     "signatures": {
-      "exc1c": "exc1c(i)",
-      "elmrephg1": "elmrephg1(iodd)",
-      "elmrephg2": "elmrephg2(m)",
+      "replcompform": "replcompform(dum)",
       "listofpars": "listofpars(exp)",
-      "exchla": "exchla(i,l,m)",
-      "nopmt": "nopmt(j)",
-      "contratn": "contratn(i)",
-      "pfdivide": "pfdivide(y0,i,lamu)",
-      "hgstdd": "hgstdd(dum)",
-      "pfuncthg": "pfuncthg(selv,v)",
-      "gsvhg": "gsvhg(dum)",
-      "clsort": "clsort(dum)",
-      "sortratn": "sortratn(dum)",
-      "excroots": "excroots(iodd)",
-      "wlength": "wlength(exp)",
-      "psdmint": "psdmint(dnop)",
+      "minabssum": "minabssum(j)",
+      "ssolve": "ssolve(e,x)",
+      "svhypr": "svhypr(wb,wc)",
+      "infosum": "infosum(dum)",
       "exccolumns": "exccolumns(dum)",
+      "make01p": "make01p(i)",
+      "svlgdre": "svlgdre(v)",
+      "ldf3": "ldf3(i)",
+      "exc1c": "exc1c(i)",
+      "clsort": "clsort(dum)",
       "checkcontratn": "checkcontratn(i)",
+      "haspmts": "haspmts(dum)",
+      "sortratn": "sortratn(dum)",
+      "wlength": "wlength(exp)",
+      "oddintp": "oddintp(pol,v)",
+      "pfdivide": "pfdivide(y0,i,lamu)",
+      "elmrephg1": "elmrephg1(iodd)",
+      "gsvlgdre": "gsvlgdre(v)",
+      "pfuncthg": "pfuncthg(selv,v)",
+      "psdmint": "psdmint(dnop)",
+      "elmrephg2": "elmrephg2(m)",
+      "exchla": "exchla(i,l,m)",
+      "contratn": "contratn(i)",
+      "exc2c": "exc2c(l,m)",
+      "excroots": "excroots(iodd)",
+      "gsvhg": "gsvhg(dum)",
+      "hgstdd": "hgstdd(dum)",
+      "nopmt": "nopmt(j)",
       "excrow": "excrow(dum)",
       "nmod": "nmod(n,k)",
-      "oddintp": "oddintp(pol,v)",
-      "svlgdre": "svlgdre(v)",
-      "minabssum": "minabssum(j)",
-      "caseof22": "caseof22(dum)",
-      "make01p": "make01p(i)",
-      "exc2c": "exc2c(l,m)",
-      "ldf3": "ldf3(i)",
-      "replcompform": "replcompform(dum)",
-      "mklntr": "mklntr(x1,x2,x3)",
-      "ssolve": "ssolve(e,x)",
-      "infosum": "infosum(dum)",
-      "gsvlgdre": "gsvlgdre(v)",
       "seekodd": "seekodd(dum)",
-      "svhypr": "svhypr(wb,wc)",
-      "haspmts": "haspmts(dum)"
+      "caseof22": "caseof22(dum)",
+      "mklntr": "mklntr(x1,x2,x3)"
     }
   },
   {
@@ -1466,31 +1428,31 @@
       "trtrig"
     ],
     "signatures": {
-      "tivsc": "tivsc(i,wb,wc)",
-      "trasinh": "trasinh(wc,wr)",
-      "tivexp": "tivexp(wb,wc,wr)",
-      "trhpb": "trhpb(wb,wc,wr)",
-      "listofargs": "listofargs(exp,n)",
-      "eqpt7": "eqpt7(wb,wc,wr)",
-      "ivtrns": "ivtrns(wb,wc,wr)",
       "tivsqrt": "tivsqrt(wb,wc,wr)",
       "trsymx": "trsymx(pt,qt,i)",
-      "farg": "farg(exp,f)",
-      "dptarg": "dptarg(wb,wc,tn)",
-      "prptrg": "prptrg(exp)",
-      "slchpb": "slchpb(w1,w2)",
-      "tivlog": "tivlog(wb,wc,wr)",
-      "trpow": "trpow(r)",
       "trtrig": "trtrig(wb,wc,wr)",
-      "prphpb": "prphpb(exp)",
-      "tivasin": "tivasin(wc,wr)",
+      "tivsc": "tivsc(i,wb,wc)",
+      "trasinh": "trasinh(wc,wr)",
       "tivinv": "tivinv(wb,wc,wr)",
-      "slctrg": "slctrg(w1,w2)",
+      "trhpb": "trhpb(wb,wc,wr)",
+      "farg": "farg(exp,f)",
+      "ivexctrig": "ivexctrig(wb,wc,wr)",
+      "listofargs": "listofargs(exp,n)",
       "trasin": "trasin(wc,wr)",
       "ldf5": "ldf5(i)",
+      "trpow": "trpow(r)",
+      "eqpt7": "eqpt7(wb,wc,wr)",
+      "ivtrns": "ivtrns(wb,wc,wr)",
+      "dptarg": "dptarg(wb,wc,tn)",
+      "prphpb": "prphpb(exp)",
+      "slchpb": "slchpb(w1,w2)",
+      "prptrg": "prptrg(exp)",
+      "slctrg": "slctrg(w1,w2)",
+      "tivhpb": "tivhpb(i,wb,wc)",
+      "tivasin": "tivasin(wc,wr)",
       "tivln": "tivln(wb,wc,wr,x1)",
-      "ivexctrig": "ivexctrig(wb,wc,wr)",
-      "tivhpb": "tivhpb(i,wb,wc)"
+      "tivlog": "tivlog(wb,wc,wr)",
+      "tivexp": "tivexp(wb,wc,wr)"
     }
   },
   {
@@ -1522,29 +1484,29 @@
       "vprep"
     ],
     "signatures": {
-      "idvprep": "idvprep(i)",
       "facza": "facza(za)",
-      "lcm": "lcm(expr_1, ..., expr_n)",
-      "calca": "calca(wb,wc,x)",
-      "lode2": "lode2(oeq)",
-      "lodesave": "lodesave(filename,[lode_functions])",
-      "reqans1": "reqans1(dum)",
-      "polord": "polord(exp,sexp)",
-      "nosol": "nosol(oeq)",
-      "ratdeg": "ratdeg(rf,x)",
-      "tblspt": "tblspt(za,wb,wc,x,ksw)",
       "vprep": "vprep(dum)",
-      "nhstddeq": "nhstddeq(oeq)",
+      "ratdeg": "ratdeg(rf,x)",
+      "brchde2": "brchde2(wb,wc)",
       "brchde1": "brchde1(exp)",
-      "stddeq": "stddeq(oeq)",
-      "regsingpt": "regsingpt(xa,wb,wc,alpha)",
+      "lcm": "lcm(p,q,x)",
+      "hlode2": "hlode2(eq)",
       "ldf0": "ldf0(i)",
       "tobegin": "tobegin(dum)",
-      "deqcoeff": "deqcoeff(exp)",
-      "brchde2": "brchde2(wb,wc)",
-      "kindspt": "kindspt(wb,wc,k)",
+      "calca": "calca(wb,wc,x)",
+      "reqans1": "reqans1(dum)",
+      "lodesave": "lodesave(filename,[lode_functions])",
+      "idvprep": "idvprep(i)",
       "vecdeg": "vecdeg(za,zb,zc,x)",
-      "hlode2": "hlode2(eq)"
+      "nhstddeq": "nhstddeq(oeq)",
+      "nosol": "nosol(oeq)",
+      "kindspt": "kindspt(wb,wc,k)",
+      "deqcoeff": "deqcoeff(exp)",
+      "polord": "polord(exp,sexp)",
+      "stddeq": "stddeq(oeq)",
+      "regsingpt": "regsingpt(xa,wb,wc,alpha)",
+      "lode2": "lode2(oeq)",
+      "tblspt": "tblspt(za,wb,wc,x,ksw)"
     }
   },
   {
@@ -1803,256 +1765,256 @@
       "var_weibull"
     ],
     "signatures": {
-      "cdf_exp": "cdf_exp(x, m)",
-      "pdf_lognormal": "pdf_lognormal(x, m, s)",
-      "quantile_pareto": "quantile_pareto(q, a, b)",
-      "skewness_bernoulli": "skewness_bernoulli(p)",
-      "mean_inverse_gamma": "mean_inverse_gamma(a, b)",
-      "pdf_hypergeometric": "pdf_hypergeometric(x, n_1, n_2, n)",
-      "var_discrete_uniform": "var_discrete_uniform(n)",
-      "cdf_beta": "cdf_beta(x, a, b)",
-      "std_lognormal": "std_lognormal(m, s)",
-      "kurtosis_f": "kurtosis_f(m, n)",
-      "random_poisson": "random_poisson(m)",
-      "skewness_gumbel": "skewness_gumbel(a, b)",
-      "var_pareto": "var_pareto(a, b)",
-      "kurtosis_negative_binomial": "kurtosis_negative_binomial(n, p)",
-      "mean_noncentral_student_t": "mean_noncentral_student_t(n, ncp)",
-      "quantile_hypergeometric": "quantile_hypergeometric(q, n1, n2, n)",
-      "pdf_cauchy": "pdf_cauchy(x, a, b)",
-      "var_rayleigh": "var_rayleigh(b)",
-      "cdf_normal": "cdf_normal(x, m, s)",
-      "skewness_general_finite_discrete": "skewness_general_finite_discrete(v)",
-      "mean_hypergeometric": "mean_hypergeometric(n_1, n_2, n)",
-      "pdf_binomial": "pdf_binomial(x, n, p)",
-      "random_noncentral_chi2": "random_noncentral_chi2(n, ncp)",
-      "skewness_laplace": "skewness_laplace(a, b)",
-      "skewness_continuous_uniform": "skewness_continuous_uniform(a, b)",
-      "std_bernoulli": "std_bernoulli(p)",
-      "cdf_cauchy": "cdf_cauchy(x, a, b)",
-      "std_negative_binomial": "std_negative_binomial(n, p)",
-      "std_noncentral_chi2": "std_noncentral_chi2(n, ncp)",
-      "var_continuous_uniform": "var_continuous_uniform(a, b)",
-      "random_laplace": "random_laplace(a, b)",
-      "pdf_noncentral_chi2": "pdf_noncentral_chi2(x, n, ncp)",
-      "kurtosis_discrete_uniform": "kurtosis_discrete_uniform(n)",
-      "skewness_beta": "skewness_beta(a, b)",
-      "mean_pareto": "mean_pareto(a, b)",
-      "pdf_inverse_gamma": "pdf_inverse_gamma(x, a, b)",
-      "cdf_lognormal": "cdf_lognormal(x, m, s)",
-      "kurtosis_hypergeometric": "kurtosis_hypergeometric(n_1, n_2, n)",
-      "quantile_discrete_uniform": "quantile_discrete_uniform(q, n)",
-      "quantile_inverse_gamma": "quantile_inverse_gamma(x, a, b)",
-      "skewness_noncentral_student_t": "skewness_noncentral_student_t(n, ncp)",
-      "kurtosis_weibull": "kurtosis_weibull(a, b)",
-      "cdf_gamma": "cdf_gamma(x, a, b)",
-      "random_pareto": "random_pareto(a, b)",
-      "mean_discrete_uniform": "mean_discrete_uniform(n)",
-      "skewness_lognormal": "skewness_lognormal(m, s)",
-      "skewness_negative_binomial": "skewness_negative_binomial(n, p)",
-      "kurtosis_lognormal": "kurtosis_lognormal(m, s)",
-      "skewness_weibull": "skewness_weibull(a, b)",
-      "std_beta": "std_beta(a, b)",
-      "mean_gumbel": "mean_gumbel(a, b)",
-      "random_noncentral_student_t": "random_noncentral_student_t(n, ncp)",
-      "pdf_pareto": "pdf_pareto(x, a, b)",
-      "cdf_geometric": "cdf_geometric(x, p)",
-      "kurtosis_beta": "kurtosis_beta(a, b)",
-      "std_gamma": "std_gamma(a, b)",
-      "skewness_student_t": "skewness_student_t(n)",
-      "mle_beta_initial_estimates": "mle_beta_initial_estimates(x, w)",
-      "mean_rayleigh": "mean_rayleigh(b)",
-      "quantile_f": "quantile_f(q, m, n)",
-      "skewness_noncentral_chi2": "skewness_noncentral_chi2(n, ncp)",
-      "random_beta": "random_beta(a, b)",
-      "var_chi2": "var_chi2(n)",
-      "var_inverse_gamma": "var_inverse_gamma(a, b)",
-      "var_lognormal": "var_lognormal(m, s)",
-      "mean_gamma": "mean_gamma(a, b)",
-      "mle_exp": "mle_exp(x, [w])",
-      "var_exp": "var_exp(m)",
-      "var_binomial": "var_binomial(n, p)",
-      "kurtosis_pareto": "kurtosis_pareto(a, b)",
-      "quantile_negative_binomial": "quantile_negative_binomial(q, n, p)",
-      "std_hypergeometric": "std_hypergeometric(n_1, n_2, n)",
-      "var_noncentral_chi2": "var_noncentral_chi2(n, ncp)",
-      "cdf_noncentral_chi2": "cdf_noncentral_chi2(x, n, ncp)",
-      "random_student_t": "random_student_t(n)",
-      "pdf_rayleigh": "pdf_rayleigh(x, b)",
-      "pdf_gumbel": "pdf_gumbel(x, a, b)",
-      "cdf_binomial": "cdf_binomial(x, n, p)",
-      "cdf_gumbel": "cdf_gumbel(x, a, b)",
-      "skewness_geometric": "skewness_geometric(p)",
-      "var_student_t": "var_student_t(n)",
-      "kurtosis_normal": "kurtosis_normal(m, s)",
-      "random_normal": "random_normal(m, s)",
-      "pdf_logistic": "pdf_logistic(x, a, b)",
-      "random_lognormal": "random_lognormal(m, s)",
-      "pdf_bernoulli": "pdf_bernoulli(x, p)",
-      "var_laplace": "var_laplace(a, b)",
-      "kurtosis_logistic": "kurtosis_logistic(a, b)",
-      "var_poisson": "var_poisson(m)",
-      "random_exp": "random_exp(m)",
-      "quantile_general_finite_discrete": "quantile_general_finite_discrete(q, v)",
-      "random_continuous_uniform": "random_continuous_uniform(a, b)",
-      "mean_chi2": "mean_chi2(n)",
-      "quantile_cauchy": "quantile_cauchy(q, a, b)",
-      "mean_poisson": "mean_poisson(m)",
-      "random_rayleigh": "random_rayleigh(b)",
-      "quantile_beta": "quantile_beta(q, a, b)",
-      "kurtosis_exp": "kurtosis_exp(m)",
-      "kurtosis_gamma": "kurtosis_gamma(a, b)",
-      "pdf_beta": "pdf_beta(x, a, b)",
-      "random_cauchy": "random_cauchy(a, b)",
-      "std_geometric": "std_geometric(p)",
-      "quantile_weibull": "quantile_weibull(q, a, b)",
-      "mean_noncentral_chi2": "mean_noncentral_chi2(n, ncp)",
-      "random_binomial": "random_binomial(n, p)",
-      "random_weibull": "random_weibull(a, b)",
-      "cdf_bernoulli": "cdf_bernoulli(x, p)",
-      "kurtosis_bernoulli": "kurtosis_bernoulli(p)",
-      "cdf_pareto": "cdf_pareto(x, a, b)",
-      "pdf_poisson": "pdf_poisson(x, m)",
-      "var_f": "var_f(m, n)",
-      "std_normal": "std_normal(m, s)",
-      "mode_inverse_gamma": "mode_inverse_gamma(a, b)",
-      "std_noncentral_student_t": "std_noncentral_student_t(n, ncp)",
-      "kurtosis_gumbel": "kurtosis_gumbel(a, b)",
-      "std_exp": "std_exp(m)",
-      "random_negative_binomial": "random_negative_binomial(n, p)",
-      "cdf_laplace": "cdf_laplace(x, a, b)",
-      "cdf_negative_binomial": "cdf_negative_binomial(x, n, p)",
-      "random_inverse_gamma": "random_inverse_gamma(a, b, [n])",
-      "kurtosis_general_finite_discrete": "kurtosis_general_finite_discrete(v)",
-      "mle_lognormal": "mle_lognormal(x, [w])",
-      "mean_lognormal": "mean_lognormal(m, s)",
-      "quantile_geometric": "quantile_geometric(q, p)",
-      "quantile_logistic": "quantile_logistic(q, a, b)",
-      "random_discrete_uniform": "random_discrete_uniform(n)",
-      "pdf_f": "pdf_f(x, m, n)",
-      "cdf_poisson": "cdf_poisson(x, m)",
-      "pdf_gamma": "pdf_gamma(x, a, b)",
-      "mean_laplace": "mean_laplace(a, b)",
-      "cdf_hypergeometric": "cdf_hypergeometric(x, n_1, n_2, n)",
-      "var_beta": "var_beta(a, b)",
-      "std_general_finite_discrete": "std_general_finite_discrete(v)",
-      "mle_gamma_scale": "mle_gamma_scale(x, shape, [w])",
-      "mean_f": "mean_f(m, n)",
-      "mean_exp": "mean_exp(m)",
-      "quantile_noncentral_student_t": "quantile_noncentral_student_t(q, n, ncp)",
-      "quantile_continuous_uniform": "quantile_continuous_uniform(q, a, b)",
-      "mean_continuous_uniform": "mean_continuous_uniform(a, b)",
-      "mean_normal": "mean_normal(m, s)",
-      "skewness_f": "skewness_f(m, n)",
-      "pdf_student_t": "pdf_student_t(x, n)",
-      "kurtosis_rayleigh": "kurtosis_rayleigh(b)",
-      "kurtosis_noncentral_chi2": "kurtosis_noncentral_chi2(n, ncp)",
-      "quantile_gamma": "quantile_gamma(q, a, b)",
-      "skewness_inverse_gamma": "skewness_inverse_gamma(a, b)",
-      "std_poisson": "std_poisson(m)",
-      "mean_student_t": "mean_student_t(n)",
-      "var_bernoulli": "var_bernoulli(p)",
-      "var_normal": "var_normal(m, s)",
-      "mle_gamma_shape": "mle_gamma_shape(x, [w])",
-      "std_discrete_uniform": "std_discrete_uniform(n)",
-      "var_hypergeometric": "var_hypergeometric(n1, n2, n)",
-      "mean_bernoulli": "mean_bernoulli(p)",
-      "random_f": "random_f(m, n)",
-      "kurtosis_continuous_uniform": "kurtosis_continuous_uniform(a, b)",
-      "quantile_poisson": "quantile_poisson(q, m)",
-      "random_gumbel": "random_gumbel(a, b)",
-      "std_rayleigh": "std_rayleigh(b)",
-      "random_chi2": "random_chi2(n)",
-      "cdf_inverse_gamma": "cdf_inverse_gamma(x, a, b)",
-      "skewness_binomial": "skewness_binomial(n, p)",
-      "quantile_chi2": "quantile_chi2(q, n)",
-      "cdf_weibull": "cdf_weibull(x, a, b)",
-      "pdf_noncentral_student_t": "pdf_noncentral_student_t(x, n, ncp)",
-      "skewness_normal": "skewness_normal(m, s)",
-      "var_gamma": "var_gamma(a, b)",
-      "pdf_weibull": "pdf_weibull(x, a, b)",
-      "mean_weibull": "mean_weibull(a, b)",
-      "pdf_discrete_uniform": "pdf_discrete_uniform(x, n)",
-      "pdf_exp": "pdf_exp(x, m)",
-      "pdf_normal": "pdf_normal(x, m, s)",
-      "std_logistic": "std_logistic(a, b)",
-      "cdf_student_t": "cdf_student_t(x, n)",
-      "kurtosis_chi2": "kurtosis_chi2(n)",
-      "quantile_noncentral_chi2": "quantile_noncentral_chi2(q, n, ncp)",
-      "cdf_logistic": "cdf_logistic(x, a, b)",
-      "mean_negative_binomial": "mean_negative_binomial(n, p)",
-      "kurtosis_poisson": "kurtosis_poisson(m)",
-      "pdf_general_finite_discrete": "pdf_general_finite_discrete(x, v)",
-      "mean_beta": "mean_beta(a, b)",
-      "quantile_exp": "quantile_exp(q, m)",
-      "std_gumbel": "std_gumbel(a, b)",
-      "mean_geometric": "mean_geometric(p)",
-      "kurtosis_noncentral_student_t": "kurtosis_noncentral_student_t(n, ncp)",
-      "pdf_negative_binomial": "pdf_negative_binomial(x, n, p)",
-      "quantile_gumbel": "quantile_gumbel(q, a, b)",
-      "skewness_poisson": "skewness_poisson(m)",
-      "skewness_rayleigh": "skewness_rayleigh(b)",
-      "std_binomial": "std_binomial(n, p)",
+      "random_pareto": "random_pareto(a,b,[num])",
+      "skewness_normal": "skewness_normal(m,s)",
+      "cdf_f": "cdf_f(x,m,n)",
       "var_geometric": "var_geometric(p)",
-      "skewness_pareto": "skewness_pareto(a, b)",
-      "mean_general_finite_discrete": "mean_general_finite_discrete(v)",
-      "pdf_laplace": "pdf_laplace(x, a, b)",
-      "std_pareto": "std_pareto(a, b)",
-      "quantile_student_t": "quantile_student_t(q, n)",
-      "random_geometric": "random_geometric(p)",
-      "std_laplace": "std_laplace(a, b)",
-      "var_noncentral_student_t": "var_noncentral_student_t(n, ncp)",
-      "mle_gamma": "mle_gamma(x, [w])",
-      "var_gumbel": "var_gumbel(a, b)",
-      "var_negative_binomial": "var_negative_binomial(n, p)",
-      "cdf_chi2": "cdf_chi2(x, n)",
-      "kurtosis_binomial": "kurtosis_binomial(n, p)",
-      "random_bernoulli": "random_bernoulli(p)",
-      "cdf_f": "cdf_f(x, m, n)",
-      "random_general_finite_discrete": "random_general_finite_discrete(v)",
-      "skewness_hypergeometric": "skewness_hypergeometric(n_1, n_2, n)",
-      "mean_binomial": "mean_binomial(n, p)",
-      "quantile_bernoulli": "quantile_bernoulli(q, p)",
-      "kurtosis_laplace": "kurtosis_laplace(a, b)",
-      "mle_normal": "mle_normal(x, [w])",
-      "quantile_normal": "quantile_normal(q, m, s)",
-      "std_f": "std_f(m, n)",
-      "std_inverse_gamma": "std_inverse_gamma(a, b)",
-      "pdf_geometric": "pdf_geometric(x, p)",
-      "pdf_chi2": "pdf_chi2(x, n)",
-      "cdf_continuous_uniform": "cdf_continuous_uniform(x, a, b)",
-      "cdf_discrete_uniform": "cdf_discrete_uniform(x, n)",
-      "var_logistic": "var_logistic(a, b)",
-      "skewness_chi2": "skewness_chi2(n)",
-      "mle_weibull_shape": "mle_weibull_shape(x, [w])",
-      "skewness_discrete_uniform": "skewness_discrete_uniform(n)",
-      "skewness_gamma": "skewness_gamma(a, b)",
-      "cdf_general_finite_discrete": "cdf_general_finite_discrete(x, v)",
-      "pdf_continuous_uniform": "pdf_continuous_uniform(x, a, b)",
-      "kurtosis_inverse_gamma": "kurtosis_inverse_gamma(a, b)",
-      "kurtosis_student_t": "kurtosis_student_t(n)",
-      "cdf_rayleigh": "cdf_rayleigh(x, b)",
-      "skewness_exp": "skewness_exp(m)",
+      "cdf_inverse_gamma": "cdf_inverse_gamma(x, a, b)",
+      "cdf_laplace": "cdf_laplace(x,a,b)",
+      "mle_gamma_shape": "mle_gamma_shape(x, [w])",
+      "pdf_laplace": "pdf_laplace(x,a,b)",
       "mle_weibull": "mle_weibull(x, [w])",
-      "std_continuous_uniform": "std_continuous_uniform(a, b)",
-      "cdf_noncentral_student_t": "cdf_noncentral_student_t(x, n, ncp)",
-      "quantile_binomial": "quantile_binomial(q, n, p)",
-      "random_gamma": "random_gamma(a, b)",
-      "quantile_laplace": "quantile_laplace(q, a, b)",
-      "random_logistic": "random_logistic(a, b)",
+      "std_noncentral_chi2": "std_noncentral_chi2(n,ncp)",
+      "random_lognormal": "random_lognormal(m,s,[num])",
+      "mean_negative_binomial": "mean_negative_binomial(n,p)",
+      "mean_gamma": "mean_gamma(a,b)",
+      "mean_noncentral_student_t": "mean_noncentral_student_t(n,ncp)",
+      "pdf_cauchy": "pdf_cauchy(x,a,b)",
+      "mean_exp": "mean_exp(m)",
+      "pdf_geometric": "pdf_geometric(x,p)",
+      "mean_f": "mean_f(m,n)",
+      "quantile_gumbel": "quantile_gumbel(q,a,b)",
+      "quantile_negative_binomial": "quantile_negative_binomial(q,n,p)",
+      "quantile_noncentral_chi2": "quantile_noncentral_chi2(q,n,ncp)",
+      "random_cauchy": "random_cauchy(a,b,[num])",
+      "pdf_hypergeometric": "pdf_hypergeometric(x,n1,n2,n)",
+      "random_chi2": "random_chi2(n,[num])",
+      "skewness_general_finite_discrete": "skewness_general_finite_discrete(v)",
+      "skewness_poisson": "skewness_poisson(m)",
+      "std_geometric": "std_geometric(p)",
+      "std_negative_binomial": "std_negative_binomial(n,p)",
+      "var_inverse_gamma": "var_inverse_gamma(a, b)",
+      "mean_geometric": "mean_geometric(p)",
+      "pdf_binomial": "pdf_binomial(x,n,p)",
+      "quantile_poisson": "quantile_poisson(q,m)",
+      "kurtosis_normal": "kurtosis_normal(m,s)",
+      "random_noncentral_chi2": "random_noncentral_chi2(n,ncp,[num])",
+      "std_rayleigh": "std_rayleigh(b)",
       "var_general_finite_discrete": "var_general_finite_discrete(v)",
-      "var_weibull": "var_weibull(a, b)",
-      "quantile_lognormal": "quantile_lognormal(q, m, s)",
-      "std_chi2": "std_chi2(n)",
-      "mean_logistic": "mean_logistic(a, b)",
+      "mean_laplace": "mean_laplace(a,b)",
+      "random_normal": "random_normal(m,s,[num])",
+      "std_inverse_gamma": "std_inverse_gamma(a, b)",
+      "random_hypergeometric": "random_hypergeometric(n1,n2,n,[num])",
+      "kurtosis_general_finite_discrete": "kurtosis_general_finite_discrete(v)",
+      "random_logistic": "random_logistic(a,b,[num])",
+      "kurtosis_f": "kurtosis_f(m,n)",
+      "mean_bernoulli": "mean_bernoulli(p)",
+      "var_hypergeometric": "var_hypergeometric(n1,n2,n)",
+      "var_gamma": "var_gamma(a,b)",
+      "std_beta": "std_beta(a,b)",
+      "var_rayleigh": "var_rayleigh(b)",
+      "quantile_hypergeometric": "quantile_hypergeometric(q, n1, n2, n)",
+      "kurtosis_bernoulli": "kurtosis_bernoulli(p)",
+      "quantile_cauchy": "quantile_cauchy(q,a,b)",
+      "kurtosis_gumbel": "kurtosis_gumbel(a,b)",
+      "cdf_hypergeometric": "cdf_hypergeometric(x,n1,n2,n)",
+      "random_gumbel": "random_gumbel(a,b,[num])",
+      "skewness_hypergeometric": "skewness_hypergeometric(n1,n2,n)",
+      "pdf_lognormal": "pdf_lognormal(x,m,s)",
+      "kurtosis_weibull": "kurtosis_weibull(a,b)",
+      "random_poisson": "random_poisson(m,[num])",
+      "skewness_binomial": "skewness_binomial(n,p)",
+      "cdf_negative_binomial": "cdf_negative_binomial(x,n,p)",
+      "var_f": "var_f(m,n)",
+      "mean_rayleigh": "mean_rayleigh(b)",
+      "quantile_beta": "quantile_beta(q,a,b)",
+      "skewness_negative_binomial": "skewness_negative_binomial(n,p)",
+      "kurtosis_gamma": "kurtosis_gamma(a,b)",
+      "skewness_pareto": "skewness_pareto(a,b)",
+      "skewness_laplace": "skewness_laplace(a,b)",
+      "quantile_exp": "quantile_exp(q,m)",
+      "pdf_weibull": "pdf_weibull(x,a,b)",
+      "quantile_f": "quantile_f(q,m,n)",
+      "std_noncentral_student_t": "std_noncentral_student_t(n,ncp)",
+      "var_continuous_uniform": "var_continuous_uniform(a,b)",
+      "quantile_chi2": "quantile_chi2(q,n)",
+      "quantile_weibull": "quantile_weibull(q,a,b)",
+      "pdf_logistic": "pdf_logistic(x,a,b)",
+      "random_inverse_gamma": "random_inverse_gamma(a, b, [n])",
+      "skewness_inverse_gamma": "skewness_inverse_gamma(a, b)",
+      "cdf_gumbel": "cdf_gumbel(x,a,b)",
+      "var_poisson": "var_poisson(m)",
+      "skewness_geometric": "skewness_geometric(p)",
+      "cdf_binomial": "cdf_binomial(x,n,p)",
+      "kurtosis_binomial": "kurtosis_binomial(n,p)",
+      "kurtosis_poisson": "kurtosis_poisson(m)",
+      "pdf_bernoulli": "pdf_bernoulli(x,p)",
+      "skewness_bernoulli": "skewness_bernoulli(p)",
+      "mean_pareto": "mean_pareto(a,b)",
+      "skewness_noncentral_student_t": "skewness_noncentral_student_t(n,ncp)",
+      "std_laplace": "std_laplace(a,b)",
+      "skewness_gumbel": "skewness_gumbel(a,b)",
+      "skewness_student_t": "skewness_student_t(n)",
+      "mean_binomial": "mean_binomial(n,p)",
+      "skewness_f": "skewness_f(m,n)",
+      "quantile_logistic": "quantile_logistic(q,a,b)",
       "mle_beta": "mle_beta(x, [w])",
-      "random_hypergeometric": "random_hypergeometric(n1, n2, n)",
+      "mean_noncentral_chi2": "mean_noncentral_chi2(n,ncp)",
+      "random_gamma": "random_gamma(a,b,[num])",
+      "kurtosis_noncentral_student_t": "kurtosis_noncentral_student_t(n,ncp)",
+      "random_discrete_uniform": "random_discrete_uniform(n,[num])",
+      "std_lognormal": "std_lognormal(m,s)",
+      "var_beta": "var_beta(a,b)",
+      "kurtosis_exp": "kurtosis_exp(m)",
+      "random_beta": "random_beta(a,b,[num])",
+      "std_chi2": "std_chi2(n)",
+      "quantile_lognormal": "quantile_lognormal(q,m,s)",
+      "var_gumbel": "var_gumbel(a,b)",
+      "var_lognormal": "var_lognormal(m,s)",
+      "std_poisson": "std_poisson(m)",
+      "kurtosis_hypergeometric": "kurtosis_hypergeometric(n1,n2,n)",
+      "var_binomial": "var_binomial(n,p)",
+      "random_student_t": "random_student_t(n,[num])",
+      "pdf_poisson": "pdf_poisson(x,m)",
+      "skewness_discrete_uniform": "skewness_discrete_uniform(n)",
+      "cdf_discrete_uniform": "cdf_discrete_uniform(x,n)",
+      "var_normal": "var_normal(m,s)",
+      "pdf_exp": "pdf_exp(x,m)",
+      "mode_inverse_gamma": "mode_inverse_gamma(a, b)",
+      "quantile_binomial": "quantile_binomial(q,n,p)",
+      "cdf_beta": "cdf_beta(x,a,b)",
+      "var_discrete_uniform": "var_discrete_uniform(n)",
+      "mean_beta": "mean_beta(a,b)",
+      "mle_lognormal": "mle_lognormal(x, [w])",
+      "pdf_negative_binomial": "pdf_negative_binomial(x,n,p)",
+      "cdf_poisson": "cdf_poisson(x,m)",
+      "skewness_exp": "skewness_exp(m)",
+      "kurtosis_negative_binomial": "kurtosis_negative_binomial(n,p)",
+      "pdf_chi2": "pdf_chi2(x,n)",
+      "skewness_lognormal": "skewness_lognormal(m,s)",
+      "skewness_chi2": "skewness_chi2(n)",
+      "pdf_continuous_uniform": "pdf_continuous_uniform(x,a,b)",
+      "random_weibull": "random_weibull(a,b,[num])",
+      "cdf_student_t": "cdf_student_t(x,n)",
+      "mle_weibull_scale": "mle_weibull_scale(x, shape, [w])",
+      "random_geometric": "random_geometric(p,[num])",
+      "random_noncentral_student_t": "random_noncentral_student_t(n,ncp,[num])",
+      "skewness_weibull": "skewness_weibull(a,b)",
+      "quantile_rayleigh": "quantile_rayleigh(q,b)",
+      "skewness_continuous_uniform": "skewness_continuous_uniform(a,b)",
+      "std_f": "std_f(m,n)",
+      "var_noncentral_student_t": "var_noncentral_student_t(n,ncp)",
       "std_student_t": "std_student_t(n)",
-      "std_weibull": "std_weibull(a, b)",
+      "cdf_chi2": "cdf_chi2(x,n)",
+      "mean_general_finite_discrete": "mean_general_finite_discrete(v)",
+      "random_binomial": "random_binomial(n,p,[num])",
+      "std_normal": "std_normal(m,s)",
+      "cdf_weibull": "cdf_weibull(x,a,b)",
+      "pdf_noncentral_student_t": "pdf_noncentral_student_t(x,n,ncp)",
+      "mean_poisson": "mean_poisson(m)",
+      "var_bernoulli": "var_bernoulli(p)",
+      "mle_weibull_shape": "mle_weibull_shape(x, [w])",
+      "random_rayleigh": "random_rayleigh(b,[num])",
+      "pdf_pareto": "pdf_pareto(x,a,b)",
+      "std_exp": "std_exp(m)",
+      "quantile_geometric": "quantile_geometric(q,p)",
+      "quantile_gamma": "quantile_gamma(q,a,b)",
+      "skewness_logistic": "skewness_logistic(a,b)",
+      "skewness_rayleigh": "skewness_rayleigh(b)",
+      "quantile_discrete_uniform": "quantile_discrete_uniform(q,n)",
+      "cdf_continuous_uniform": "cdf_continuous_uniform(x,a,b)",
+      "std_general_finite_discrete": "std_general_finite_discrete(v)",
+      "mean_weibull": "mean_weibull(a,b)",
+      "pdf_gamma": "pdf_gamma(x,a,b)",
+      "cdf_noncentral_student_t": "cdf_noncentral_student_t(x,n,ncp)",
+      "cdf_lognormal": "cdf_lognormal(x,m,s)",
+      "std_weibull": "std_weibull(a,b)",
+      "mean_logistic": "mean_logistic(a,b)",
+      "var_laplace": "var_laplace(a,b)",
+      "mean_continuous_uniform": "mean_continuous_uniform(a,b)",
+      "pdf_discrete_uniform": "pdf_discrete_uniform(x,n)",
+      "kurtosis_lognormal": "kurtosis_lognormal(m,s)",
+      "mle_beta_initial_estimates": "mle_beta_initial_estimates(x, w)",
+      "quantile_pareto": "quantile_pareto(q,a,b)",
+      "skewness_beta": "skewness_beta(a,b)",
+      "quantile_general_finite_discrete": "quantile_general_finite_discrete(q,v)",
+      "mean_discrete_uniform": "mean_discrete_uniform(n)",
+      "mle_gamma_scale": "mle_gamma_scale(x, shape, [w])",
+      "mle_normal": "mle_normal(x, [w])",
+      "random_negative_binomial": "random_negative_binomial(n,p,[num])",
+      "kurtosis_noncentral_chi2": "kurtosis_noncentral_chi2(n,ncp)",
+      "quantile_bernoulli": "quantile_bernoulli(q,p)",
+      "random_bernoulli": "random_bernoulli(p,[num])",
+      "kurtosis_logistic": "kurtosis_logistic(a,b)",
+      "random_laplace": "random_laplace(a,b,[num])",
+      "kurtosis_beta": "kurtosis_beta(a,b)",
+      "kurtosis_pareto": "kurtosis_pareto(a,b)",
+      "pdf_beta": "pdf_beta(x,a,b)",
+      "std_gumbel": "std_gumbel(a,b)",
+      "var_pareto": "var_pareto(a,b)",
+      "std_bernoulli": "std_bernoulli(p)",
+      "kurtosis_discrete_uniform": "kurtosis_discrete_uniform(n)",
+      "pdf_gumbel": "pdf_gumbel(x,a,b)",
+      "cdf_pareto": "cdf_pareto(x,a,b)",
+      "mean_student_t": "mean_student_t(n)",
+      "skewness_noncentral_chi2": "skewness_noncentral_chi2(n,ncp)",
+      "mean_hypergeometric": "mean_hypergeometric(n1,n2,n)",
+      "var_exp": "var_exp(m)",
+      "mean_chi2": "mean_chi2(n)",
+      "quantile_inverse_gamma": "quantile_inverse_gamma(x, a, b)",
+      "quantile_noncentral_student_t": "quantile_noncentral_student_t(q,n,ncp)",
+      "kurtosis_laplace": "kurtosis_laplace(a,b)",
+      "mean_inverse_gamma": "mean_inverse_gamma(a, b)",
+      "mean_lognormal": "mean_lognormal(m,s)",
+      "std_continuous_uniform": "std_continuous_uniform(a,b)",
+      "cdf_noncentral_chi2": "cdf_noncentral_chi2(x,n,ncp)",
+      "quantile_continuous_uniform": "quantile_continuous_uniform(q,a,b)",
+      "kurtosis_rayleigh": "kurtosis_rayleigh(b)",
+      "cdf_bernoulli": "cdf_bernoulli(x,p)",
+      "kurtosis_inverse_gamma": "kurtosis_inverse_gamma(a, b)",
+      "pdf_inverse_gamma": "pdf_inverse_gamma(x, a, b)",
+      "skewness_gamma": "skewness_gamma(a,b)",
+      "std_hypergeometric": "std_hypergeometric(n1,n2,n)",
+      "cdf_exp": "cdf_exp(x,m)",
+      "std_pareto": "std_pareto(a,b)",
+      "var_chi2": "var_chi2(n)",
+      "pdf_f": "pdf_f(x,m,n)",
+      "cdf_geometric": "cdf_geometric(x,p)",
+      "var_logistic": "var_logistic(a,b)",
+      "kurtosis_continuous_uniform": "kurtosis_continuous_uniform(a,b)",
+      "var_student_t": "var_student_t(n)",
+      "pdf_student_t": "pdf_student_t(x,n)",
+      "var_weibull": "var_weibull(a,b)",
       "kurtosis_geometric": "kurtosis_geometric(p)",
-      "quantile_rayleigh": "quantile_rayleigh(q, b)",
-      "skewness_logistic": "skewness_logistic(a, b)",
-      "mle_weibull_scale": "mle_weibull_scale(x, shape, [w])"
+      "quantile_normal": "quantile_normal(q,m,s)",
+      "cdf_normal": "cdf_normal(x,m,s)",
+      "mle_gamma": "mle_gamma(x, [w])",
+      "quantile_laplace": "quantile_laplace(q,a,b)",
+      "std_logistic": "std_logistic(a,b)",
+      "std_gamma": "std_gamma(a,b)",
+      "random_exp": "random_exp(m,[num])",
+      "mle_exp": "mle_exp(x, [w])",
+      "pdf_noncentral_chi2": "pdf_noncentral_chi2(x,n,ncp)",
+      "var_negative_binomial": "var_negative_binomial(n,p)",
+      "pdf_rayleigh": "pdf_rayleigh(x,b)",
+      "random_general_finite_discrete": "random_general_finite_discrete(v,[num])",
+      "cdf_rayleigh": "cdf_rayleigh(x,b)",
+      "var_noncentral_chi2": "var_noncentral_chi2(n,ncp)",
+      "kurtosis_student_t": "kurtosis_student_t(n)",
+      "mean_normal": "mean_normal(m,s)",
+      "quantile_student_t": "quantile_student_t(q,n)",
+      "random_continuous_uniform": "random_continuous_uniform(a,b,[num])",
+      "kurtosis_chi2": "kurtosis_chi2(n)",
+      "cdf_cauchy": "cdf_cauchy(x,a,b)",
+      "mean_gumbel": "mean_gumbel(a,b)",
+      "random_f": "random_f(m,n,[num])",
+      "pdf_general_finite_discrete": "pdf_general_finite_discrete(x,v)",
+      "std_binomial": "std_binomial(n,p)",
+      "cdf_general_finite_discrete": "cdf_general_finite_discrete(x,v)",
+      "pdf_normal": "pdf_normal(x,m,s)",
+      "std_discrete_uniform": "std_discrete_uniform(n)",
+      "cdf_gamma": "cdf_gamma(x,a,b)",
+      "cdf_logistic": "cdf_logistic(x,a,b)"
     }
   },
   {
@@ -2070,15 +2032,15 @@
       "vennplot"
     ],
     "signatures": {
-      "collectatoms": "collectatoms(rel)",
+      "findatoms": "findatoms(rel)",
+      "randomcolor": "randomcolor()",
       "vennplot": "vennplot(args)",
       "plot_vector_field3d": "plot_vector_field3d(F, X, Y, Z, [args])",
+      "liss": "liss(n)",
       "plot_vector_field": "plot_vector_field(F, X, Y, [args])",
       "fun": "fun(n)",
-      "randomcolor": "randomcolor()",
-      "transform": "transform",
-      "liss": "liss(n)",
-      "findatoms": "findatoms(rel)"
+      "transform": "transform(eq,args,lis)",
+      "collectatoms": "collectatoms(rel)"
     }
   },
   {
@@ -2096,15 +2058,15 @@
       "region_boundaries_plus"
     ],
     "signatures": {
+      "numbered_boundaries": "numbered_boundaries(lista)",
+      "make_polygon": "make_polygon(lis)",
       "coastlines": "coastlines(lis)",
-      "make_poly_country": "make_poly_country(country_name)",
+      "list_to_pairs": "list_to_pairs(x)",
+      "make_poly_continent": "make_poly_continent(liss)",
       "extr_coord": "extr_coord(n)",
-      "make_poly_continent": "make_poly_continent(continent_name)",
-      "region_boundaries_plus": "region_boundaries_plus(x1, y1, x2, y2)",
-      "region_boundaries": "region_boundaries(x1, y1, x2, y2)",
-      "make_polygon": "make_polygon(nlist)",
-      "numbered_boundaries": "numbered_boundaries(nlist)",
-      "list_to_pairs": "list_to_pairs(x)"
+      "region_boundaries": "region_boundaries(x1,y1,x2,y2)",
+      "region_boundaries_plus": "region_boundaries_plus(x1,y1,x2,y2)",
+      "make_poly_country": "make_poly_country(liss)"
     }
   },
   {
@@ -2119,12 +2081,12 @@
       "staircase"
     ],
     "signatures": {
-      "staircase": "staircase(F, y0, n, options, ...);",
-      "chaosgame": "chaosgame([[x1, y1]...[xm, ym]], [x0, y0], b, n, options, ...);",
-      "evolution": "evolution(F, y0, n, ..., options, ...);",
-      "evolution2d": "evolution2d([F, G], [u, v], [u0, y0], n, options, ...);",
-      "orbits": "orbits(F, y0, n1, n2, [x, x0, xf, xstep], options, ...);",
-      "ifs": "ifs([r1, ..., rm], [A1, ..., Am], [[x1, y1], ..., [xm, ym]], [x0, y0], n, options, ...);"
+      "orbits": "orbits(f, y0, n1, n2, domain, [options])",
+      "chaosgame": "chaosgame(point,p0,b,n,[options])",
+      "evolution": "evolution(fun, initial, n, [options])",
+      "ifs": "ifs(prob, mat, point, p0, n, [options])",
+      "staircase": "staircase(fun, initial, n, [options])",
+      "evolution2d": "evolution2d(fun, state, initial, n, [options])"
     }
   },
   {
@@ -2190,63 +2152,63 @@
       "units_integrate"
     ],
     "signatures": {
-      "declare_qty": "declare_qty(a, x)",
-      "compute_conversion_factor": "compute_conversion_factor(u1%, u2%)",
-      "compute_conversions_to_base_units0": "compute_conversions_to_base_units0(conversion_eqns)",
-      "compute_conversions_to_base_units": "compute_conversions_to_base_units()",
-      "equationp": "equationp(e)",
-      "nonconstantp": "nonconstantp(x%)",
-      "remove_fundamental_units": "remove_fundamental_units([L])",
-      "units_at": "units_at(e%)",
-      "gensym_map": "gensym_map(h)",
-      "units_integrate": "units_integrate(e%)",
-      "by_twos": "by_twos(l)",
-      "unitp": "unitp(x)",
-      "maybe_subst_qty": "maybe_subst_qty(u)",
-      "constantp_not1": "constantp_not1(x%)",
-      "constant_factors": "constant_factors(e%)",
-      "constantp_not0": "constantp_not0(x%)",
-      "inverse_gensym_map": "inverse_gensym_map(h)",
-      "declare1_units": "declare1_units(a%, u%)",
-      "qty": "qty(x)",
-      "reset_convert_units": "reset_convert_units()",
-      "get_unit_conversion": "get_unit_conversion(u)",
-      "fundamental_units": "fundamental_units(x)",
-      "flatten_conversion_equation": "flatten_conversion_equation(e%)",
-      "subst_units": "subst_units(u)",
-      "units_diff": "units_diff(e%)",
-      "constvalue": "constvalue(x)",
-      "declare_dimensions": "declare_dimensions(a_1, d_1, ..., a_n, d_n)",
-      "multiply_with_units": "multiply_with_units(x%, u%)",
-      "remove_fundamental_dimensions": "remove_fundamental_dimensions([L])",
-      "derived_units": "derived_units()",
-      "mult_exprp": "mult_exprp(e%)",
-      "units_check": "units_check(zz%)",
       "nondimensionalp": "nondimensionalp(e%)",
-      "add_with_units": "add_with_units(x%, u%)",
-      "expand_dimensional": "expand_dimensional(e)",
-      "everything_else": "everything_else(e%)",
-      "declare_dimensions1": "declare_dimensions1(a%, b%)",
+      "qty": "qty(e%)",
+      "units_at": "units_at(e%)",
       "dimensions_as_list": "dimensions_as_list(e)",
-      "units": "units(x)",
-      "remove_dimensions": "remove_dimensions(a_1, ..., a_n)",
-      "declare_unit_conversion": "declare_unit_conversion(u=v, ...)",
-      "simplify_units": "simplify_units(e%)",
-      "display_known_unit_conversions": "display_known_unit_conversions()",
-      "nondimensional_not0": "nondimensional_not0(e%)",
-      "apply_units_conversion": "apply_units_conversion(uu%, nd%)",
-      "declare_fundamental_units": "declare_fundamental_units(u_1, d_1, ..., u_n, d_n)",
+      "constantp_not1": "constantp_not1(x%)",
+      "units": "units(e%)",
+      "declare_unit_conversion": "declare_unit_conversion([L])",
+      "declare1_units": "declare1_units(a%, u%)",
       "nondimensional_not1": "nondimensional_not1(e%)",
-      "declare_units": "declare_units(a, u)",
-      "natural_unit": "natural_unit(expr, [v_1, ..., v_n])",
-      "dimensions": "dimensions",
-      "known_units": "known_units()",
-      "mult_expr_nontrivialconstfactorsp": "mult_expr_nontrivialconstfactorsp(e%)",
+      "simplify_units": "simplify_units(e%)",
+      "constvalue": "constvalue(e)",
+      "remove_fundamental_units": "remove_fundamental_units([L])",
+      "declare_qty": "declare_qty(a%, q%)",
+      "gensym_map": "gensym_map(h)",
+      "units_check": "units_check(zz%)",
+      "by_twos": "by_twos(l)",
+      "remove_dimensions": "remove_dimensions([L%])",
+      "apply_units_conversion": "apply_units_conversion(uu%, nd%)",
+      "dimensions1": "dimensions1(expr)",
+      "compute_conversions_to_base_units": "compute_conversions_to_base_units()",
+      "units_diff": "units_diff(e%)",
+      "add_with_units": "add_with_units(x%, u%)",
+      "declare_fundamental_dimensions": "declare_fundamental_dimensions([L])",
+      "display_known_unit_conversions": "display_known_unit_conversions()",
       "unitop_p": "unitop_p(e%)",
-      "declare_fundamental_dimensions": "declare_fundamental_dimensions(d_1, d_2, d_3, ...)",
+      "natural_unit": "natural_unit(d, e)",
+      "nondimensional_not0": "nondimensional_not0(e%)",
+      "nonconstantp": "nonconstantp(x%)",
+      "declare_fundamental_units": "declare_fundamental_units([L])",
+      "declare_dimensions1": "declare_dimensions1(a%, b%)",
+      "everything_else": "everything_else(e%)",
+      "mult_exprp": "mult_exprp(e%)",
+      "maybe_subst_qty": "maybe_subst_qty(u)",
+      "declare_units": "declare_units(a%, u%)",
+      "reset_convert_units": "reset_convert_units()",
+      "units_integrate": "units_integrate(e%)",
+      "compute_conversions_to_base_units0": "compute_conversions_to_base_units0(conversion_eqns)",
+      "derived_units": "derived_units()",
+      "mult_expr_nontrivialconstfactorsp": "mult_expr_nontrivialconstfactorsp(e%)",
+      "dimensionless": "dimensionless(e)",
+      "remove_fundamental_dimensions": "remove_fundamental_dimensions([L])",
+      "constant_factors": "constant_factors(e%)",
+      "fundamental_units": "fundamental_units([L])",
+      "declare_dimensions": "declare_dimensions([L%])",
+      "expand_dimensional": "expand_dimensional(e)",
+      "inverse_gensym_map": "inverse_gensym_map(h)",
       "declare1_qty": "declare1_qty(a%, q%)",
-      "dimensionless": "dimensionless(L)",
-      "dimensions1": "dimensions1(expr)"
+      "flatten_conversion_equation": "flatten_conversion_equation(e%)",
+      "equationp": "equationp(e)",
+      "get_unit_conversion": "get_unit_conversion(u)",
+      "known_units": "known_units()",
+      "multiply_with_units": "multiply_with_units(x%, u%)",
+      "unitp": "unitp(e%)",
+      "subst_units": "subst_units(u)",
+      "constantp_not0": "constantp_not0(x%)",
+      "compute_conversion_factor": "compute_conversion_factor(u1%, u2%)",
+      "dimensions": "dimensions(expr)"
     }
   },
   {
@@ -2270,21 +2232,21 @@
       "saving"
     ],
     "signatures": {
-      "graph_flow": "graph_flow(val)",
-      "saving": "saving(rate, amount, num)",
-      "annuity_fv": "annuity_fv(rate, FV, num)",
-      "geo_annuity_pv": "geo_annuity_pv(rate, growing_rate, PV, num)",
-      "benefit_cost": "benefit_cost(rate, input, output)",
-      "arit_amortization": "arit_amortization(rate, increment, amount, num)",
-      "fv": "fv(rate, PV, num)",
-      "irr": "irr(val, IO)",
-      "geo_amortization": "geo_amortization(rate, growing_rate, amount, num)",
-      "annuity_pv": "annuity_pv(rate, PV, num)",
-      "amortization": "amortization(rate, amount, num)",
-      "days360": "days360(year1, month1, day1, year2, month2, day2)",
-      "npv": "npv(rate, val)",
-      "pv": "pv(rate, FV, num)",
-      "geo_annuity_fv": "geo_annuity_fv(rate, growing_rate, FV, num)"
+      "saving": "saving(rate,Amount,num)",
+      "geo_amortization": "geo_amortization(rate,growing_rate,Amount,num)",
+      "fv": "fv(rate,PV,num)",
+      "annuity_fv": "annuity_fv(rate,FV,num)",
+      "pv": "pv(rate,FV,num)",
+      "geo_annuity_fv": "geo_annuity_fv(rate,growing_rate,FV,num)",
+      "arit_amortization": "arit_amortization(rate,increment,Amount,num)",
+      "amortization": "amortization(rate,Amount,num)",
+      "days360": "days360(year1,month1,day1,year2,month2,day2)",
+      "graph_flow": "graph_flow(flowValues)",
+      "npv": "npv(rate,flowValues)",
+      "annuity_pv": "annuity_pv(rate,PV,num)",
+      "benefit_cost": "benefit_cost(rate,Input,Output)",
+      "geo_annuity_pv": "geo_annuity_pv(rate,growing_rate,PV,num)",
+      "irr": "irr(flowValues,I0)"
     }
   },
   {
@@ -2313,26 +2275,26 @@
       "trian"
     ],
     "signatures": {
+      "mandelbrot_set": "mandelbrot_set(x,y)",
       "fernfale": "fernfale(n)",
-      "rotleft": "rotleft(lis,n)",
-      "julia_set": "julia_set(x, y)",
       "treefale": "treefale(n)",
-      "plotmandel": "plotmandel(x0,x1,y0,y1)",
-      "hilmap": "hilmap(li)",
-      "koch": "koch(li)",
-      "nest": "nest(f,x0,n)",
-      "hilbertmap": "hilbertmap(nn)",
-      "sierpinskiale": "sierpinskiale(n)",
-      "mandelbrot_set": "mandelbrot_set(x, y)",
-      "snowmap": "snowmap(ent, nn)",
-      "fernf": "fernf(xx)",
       "trian": "trian(xx)",
-      "sierpinskimap": "sierpinskimap(nn)",
+      "julia_set": "julia_set(x,y)",
       "treef": "treef(xx)",
-      "julia_sin": "julia_sin(x, y)",
+      "nest": "nest(f,x0,n)",
+      "plotmandel": "plotmandel(x0,x1,y0,y1)",
+      "sierpinskimap": "sierpinskimap(nn)",
+      "snowmap": "snowmap(ent,nn)",
       "cnbasic": "cnbasic(z1,z2)",
+      "hilmap": "hilmap(li)",
+      "hilbertmap": "hilbertmap(nn)",
+      "fernf": "fernf(xx)",
+      "julia_sin": "julia_sin(x,y)",
+      "koch": "koch(li)",
+      "siermap": "siermap(li)",
+      "sierpinskiale": "sierpinskiale(n)",
       "randomchoice": "randomchoice()",
-      "siermap": "siermap(li)"
+      "rotleft": "rotleft(lis,n)"
     }
   },
   {
@@ -2352,17 +2314,17 @@
       "ratsimp_gamma_args"
     ],
     "signatures": {
-      "linearp": "linearp(e,x)",
       "ratsimp_gamma_args": "ratsimp_gamma_args(e)",
-      "gamma_arg_increase": "gamma_arg_increase(e)",
-      "gamma_magnitude_simp": "gamma_magnitude_simp(e)",
-      "factorial_simp": "factorial_simp(e)",
-      "facsum_gamma_terms": "facsum_gamma_terms(e)",
-      "gamma_arg_decrease": "gamma_arg_decrease(e)",
-      "mtimesp": "mtimesp(e)",
-      "gamma_simp_complexity": "gamma_simp_complexity(e)",
       "gamma_simp": "gamma_simp(e)",
-      "homogenize_gamma": "homogenize_gamma(e)"
+      "linearp": "linearp(e,x)",
+      "facsum_gamma_terms": "facsum_gamma_terms(e)",
+      "gamma_magnitude_simp": "gamma_magnitude_simp(e)",
+      "gamma_arg_decrease": "gamma_arg_decrease(e)",
+      "homogenize_gamma": "homogenize_gamma(e)",
+      "gamma_arg_increase": "gamma_arg_increase(e)",
+      "gamma_simp_complexity": "gamma_simp_complexity(e)",
+      "mtimesp": "mtimesp(e)",
+      "factorial_simp": "factorial_simp(e)"
     }
   },
   {
@@ -2377,12 +2339,12 @@
       "vertex_connectivity_graph"
     ],
     "signatures": {
-      "vertex_connectivity_graph": "vertex_connectivity_graph(g)",
-      "min_edge_cut": "min_edge_cut(gr)",
-      "edge_connectivity": "edge_connectivity(gr)",
-      "edge_connectivity_graph": "edge_connectivity_graph(g)",
+      "min_vertex_cut": "min_vertex_cut(g)",
       "vertex_connectivity": "vertex_connectivity(g)",
-      "min_vertex_cut": "min_vertex_cut(gr)"
+      "edge_connectivity_graph": "edge_connectivity_graph(g)",
+      "min_edge_cut": "min_edge_cut(g)",
+      "edge_connectivity": "edge_connectivity(g)",
+      "vertex_connectivity_graph": "vertex_connectivity_graph(g)"
     }
   },
   {
@@ -2454,69 +2416,69 @@
       "tutte_graph"
     ],
     "signatures": {
-      "complete_bipartite_graph": "complete_bipartite_graph(n, m)",
-      "bipiramid_graph": "bipiramid_graph(n)",
-      "truncated_tetrahedron_graph": "truncated_tetrahedron_graph()",
-      "grotzch_graph": "grotzch_graph()",
-      "crossed_prism_graph": "crossed_prism_graph(n)",
-      "snub_dodecahedron_graph": "snub_dodecahedron_graph()",
-      "flower_snark": "flower_snark(n)",
-      "dodecahedron_graph": "dodecahedron_graph()",
-      "fork_graph": "fork_graph()",
       "centipede_graph": "centipede_graph(n)",
-      "antiprism_graph": "antiprism_graph(n)",
-      "chvatal_graph": "chvatal_graph()",
-      "subdivide_edge": "subdivide_edge(e, g, [n])",
-      "hanoi_graph": "hanoi_graph(n)",
-      "truncated_cube_graph": "truncated_cube_graph()",
-      "mobius_graph": "mobius_graph(n)",
-      "random_network": "random_network(n, p, w)",
-      "desargues_graph": "desargues_graph()",
-      "add_cycle": "add_cycle(lst, g)",
-      "grid_graph1": "grid_graph1(n,m)",
-      "snub_cube_graph": "snub_cube_graph()",
-      "octahedron_graph": "octahedron_graph()",
-      "star_graph": "star_graph(n)",
-      "small_rhombicuboctahedron_graph": "small_rhombicuboctahedron_graph()",
-      "sunlet_graph": "sunlet_graph(n)",
-      "icosahedron_graph": "icosahedron_graph()",
-      "as_directed_graph": "as_directed_graph(g)",
-      "random_regular_graph": "random_regular_graph(n)",
-      "complete_kpartite_graph": "complete_kpartite_graph([args])",
+      "crossed_prism_graph": "crossed_prism_graph(n)",
       "truncated_dodecahedron_graph": "truncated_dodecahedron_graph()",
-      "icosidodecahedron_graph": "icosidodecahedron_graph()",
-      "small_rhombicosidodecahedron_graph": "small_rhombicosidodecahedron_graph()",
-      "tutte_cage_graph": "tutte_cage_graph()",
-      "book_graph": "book_graph(n)",
-      "great_rhombicuboctahedron_graph": "great_rhombicuboctahedron_graph()",
-      "knight_tour_graph": "knight_tour_graph(a,[b])",
-      "kneser_graph": "kneser_graph(n,k)",
-      "induced_subgraph1": "induced_subgraph1(e_list, gr)",
-      "mycielski_graph": "mycielski_graph(g)",
-      "odd_graph": "odd_graph(n)",
-      "kite_graph": "kite_graph()",
-      "cycle_positions": "cycle_positions(cycles)",
-      "gear_graph": "gear_graph(n)",
-      "grid_graph": "grid_graph(n, m)",
-      "cube_graph": "cube_graph(n)",
-      "truncated_octahedron_graph": "truncated_octahedron_graph()",
-      "tutte_graph": "tutte_graph()",
-      "frucht_graph": "frucht_graph()",
-      "cone_graph": "cone_graph(n, m)",
-      "relabel_graph_vertices": "relabel_graph_vertices(gr, [options])",
-      "heawood_graph": "heawood_graph()",
-      "great_rhombicosidodecahedron_graph": "great_rhombicosidodecahedron_graph()",
-      "clebsch_graph": "clebsch_graph()",
-      "make_graph": "make_graph(vrt, f)",
-      "cuboctahedron_graph": "cuboctahedron_graph(n)",
+      "hanoi_graph": "hanoi_graph(n)",
       "pappus_graph": "pappus_graph()",
-      "tetrahedron_graph": "tetrahedron_graph()",
-      "coxeter_graph": "coxeter_graph()",
-      "add_path": "add_path(lst, g)",
-      "subdivide_edges": "subdivide_edges(e_lst, g, [n])",
+      "truncated_tetrahedron_graph": "truncated_tetrahedron_graph()",
+      "octahedron_graph": "octahedron_graph()",
+      "make_graph": "make_graph(vertices, edges_lambda, [dir])",
+      "tutte_graph": "tutte_graph()",
       "bull_graph": "bull_graph()",
+      "icosidodecahedron_graph": "icosidodecahedron_graph()",
+      "snub_cube_graph": "snub_cube_graph()",
+      "as_directed_graph": "as_directed_graph(g)",
+      "tutte_cage_graph": "tutte_cage_graph()",
+      "subdivide_edge": "subdivide_edge(e, g, [n])",
+      "frucht_graph": "frucht_graph()",
+      "odd_graph": "odd_graph(n)",
+      "complete_kpartite_graph": "complete_kpartite_graph([args])",
+      "mycielski_graph": "mycielski_graph(g)",
+      "small_rhombicosidodecahedron_graph": "small_rhombicosidodecahedron_graph()",
+      "mobius_graph": "mobius_graph(n)",
+      "small_rhombicuboctahedron_graph": "small_rhombicuboctahedron_graph()",
+      "cone_graph": "cone_graph(n, m)",
+      "franklin_graph": "franklin_graph()",
       "truncated_icosahedron_graph": "truncated_icosahedron_graph()",
-      "franklin_graph": "franklin_graph()"
+      "cube_graph": "cube_graph(n)",
+      "complete_bipartite_graph": "complete_bipartite_graph(n, m)",
+      "truncated_octahedron_graph": "truncated_octahedron_graph()",
+      "snub_dodecahedron_graph": "snub_dodecahedron_graph()",
+      "tetrahedron_graph": "tetrahedron_graph()",
+      "star_graph": "star_graph(n)",
+      "great_rhombicosidodecahedron_graph": "great_rhombicosidodecahedron_graph()",
+      "icosahedron_graph": "icosahedron_graph()",
+      "kite_graph": "kite_graph()",
+      "coxeter_graph": "coxeter_graph()",
+      "heawood_graph": "heawood_graph()",
+      "flower_snark": "flower_snark(n)",
+      "cuboctahedron_graph": "cuboctahedron_graph()",
+      "kneser_graph": "kneser_graph(n,k)",
+      "chvatal_graph": "chvatal_graph()",
+      "great_rhombicuboctahedron_graph": "great_rhombicuboctahedron_graph()",
+      "add_cycle": "add_cycle(lst, g)",
+      "bipiramid_graph": "bipiramid_graph(n)",
+      "grotzch_graph": "grotzch_graph()",
+      "random_regular_graph": "random_regular_graph(n, [d])",
+      "truncated_cube_graph": "truncated_cube_graph()",
+      "book_graph": "book_graph(n)",
+      "cycle_positions": "cycle_positions(cycles)",
+      "grid_graph1": "grid_graph1(n,m)",
+      "subdivide_edges": "subdivide_edges(e_lst, g, [n])",
+      "dodecahedron_graph": "dodecahedron_graph()",
+      "add_path": "add_path(lst, g)",
+      "induced_subgraph1": "induced_subgraph1(e_list, gr)",
+      "antiprism_graph": "antiprism_graph(n)",
+      "sunlet_graph": "sunlet_graph(n)",
+      "clebsch_graph": "clebsch_graph()",
+      "desargues_graph": "desargues_graph()",
+      "gear_graph": "gear_graph(n)",
+      "knight_tour_graph": "knight_tour_graph(a,[b])",
+      "relabel_graph_vertices": "relabel_graph_vertices(gr, [options])",
+      "random_network": "random_network(n, p, w)",
+      "fork_graph": "fork_graph()",
+      "grid_graph": "grid_graph(n, m)"
     }
   },
   {
@@ -2533,14 +2495,14 @@
       "write_file"
     ],
     "signatures": {
-      "draw_graph": "draw_graph(graph)",
-      "draw_graph_list": "draw_graph_list(grlist, [options])",
+      "draw_graph": "draw_graph(G, [options])",
       "graphviz_positions": "graphviz_positions(G, program)",
-      "vertices_to_path": "vertices_to_path(v_list)",
-      "circular_positions": "circular_positions(G)",
-      "vertices_to_cycle": "vertices_to_cycle(v_list)",
+      "vertices_to_path": "vertices_to_path(lst)",
       "write_file": "write_file(G)",
-      "read_file": "read_file()"
+      "draw_graph_list": "draw_graph_list(grlist, [options])",
+      "read_file": "read_file()",
+      "circular_positions": "circular_positions(G)",
+      "vertices_to_cycle": "vertices_to_cycle(lst)"
     }
   },
   {
@@ -2557,14 +2519,14 @@
       "tutte_polynomial"
     ],
     "signatures": {
-      "rank_polynomial": "rank_polynomial(g, x, y)",
+      "c_poly_complete": "c_poly_complete(n,x)",
+      "chromatic_polynomial": "chromatic_polynomial(gr, x)",
       "matching_polynomial": "matching_polynomial(gr, x)",
       "cycle_poly": "cycle_poly(n, x)",
-      "c_poly_complete": "c_poly_complete(n,x)",
-      "tutte_polynomial": "tutte_polynomial(g, x, y)",
-      "chromatic_polynomial": "chromatic_polynomial(gr, x)",
       "flow_polynomial": "flow_polynomial(g, x)",
-      "matching_polynomial_simple": "matching_polynomial_simple(gr, x)"
+      "rank_polynomial": "rank_polynomial(g, x, y)",
+      "matching_polynomial_simple": "matching_polynomial_simple(gr, x)",
+      "tutte_polynomial": "tutte_polynomial(g, x, y)"
     }
   },
   {
@@ -2576,8 +2538,8 @@
       "dimacs_import"
     ],
     "signatures": {
-      "dimacs_export": "dimacs_export(gr, fl)",
-      "dimacs_import": "dimacs_import(fl)",
+      "dimacs_import": "dimacs_import(file, [mv])",
+      "dimacs_export": "dimacs_export(gr, file, [comments])",
       "dimacs_export_string": "dimacs_export_string(gr, [comments])"
     }
   },
@@ -2593,8 +2555,8 @@
     "signatures": {
       "abramowitz_id": "abramowitz_id(e, [l])",
       "not_one_p": "not_one_p(x)",
-      "nonpositive_integer_p": "nonpositive_integer_p(x)",
-      "hypergeometric_order": "hypergeometric_order(p,q)"
+      "hypergeometric_order": "hypergeometric_order(p,q)",
+      "nonpositive_integer_p": "nonpositive_integer_p(x)"
     }
   },
   {
@@ -2650,43 +2612,43 @@
       "zeroint"
     ],
     "signatures": {
-      "tailor": "tailor()",
-      "transform": "transform",
-      "arg": "arg(e)",
+      "plussplit": "plussplit(e)",
+      "unfun": "unfun(e)",
       "vconvert": "vconvert(fun)",
+      "solvesys": "solvesys(eqns,unks)",
+      "approx": "approx(fun,nparms,var)",
+      "ieqn1": "ieqn1(eqnlist,pxlist,tech,napprox,guesslist)",
+      "myprint": "myprint(msg1,msg2)",
+      "tailor": "tailor()",
+      "firstkindseries": "firstkindseries()",
+      "arg": "arg(e)",
+      "flfrnk2nd": "flfrnk2nd()",
+      "getlimits": "getlimits(expr)",
+      "mypartition": "mypartition(fout,var)",
+      "printsoln": "printsoln(soln,tech,order,kind)",
+      "zeroint": "zeroint(ex)",
+      "transform": "transform()",
+      "collocate": "collocate()",
+      "fredseries": "fredseries()",
       "abel": "abel()",
+      "frnk": "frnk(e)",
+      "findint": "findint(expr)",
+      "firstkind": "firstkind()",
+      "getxhat": "getxhat(expr)",
+      "testsoln": "testsoln(resultlist)",
+      "lin": "lin(expr,var)",
+      "mydivide": "mydivide(some,peace,var)",
+      "mysolve": "mysolve(eqn,unk)",
+      "neumann": "neumann()",
+      "ieqn": "ieqn([arglist])",
       "try": "try(routine)",
       "fconvert": "fconvert(fun)",
-      "findint": "findint(expr)",
-      "flfrnk2nd": "flfrnk2nd()",
-      "approx": "approx(fun,nparms,var)",
-      "firstkindseries": "firstkindseries()",
       "vlfrnk": "vlfrnk()",
-      "mypartition": "mypartition(fout,var)",
-      "neumann": "neumann()",
-      "printsoln": "printsoln(soln,tech,order,kind)",
-      "lin": "lin(expr,var)",
-      "myprint": "myprint(msg1,msg2)",
-      "fredseries": "fredseries()",
-      "solveandsubst": "solveandsubst(exs,unks,form,tech)",
-      "getlimits": "getlimits(expr)",
-      "firstkind": "firstkind()",
-      "ieqn1": "ieqn1(eqnlist,pxlist,tech,napprox,guesslist)",
-      "getics": "getics()",
       "opr": "opr(e)",
-      "unfun": "unfun(e)",
-      "zeroint": "zeroint(ex)",
-      "plussplit": "plussplit(e)",
-      "mydivide": "mydivide(some,peace,var)",
-      "collocate": "collocate()",
-      "ieqn": "ieqn(ie, unk, tech, n, guess)",
-      "solvesys": "solvesys(eqns,unks)",
-      "testsoln": "testsoln(resultlist)",
-      "frnk": "frnk(e)",
-      "mysolve": "mysolve(eqn,unk)",
-      "getxhat": "getxhat(expr)",
+      "flfrnk1st": "flfrnk1st()",
+      "getics": "getics()",
       "sumfactors": "sumfactors(expr,uvar)",
-      "flfrnk1st": "flfrnk1st()"
+      "solveandsubst": "solveandsubst(exs,unks,form,tech)"
     }
   },
   {
@@ -2698,9 +2660,9 @@
       "nonzeroandfreeof"
     ],
     "signatures": {
-      "antidiff": "antidiff(expr, x, u(x))",
-      "nonzeroandfreeof": "nonzeroandfreeof(x, expr)",
-      "antid": "antid(expr, x, u(x))"
+      "antidiff": "antidiff(fn, var, unk)",
+      "nonzeroandfreeof": "nonzeroandfreeof(xargumentx, eargumente)",
+      "antid": "antid(fn, var, unk)"
     }
   },
   {
@@ -2737,12 +2699,12 @@
       "monic"
     ],
     "signatures": {
-      "monic": "monic(p, var)",
       "algebraic_gcd": "algebraic_gcd(a,b)",
-      "int_rational_function": "int_rational_function(f, var)",
       "extended_euclidean": "extended_euclidean(a, b, c, var)",
       "hermite_reduce": "hermite_reduce(a, d, var)",
-      "int_rational_log_part": "int_rational_log_part(a, d, var)"
+      "int_rational_log_part": "int_rational_log_part(a, d, var)",
+      "int_rational_function": "int_rational_function(f, var)",
+      "monic": "monic(p, var)"
     }
   },
   {
@@ -2781,56 +2743,36 @@
       "toeplitz"
     ],
     "signatures": {
-      "nullspace": "nullspace(M)",
-      "linalg_rank": "linalg_rank(M)",
+      "ptriangularize": "ptriangularize(m,v)",
       "hilbert_matrix": "hilbert_matrix(n)",
-      "mat_norm": "mat_norm(M, 1)",
-      "column_reduce": "column_reduce(m,i,x)",
-      "rowop": "rowop(M, i, j, theta)",
-      "diag_matrix": "diag_matrix(d_1, d_2, ..., d_n)",
-      "mat_fullunblocker": "mat_fullunblocker(M)",
-      "good_pivot": "good_pivot(e,x)",
-      "dotproduct": "dotproduct(u, v)",
-      "kronecker_product": "kronecker_product(A, B)",
-      "orthogonal_complement": "orthogonal_complement(v_1, ..., v_n)",
-      "require_integer": "require_integer(i, pos, fn)",
-      "locate_matrix_entry": "locate_matrix_entry(M, r_1, c_1, r_2, c_2, f, rel)",
-      "columnop": "columnop(M, i, j, theta)",
-      "ptriangularize": "ptriangularize(M, v)",
-      "mat_trace": "mat_trace(M)",
-      "request_rational_matrix": "request_rational_matrix(m, pos, fn)",
-      "toeplitz": "toeplitz(col)",
       "require_symbol": "require_symbol(x, pos, fn)",
-      "polytocompanion": "polytocompanion(p, x)",
-      "rowswap": "rowswap(M, i, j)",
-      "hankel": "hankel(col)",
-      "mat_unblocker": "mat_unblocker(M)",
-      "columnspace": "columnspace(M)",
-      "nullity": "nullity(M)",
-      "moore_penrose_pseudoinverse": "moore_penrose_pseudoinverse(m)",
+      "columnswap": "columnswap(m,i,j)",
+      "dotproduct": "dotproduct(a,b)",
       "hipow_gzero": "hipow_gzero(e,x)",
+      "diag_matrix": "diag_matrix([d])",
+      "columnspace": "columnspace(a)",
+      "rowop": "rowop(m,i,j,theta)",
+      "polytocompanion": "polytocompanion(p,x)",
+      "toeplitz": "toeplitz([q])",
+      "kronecker_product": "kronecker_product(a,b)",
+      "columnop": "columnop(m,i,j, theta)",
+      "hankel": "hankel([q])",
+      "orthogonal_complement": "orthogonal_complement([v])",
+      "nullspace": "nullspace(m)",
+      "mat_fullunblocker": "mat_fullunblocker(m)",
+      "mat_trace": "mat_trace(m)",
+      "request_rational_matrix": "request_rational_matrix(m, pos, fn)",
+      "rowswap": "rowswap(m,i,j)",
+      "column_reduce": "column_reduce(m,i,x)",
       "ptriangularize_with_proviso": "ptriangularize_with_proviso(m,v)",
-      "columnswap": "columnswap(M, i, j)"
-    }
-  },
-  {
-    "name": "list_operations",
-    "description": "list_operations package",
-    "functions": [
-      "find_runs",
-      "find_runs_inverse",
-      "find_runs_nontrivial",
-      "ordering",
-      "ranks",
-      "ranks1"
-    ],
-    "signatures": {
-      "ranks": "ranks(L, P, ties_method)",
-      "ranks1": "ranks1(L, P, ties_method)",
-      "find_runs_inverse": "find_runs_inverse(r)",
-      "find_runs": "find_runs(x, [optional])",
-      "find_runs_nontrivial": "find_runs_nontrivial(x, eq)",
-      "ordering": "ordering(L)"
+      "mat_norm": "mat_norm(m, p)",
+      "require_integer": "require_integer(i, pos, fn)",
+      "linalg_rank": "linalg_rank(m)",
+      "moore_penrose_pseudoinverse": "moore_penrose_pseudoinverse(m)",
+      "mat_unblocker": "mat_unblocker(m)",
+      "good_pivot": "good_pivot(e,x)",
+      "locate_matrix_entry": "locate_matrix_entry(m, r1, c1, r2, c2, fn, rel)",
+      "nullity": "nullity(m)"
     }
   },
   {
@@ -2848,15 +2790,15 @@
       "lsquares_residuals"
     ],
     "signatures": {
-      "lsquares_estimates_exact": "lsquares_estimates_exact(MSE, a)",
+      "lsquares_mse_with_array": "lsquares_mse_with_array(data%,variables,equation)",
+      "lsquares_residual_mse": "lsquares_residual_mse(data, variables, equation, parameters_estimates)",
+      "lsquares_estimates_approximate": "lsquares_estimates_approximate(MSE, parameters, [optional_args])",
+      "lsquares_estimates_exact": "lsquares_estimates_exact(MSE, parameters)",
+      "lsquares_residuals": "lsquares_residuals(data, variables, equation, parameters_estimates)",
       "array_nrows": "array_nrows(a)",
-      "lsquares_estimates_approximate": "lsquares_estimates_approximate(MSE, a, initial=L, tol=t)",
-      "lsquares_residual_mse": "lsquares_residual_mse(D, x, e, a)",
-      "lsquares_residuals": "lsquares_residuals(D, x, e, a)",
+      "lsquares_mse": "lsquares_mse('data%, variables, equation)",
       "fboundp": "fboundp(a)",
-      "lsquares_mse": "lsquares_mse(D, x, e)",
-      "lsquares_estimates": "lsquares_estimates(D, x, e, a)",
-      "lsquares_mse_with_array": "lsquares_mse_with_array(data%,variables,equation)"
+      "lsquares_estimates": "lsquares_estimates(data, variables, equation, parameters, [optional_args])"
     }
   },
   {
@@ -2893,12 +2835,12 @@
     ],
     "signatures": {
       "assess_mode": "assess_mode(x)",
-      "equal_op": "equal_op(x)",
-      "save_runtime_structure_info": "save_runtime_structure_info(file)",
       "initialize_structure_list": "initialize_structure_list()",
-      "name_of_slot_id": "name_of_slot_id(x)",
       "slot_type": "slot_type(types,index)",
-      "obtain_default_value_for_mode": "obtain_default_value_for_mode(mode)"
+      "equal_op": "equal_op(x)",
+      "name_of_slot_id": "name_of_slot_id(x)",
+      "obtain_default_value_for_mode": "obtain_default_value_for_mode(mode)",
+      "save_runtime_structure_info": "save_runtime_structure_info(file)"
     }
   },
   {
@@ -2910,9 +2852,9 @@
       "reference_an_extend"
     ],
     "signatures": {
+      "reference_an_extend": "reference_an_extend(x,accessor,expected_extend_type,slot_number)",
       "alter_extend_check": "alter_extend_check(x,alterant,expected_extend_type)",
-      "not_an_extend": "not_an_extend(alt,obj)",
-      "reference_an_extend": "reference_an_extend(x,accessor,expected_extend_type,slot_number)"
+      "not_an_extend": "not_an_extend(alt,obj)"
     }
   },
   {
@@ -2925,10 +2867,10 @@
       "translate_keyarg"
     ],
     "signatures": {
+      "key_indicator": "key_indicator(argl,atom,value)",
       "key_atom": "key_atom(argl,atom)",
       "key_pair": "key_pair(argl,atom,value)",
-      "translate_keyarg": "translate_keyarg(macro_argl,mname,sname)",
-      "key_indicator": "key_indicator(argl,atom,value)"
+      "translate_keyarg": "translate_keyarg(macro_argl,mname,sname)"
     }
   },
   {
@@ -2955,24 +2897,24 @@
       "uvect"
     ],
     "signatures": {
-      "eigenvalues": "eigenvalues(M)",
-      "gramschmidt": "gramschmidt(x)",
-      "uniteigenvectors": "uniteigenvectors(M)",
-      "similaritytransform": "similaritytransform(M)",
-      "eivects": "eivects(mat)",
-      "eigenvectors": "eigenvectors(M)",
-      "eivals": "eivals(mat)",
-      "gschmit": "gschmit(x%, [f])",
       "conj": "conj(x)",
-      "innerproduct": "innerproduct(x, y)",
-      "unitvector": "unitvector(x)",
-      "inprod": "inprod(x,y)",
-      "substvectk": "substvectk(l,n,exp)",
       "uvect": "uvect(x)",
-      "simtran": "simtran(mat)",
       "covect": "covect(x)",
+      "gschmit": "gschmit(x%, [f])",
+      "eivals": "eivals(mat)",
+      "eivects": "eivects(mat)",
+      "columnvector": "columnvector(x)",
+      "simtran": "simtran(mat)",
+      "unitvector": "unitvector(x)",
+      "eigenvectors": "eigenvectors(mat)",
+      "gramschmidt": "gramschmidt(x%,[myinnerproduct])",
+      "inprod": "inprod(x,y)",
+      "innerproduct": "innerproduct(x,y)",
+      "uniteigenvectors": "uniteigenvectors(M)",
       "ueivects": "ueivects(mat)",
-      "columnvector": "columnvector(L)"
+      "eigenvalues": "eigenvalues(mat)",
+      "substvectk": "substvectk(l,n,exp)",
+      "similaritytransform": "similaritytransform(mat)"
     }
   },
   {
@@ -2983,8 +2925,8 @@
       "invert"
     ],
     "signatures": {
-      "adjoint": "adjoint(M)",
-      "invert": "invert(M)"
+      "invert": "invert(mat)",
+      "adjoint": "adjoint(mat)"
     }
   },
   {
@@ -3007,8 +2949,8 @@
       "ncharpoly"
     ],
     "signatures": {
-      "ncharpoly": "ncharpoly(M, x)",
-      "mattrace": "mattrace(M)"
+      "ncharpoly": "ncharpoly(a,var)",
+      "mattrace": "mattrace(a)"
     }
   },
   {
@@ -3058,25 +3000,25 @@
       "unscramble"
     ],
     "signatures": {
-      "declare_linear_operator": "declare_linear_operator(opdum,linposns,predicate)",
-      "applysymmetry": "applysymmetry(exp,opdum,symtype)",
       "linopsum0": "linopsum0(exp,opdum)",
-      "linopsum1": "linopsum1(list,opdum)",
-      "linopsum2": "linopsum2(examineddum,unexaminedyetdum,opdum)",
       "noopsubst": "noopsubst(expdum1,expdum2,expdum3)",
-      "linopprod0": "linopprod0(exp,opdum)",
-      "declare_zero": "declare_zero(opdum,preddum,zerotype)",
-      "lclinearp": "lclinearp(list,opdum)",
-      "linopprod": "linopprod(exp,opdum1,[opdumlist])",
-      "applyzero": "applyzero(exp,opdum,zerotype)",
-      "factorargs": "factorargs(argsdum,opdum,linposns,linpreddum)",
-      "findasymbol": "findasymbol(lvarsdum)",
-      "unscramble": "unscramble(list,newlist,linposns)",
-      "linsimp": "linsimp(exp,opdum1,[opdumlist])",
-      "linopprod1": "linopprod1(exp,opdum,linposns,linpreddum)",
       "lclinearp1": "lclinearp1(exp,opdum)",
+      "linopprod0": "linopprod0(exp,opdum)",
+      "findasymbol": "findasymbol(lvarsdum)",
+      "lclinearp": "lclinearp(list,opdum)",
+      "linopsum2": "linopsum2(examineddum,unexaminedyetdum,opdum)",
+      "linsimp": "linsimp(exp,opdum1,[opdumlist])",
+      "applyzero": "applyzero(exp,opdum,zerotype)",
+      "applysymmetry": "applysymmetry(exp,opdum,symtype)",
+      "unscramble": "unscramble(list,newlist,linposns)",
+      "factorargs": "factorargs(argsdum,opdum,linposns,linpreddum)",
+      "declare_linear_operator": "declare_linear_operator(opdum,linposns,predicate)",
+      "aplsym1": "aplsym1(symfcn,symsortfcn,list,opdum)",
       "declare_symmetry": "declare_symmetry(opdum,symfcn,symsortfcn,symtype)",
-      "aplsym1": "aplsym1(symfcn,symsortfcn,list,opdum)"
+      "linopprod1": "linopprod1(exp,opdum,linposns,linpreddum)",
+      "linopsum1": "linopsum1(list,opdum)",
+      "linopprod": "linopprod(exp,opdum1,[opdumlist])",
+      "declare_zero": "declare_zero(opdum,preddum,zerotype)"
     }
   },
   {
@@ -3098,7 +3040,7 @@
       "mnewton"
     ],
     "signatures": {
-      "mnewton": "mnewton(FuncList, VarList, GuessList)"
+      "mnewton": "mnewton(FuncList, VarList, GuessList, [DF])"
     }
   },
   {
@@ -3125,24 +3067,24 @@
       "vonschtoonk"
     ],
     "signatures": {
-      "bffac": "bffac(expr, n)",
-      "burn": "burn(n)",
-      "vonschtoonk": "vonschtoonk(p)",
-      "bfzeta_borwein_terms_needed": "bfzeta_borwein_terms_needed(s, t, N)",
-      "divrlst": "divrlst(p)",
-      "bfzeta_borwein": "bfzeta_borwein(s, fpp)",
-      "bfhzeta": "bfhzeta(s, h, n)",
-      "bfpsi0": "bfpsi0(z,fpprec)",
-      "bfzeta": "bfzeta(s, n)",
-      "bfzeta_negative": "bfzeta_negative(s,fpp)",
-      "bfpsi": "bfpsi(n, z, fpprec)",
-      "obzeta": "obzeta(s,fpprec)",
-      "cbffac": "cbffac(z, fpprec)",
-      "azetb": "azetb(s,fpp)",
       "prodhack_product": "prodhack_product(expr, i%, i%0, i%1)",
-      "obfac": "obfac(z,fpprec)",
       "bfzeta_positive": "bfzeta_positive(s, fpp)",
-      "bzeta": "bzeta(s,fpp)"
+      "bzeta": "bzeta(s,fpp)",
+      "bfpsi0": "bfpsi0(z,fpprec)",
+      "divrlst": "divrlst(p)",
+      "vonschtoonk": "vonschtoonk(p)",
+      "obzeta": "obzeta(s,fpprec)",
+      "obfac": "obfac(z,fpprec)",
+      "bffac": "bffac(z,fpprec)",
+      "bfzeta": "bfzeta(s, fpp)",
+      "azetb": "azetb(s,fpp)",
+      "bfzeta_borwein": "bfzeta_borwein(s, fpp)",
+      "bfhzeta": "bfhzeta(s,h,fpprec)",
+      "bfpsi": "bfpsi(n,z,fpprec)",
+      "bfzeta_borwein_terms_needed": "bfzeta_borwein_terms_needed(s, t, N)",
+      "burn": "burn(p)",
+      "bfzeta_negative": "bfzeta_negative(s,fpp)",
+      "cbffac": "cbffac(z,fpprec)"
     }
   },
   {
@@ -3152,7 +3094,7 @@
       "dblint"
     ],
     "signatures": {
-      "dblint": "dblint(f, r, s, a, b)"
+      "dblint": "dblint(f,c,d,a,b)"
     }
   },
   {
@@ -3167,12 +3109,12 @@
       "vapply"
     ],
     "signatures": {
-      "vapply": "vapply(fl,argl)",
-      "floatcheck": "floatcheck(x)",
+      "runge2": "runge2(f,x0,x1,h,y0,yp0)",
       "rungen": "rungen(fl,xa,xb,h,yal)",
       "runge1": "runge1(f,x0,x1,h,y0)",
-      "runge2": "runge2(f,x0,x1,h,y0,yp0)",
-      "status": "status(feature)"
+      "status": "status([x])",
+      "vapply": "vapply(fl,argl)",
+      "floatcheck": "floatcheck(x)"
     }
   },
   {
@@ -3187,12 +3129,12 @@
       "ratinterpol"
     ],
     "signatures": {
-      "lagrange": "lagrange(points)",
-      "linearinterpol": "linearinterpol(points)",
-      "charfun2": "charfun2(x, a, b)",
-      "ratinterpol": "ratinterpol(points, numdeg)",
-      "cspline": "cspline(points)",
-      "interpol_check_input": "interpol_check_input(data,funame)"
+      "cspline": "cspline(datatab,[select])",
+      "lagrange": "lagrange(datatab,[select])",
+      "ratinterpol": "ratinterpol(datatab,r,[select])",
+      "interpol_check_input": "interpol_check_input(data,funame)",
+      "charfun2": "charfun2(z,l1,l2)",
+      "linearinterpol": "linearinterpol(datatab,[select])"
     }
   },
   {
@@ -3202,7 +3144,7 @@
       "newton"
     ],
     "signatures": {
-      "newton": "newton(expr, x, x_0, eps)"
+      "newton": "newton(expr,guess)"
     }
   },
   {
@@ -3212,7 +3154,7 @@
       "newton"
     ],
     "signatures": {
-      "newton": "newton(expr, x, x_0, eps)"
+      "newton": "newton(exp,var,x0,eps)"
     }
   },
   {
@@ -3227,12 +3169,12 @@
       "upper_sum"
     ],
     "signatures": {
-      "upper_and_lower_sums": "upper_and_lower_sums(expr,var,partition)",
-      "critical_points": "critical_points(expr,var)",
       "function_max": "function_max(expr,var,a,b,critical_points)",
       "graph_riemann_sum": "graph_riemann_sum(up,expr,var,partition)",
-      "make_partition": "make_partition(a,b,n)",
-      "upper_sum": "upper_sum(expr,var,partition)"
+      "critical_points": "critical_points(expr,var)",
+      "upper_and_lower_sums": "upper_and_lower_sums(expr,var,partition)",
+      "upper_sum": "upper_sum(expr,var,partition)",
+      "make_partition": "make_partition(a,b,n)"
     }
   },
   {
@@ -3266,9 +3208,9 @@
       "nondimensionalize"
     ],
     "signatures": {
-      "listify": "listify(a)",
       "nondimensionalize": "nondimensionalize(u)",
-      "dimension": "dimension(eqn)"
+      "listify": "listify(w)",
+      "dimension": "dimension(w)"
     }
   },
   {
@@ -3282,11 +3224,11 @@
       "natural_unit"
     ],
     "signatures": {
-      "dimension_as_list": "dimension_as_list(e)",
-      "dimensionless": "dimensionless(L)",
       "all_equalp": "all_equalp(e)",
-      "dimension": "dimension(eqn)",
-      "natural_unit": "natural_unit(expr, [v_1, ..., v_n])"
+      "dimensionless": "dimensionless(e)",
+      "natural_unit": "natural_unit(dim,e)",
+      "dimension": "dimension(e)",
+      "dimension_as_list": "dimension_as_list(e)"
     }
   },
   {
@@ -3302,11 +3244,11 @@
     ],
     "signatures": {
       "guess_exact_value": "guess_exact_value(x)",
-      "identify_integer_relation": "identify_integer_relation(x, [threshold])",
-      "identify_as_product": "identify_as_product(x)",
       "identify_as_powersum": "identify_as_powersum(x)",
+      "identify_as_algebraic": "identify_as_algebraic(x)",
+      "identify_as_product": "identify_as_product(x)",
       "identify_as_sum": "identify_as_sum(x)",
-      "identify_as_algebraic": "identify_as_algebraic(x)"
+      "identify_integer_relation": "identify_integer_relation(x, [threshold])"
     }
   },
   {
@@ -3332,23 +3274,23 @@
       "tprod"
     ],
     "signatures": {
-      "qmeasure": "qmeasure(q)",
-      "controlled": "controlled(U, q, c, i)",
-      "tprod": "tprod(o1, ..., on)",
-      "normalize": "normalize(q)",
-      "Ry": "Ry(a)",
-      "Rz": "Rz(a)",
-      "gate_matrix": "gate_matrix(U, n)",
+      "gate": "gate(U,q,[bits])",
+      "qdisplay": "qdisplay(q)",
       "qswap": "qswap(q, i, j)",
-      "binlist": "binlist(k)",
-      "Rx": "Rx(a)",
-      "lreplace": "lreplace(e, lst, p)",
-      "binlist2dec": "binlist2dec(lst)",
-      "gate": "gate(U, q)",
-      "linsert": "linsert(e, lst, p)",
-      "qubits": "qubits(n)",
-      "toffoli": "toffoli(q, (i, (j, (k)",
-      "qdisplay": "qdisplay(q)"
+      "Ry": "Ry(ang)",
+      "linsert": "linsert(e, list, pos)",
+      "toffoli": "toffoli(q,i,j,k)",
+      "binlist2dec": "binlist2dec(l)",
+      "Rz": "Rz(ang)",
+      "binlist": "binlist([n])",
+      "lreplace": "lreplace(e, list, pos)",
+      "tprod": "tprod([ops])",
+      "controlled": "controlled(U,q,c,i)",
+      "normalize": "normalize(q)",
+      "qmeasure": "qmeasure(q,[bits])",
+      "qubits": "qubits([b])",
+      "gate_matrix": "gate_matrix(U,n,[bits])",
+      "Rx": "Rx(ang)"
     }
   },
   {
@@ -3374,13 +3316,13 @@
       "unitstep"
     ],
     "signatures": {
-      "unitramp": "unitramp(u)",
-      "unitstep": "unitstep(u)",
-      "nonzerop": "nonzerop(u)",
       "absimp": "absimp(ut)",
+      "evenintegerp": "evenintegerp(u)",
+      "nonzerop": "nonzerop(u)",
+      "unitramp": "unitramp(u)",
       "oddintegerp": "oddintegerp(u)",
       "signumsimp": "signumsimp(ut)",
-      "evenintegerp": "evenintegerp(u)"
+      "unitstep": "unitstep(u)"
     }
   },
   {
@@ -3394,10 +3336,10 @@
       "not_atom_elabel"
     ],
     "signatures": {
-      "disolate": "disolate(expr, x_1, ..., x_n)",
-      "not_atom_elabel": "not_atom_elabel(exp)",
-      "disolate2": "disolate2(op,exp,varlist)",
       "elabel": "elabel(exp)",
+      "not_atom_elabel": "not_atom_elabel(exp)",
+      "disolate": "disolate(exp,[orig_iso_list])",
+      "disolate2": "disolate2(op,exp,varlist)",
       "disolate1": "disolate1(exp,varlist)"
     }
   },
@@ -3408,7 +3350,7 @@
       "eliminate"
     ],
     "signatures": {
-      "eliminate": "eliminate([eqn_1, ..., eqn_n], [x_1, ..., x_k])"
+      "eliminate": "eliminate(eqns,vars)"
     }
   },
   {
@@ -3423,12 +3365,12 @@
       "orderlastp"
     ],
     "signatures": {
-      "multthrusplit": "multthrusplit(factordum,sumdum,rthisleveldum)",
-      "collecttermsl": "collecttermsl(exp,varlist)",
       "collectterms0": "collectterms0(exp,thisleveldum,nextleveldum)",
       "orderlastp": "orderlastp(exp1,exp2)",
+      "collectterms": "collectterms(exp,[varlist])",
+      "multthrusplit": "multthrusplit(factordum,sumdum,rthisleveldum)",
       "collectten": "collectten(exp)",
-      "collectterms": "collectterms(expr, arg_1, ..., arg_n)"
+      "collecttermsl": "collecttermsl(exp,varlist)"
     }
   },
   {
@@ -3462,31 +3404,31 @@
       "zerosubst"
     ],
     "signatures": {
-      "argsplit": "argsplit(exp,list)",
-      "facexpform": "facexpform(exp)",
+      "ifmultthru": "ifmultthru(exp1,exp2)",
+      "zerosubst": "zerosubst(list,exp)",
+      "vplus": "vplus(exp)",
+      "collecttermsl": "collecttermsl(exp,varlist)",
       "operator0p": "operator0p(exp)",
+      "facexpl": "facexpl(arglist)",
+      "facsum": "facsum([arglist])",
       "sqfrfacsum": "sqfrfacsum([arglist])",
-      "autoform": "autoform(exp)",
-      "facsum": "facsum(expr, arg_1, ..., arg_n)",
-      "facexp": "facexp([arglist])",
       "fplus": "fplus(exp)",
       "fstar": "fstar(exp)",
-      "zerosubst": "zerosubst(list,exp)",
-      "ifmultthru": "ifmultthru(exp1,exp2)",
       "vstar": "vstar(exp)",
+      "autoform": "autoform(exp)",
       "collectterms0": "collectterms0(exp,thisleveldum,nextleveldum)",
-      "collecttermsl": "collecttermsl(exp,varlist)",
-      "lopplusp": "lopplusp(exp)",
-      "facexpl": "facexpl(arglist)",
-      "fexpt": "fexpt(exp)",
+      "factorfacsum": "factorfacsum(exp,[argdum])",
+      "facexp": "facexp([arglist])",
       "nextlayer": "nextlayer(exp)",
-      "orderlastp": "orderlastp(exp1,exp2)",
-      "facexpform1": "facexpform1(expdum)",
-      "facsuml": "facsuml(arglist)",
-      "collectterms": "collectterms(expr, arg_1, ..., arg_n)",
-      "factorfacsum": "factorfacsum(expr, arg_1, ...arg_n)",
       "multthrusplit": "multthrusplit(factordum,sumdum,rthisleveldum)",
-      "vplus": "vplus(exp)"
+      "orderlastp": "orderlastp(exp1,exp2)",
+      "facexpform": "facexpform(exp)",
+      "collectterms": "collectterms(exp,[varlist])",
+      "lopplusp": "lopplusp(exp)",
+      "argsplit": "argsplit(exp,list)",
+      "fexpt": "fexpt(exp)",
+      "facsuml": "facsuml(arglist)",
+      "facexpform1": "facexpform1(expdum)"
     }
   },
   {
@@ -3527,28 +3469,28 @@
       "zerolistp"
     ],
     "signatures": {
-      "orpartition": "orpartition(exp,op,var)",
-      "listtosum": "listtosum(list)",
-      "nonumfactor": "nonumfactor(exp)",
-      "listtoprod": "listtoprod(list)",
-      "nulllistp": "nulllistp(exp)",
-      "rloiewl": "rloiewl(op,exp)",
-      "setlist": "setlist(lst,l1,l2)",
-      "genut_prodmap": "genut_prodmap(fun,exp)",
-      "explicitfactor": "explicitfactor(expl)",
-      "listofops_nonratl": "listofops_nonratl(exp,opl,lst)",
       "intersect_list": "intersect_list(exp1,exp2)",
+      "orpartitionlist": "orpartitionlist(list,op,[vars])",
       "iflopmap": "iflopmap(op,fun,exp)",
-      "listofops_nonrat": "listofops_nonrat(exp,[opl])",
-      "opmap": "opmap(exp,lst)",
+      "setlist": "setlist(lst,l1,l2)",
+      "nulllistp": "nulllistp(exp)",
+      "ldelete": "ldelete(varl,exp)",
+      "nonumfactor": "nonumfactor(exp)",
+      "genut_prodmap": "genut_prodmap(fun,exp)",
       "orpartitionl": "orpartitionl(exp,op,varl)",
-      "zerolistp": "zerolistp(list)",
+      "rloiewl": "rloiewl(op,exp)",
       "nonumfactor_alt": "nonumfactor_alt(exp)",
+      "explicitfactor": "explicitfactor(expl)",
       "predpartition": "predpartition(list,predicate)",
       "lcpred": "lcpred(linp,is_op,exp)",
-      "ldelete": "ldelete(varl,exp)",
-      "orpartitionlist": "orpartitionlist(list,op,[vars])",
-      "freeofl": "freeofl(varl,exp)"
+      "listofops_nonrat": "listofops_nonrat(exp,[opl])",
+      "listtoprod": "listtoprod(list)",
+      "freeofl": "freeofl(varl,exp)",
+      "listtosum": "listtosum(list)",
+      "opmap": "opmap(exp,lst)",
+      "zerolistp": "zerolistp(list)",
+      "orpartition": "orpartition(exp,op,var)",
+      "listofops_nonratl": "listofops_nonratl(exp,opl,lst)"
     }
   },
   {
@@ -3559,8 +3501,8 @@
       "posp"
     ],
     "signatures": {
-      "negp": "negp(u)",
-      "posp": "posp(u)"
+      "posp": "posp(u)",
+      "negp": "negp(u)"
     }
   },
   {
@@ -3575,12 +3517,12 @@
       "lratsubst1"
     ],
     "signatures": {
-      "lratsubst1": "lratsubst1(listofeqns,expr)",
-      "fullratsubst": "fullratsubst(new, old, expr)",
-      "fullratsubst2": "fullratsubst2(listofeqns,expr)",
-      "fullratsubst0": "fullratsubst0(eqn,expr)",
+      "fullratsubst": "fullratsubst([arglist])",
       "fullratsubst1": "fullratsubst1(substexpr,forexpr,expr)",
-      "lratsubst": "lratsubst(new, old, expr)"
+      "fullratsubst2": "fullratsubst2(listofeqns,expr)",
+      "lratsubst": "lratsubst(listofeqns,expr)",
+      "lratsubst1": "lratsubst1(listofeqns,expr)",
+      "fullratsubst0": "fullratsubst0(eqn,expr)"
     }
   },
   {
@@ -3595,12 +3537,12 @@
       "rncombine1"
     ],
     "signatures": {
-      "lcm_l": "lcm_l(list)",
-      "rloiewl": "rloiewl(op,exp)",
-      "rncombine1": "rncombine1(list)",
-      "denomthru": "denomthru(exp)",
+      "rncombine": "rncombine(exp)",
       "predpartition": "predpartition(list,predicate)",
-      "rncombine": "rncombine(expr)"
+      "rloiewl": "rloiewl(op,exp)",
+      "denomthru": "denomthru(exp)",
+      "rncombine1": "rncombine1(list)",
+      "lcm_l": "lcm_l(list)"
     }
   },
   {
@@ -3619,21 +3561,21 @@
       "varmult"
     ],
     "signatures": {
-      "stopexpandl1": "stopexpandl1(exp,varlist)",
-      "expandwrt_factored": "expandwrt_factored(expr, x_1, ..., x_n)",
-      "expandwrtl": "expandwrtl(exp,varlist)",
-      "exwrt_power1": "exwrt_power1(exp,powerdum,varlist)",
-      "varmult": "varmult(fact,exp,varlist)",
-      "stopexpand": "stopexpand(exp,[varlist])",
-      "exwrt_power": "exwrt_power(exp,varlist)",
+      "stopexpandl": "stopexpandl(exp,varlist)",
       "distribute": "distribute(exp1,exp2,varlist)",
-      "expandwrt": "expandwrt(expr, x_1, ..., x_n)",
-      "stopexpandl": "stopexpandl(exp,varlist)"
+      "exwrt_power": "exwrt_power(exp,varlist)",
+      "expandwrt_factored": "expandwrt_factored(exp,[varlist])",
+      "exwrt_power1": "exwrt_power1(exp,powerdum,varlist)",
+      "stopexpandl1": "stopexpandl1(exp,varlist)",
+      "varmult": "varmult(fact,exp,varlist)",
+      "expandwrt": "expandwrt(exp,[varlist])",
+      "expandwrtl": "expandwrtl(exp,varlist)",
+      "stopexpand": "stopexpand(exp,[varlist])"
     }
   },
   {
     "name": "solve_rat_ineq",
-    "description": "solve_rat_ineq package",
+    "description": "Solves for rational solutions to linear recurrences.",
     "functions": [
       "check_point",
       "ineq_return",
@@ -3641,9 +3583,9 @@
       "stick_together"
     ],
     "signatures": {
-      "ineq_return": "ineq_return(range,ex,var)",
       "stick_together": "stick_together(range,ex)",
       "solve_rat_ineq": "solve_rat_ineq(ineq)",
+      "ineq_return": "ineq_return(range,ex,var)",
       "check_point": "check_point(pt,var,op,left,right)"
     }
   },
@@ -3696,49 +3638,49 @@
       "to_standard_form1"
     ],
     "signatures": {
-      "hyper": "hyper(polys, %n)",
-      "get_lower_bound": "get_lower_bound(expr, %n)",
-      "solve_rec_lin_1": "solve_rec_lin_1(%a, %b, %f, %n, cond)",
-      "monic_factors": "monic_factors(p, %n)",
-      "monic_factors_fac": "monic_factors_fac(p, %n)",
-      "differ_degree": "differ_degree(expr)",
-      "ricatti_type": "ricatti_type(eqn, %f, %n, cond)",
-      "differ_order": "differ_order(expr)",
-      "get_linearly_independent1": "get_linearly_independent1(sol, %n, ord)",
-      "reduce_order": "reduce_order(rec, sol, var)",
-      "rec_polyp1": "rec_polyp1(p%, %n, hi)",
-      "remove_duplicates": "remove_duplicates(lst)",
-      "simplify_product": "simplify_product(prod)",
-      "min_shift": "min_shift(expr)",
-      "solve_rec_get_exps_mult": "solve_rec_get_exps_mult(terms, var)",
-      "get_variables": "get_variables(expr)",
-      "solve_rec_lin_cc": "solve_rec_lin_cc(coeffs, ihom, %f, %n, cond)",
-      "solve_rec_split_exponent": "solve_rec_split_exponent(expr)",
-      "solve_rec_gen": "solve_rec_gen(std_form, %f, %n, cond)",
-      "solve_rec_rat": "solve_rec_rat(eqn, var, [init])",
-      "solve_rec_poly": "solve_rec_poly(eqn, fn)",
-      "to_standard_form1": "to_standard_form1(expr, %n, %m)",
-      "solve_rec_char_part": "solve_rec_char_part(coeffs, po, ihom_pol, ihom, %n)",
-      "max_shift": "max_shift(expr)",
-      "hyper_poly": "hyper_poly(coeffs, ihom, %n)",
-      "rec_polyp": "rec_polyp(p, n)",
-      "solve_rec_rat1": "solve_rec_rat1(coeffs, ihom, %n)",
-      "solve_rec_char_gen": "solve_rec_char_gen(coeffs, %f, %n)",
-      "normalize_product": "normalize_product(%expr)",
-      "solve_rec_ic1": "solve_rec_ic1(gen_sol, %f, %n, cond, var)",
-      "solve_rec": "solve_rec(eqn, var, [init])",
-      "solve_rec_order_1": "solve_rec_order_1(std_form, %f, %n, cond)",
-      "to_standard_form": "to_standard_form(expr, %f, %n)",
-      "monic_factors_sol": "monic_factors_sol(p, %n)",
-      "remove_duplicates1": "remove_duplicates1(lst1, lst2)",
-      "solve_rec_ic": "solve_rec_ic(eq, fn, cond)",
-      "my_prod": "my_prod(term, n, lo, hi)",
-      "casoratian_determinant": "casoratian_determinant(l, %n)",
-      "get_linearly_independent": "get_linearly_independent(sol, %n)",
       "change_to_shift_op": "change_to_shift_op(expr, %f, %n)",
+      "remove_duplicates1": "remove_duplicates1(lst1, lst2)",
+      "normalize_product": "normalize_product(%expr)",
+      "rec_polyp": "rec_polyp(p, n)",
+      "solve_rec_order_1": "solve_rec_order_1(std_form, %f, %n, cond)",
+      "ricatti_type": "ricatti_type(eqn, %f, %n, cond)",
+      "min_shift": "min_shift(expr)",
+      "my_prod": "my_prod(term, n, lo, hi)",
+      "solve_rec": "solve_rec(eq, fn, [cond])",
+      "remove_duplicates": "remove_duplicates(lst)",
+      "monic_factors": "monic_factors(p, %n)",
+      "get_linearly_independent": "get_linearly_independent(sol, %n)",
+      "hyper_poly": "hyper_poly(coeffs, ihom, %n)",
+      "solve_rec_ic": "solve_rec_ic(eq, fn, cond)",
+      "solve_rec_lin_cc": "solve_rec_lin_cc(coeffs, ihom, %f, %n, cond)",
+      "hyper": "hyper(polys, %n)",
+      "solve_rec_char_gen": "solve_rec_char_gen(coeffs, %f, %n)",
+      "solve_rec_lin_1": "solve_rec_lin_1(%a, %b, %f, %n, cond)",
+      "differ_order": "differ_order(expr)",
+      "simplify_product": "simplify_product(prod)",
+      "reduce_order": "reduce_order(eqn, sol, fn)",
+      "sr_print": "sr_print([arg])",
+      "to_standard_form1": "to_standard_form1(expr, %n, %m)",
+      "monic_factors_fac": "monic_factors_fac(p, %n)",
+      "monic_factors_sol": "monic_factors_sol(p, %n)",
+      "rec_polyp1": "rec_polyp1(p%, %n, hi)",
+      "solve_rec_gen": "solve_rec_gen(std_form, %f, %n, cond)",
       "solve_rec_get_exps": "solve_rec_get_exps(expr, var)",
+      "differ_degree": "differ_degree(expr)",
+      "get_linearly_independent1": "get_linearly_independent1(sol, %n, ord)",
+      "get_variables": "get_variables(expr)",
+      "max_shift": "max_shift(expr)",
       "solve_rec_hyper": "solve_rec_hyper(eqn, fn)",
-      "sr_print": "sr_print([arg])"
+      "solve_rec_ic1": "solve_rec_ic1(gen_sol, %f, %n, cond, var)",
+      "solve_rec_rat1": "solve_rec_rat1(coeffs, ihom, %n)",
+      "to_standard_form": "to_standard_form(expr, %f, %n)",
+      "solve_rec_poly": "solve_rec_poly(eqn, fn)",
+      "solve_rec_split_exponent": "solve_rec_split_exponent(expr)",
+      "solve_rec_get_exps_mult": "solve_rec_get_exps_mult(terms, var)",
+      "get_lower_bound": "get_lower_bound(expr, %n)",
+      "casoratian_determinant": "casoratian_determinant(l, %n)",
+      "solve_rec_char_part": "solve_rec_char_part(coeffs, po, ihom_pol, ihom, %n)",
+      "solve_rec_rat": "solve_rec_rat(eqn, fn)"
     }
   },
   {
@@ -3763,27 +3705,27 @@
       "test_variance_ratio"
     ],
     "signatures": {
-      "test_sign": "test_sign(x)",
-      "test_proportions_difference": "test_proportions_difference(x1, n1, x2, n2)",
-      "linear_regression": "linear_regression(x)",
-      "simple_linear_regression": "simple_linear_regression(dat,[select])",
-      "cdf_signed_rank": "cdf_signed_rank(x, n)",
-      "cdf_rank_sum": "cdf_rank_sum(x, n, m)",
-      "test_rank_sum": "test_rank_sum(x1, x2)",
-      "pdf_rank_sum": "pdf_rank_sum(x, n, m)",
-      "test_proportion": "test_proportion(x, n)",
-      "test_variance": "test_variance(x)",
-      "test_means_difference": "test_means_difference(x1, x2)",
-      "test_signed_rank": "test_signed_rank(x)",
-      "test_variance_ratio": "test_variance_ratio(x1, x2)",
+      "cdf_signed_rank": "cdf_signed_rank(x,n)",
+      "pdf_rank_sum": "pdf_rank_sum(x,m,n)",
+      "test_rank_sum": "test_rank_sum(x1,x2,[select])",
+      "test_signed_rank": "test_signed_rank(x,[select])",
+      "linear_regression": "linear_regression(dat,[select])",
+      "test_variance": "test_variance(x,[select])",
+      "cdf_rank_sum": "cdf_rank_sum(x,m,n)",
       "controlw": "controlw(m,n)",
-      "pdf_signed_rank": "pdf_signed_rank(x, n)",
-      "test_mean": "test_mean(x)"
+      "test_mean": "test_mean(x,[select])",
+      "test_sign": "test_sign(x,[select])",
+      "pdf_signed_rank": "pdf_signed_rank(x,n)",
+      "test_proportions_difference": "test_proportions_difference(x1,n1,x2,n2,[select])",
+      "simple_linear_regression": "simple_linear_regression(dat,[select])",
+      "test_variance_ratio": "test_variance_ratio(x1,x2,[select])",
+      "test_proportion": "test_proportion(x,n,[select])",
+      "test_means_difference": "test_means_difference(x1,x2,[select])"
     }
   },
   {
     "name": "tensor/atensor",
-    "description": "atensor package",
+    "description": "Initializes the atensor package with the specified algebra type.",
     "functions": [
       "abasep",
       "af",
@@ -3795,14 +3737,14 @@
       "sf"
     ],
     "signatures": {
-      "abasep": "abasep(v)",
-      "init_atensor": "init_atensor(alg_type, opt_dims)",
+      "av": "av(%u,%v)",
+      "af": "af(u,v)",
+      "scalarfunp": "scalarfunp(x)",
       "nonscfunp": "nonscfunp(x)",
-      "atensimp": "atensimp(expr)",
-      "av": "av(u, v)",
-      "af": "af(u, v)",
-      "sf": "sf(u, v)",
-      "scalarfunp": "scalarfunp(x)"
+      "atensimp": "atensimp(exp)",
+      "init_atensor": "init_atensor(algname, [optdims])",
+      "abasep": "abasep(v)",
+      "sf": "sf(u,v)"
     }
   },
   {
@@ -3867,62 +3809,62 @@
       "yesp"
     ],
     "signatures": {
-      "riemann": "riemann(dis)",
-      "contragrad": "contragrad()",
-      "newmet": "newmet()",
-      "nonmetricity": "nonmetricity(nm)",
-      "cograd": "cograd()",
-      "checkdiv": "checkdiv()",
-      "cleanup": "cleanup(ll)",
-      "cdisplay": "cdisplay(ten)",
-      "ricci": "ricci(dis)",
-      "ctaylor": "ctaylor()",
-      "rinvariant": "rinvariant()",
-      "deleten": "deleten(L, n)",
-      "findde2": "findde2(a)",
-      "resimp": "resimp(exp)",
-      "yesp": "yesp([messages])",
-      "triemann": "triemann(disp)",
-      "contortion": "contortion(tr)",
-      "init_ctensor": "init_ctensor()",
-      "readvalue": "readvalue(message,pred,[badboy])",
-      "bdvac": "bdvac(f)",
-      "findde1": "findde1(list)",
-      "ctransform": "ctransform(M)",
-      "uriemann": "uriemann(dis)",
-      "findde": "findde(A, n)",
-      "findde3": "findde3(a)",
-      "einstein": "einstein(dis)",
-      "frame_bracket": "frame_bracket(fr, fri, diagframe)",
-      "tmetric": "tmetric(disp)",
-      "csetup": "csetup()",
-      "cgeodesic": "cgeodesic(dis)",
       "ntermst": "ntermst(f)",
-      "symmetricp": "symmetricp(M, n)",
-      "invariant1": "invariant1()",
-      "sermet": "sermet()",
-      "filemet": "filemet()",
-      "txyzsum": "txyzsum(vartemp,ct_coords,a,b,ttemp)",
-      "ct_coordsys": "ct_coordsys(coordinate_system, extra_arg)",
-      "psi": "psi[n](x)",
-      "weyl": "weyl(dis)",
-      "scurvature": "scurvature()",
-      "petrov": "petrov()",
-      "setflags": "setflags()",
-      "leinstein": "leinstein(dis)",
-      "riccicov": "riccicov(ii,jj,kk,ll)",
-      "tricci": "tricci(disp)",
       "christof": "christof(dis)",
-      "cmetric": "cmetric(dis)",
-      "lriemann": "lriemann(dis)",
-      "invariant2": "invariant2()",
-      "bimetric": "bimetric()",
-      "kdelt": "kdelt(i,j)",
-      "dscalar": "dscalar()",
-      "nptetrad": "nptetrad()",
+      "ctransform": "ctransform(qxyz,[equ])",
+      "invariant1": "invariant1()",
+      "petrov": "petrov()",
+      "psi": "psi(disp)",
       "trrc": "trrc(disp)",
-      "diagmatrixp": "diagmatrixp(M, n)",
-      "uricci": "uricci(dis)"
+      "txyzsum": "txyzsum(vartemp,ct_coords,a,b,ttemp)",
+      "bdvac": "bdvac(zz)",
+      "diagmatrixp": "diagmatrixp(mat,nlim)",
+      "findde2": "findde2(a)",
+      "uriemann": "uriemann(dis)",
+      "csetup": "csetup()",
+      "deleten": "deleten(l,n)",
+      "nonmetricity": "nonmetricity(nm)",
+      "newmet": "newmet()",
+      "nptetrad": "nptetrad(disp)",
+      "contortion": "contortion(tr)",
+      "dscalar": "dscalar(phi)",
+      "ricci": "ricci(dis)",
+      "einstein": "einstein(dis)",
+      "ctaylor": "ctaylor(x)",
+      "invariant2": "invariant2()",
+      "cleanup": "cleanup(ll)",
+      "cdisplay": "cdisplay(_t,[_k])",
+      "cmetric": "cmetric([dis])",
+      "findde3": "findde3(a)",
+      "riccicov": "riccicov(ii,jj,kk,ll)",
+      "riemann": "riemann(dis)",
+      "tmetric": "tmetric(disp)",
+      "filemet": "filemet()",
+      "tricci": "tricci(disp)",
+      "rinvariant": "rinvariant()",
+      "readvalue": "readvalue(message,pred,[badboy])",
+      "findde1": "findde1(list)",
+      "ct_coordsys": "ct_coordsys(coordinate_system, [extra_args])",
+      "triemann": "triemann(disp)",
+      "cgeodesic": "cgeodesic(dis)",
+      "contragrad": "contragrad(f,xyz)",
+      "kdelt": "kdelt(i,j)",
+      "leinstein": "leinstein(dis)",
+      "cograd": "cograd(f,xyz)",
+      "scurvature": "scurvature()",
+      "sermet": "sermet()",
+      "setflags": "setflags()",
+      "symmetricp": "symmetricp(m,n)",
+      "bimetric": "bimetric()",
+      "resimp": "resimp(exp)",
+      "uricci": "uricci(dis)",
+      "frame_bracket": "frame_bracket(fr,fri,diagframe)",
+      "findde": "findde(a,n)",
+      "weyl": "weyl(dis)",
+      "yesp": "yesp([messages])",
+      "init_ctensor": "init_ctensor()",
+      "checkdiv": "checkdiv(gxyz)",
+      "lriemann": "lriemann(dis)"
     }
   },
   {
@@ -3935,10 +3877,10 @@
       "permutator"
     ],
     "signatures": {
-      "contind": "contind(t)",
-      "extdiff": "extdiff(expr, i)",
       "covind": "covind(t)",
-      "permutator": "permutator(l)"
+      "contind": "contind(t)",
+      "permutator": "permutator(l)",
+      "extdiff": "extdiff(forma,[optind])"
     }
   },
   {
@@ -3957,26 +3899,16 @@
       "simpmetderiv"
     ],
     "signatures": {
-      "ikt1": "ikt1",
-      "ikt2": "ikt2",
-      "inmc1": "inmc1",
-      "ifb": "ifb",
-      "inmc2": "inmc2",
-      "icc1": "icc1",
-      "simpmetderiv": "simpmetderiv(expr)",
-      "ifc1": "ifc1",
-      "icc2": "icc2",
-      "ifc2": "ifc2"
-    }
-  },
-  {
-    "name": "tensor/isimplify",
-    "description": "isimplify package",
-    "functions": [
-      "isimplify"
-    ],
-    "signatures": {
-      "isimplify": "isimplify(T)"
+      "ifc1": "ifc1(l,[ld])",
+      "inmc1": "inmc1(l,[ld])",
+      "simpmetderiv": "simpmetderiv(exp)",
+      "ifc2": "ifc2(l1,l2,[ld])",
+      "inmc2": "inmc2(l1,l2,[ld])",
+      "ifb": "ifb(l,[ld])",
+      "icc1": "icc1(l,[ld])",
+      "icc2": "icc2(l1,l2,[ld])",
+      "ikt1": "ikt1(l,[ld])",
+      "ikt2": "ikt2(l1,l2,[ld])"
     }
   },
   {
@@ -3986,7 +3918,7 @@
       "lc2kdt"
     ],
     "signatures": {
-      "lc2kdt": "lc2kdt(expr)"
+      "lc2kdt": "lc2kdt(exp)"
     }
   },
   {
@@ -4020,31 +3952,31 @@
       "variable_p"
     ],
     "signatures": {
-      "variable_p": "variable_p(e)",
-      "non_symbol_subst": "non_symbol_subst(e, v)",
-      "lambertify": "lambertify(e,vars)",
-      "catch_easy_cases": "catch_easy_cases(e, vars)",
-      "equation_p": "equation_p(e)",
-      "real_imagpart_to_conjugate": "real_imagpart_to_conjugate(e)",
-      "rectform_log_if_constant": "rectform_log_if_constant(e)",
-      "conjugate_solver": "conjugate_solver(esave,v,vc,funs,maxdepth)",
-      "expunge_nonrelevant_solutions": "expunge_nonrelevant_solutions(e,v)",
-      "list_conjugate_vars": "list_conjugate_vars(e)",
-      "if_p": "if_p(e)",
-      "simp_and": "simp_and(l)",
-      "solution_subst": "solution_subst(sol, v, f)",
-      "top_level_ops": "top_level_ops(e)",
-      "set_of_variables": "set_of_variables(e)",
-      "merge_solutions": "merge_solutions(sol1, sol2)",
-      "expunge_nonrelevant_cnds": "expunge_nonrelevant_cnds(cnds, sol)",
       "one_to_one_crunch": "one_to_one_crunch(e)",
-      "compose_functions": "compose_functions(l)",
-      "safer_subst": "safer_subst(l, e)",
-      "singular_solutions": "singular_solutions(eq, v, p, f, maxdepth)",
-      "standardize_inverse_trig": "standardize_inverse_trig(e)",
+      "conjugate_solver": "conjugate_solver(esave,v,vc,funs,maxdepth)",
+      "list_conjugate_vars": "list_conjugate_vars(e)",
+      "dfloat": "dfloat(e)",
+      "lambertify": "lambertify(e,vars)",
+      "solution_subst": "solution_subst(sol, v, f)",
       "to_poly_solve_h": "to_poly_solve_h(e,v, simpfuncs, maxdepth, grob,use_algexact)",
+      "top_level_ops": "top_level_ops(e)",
+      "variable_p": "variable_p(e)",
+      "if_p": "if_p(e)",
+      "merge_solutions": "merge_solutions(sol1, sol2)",
+      "safer_subst": "safer_subst(l, e)",
       "opequal_p": "opequal_p(e,[f])",
-      "dfloat": "dfloat(x)"
+      "equation_p": "equation_p(e)",
+      "expunge_nonrelevant_cnds": "expunge_nonrelevant_cnds(cnds, sol)",
+      "singular_solutions": "singular_solutions(eq, v, p, f, maxdepth)",
+      "compose_functions": "compose_functions(l)",
+      "simp_and": "simp_and(l)",
+      "catch_easy_cases": "catch_easy_cases(e, vars)",
+      "expunge_nonrelevant_solutions": "expunge_nonrelevant_solutions(e,v)",
+      "real_imagpart_to_conjugate": "real_imagpart_to_conjugate(e)",
+      "set_of_variables": "set_of_variables(e)",
+      "standardize_inverse_trig": "standardize_inverse_trig(e)",
+      "non_symbol_subst": "non_symbol_subst(e, v)",
+      "rectform_log_if_constant": "rectform_log_if_constant(e)"
     }
   },
   {
@@ -4055,8 +3987,8 @@
       "usin"
     ],
     "signatures": {
-      "ucos": "ucos(n)",
-      "usin": "usin(n)"
+      "usin": "usin(n)",
+      "ucos": "ucos(n)"
     }
   },
   {
@@ -4089,16 +4021,16 @@
       "update"
     ],
     "signatures": {
-      "trigsimp3": "trigsimp3(expn)",
-      "trigonometricp": "trigonometricp(exp)",
       "expnlength": "expnlength(expr)",
-      "listoftrigsq": "listoftrigsq(expn)",
-      "trigsimp": "trigsimp(expr)",
-      "improve": "improve(expn,subsofar,listoftrigsq)",
-      "specialunion": "specialunion(list1,list2)",
-      "update": "update(form, complement)",
       "argslength": "argslength(args)",
-      "trigsimp1": "trigsimp1(expn)"
+      "improve": "improve(expn,subsofar,listoftrigsq)",
+      "update": "update(form, complement)",
+      "trigonometricp": "trigonometricp(exp)",
+      "trigsimp1": "trigsimp1(expn)",
+      "trigsimp": "trigsimp(x%)",
+      "trigsimp3": "trigsimp3(expn)",
+      "listoftrigsq": "listoftrigsq(expn)",
+      "specialunion": "specialunion(list1,list2)"
     }
   },
   {
@@ -4109,8 +4041,8 @@
       "type"
     ],
     "signatures": {
-      "dimension": "dimension(eqn)",
-      "type": "type(type,v1...vn)"
+      "dimension": "dimension()",
+      "type": "type(arg)"
     }
   },
   {
@@ -4147,34 +4079,34 @@
       "zerovector"
     ],
     "signatures": {
-      "ev_diff": "ev_diff(_expr_)",
-      "vsimp1": "vsimp1(expn)",
-      "removecrosssc": "removecrosssc(expn,pv,rv,sv)",
-      "scalefactors": "scalefactors(coordinatetransform)",
-      "pvcross": "pvcross(pv,rv,sv)",
-      "trycrossplus": "trycrossplus(expn,pv,rv,sv)",
-      "zerovector": "zerovector()",
-      "crossrv": "crossrv(pv,rv,sv)",
-      "vectorsimp": "vectorsimp(expr)",
-      "express1": "express1(expn)",
-      "disjunct": "disjunct(l1,l2)",
-      "has_rules": "has_rules(op)",
-      "vpot": "vpot(kurl)",
-      "crosssimp": "crosssimp(ex,pv,rv,sv)",
-      "setdiff": "setdiff(l1,l2)",
       "partitionsc": "partitionsc(ex)",
-      "vector0p": "vector0p(e)",
-      "before": "before(arg)",
+      "express1": "express1(expn)",
       "gcov": "gcov(ii,jj)",
-      "zeroloc": "zeroloc()",
-      "evlimit": "evlimit(expr,var,lim)",
-      "potential1": "potential1(gr)",
-      "subless": "subless(kk,origin,grperm)",
-      "vsimp": "vsimp(expn)",
-      "removecrosssc1": "removecrosssc1(expn,pv,rv,sv)",
+      "disjunct": "disjunct(l1,l2)",
+      "pvcross": "pvcross(pv,rv,sv)",
+      "removecrosssc": "removecrosssc(expn,pv,rv,sv)",
       "myint": "myint(fun,var,low,high)",
+      "crosssimp": "crosssimp(ex,pv,rv,sv)",
+      "has_rules": "has_rules(op)",
       "trycrosscross": "trycrosscross(expn,pv,rv,sv)",
-      "vscalarp": "vscalarp(arg)"
+      "before": "before(arg)",
+      "setdiff": "setdiff(l1,l2)",
+      "potential1": "potential1(gr)",
+      "ev_diff": "ev_diff(_expr_)",
+      "scalefactors": "scalefactors(transformation)",
+      "trycrossplus": "trycrossplus(expn,pv,rv,sv)",
+      "vectorsimp": "vectorsimp(expn)",
+      "vector0p": "vector0p(e)",
+      "vscalarp": "vscalarp(arg)",
+      "vsimp": "vsimp(expn)",
+      "vsimp1": "vsimp1(expn)",
+      "vpot": "vpot(kurl)",
+      "crossrv": "crossrv(pv,rv,sv)",
+      "zeroloc": "zeroloc()",
+      "zerovector": "zerovector()",
+      "removecrosssc1": "removecrosssc1(expn,pv,rv,sv)",
+      "subless": "subless(kk,origin,grperm)",
+      "evlimit": "evlimit(expr,var,lim)"
     }
   },
   {
@@ -4186,7 +4118,7 @@
       "lsmx_or_abs1_p"
     ],
     "signatures": {
-      "columnvector": "columnvector(L)",
+      "columnvector": "columnvector(x)",
       "covect": "covect(x)",
       "lsmx_or_abs1_p": "lsmx_or_abs1_p(x)"
     }
@@ -4200,5 +4132,34 @@
     "signatures": {
       "apply_z_transform": "apply_z_transform(e)"
     }
+  },
+  {
+    "name": "ax_plotting",
+    "description": "Aximar interactive plotting with Plotly.js — charts, contours, heatmaps, bar charts, histograms, vector fields, and phase portraits",
+    "functions": [
+      "ax_bar",
+      "ax_contour",
+      "ax_draw2d",
+      "ax_draw3d",
+      "ax_heatmap",
+      "ax_histogram",
+      "ax_plot2d",
+      "ax_polar",
+      "ax_streamline",
+      "ax_vector_field"
+    ],
+    "signatures": {
+      "ax_histogram": "ax_histogram(data)",
+      "ax_draw2d": "ax_draw2d(options, ..., graphic_object, ...)",
+      "ax_bar": "ax_bar(categories, values)",
+      "ax_draw3d": "ax_draw3d(options, ..., graphic_object, ...)",
+      "ax_heatmap": "ax_heatmap(z_matrix)",
+      "ax_polar": "ax_polar(expr, [var, min, max], options)",
+      "ax_streamline": "ax_streamline(Fx, Fy, xvar, xlo, xhi, yvar, ylo, yhi)",
+      "ax_plot2d": "ax_plot2d(expr, [var, min, max], options)",
+      "ax_contour": "ax_contour(expr, xvar, xlo, xhi, yvar, ylo, yhi)",
+      "ax_vector_field": "ax_vector_field(Fx, Fy, xvar, xlo, xhi, yvar, ylo, yhi)"
+    },
+    "builtin": true
   }
 ]

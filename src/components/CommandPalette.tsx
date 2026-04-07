@@ -136,26 +136,45 @@ export function CommandPalette({ onClose, onViewDocs, initialQuery }: CommandPal
   }, [categories, selectedCategory, isCategorySelected]);
 
   type SearchItem =
-    | { kind: "function"; name: string; sig: string; desc: string }
-    | { kind: "pkgFunc"; name: string; packageName: string; sig: string }
-    | { kind: "package"; name: string; desc: string; funcCount: number };
+    | { kind: "function"; name: string; sig: string; desc: string; score: number }
+    | { kind: "pkgFunc"; name: string; packageName: string; sig: string; score: number; builtin: boolean }
+    | { kind: "package"; name: string; desc: string; funcCount: number; score: number; builtin: boolean };
 
   const searchItems: SearchItem[] = useMemo(() => {
     if (!isSearchMode) return [];
+
+    // Normalize scores to [0, 1] within each result set so different
+    // backends (BM25 vs manual scoring) are comparable when merged.
+    const normalize = <T extends { score: number }>(arr: T[]): (T & { norm: number })[] => {
+      const max = arr.reduce((m, r) => Math.max(m, r.score), 0);
+      return arr.map((r) => ({ ...r, norm: max > 0 ? r.score / max : 0 }));
+    };
+
+    const normResults = normalize(results);
+    const normPkgFuncs = normalize(pkgFuncResults);
+    const normPkgs = normalize(packageResults.slice(0, 5));
+
     const items: SearchItem[] = [
-      ...packageResults.slice(0, 5).map((r): SearchItem => ({
+      ...normPkgs.map((r): SearchItem => ({
         kind: "package", name: r.package.name,
         desc: r.package.description, funcCount: r.package.functions.length,
+        score: r.norm, builtin: !!r.package.builtin,
       })),
-      ...pkgFuncResults.map((r): SearchItem => ({
-        kind: "pkgFunc", name: r.function_name, packageName: r.package_name,
-        sig: r.signature || "",
-      })),
-      ...results.map((r): SearchItem => ({
+      ...normPkgFuncs.map((r): SearchItem => {
+        const pkg = packageResults.find((p) => p.package.name === r.package_name);
+        return {
+          kind: "pkgFunc", name: r.function_name, packageName: r.package_name,
+          sig: r.signature || "", score: r.norm, builtin: !!pkg?.package.builtin,
+        };
+      }),
+      ...normResults.map((r): SearchItem => ({
         kind: "function", name: r.function.name,
         sig: r.function.signatures[0] || "", desc: r.function.description,
+        score: r.norm,
       })),
     ];
+    // Sort by normalized relevance score (descending)
+    items.sort((a, b) => b.score - a.score);
     return items;
   }, [isSearchMode, results, pkgFuncResults, packageResults]);
 
@@ -256,12 +275,21 @@ export function CommandPalette({ onClose, onViewDocs, initialQuery }: CommandPal
         } else if (isSearchMode) {
           const item = searchItems[selectedIndex];
           if (item.kind === "package") {
-            insertPackageLoad(item.name);
+            if (item.builtin) {
+              onClose(); // built-in packages don't need load()
+            } else {
+              insertPackageLoad(item.name);
+            }
           } else {
             insertFunction(item.name);
           }
         } else if (isPackagesMode) {
-          insertPackageLoad(allPackages[selectedIndex].package.name);
+          const pkg = allPackages[selectedIndex].package;
+          if (pkg.builtin) {
+            onClose();
+          } else {
+            insertPackageLoad(pkg.name);
+          }
         } else if (isCategoryList) {
           if (selectedIndex < categories.length) {
             selectCategory(categories[selectedIndex].category);
@@ -471,7 +499,7 @@ export function CommandPalette({ onClose, onViewDocs, initialQuery }: CommandPal
                     {item.kind === "function"
                       ? item.desc
                       : item.kind === "pkgFunc"
-                        ? `requires load("${item.packageName}")`
+                        ? (item.builtin ? item.packageName : `requires load("${item.packageName}")`)
                         : item.desc}
                   </div>
                   {item.kind === "package" && (

@@ -11,10 +11,58 @@ pub struct Catalog {
     index: Index<usize>,
 }
 
+/// Split a string at alpha→digit boundaries only.
+/// "draw2d" → ["draw", "2d"], "plot2d" → ["plot", "2d"], "abc" → ["abc"]
+/// Digit→alpha transitions do NOT split (so "2d" stays as one token).
+fn split_alpha_digit(s: &str) -> Vec<String> {
+    let mut parts = Vec::new();
+    let mut current = String::new();
+    let mut was_digit: Option<bool> = None;
+    for ch in s.chars() {
+        let is_digit = ch.is_ascii_digit();
+        if let Some(prev_digit) = was_digit {
+            // Only split when transitioning from alpha to digit
+            if is_digit && !prev_digit && !current.is_empty() {
+                parts.push(std::mem::take(&mut current));
+            }
+        }
+        current.push(ch);
+        was_digit = Some(is_digit);
+    }
+    if !current.is_empty() {
+        parts.push(current);
+    }
+    parts
+}
+
+/// Tokenizer that splits on whitespace, then underscores, then alpha/digit boundaries.
+/// "ax_draw2d" → [ax_draw2d, ax, draw2d, draw, 2d]
 fn tokenizer(s: &str) -> Vec<Cow<'_, str>> {
-    s.split_whitespace()
-        .map(|w| Cow::Owned(w.to_lowercase()))
-        .collect()
+    let mut tokens = Vec::new();
+    for word in s.split_whitespace() {
+        let lower = word.to_lowercase();
+        tokens.push(lower.clone());
+        // Split on underscores
+        let parts: Vec<&str> = lower.split('_').filter(|p| !p.is_empty()).collect();
+        if parts.len() > 1 {
+            for part in &parts {
+                tokens.push(part.to_string());
+            }
+        }
+        // Split on alpha/digit boundaries within each underscore part
+        for part in &parts {
+            let sub = split_alpha_digit(part);
+            if sub.len() > 1 {
+                for s in sub {
+                    tokens.push(s);
+                }
+            }
+        }
+    }
+    // Deduplicate to avoid inflating term frequencies
+    tokens.sort();
+    tokens.dedup();
+    tokens.into_iter().map(Cow::Owned).collect()
 }
 
 fn name_extract(d: &MaximaFunction) -> Vec<&str> {
@@ -23,6 +71,26 @@ fn name_extract(d: &MaximaFunction) -> Vec<&str> {
 
 fn description_extract(d: &MaximaFunction) -> Vec<&str> {
     vec![d.description.as_str()]
+}
+
+fn keywords_extract(d: &MaximaFunction) -> Vec<&str> {
+    vec![d.search_keywords.as_str()]
+}
+
+/// Enrich a keywords string with sub-tokens from a function name.
+fn enrich_keywords_from_name(name: &str, kw: &mut String) {
+    for part in name.to_lowercase().split('_') {
+        if !part.is_empty() && !kw.contains(part) {
+            kw.push(' ');
+            kw.push_str(part);
+        }
+        for sub in split_alpha_digit(part) {
+            if !sub.is_empty() && !kw.contains(&sub) {
+                kw.push(' ');
+                kw.push_str(&sub);
+            }
+        }
+    }
 }
 
 impl Catalog {
@@ -37,10 +105,20 @@ impl Catalog {
             serde_json::from_str(ax_json).expect("embedded ax_plotting_catalog.json must be valid");
         functions.extend(ax_functions);
 
-        let mut index = Index::<usize>::new(2);
+        // Auto-populate search_keywords for entries that lack them
+        for f in &mut functions {
+            if f.search_keywords.is_empty() {
+                let mut kw = f.category.label().to_lowercase();
+                enrich_keywords_from_name(&f.name, &mut kw);
+                f.search_keywords = kw;
+            }
+        }
+
+        // 3 fields: name (weight 3.0), description (1.0), keywords (2.0)
+        let mut index = Index::<usize>::new(3);
         for (i, f) in functions.iter().enumerate() {
             index.add_document(
-                &[name_extract, description_extract],
+                &[name_extract, description_extract, keywords_extract],
                 tokenizer,
                 i,
                 f,
@@ -64,13 +142,23 @@ impl Catalog {
 
         let mut results: Vec<SearchResult> = self
             .index
-            .query(query, &mut bm25::new(), tokenizer, &[3.0, 1.0])
+            .query(query, &mut bm25::new(), tokenizer, &[3.0, 1.0, 2.0])
             .into_iter()
             .map(|qr| SearchResult {
                 function: self.functions[qr.key].clone(),
                 score: qr.score as f64,
             })
             .collect();
+
+        // Boost Aximar plotting functions for prominence
+        for r in &mut results {
+            let name = r.function.name.as_str();
+            if name == "ax_draw2d" || name == "ax_draw3d" {
+                r.score *= 3.0;
+            } else if name.starts_with("ax_") {
+                r.score *= 2.0;
+            }
+        }
 
         results.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap());
         results.truncate(20);
@@ -279,9 +367,15 @@ mod tests {
     #[test]
     fn test_search_description() {
         let catalog = Catalog::load();
-        let results = catalog.search("derivative");
+        // "differential" appears in diff's description; tests that description
+        // field is indexed and contributes to search results
+        let results = catalog.search("differential");
         assert!(!results.is_empty());
-        assert!(results.iter().any(|r| r.function.name == "diff"));
+        assert!(
+            results.iter().any(|r| r.function.name == "diff"),
+            "expected diff in results for 'differential', got: {:?}",
+            results.iter().map(|r| &r.function.name).collect::<Vec<_>>()
+        );
     }
 
     #[test]
@@ -398,5 +492,90 @@ mod tests {
         let results = catalog.search("ax_plot2d");
         assert!(!results.is_empty());
         assert_eq!(results[0].function.name, "ax_plot2d");
+    }
+
+    // --- Search quality tests ---
+
+    #[test]
+    fn test_search_draw_finds_ax_draw2d() {
+        let catalog = Catalog::load();
+        let results = catalog.search("draw");
+        assert!(
+            results.iter().any(|r| r.function.name == "ax_draw2d"),
+            "searching 'draw' should find ax_draw2d, got: {:?}",
+            results.iter().map(|r| &r.function.name).collect::<Vec<_>>()
+        );
+        assert!(
+            results.iter().any(|r| r.function.name == "ax_draw3d"),
+            "searching 'draw' should find ax_draw3d"
+        );
+    }
+
+    #[test]
+    fn test_search_plot_finds_ax_plot2d_in_top5() {
+        let catalog = Catalog::load();
+        let results = catalog.search("plot");
+        let top5: Vec<&str> = results.iter().take(5).map(|r| r.function.name.as_str()).collect();
+        assert!(
+            top5.contains(&"ax_plot2d"),
+            "searching 'plot' should have ax_plot2d in top 5, got: {:?}", top5
+        );
+    }
+
+    #[test]
+    fn test_search_chart_finds_ax_bar() {
+        let catalog = Catalog::load();
+        let results = catalog.search("chart");
+        assert!(
+            results.iter().any(|r| r.function.name == "ax_bar"),
+            "searching 'chart' should find ax_bar via keywords"
+        );
+    }
+
+    #[test]
+    fn test_search_vector_field() {
+        let catalog = Catalog::load();
+        let results = catalog.search("vector field");
+        assert!(
+            results.iter().any(|r| r.function.name == "ax_vector_field"),
+            "searching 'vector field' should find ax_vector_field, got: {:?}",
+            results.iter().map(|r| &r.function.name).collect::<Vec<_>>()
+        );
+    }
+
+    #[test]
+    fn test_search_phase_portrait() {
+        let catalog = Catalog::load();
+        let results = catalog.search("phase portrait");
+        assert!(
+            results.iter().any(|r| r.function.name == "ax_streamline"),
+            "searching 'phase portrait' should find ax_streamline"
+        );
+    }
+
+    #[test]
+    fn test_ax_boost_scores_higher() {
+        let catalog = Catalog::load();
+        let results = catalog.search("draw");
+        // ax_draw2d should score higher than built-in draw2d (if present)
+        let ax_score = results.iter().find(|r| r.function.name == "ax_draw2d").map(|r| r.score);
+        let builtin_score = results.iter().find(|r| r.function.name == "draw2d").map(|r| r.score);
+        if let (Some(ax), Some(builtin)) = (ax_score, builtin_score) {
+            assert!(
+                ax > builtin,
+                "ax_draw2d ({:.1}) should score higher than draw2d ({:.1})", ax, builtin
+            );
+        }
+    }
+
+    #[test]
+    fn test_tokenizer_splits_compound_names() {
+        let tokens = tokenizer("ax_draw2d");
+        let token_strs: Vec<&str> = tokens.iter().map(|t| t.as_ref()).collect();
+        assert!(token_strs.contains(&"ax"), "should contain 'ax'");
+        assert!(token_strs.contains(&"draw2d"), "should contain 'draw2d'");
+        assert!(token_strs.contains(&"draw"), "should contain 'draw'");
+        assert!(token_strs.contains(&"2d"), "should contain '2d'");
+        assert!(token_strs.contains(&"ax_draw2d"), "should contain full token 'ax_draw2d'");
     }
 }

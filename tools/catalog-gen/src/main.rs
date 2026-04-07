@@ -256,6 +256,10 @@ fn main() {
                 for r in results.iter().take(limit) {
                     let sig = r.function.signatures.first().map(|s| s.as_str()).unwrap_or(&r.function.name);
                     println!("  {} (score: {:.0}, category: {})", sig, r.score, r.function.category.label());
+                    // Show search keywords if present
+                    if !r.function.search_keywords.is_empty() {
+                        println!("    keywords: {}", r.function.search_keywords);
+                    }
                     // Truncate long descriptions
                     let desc = &r.function.description;
                     if desc.len() > 120 {
@@ -312,11 +316,17 @@ fn main() {
                 })
             });
 
-            let packages = package_scanner::scan_packages(
+            let mut packages = package_scanner::scan_packages(
                 &resolved_share_dir,
                 &catalog,
                 functions_catalog.as_deref(),
             );
+
+            // Append Aximar's built-in ax_plotting package
+            let ax_context_path = resolve_output(None, AX_DRAW_CONTEXT_REL);
+            let ax_ctx = ax_plotting::load(&ax_context_path);
+            packages.push(ax_plotting::generate_package_info(&ax_ctx));
+
             let json =
                 serde_json::to_string_pretty(&packages).expect("failed to serialize packages");
             fs::write(&output, &json).unwrap_or_else(|e| {
