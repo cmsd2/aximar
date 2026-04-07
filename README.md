@@ -12,7 +12,8 @@ See the [vector calculus example](assets/vc.pdf) for a Stokes' theorem verificat
 
 - **Notebook interface** — code and markdown cells with drag-to-reorder
 - **LaTeX math rendering** — Maxima output rendered with KaTeX
-- **Inline plots** — 2D, 3D, and parametric plots displayed as SVGs
+- **Interactive plots** — Plotly.js charts via `ax_draw2d`, `ax_draw3d`, `ax_plot2d`, and `ax_polar`, with pan, zoom, and hover. Includes contour plots, heatmaps, bar charts, histograms, vector fields, and phase portraits
+- **Classic plots** — Maxima's built-in `plot2d` and `plot3d` rendered as inline SVGs
 - **Function discovery** — searchable catalog of 2500+ functions, docs panel, hover tooltips
 - **Command palette** — quick access to functions and categories (Ctrl+K / Cmd+K)
 - **Smart editor** — syntax highlighting, autocomplete, signature hints
@@ -130,8 +131,44 @@ solve(x^2 - 5*x + 6 = 0, x);
 expand((a + b)^4);
 factor(x^4 - 1);
 taylor(exp(x), x, 0, 5);
-plot2d(sin(x), [x, -%pi, %pi]);
 ```
+
+### Plotting
+
+Aximar provides its own `ax_*` plotting functions that render as interactive Plotly.js charts with pan, zoom, and hover. These are auto-loaded — no `load(...)` needed.
+
+```
+/* Interactive 2D plot */
+ax_plot2d(sin(x), [x, -%pi, %pi])$
+
+/* Multiple curves with styling */
+ax_draw2d(
+  color="red", explicit(sin(x), x, -%pi, %pi),
+  color="blue", explicit(cos(x), x, -%pi, %pi),
+  title="Trig Functions"
+)$
+
+/* 3D surface */
+ax_draw3d(explicit(sin(x)*cos(y), x, -%pi, %pi, y, -%pi, %pi))$
+
+/* Polar plot */
+ax_polar(1 + cos(θ), [θ, 0, 2*%pi])$
+
+/* Contour plot */
+ax_draw2d(ax_contour(sin(x)*cos(y), x, -%pi, %pi, y, -%pi, %pi), colorscale="Viridis")$
+
+/* Bar chart */
+ax_draw2d(ax_bar(["Q1","Q2","Q3","Q4"], [100,150,120,180]), title="Sales")$
+
+/* Vector field with phase portrait */
+ax_draw2d(
+  color="#cccccc", ax_vector_field(-y, x, x, -3, 3, y, -3, 3),
+  color="red", ax_streamline(-y, x, x, -3, 3, y, -3, 3),
+  aspect_ratio=true, title="Phase Portrait"
+)$
+```
+
+Maxima's built-in `plot2d` and `plot3d` are also supported and render as inline SVGs.
 
 ## MCP Server (AI Integration)
 
@@ -227,6 +264,7 @@ React Frontend  <->  Tauri IPC  <->  Rust Backend  <->  Maxima subprocess
 | Desktop shell | Tauri v2 |
 | Frontend | React 19, TypeScript, Vite |
 | Code editor | CodeMirror 6 |
+| Interactive plots | Plotly.js |
 | Math rendering | KaTeX |
 | State management | Zustand |
 | Subprocess I/O | tokio::process |
