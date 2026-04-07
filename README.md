@@ -223,7 +223,7 @@ claude mcp list
 ### Development
 
 ```bash
-npm install
+npm install --dev
 npm run tauri dev
 ```
 
