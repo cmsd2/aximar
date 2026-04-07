@@ -67,6 +67,22 @@ export const DRAW_OBJECTS_2D: Completion[] = [
     apply: snippet("ax_histogram(${1:data})"),
     boost: 3,
   },
+  {
+    label: "ax_vector_field",
+    detail: "ax_vector_field(Fx, Fy, xvar, xlo, xhi, yvar, ylo, yhi)",
+    info: "2D vector field / quiver plot",
+    type: "function",
+    apply: snippet("ax_vector_field(${1:Fx}, ${2:Fy}, ${3:x}, ${4:xlo}, ${5:xhi}, ${6:y}, ${7:ylo}, ${8:yhi})"),
+    boost: 2,
+  },
+  {
+    label: "ax_streamline",
+    detail: "ax_streamline(Fx, Fy, xvar, xlo, xhi, yvar, ylo, yhi)",
+    info: "Streamline / phase portrait curves",
+    type: "function",
+    apply: snippet("ax_streamline(${1:Fx}, ${2:Fy}, ${3:x}, ${4:xlo}, ${5:xhi}, ${6:y}, ${7:ylo}, ${8:yhi})"),
+    boost: 1,
+  },
 ];
 
 export const DRAW_OBJECTS_3D: Completion[] = [
@@ -104,6 +120,12 @@ export const STYLE_OPTIONS: Completion[] = [
   { label: "ncontours", detail: "Number of contour levels", type: "property", apply: "ncontours=" },
   { label: "nbins", detail: "Number of histogram bins", type: "property", apply: "nbins=" },
   { label: "bar_width", detail: "Bar width fraction", type: "property", apply: "bar_width=" },
+  { label: "ngrid", detail: "Vector field grid resolution", type: "property", apply: "ngrid=" },
+  { label: "arrow_scale", detail: "Arrow length multiplier (1.0 = auto)", type: "property", apply: "arrow_scale=" },
+  { label: "normalize", detail: "Equal-length arrows (true/false)", type: "property", apply: "normalize=" },
+  { label: "initial_points", detail: "Streamline start points [[x0,y0],...]", type: "property", apply: "initial_points=" },
+  { label: "t_range", detail: "Integration time span [t0, tf]", type: "property", apply: "t_range=" },
+  { label: "dt", detail: "RK4 step size", type: "property", apply: "dt=" },
 ];
 
 export const LAYOUT_OPTIONS_2D: Completion[] = [

@@ -84,7 +84,13 @@ ax__default_style() := [
   [nbins, false],           /* histogram: number of bins (auto if false) */
   [ncontours, false],       /* contour: number of contour levels (auto if false) */
   [showscale, 'auto],       /* heatmap/contour: 'auto = Plotly default, true/false = explicit */
-  [bar_width, false]        /* bar: bar width fraction (auto if false) */
+  [bar_width, false],       /* bar: bar width fraction (auto if false) */
+  [ngrid, 20],              /* vector field: grid resolution (ngrid x ngrid) */
+  [arrow_scale, 1.0],       /* vector field: arrow length multiplier */
+  [normalize, false],       /* vector field: equal-length arrows (direction only) */
+  [initial_points, false],  /* streamline: list of [x0,y0] starting points (auto if false) */
+  [t_range, false],         /* streamline: integration time span [t0, tf] (default [0,10]) */
+  [dt, false]               /* streamline: RK4 step size (default 0.05) */
 ]$
 
 /* Get a style value from the style state */
@@ -108,11 +114,13 @@ ax__layout_option_names : [title, xrange, yrange, zrange, grid, xaxis, yaxis,
 /* Trace/style option names */
 ax__trace_option_names : [color, fill_color, opacity, line_width, dash,
   marker_symbol, marker_size, name, fill, colorscale, hover_text, nticks,
-  nbins, ncontours, showscale, bar_width]$
+  nbins, ncontours, showscale, bar_width,
+  ngrid, arrow_scale, normalize, initial_points, t_range, dt]$
 
 /* Draw object names we recognize */
 ax__draw_object_names : [explicit, parametric, points, implicit,
-  ax_contour, ax_heatmap, ax_bar, ax_histogram]$
+  ax_contour, ax_heatmap, ax_bar, ax_histogram,
+  ax_vector_field, ax_streamline]$
 
 /* Check if an argument is a layout option (e.g. title="Foo") */
 ax__is_layout_option(item) :=
@@ -188,6 +196,70 @@ ax__sample_implicit_2d(eqn, xvar, xlo, xhi, yvar, ylo, yhi, n) := block(
   if op(eqn) = "=" then fexpr: lhs(eqn) - rhs(eqn)
   else fexpr: eqn,
   ax__sample_2d(fexpr, xvar, xlo, xhi, yvar, ylo, yhi, n, n))$
+
+/* Sample a vector field (Fx, Fy) on a 2D grid.
+   Returns [xs, ys, fxmat, fymat] where fxmat[i][j] = Fx(xs[i], ys[j]). */
+ax__sample_vector_field_2d(fxexpr, fyexpr, xvar, xlo, xhi, yvar, ylo, yhi, ng) := block(
+  [xstep, ystep, xs, ys, fxmat, fymat],
+  xlo: float(xlo), xhi: float(xhi),
+  ylo: float(ylo), yhi: float(yhi),
+  xstep: (xhi - xlo) / (ng - 1),
+  ystep: (yhi - ylo) / (ng - 1),
+  xs: makelist(xlo + i * xstep, i, 0, ng - 1),
+  ys: makelist(ylo + j * ystep, j, 0, ng - 1),
+  fxmat: makelist(
+    makelist(
+      block([fxv: errcatch(float(subst([xvar = xs[i+1], yvar = ys[j+1]], fxexpr)))],
+        if fxv = [] then 0.0 else first(fxv)),
+      j, 0, ng - 1),
+    i, 0, ng - 1),
+  fymat: makelist(
+    makelist(
+      block([fyv: errcatch(float(subst([xvar = xs[i+1], yvar = ys[j+1]], fyexpr)))],
+        if fyv = [] then 0.0 else first(fyv)),
+      j, 0, ng - 1),
+    i, 0, ng - 1),
+  [xs, ys, fxmat, fymat])$
+
+/* RK4 integrator for 2D ODE system dx/dt = Fx(x,y), dy/dt = Fy(x,y).
+   Integrates from (x0, y0) over time t0 to tf with step h.
+   Stops if trajectory leaves [xlo,xhi] x [ylo,yhi] or hits non-finite values.
+   Returns list of [x,y] points. */
+ax__rk4_trajectory(fxexpr, fyexpr, xvar, yvar, x0, y0, t0, tf, h, xlo, xhi, ylo, yhi) := block(
+  [path, xc, yc, tc, nsteps, h2,
+   k1x, k1y, k2x, k2y, k3x, k3y, k4x, k4y, xn, yn, ev],
+  path: [[float(x0), float(y0)]],
+  xc: float(x0), yc: float(y0),
+  tc: float(t0),
+  h: float(h),
+  h2: h / 2.0,
+  nsteps: ceiling(abs(tf - t0) / abs(h)),
+  for rk_i thru nsteps do (
+    ev: errcatch(block(
+      [k1x, k1y, k2x, k2y, k3x, k3y, k4x, k4y, xn, yn],
+      k1x: float(subst([xvar=xc, yvar=yc], fxexpr)),
+      k1y: float(subst([xvar=xc, yvar=yc], fyexpr)),
+      k2x: float(subst([xvar=xc+h2*k1x, yvar=yc+h2*k1y], fxexpr)),
+      k2y: float(subst([xvar=xc+h2*k1x, yvar=yc+h2*k1y], fyexpr)),
+      k3x: float(subst([xvar=xc+h2*k2x, yvar=yc+h2*k2y], fxexpr)),
+      k3y: float(subst([xvar=xc+h2*k2x, yvar=yc+h2*k2y], fyexpr)),
+      k4x: float(subst([xvar=xc+h*k3x, yvar=yc+h*k3y], fxexpr)),
+      k4y: float(subst([xvar=xc+h*k3x, yvar=yc+h*k3y], fyexpr)),
+      xn: xc + h*(k1x + 2*k2x + 2*k3x + k4x)/6,
+      yn: yc + h*(k1y + 2*k2y + 2*k3y + k4y)/6,
+      [xn, yn]
+    )),
+    if ev = [] then return('done),
+    xn: first(first(ev)), yn: second(first(ev)),
+    if not numberp(xn) or not numberp(yn) then return('done),
+    if xn # xn or yn # yn then return('done), /* NaN check */
+    if xn < xlo or xn > xhi or yn < ylo or yn > yhi then return('done),
+    path: endcons([xn, yn], path),
+    xc: xn, yc: yn,
+    tc: tc + h
+  ),
+  path
+)$
 
 /* ========================================================================
  * Trace builders — convert draw objects to Plotly JSON trace strings
@@ -502,7 +574,188 @@ ax__trace_histogram_2d(obj, style) := block(
   parts: append(parts, ax__build_trace_style(style, "histogram")),
   sconcat("{", simplode(parts, ","), "}"))$
 
-/* Dispatch to the correct 2D trace builder based on object type */
+/* 2D vector field trace: ax_vector_field(Fx, Fy, xvar, xlo, xhi, yvar, ylo, yhi)
+   Returns a list of two scatter traces: [shaft_trace, head_trace]. */
+ax__trace_vector_field_2d(obj, style) := block(
+  [a, fxexpr, fyexpr, xvar, xlo, xhi, yvar, ylo, yhi, ng, sc, norm,
+   data, xs, ys, fxmat, fymat,
+   shaft_xs, shaft_ys, head_xs, head_ys, head_angles,
+   max_mag, cell_size, scale_factor,
+   c, nm, shaft_parts, head_parts, shaft_trace, head_trace,
+   marker_color_part],
+  a: args(obj),
+  if length(a) # 8 then
+    error("ax_vector_field requires 8 arguments: ax_vector_field(Fx, Fy, xvar, xlo, xhi, yvar, ylo, yhi)"),
+  fxexpr: a[1], fyexpr: a[2],
+  xvar: a[3], xlo: a[4], xhi: a[5],
+  yvar: a[6], ylo: a[7], yhi: a[8],
+
+  ng: ax__style_get(style, ngrid),
+  if ng = false then ng: 20,
+  sc: ax__style_get(style, arrow_scale),
+  if sc = false then sc: 1.0,
+  norm: ax__style_get(style, normalize),
+
+  /* Sample the field */
+  data: ax__sample_vector_field_2d(fxexpr, fyexpr, xvar, xlo, xhi, yvar, ylo, yhi, ng),
+  xs: data[1], ys: data[2], fxmat: data[3], fymat: data[4],
+
+  /* Find maximum magnitude for auto-scaling */
+  max_mag: 0.0,
+  for i: 1 thru ng do
+    for j: 1 thru ng do block([m: sqrt(fxmat[i][j]^2 + fymat[i][j]^2)],
+      if numberp(m) and m > max_mag then max_mag: m),
+
+  /* Scale: make longest arrow about 80% of grid cell size */
+  cell_size: min((float(xhi) - float(xlo)) / (ng - 1), (float(yhi) - float(ylo)) / (ng - 1)),
+  scale_factor: if max_mag > 0 then 0.8 * cell_size / max_mag * float(sc)
+                else cell_size * 0.8 * float(sc),
+
+  /* Build shaft and head arrays */
+  shaft_xs: [], shaft_ys: [],
+  head_xs: [], head_ys: [], head_angles: [],
+
+  for i: 1 thru ng do
+    for j: 1 thru ng do block(
+      [fx_val: fxmat[i][j], fy_val: fymat[i][j], mag, dx, dy, angle_deg],
+      mag: sqrt(fx_val^2 + fy_val^2),
+      if numberp(mag) and mag > 1e-15 then (
+        if norm = true then (
+          dx: fx_val / mag * cell_size * 0.4 * float(sc),
+          dy: fy_val / mag * cell_size * 0.4 * float(sc)
+        ) else (
+          dx: fx_val * scale_factor,
+          dy: fy_val * scale_factor
+        ),
+        /* Shaft: base → tip → null (null breaks the line) */
+        shaft_xs: append(shaft_xs, [xs[i], xs[i] + dx, false]),
+        shaft_ys: append(shaft_ys, [ys[j], ys[j] + dy, false]),
+        /* Head: marker at tip with rotation angle */
+        head_xs: endcons(xs[i] + dx, head_xs),
+        head_ys: endcons(ys[j] + dy, head_ys),
+        /* Plotly marker.angle rotates clockwise; triangle-up default points +y (90°) */
+        angle_deg: 90 - atan2(dy, dx) * 180 / %pi,
+        head_angles: endcons(float(angle_deg), head_angles)
+      )
+    ),
+
+  /* Style */
+  c: ax__style_get(style, color),
+  nm: ax__style_get(style, name),
+  if nm = false then nm: sconcat("(", string(fxexpr), ", ", string(fyexpr), ")"),
+
+  /* Shaft trace: null-separated line segments */
+  shaft_parts: [
+    sconcat("\"x\":", ax__float_list_to_json(shaft_xs)),
+    sconcat("\"y\":", ax__float_list_to_json(shaft_ys)),
+    "\"type\":\"scatter\"",
+    "\"mode\":\"lines\""
+  ],
+  if c # false then
+    shaft_parts: endcons(sconcat("\"line\":{\"color\":", ax__json_string(ax__color_to_css(c)), ",\"width\":1}"), shaft_parts)
+  else
+    shaft_parts: endcons("\"line\":{\"width\":1}", shaft_parts),
+  shaft_parts: endcons(sconcat("\"name\":", ax__json_string(nm)), shaft_parts),
+  shaft_parts: endcons("\"hoverinfo\":\"skip\"", shaft_parts),
+  shaft_trace: sconcat("{", simplode(shaft_parts, ","), "}"),
+
+  /* Head trace: rotated triangle markers at arrow tips */
+  marker_color_part: if c # false then sconcat("\"color\":", ax__json_string(ax__color_to_css(c)), ",") else "",
+  head_parts: [
+    sconcat("\"x\":", ax__float_list_to_json(head_xs)),
+    sconcat("\"y\":", ax__float_list_to_json(head_ys)),
+    "\"type\":\"scatter\"",
+    "\"mode\":\"markers\"",
+    sconcat("\"marker\":{\"symbol\":\"triangle-up\",\"size\":5,",
+            marker_color_part,
+            "\"angle\":", ax__float_list_to_json(head_angles), "}"),
+    "\"showlegend\":false",
+    "\"hoverinfo\":\"skip\""
+  ],
+  head_trace: sconcat("{", simplode(head_parts, ","), "}"),
+
+  /* Return list of two traces */
+  [shaft_trace, head_trace]
+)$
+
+/* 2D streamline trace: ax_streamline(Fx, Fy, xvar, xlo, xhi, yvar, ylo, yhi)
+   Returns a list of scatter traces (one per trajectory). */
+ax__trace_streamline_2d(obj, style) := block(
+  [a, fxexpr, fyexpr, xvar, xlo, xhi, yvar, ylo, yhi,
+   ips, tr, h, traces, c, lw, nm_base,
+   path_fwd, path_bwd, full_path, xs, ys, parts,
+   xstep, ystep],
+  a: args(obj),
+  if length(a) # 8 then
+    error("ax_streamline requires 8 arguments: ax_streamline(Fx, Fy, xvar, xlo, xhi, yvar, ylo, yhi)"),
+  fxexpr: a[1], fyexpr: a[2],
+  xvar: a[3], xlo: float(a[4]), xhi: float(a[5]),
+  yvar: a[6], ylo: float(a[7]), yhi: float(a[8]),
+
+  ips: ax__style_get(style, initial_points),
+  tr: ax__style_get(style, t_range),
+  h: ax__style_get(style, dt),
+  c: ax__style_get(style, color),
+  lw: ax__style_get(style, line_width),
+
+  if tr = false then tr: [0, 10],
+  if h = false then h: 0.05,
+
+  /* Auto-generate initial points if not specified: 3x3 interior grid */
+  if ips = false then (
+    xstep: (xhi - xlo) / 4,
+    ystep: (yhi - ylo) / 4,
+    ips: [],
+    for i: 1 thru 3 do
+      for j: 1 thru 3 do
+        ips: endcons([xlo + i * xstep, ylo + j * ystep], ips)
+  ),
+
+  nm_base: ax__style_get(style, name),
+  traces: [],
+
+  for idx: 1 thru length(ips) do block(
+    [x0: float(ips[idx][1]), y0: float(ips[idx][2]),
+     path_fwd, path_bwd, full_path, xs, ys, parts],
+    /* Integrate forward */
+    path_fwd: ax__rk4_trajectory(fxexpr, fyexpr, xvar, yvar, x0, y0,
+                                  tr[1], tr[2], abs(h), xlo, xhi, ylo, yhi),
+    /* Integrate backward */
+    path_bwd: ax__rk4_trajectory(fxexpr, fyexpr, xvar, yvar, x0, y0,
+                                  tr[1], -tr[2], -abs(h), xlo, xhi, ylo, yhi),
+    /* Combine: reverse of backward + forward (skip duplicate start point) */
+    full_path: append(reverse(path_bwd), rest(path_fwd)),
+
+    if length(full_path) > 1 then (
+      xs: map(first, full_path),
+      ys: map(second, full_path),
+      parts: [
+        sconcat("\"x\":", ax__float_list_to_json(xs)),
+        sconcat("\"y\":", ax__float_list_to_json(ys)),
+        "\"type\":\"scatter\"",
+        "\"mode\":\"lines\""
+      ],
+      if c # false then
+        parts: endcons(sconcat("\"line\":{\"color\":", ax__json_string(ax__color_to_css(c)),
+                               ",\"width\":", string(if lw # false then lw else 1.5), "}"), parts)
+      else
+        parts: endcons(sconcat("\"line\":{\"width\":", string(if lw # false then lw else 1.5), "}"), parts),
+      if nm_base # false then
+        parts: endcons(sconcat("\"name\":", ax__json_string(sconcat(nm_base, " ", string(idx)))), parts)
+      else if idx = 1 then
+        parts: endcons(sconcat("\"name\":", ax__json_string("streamline")), parts)
+      else
+        parts: endcons("\"showlegend\":false", parts),
+      parts: endcons("\"hoverinfo\":\"skip\"", parts),
+      traces: endcons(sconcat("{", simplode(parts, ","), "}"), traces)
+    )
+  ),
+
+  traces
+)$
+
+/* Dispatch to the correct 2D trace builder based on object type.
+   Returns either a single JSON string or a list of JSON strings (for multi-trace objects). */
 ax__build_trace_2d(obj, style) := block([objop],
   objop: op(obj),
   if objop = explicit then ax__trace_explicit_2d(obj, style)
@@ -513,6 +766,8 @@ ax__build_trace_2d(obj, style) := block([objop],
   else if objop = ax_heatmap then ax__trace_heatmap_2d(obj, style)
   else if objop = ax_bar then ax__trace_bar_2d(obj, style)
   else if objop = ax_histogram then ax__trace_histogram_2d(obj, style)
+  else if objop = ax_vector_field then ax__trace_vector_field_2d(obj, style)
+  else if objop = ax_streamline then ax__trace_streamline_2d(obj, style)
   else error("ax_draw2d: unsupported object type:", objop))$
 
 /* Dispatch to the correct 3D trace builder based on object type */
@@ -639,7 +894,11 @@ ax_draw2d([ax__args]) := block(
     else if ax__is_trace_option(item) then
       style: ax__apply_option(style, item)
     else if ax__is_draw_object(item) then
-      traces: endcons(ax__build_trace_2d(item, style), traces)
+      block([result: ax__build_trace_2d(item, style)],
+        if listp(result) then
+          traces: append(traces, result)
+        else
+          traces: endcons(result, traces))
     else error("ax_draw2d: unrecognized argument:", item)
   ),
   ax__emit_plotly(traces, ax__build_layout_2d(layout_opts)),

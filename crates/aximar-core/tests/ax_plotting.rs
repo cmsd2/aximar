@@ -254,6 +254,318 @@ fn test_sampling_values_are_finite() {
 
 #[test]
 #[ignore]
+fn test_ax_draw2d_vector_field() {
+    let (stdout, _) = run_maxima(
+        "ax_draw2d(ax_vector_field(-y, x, x, -3, 3, y, -3, 3));",
+    );
+    let json = extract_plotly_json(&stdout).expect("should produce plotly JSON");
+    let spec = parse_plotly(&json);
+
+    let data = spec["data"].as_array().unwrap();
+    assert_eq!(data.len(), 2, "vector field produces shaft + head traces");
+    assert_eq!(data[0]["type"], "scatter");
+    assert_eq!(data[0]["mode"], "lines");
+    assert_eq!(data[1]["type"], "scatter");
+    assert_eq!(data[1]["mode"], "markers");
+}
+
+#[test]
+#[ignore]
+fn test_ax_draw2d_vector_field_normalized() {
+    let (stdout, _) = run_maxima(
+        "ax_draw2d(ax_vector_field(x, y, x, -2, 2, y, -2, 2), normalize=true, ngrid=5);",
+    );
+    let json = extract_plotly_json(&stdout).expect("should produce plotly JSON");
+    let spec = parse_plotly(&json);
+
+    let data = spec["data"].as_array().unwrap();
+    assert_eq!(data.len(), 2);
+    // Head trace should have triangle-up markers
+    assert_eq!(data[1]["marker"]["symbol"], "triangle-up");
+}
+
+#[test]
+#[ignore]
+fn test_ax_draw2d_streamline() {
+    let (stdout, _) = run_maxima(
+        "ax_draw2d(ax_streamline(-y, x, x, -3, 3, y, -3, 3));",
+    );
+    let json = extract_plotly_json(&stdout).expect("should produce plotly JSON");
+    let spec = parse_plotly(&json);
+
+    let data = spec["data"].as_array().unwrap();
+    assert!(data.len() >= 1, "streamline should produce at least one trace");
+    for trace in data {
+        assert_eq!(trace["type"], "scatter");
+        assert_eq!(trace["mode"], "lines");
+    }
+}
+
+#[test]
+#[ignore]
+fn test_ax_draw2d_streamline_custom_initial_points() {
+    let (stdout, _) = run_maxima(
+        "ax_draw2d(initial_points=[[1,0],[0,1]], ax_streamline(-y, x, x, -3, 3, y, -3, 3));",
+    );
+    let json = extract_plotly_json(&stdout).expect("should produce plotly JSON");
+    let spec = parse_plotly(&json);
+
+    let data = spec["data"].as_array().unwrap();
+    assert_eq!(data.len(), 2, "two initial points -> two trajectory traces");
+}
+
+#[test]
+#[ignore]
+fn test_ax_draw2d_phase_portrait() {
+    let (stdout, _) = run_maxima(
+        r#"ax_draw2d(color="gray", ax_vector_field(-y, x, x, -3, 3, y, -3, 3), color="red", ax_streamline(-y, x, x, -3, 3, y, -3, 3));"#,
+    );
+    let json = extract_plotly_json(&stdout).expect("should produce plotly JSON");
+    let spec = parse_plotly(&json);
+
+    let data = spec["data"].as_array().unwrap();
+    assert!(data.len() >= 3, "should have vector field traces + streamline traces");
+}
+
+// ── Numerical correctness tests ──────────────────────────────────────────
+
+/// Extract a labeled float value from Maxima stdout, e.g. "MAX_ERR: 1.23e-12"
+fn parse_maxima_value(stdout: &str, label: &str) -> f64 {
+    let joined = stdout.replace("\\\n", "");
+    for line in joined.lines() {
+        let trimmed = line.trim();
+        if let Some(rest) = trimmed.strip_prefix(label) {
+            let val_str = rest.trim();
+            // Maxima may print "1.23e-12" or "1.23E-12" or just "0.0"
+            return val_str
+                .parse::<f64>()
+                .unwrap_or_else(|e| panic!("failed to parse '{val_str}' as f64: {e}"));
+        }
+    }
+    panic!("label '{label}' not found in Maxima output:\n{joined}");
+}
+
+#[test]
+#[ignore]
+fn test_rk4_conservation_rotation_system() {
+    // dx/dt = -y, dy/dt = x has exact invariant x² + y² = const.
+    // Starting at (1, 0), all trajectory points should satisfy x² + y² ≈ 1.
+    let (stdout, _) = run_maxima(
+        "ax_draw2d(initial_points=[[1,0]], t_range=[0, 2*float(%pi)], dt=0.01, ax_streamline(-y, x, x, -3, 3, y, -3, 3));",
+    );
+    let json = extract_plotly_json(&stdout).expect("should produce plotly JSON");
+    let spec = parse_plotly(&json);
+
+    let data = spec["data"].as_array().unwrap();
+    assert_eq!(data.len(), 1, "one initial point -> one trajectory");
+
+    let xs = data[0]["x"].as_array().unwrap();
+    let ys = data[0]["y"].as_array().unwrap();
+    assert!(xs.len() > 100, "should have many trajectory points");
+
+    let mut max_deviation = 0.0_f64;
+    for (xv, yv) in xs.iter().zip(ys.iter()) {
+        let x = xv.as_f64().unwrap();
+        let y = yv.as_f64().unwrap();
+        let r_sq = x * x + y * y;
+        let deviation = (r_sq - 1.0).abs();
+        max_deviation = max_deviation.max(deviation);
+    }
+    assert!(
+        max_deviation < 1e-6,
+        "x² + y² should be conserved to 1e-6, but max deviation = {max_deviation}"
+    );
+}
+
+#[test]
+#[ignore]
+fn test_rk4_endpoint_accuracy_full_circle() {
+    // Rotation system from (1, 0) with t = 2π should return near (1, 0).
+    // With dt=0.01, ceil(2π/0.01) = 629 steps → t_final = 6.29, overshooting 2π by ~0.0068.
+    // So the endpoint distance from (1,0) is bounded by dt (the max overshoot).
+    let (stdout, _) = run_maxima(
+        "ax_draw2d(initial_points=[[1,0]], t_range=[0, 2*float(%pi)], dt=0.01, ax_streamline(-y, x, x, -3, 3, y, -3, 3));",
+    );
+    let json = extract_plotly_json(&stdout).expect("should produce plotly JSON");
+    let spec = parse_plotly(&json);
+
+    let data = spec["data"].as_array().unwrap();
+    let xs = data[0]["x"].as_array().unwrap();
+    let ys = data[0]["y"].as_array().unwrap();
+
+    // Full path = reverse(backward) + rest(forward).
+    // Both endpoints overshoot ±2π by at most dt, so distance from (1, 0) ≤ dt.
+    let x_first = xs.first().unwrap().as_f64().unwrap();
+    let y_first = ys.first().unwrap().as_f64().unwrap();
+    let x_last = xs.last().unwrap().as_f64().unwrap();
+    let y_last = ys.last().unwrap().as_f64().unwrap();
+
+    let dist_first = ((x_first - 1.0).powi(2) + y_first.powi(2)).sqrt();
+    let dist_last = ((x_last - 1.0).powi(2) + y_last.powi(2)).sqrt();
+
+    assert!(
+        dist_first < 0.01 && dist_last < 0.01,
+        "both endpoints should be within dt of (1, 0).\n\
+         first=({x_first:.6}, {y_first:.6}) dist={dist_first:.6}\n\
+         last=({x_last:.6}, {y_last:.6}) dist={dist_last:.6}"
+    );
+}
+
+#[test]
+#[ignore]
+fn test_rk4_cross_validate_with_maxima_rk() {
+    // Compare our ax__rk4_trajectory against Maxima's built-in rk() from dynamics package.
+    // Both are RK4 with identical step size — should agree to near machine precision.
+    // Use t_final = 6.0 (exact multiple of dt=0.01) to avoid last-step differences
+    // (Maxima's rk may take a shorter final step to hit the endpoint exactly, while
+    // ours always takes full steps).
+    let (stdout, stderr) = run_maxima(
+        r#"load("dynamics")$
+our: ax__rk4_trajectory(-y, x, x, y, 1, 0, 0, 6.0, 0.01, -5, 5, -5, 5)$
+ref: rk([-y, x], [x, y], [1, 0], [t, 0, 6.0, 0.01])$
+n: min(length(our), length(ref))$
+max_err: lmax(makelist(
+  sqrt((our[i][1] - ref[i][2])^2 + (our[i][2] - ref[i][3])^2),
+  i, 1, n))$
+print("MAX_ERR:", max_err)$"#,
+    );
+    assert!(
+        !stderr.contains("error"),
+        "Maxima should not produce errors: {stderr}"
+    );
+    let max_err = parse_maxima_value(&stdout, "MAX_ERR:");
+    assert!(
+        max_err < 1e-10,
+        "our RK4 and Maxima's rk() should agree to 1e-10, but max error = {max_err}"
+    );
+}
+
+#[test]
+#[ignore]
+fn test_rk4_nonlinear_cross_validate_lotka_volterra() {
+    // Cross-validate on a nonlinear system: Lotka-Volterra dx/dt = x(1-y), dy/dt = y(x-1)
+    let (stdout, stderr) = run_maxima(
+        r#"load("dynamics")$
+our: ax__rk4_trajectory(x*(1-y), y*(x-1), x, y, 1.5, 1.5, 0, 5, 0.01, -10, 10, -10, 10)$
+ref: rk([x*(1-y), y*(x-1)], [x, y], [1.5, 1.5], [t, 0, 5, 0.01])$
+n: min(length(our), length(ref))$
+max_err: lmax(makelist(
+  sqrt((our[i][1] - ref[i][2])^2 + (our[i][2] - ref[i][3])^2),
+  i, 1, n))$
+print("MAX_ERR:", max_err)$"#,
+    );
+    assert!(
+        !stderr.contains("error"),
+        "Maxima should not produce errors: {stderr}"
+    );
+    let max_err = parse_maxima_value(&stdout, "MAX_ERR:");
+    assert!(
+        max_err < 1e-10,
+        "our RK4 and Maxima's rk() should agree on Lotka-Volterra, but max error = {max_err}"
+    );
+}
+
+#[test]
+#[ignore]
+fn test_vector_field_arrow_directions_uniform() {
+    // Uniform rightward field F = (1, 0): all arrows should point right (angle ≈ 0).
+    // Plotly angle formula: 90 - atan2(dy, dx) * 180/π = 90 - atan2(0, 1) * 180/π = 90 - 0 = 90
+    // Wait — for F=(1,0), atan2(0, positive) = 0, so angle = 90 - 0 = 90... but that's wrong.
+    // Actually, Plotly's triangle-up points +y by default, and marker.angle rotates clockwise.
+    // So angle=0 means pointing up, angle=90 means pointing right. Our formula gives 90° for rightward. ✓
+    let (stdout, _) = run_maxima(
+        "ax_draw2d(ngrid=5, ax_vector_field(1, 0, x, -1, 1, y, -1, 1));",
+    );
+    let json = extract_plotly_json(&stdout).expect("should produce plotly JSON");
+    let spec = parse_plotly(&json);
+
+    let data = spec["data"].as_array().unwrap();
+    let head_trace = &data[1]; // second trace is arrowheads
+    let angles = head_trace["marker"]["angle"].as_array().unwrap();
+
+    for (i, angle_val) in angles.iter().enumerate() {
+        let angle = angle_val.as_f64().unwrap();
+        // For F=(1, 0): atan2(0, 1) = 0, so angle = 90 - 0 = 90°
+        assert!(
+            (angle - 90.0).abs() < 1e-6,
+            "arrow {i} should have angle ≈ 90° (rightward), got {angle}"
+        );
+    }
+}
+
+#[test]
+#[ignore]
+fn test_vector_field_diagonal_direction() {
+    // Field F = (1, 1) at every point: arrows should point at 45° from +x.
+    // atan2(1, 1) = π/4, angle = 90 - 45 = 45°
+    let (stdout, _) = run_maxima(
+        "ax_draw2d(ngrid=3, ax_vector_field(1, 1, x, -1, 1, y, -1, 1));",
+    );
+    let json = extract_plotly_json(&stdout).expect("should produce plotly JSON");
+    let spec = parse_plotly(&json);
+
+    let data = spec["data"].as_array().unwrap();
+    let head_trace = &data[1];
+    let angles = head_trace["marker"]["angle"].as_array().unwrap();
+
+    for (i, angle_val) in angles.iter().enumerate() {
+        let angle = angle_val.as_f64().unwrap();
+        // atan2(1, 1) = 45°, Plotly angle = 90 - 45 = 45°
+        assert!(
+            (angle - 45.0).abs() < 1e-6,
+            "arrow {i} should have angle ≈ 45°, got {angle}"
+        );
+    }
+}
+
+#[test]
+#[ignore]
+fn test_streamline_exponential_growth() {
+    // dx/dt = x, dy/dt = 0 from (1, 1): exact solution x(t) = e^t, y(t) = 1.
+    // After t=1: x ≈ e ≈ 2.718, y = 1.
+    let (stdout, _) = run_maxima(
+        "ax_draw2d(initial_points=[[1,1]], t_range=[0, 1], dt=0.01, ax_streamline(x, 0, x, -10, 10, y, -3, 3));",
+    );
+    let json = extract_plotly_json(&stdout).expect("should produce plotly JSON");
+    let spec = parse_plotly(&json);
+
+    let data = spec["data"].as_array().unwrap();
+    assert_eq!(data.len(), 1, "one trajectory");
+
+    let xs = data[0]["x"].as_array().unwrap();
+    let ys = data[0]["y"].as_array().unwrap();
+
+    // All y values should be ≈ 1
+    for (i, yv) in ys.iter().enumerate() {
+        let y = yv.as_f64().unwrap();
+        assert!(
+            (y - 1.0).abs() < 1e-10,
+            "y[{i}] should be 1.0 (no y dynamics), got {y}"
+        );
+    }
+
+    // The forward integration goes from (1,1) to (e, 1).
+    // The backward integration goes from (1,1) toward (e^-1, 1) ≈ (0.368, 1).
+    // Full path = reverse(backward) + rest(forward), so:
+    // first x ≈ e^-1 ≈ 0.368, last x ≈ e ≈ 2.718
+    let x_first = xs.first().unwrap().as_f64().unwrap();
+    let x_last = xs.last().unwrap().as_f64().unwrap();
+
+    let e = std::f64::consts::E;
+    let e_inv = 1.0 / e;
+
+    assert!(
+        (x_last - e).abs() < 1e-4,
+        "last x should be ≈ e ≈ 2.718, got {x_last}"
+    );
+    assert!(
+        (x_first - e_inv).abs() < 1e-4,
+        "first x should be ≈ 1/e ≈ 0.368, got {x_first}"
+    );
+}
+
+#[test]
+#[ignore]
 fn test_unique_filenames() {
     // Two consecutive plots should produce different file paths
     let (stdout, _) = run_maxima(

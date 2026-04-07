@@ -70,6 +70,65 @@ ax_draw2d(
 | `parametric` | `parametric(x(t), y(t), t, tlo, thi)` | A parametric curve |
 | `points` | `points([[x1,y1],[x2,y2],...])` | Scatter points |
 | `implicit` | `implicit(eqn, x, xlo, xhi, y, ylo, yhi)` | An implicit curve f(x,y)=0 |
+| `ax_vector_field` | `ax_vector_field(Fx, Fy, x, xlo, xhi, y, ylo, yhi)` | 2D vector field |
+| `ax_streamline` | `ax_streamline(Fx, Fy, x, xlo, xhi, y, ylo, yhi)` | Streamline / phase portrait curves |
+
+#### Vector Fields
+
+```maxima
+/* Rotation field */
+ax_draw2d(
+  ax_vector_field(-y, x, x, -3, 3, y, -3, 3),
+  aspect_ratio=true
+);
+
+/* Normalized arrows (direction only) with custom grid */
+ax_draw2d(
+  ax_vector_field(x, -y, x, -2, 2, y, -2, 2),
+  normalize=true, ngrid=25
+);
+```
+
+**Vector field options:**
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `ngrid` | 20 | Grid resolution (ngrid × ngrid arrows) |
+| `arrow_scale` | 1.0 | Arrow length multiplier |
+| `normalize` | false | Equal-length arrows (direction only) |
+
+#### Streamlines / Phase Portraits
+
+```maxima
+/* Auto-generated initial conditions */
+ax_draw2d(ax_streamline(-y, x, x, -3, 3, y, -3, 3));
+
+/* Custom initial points */
+ax_draw2d(
+  initial_points=[[1,0],[0,1],[-1,0]],
+  t_range=[0,5],
+  ax_streamline(x-y, x+y, x, -3, 3, y, -3, 3)
+);
+```
+
+Combine with `ax_vector_field` for a full phase portrait:
+
+```maxima
+ax_draw2d(
+  color="#cccccc", ax_vector_field(-y, x, x, -3, 3, y, -3, 3),
+  color="red", ax_streamline(-y, x, x, -3, 3, y, -3, 3),
+  aspect_ratio=true,
+  title="Phase Portrait: Rotation"
+);
+```
+
+**Streamline options:**
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `initial_points` | auto (3×3 grid) | List of [x0,y0] starting points |
+| `t_range` | [0, 10] | Integration time span [t0, tf] |
+| `dt` | 0.05 | RK4 step size |
 
 ### `ax_draw3d` — 3D Drawing
 

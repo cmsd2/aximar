@@ -22,7 +22,7 @@
       "signatures": [
         "ax_draw2d(options, ..., graphic_object, ...)"
       ],
-      "description": "Draw 2D interactive plots using Plotly.js. Accepts draw package objects (explicit, parametric, points, implicit) and Aximar objects (ax_contour, ax_heatmap, ax_bar, ax_histogram). Renders as interactive charts with pan, zoom, and hover. Style options: color, line_width, dash, marker_symbol, marker_size, fill, opacity, name, colorscale, showscale, nbins, ncontours, bar_width. Layout options: title, xlabel, ylabel, xrange, yrange, grid, showlegend, aspect_ratio, width, height, bar_mode.",
+      "description": "Draw 2D interactive plots using Plotly.js. Accepts draw package objects (explicit, parametric, points, implicit) and Aximar objects (ax_contour, ax_heatmap, ax_bar, ax_histogram, ax_vector_field, ax_streamline). Renders as interactive charts with pan, zoom, and hover. Style options: color, line_width, dash, marker_symbol, marker_size, fill, opacity, name, colorscale, showscale, nbins, ncontours, bar_width, ngrid, arrow_scale, normalize, initial_points, t_range, dt. Layout options: title, xlabel, ylabel, xrange, yrange, grid, showlegend, aspect_ratio, width, height, bar_mode.",
       "category": "Plotting",
       "see_also": ["ax_plot2d", "ax_draw3d", "ax_polar", "draw2d"],
       "examples": [
@@ -33,9 +33,11 @@
         {"input": "ax_draw2d(implicit(x^2 + y^2 = 4, x, -3, 3, y, -3, 3))$", "description": null},
         {"input": "ax_draw2d(ax_contour(x^2+y^2, x, -3, 3, y, -3, 3), colorscale=\"Viridis\")$", "description": null},
         {"input": "ax_draw2d(ax_bar([\"A\",\"B\",\"C\"], [10,20,30]), title=\"Sales\")$", "description": null},
-        {"input": "ax_draw2d(ax_histogram(makelist(random(100)/10.0, i, 1, 500)))$", "description": null}
+        {"input": "ax_draw2d(ax_histogram(makelist(random(100)/10.0, i, 1, 500)))$", "description": null},
+        {"input": "ax_draw2d(ax_vector_field(-y, x, x, -3, 3, y, -3, 3), aspect_ratio=true)$", "description": "Vector field"},
+        {"input": "ax_draw2d(color=\"#cccccc\", ax_vector_field(-y, x, x, -3, 3, y, -3, 3), color=\"red\", ax_streamline(-y, x, x, -3, 3, y, -3, 3), aspect_ratio=true, title=\"Phase Portrait\")$", "description": "Phase portrait"}
       ],
-      "docs": "## ax_draw2d\n\n`ax_draw2d(options, ..., graphic_object, ...)`\n\nDraw 2D interactive plots using Plotly.js. Accepts Maxima draw package objects and Aximar-specific objects, rendering them as interactive charts with pan, zoom, and hover.\n\n### Supported Objects\n\n**Draw package objects:**\n\n| Object | Syntax | Description |\n|--------|--------|-------------|\n| `explicit` | `explicit(expr, var, lo, hi)` | A curve y=f(x) |\n| `parametric` | `parametric(x(t), y(t), t, tlo, thi)` | A parametric curve |\n| `points` | `points([[x1,y1],[x2,y2],...])` | Scatter points |\n| `implicit` | `implicit(eqn, x, xlo, xhi, y, ylo, yhi)` | An implicit curve f(x,y)=0 |\n\n**Aximar objects:**\n\n| Object | Syntax | Description |\n|--------|--------|-------------|\n| `ax_contour` | `ax_contour(expr, x, xlo, xhi, y, ylo, yhi)` | Filled contour plot |\n| `ax_heatmap` | `ax_heatmap(matrix)` or `ax_heatmap(expr, x, xlo, xhi, y, ylo, yhi)` | Heatmap |\n| `ax_bar` | `ax_bar(categories, values)` or `ax_bar(values)` | Bar chart |\n| `ax_histogram` | `ax_histogram(data)` | Histogram |\n\n### Examples\n\n```maxima\n/* Explicit curves with styling */\nax_draw2d(\n  color=\"red\", explicit(x^2, x, -3, 3),\n  color=\"blue\", explicit(x^3, x, -2, 2)\n)$\n\n/* Filled contour */\nax_draw2d(\n  ax_contour(sin(x)*cos(y), x, -%pi, %pi, y, -%pi, %pi),\n  colorscale=\"Viridis\", title=\"Contour Plot\"\n)$\n\n/* Bar chart */\nax_draw2d(\n  ax_bar([\"Q1\",\"Q2\",\"Q3\",\"Q4\"], [100,150,120,180]),\n  title=\"Quarterly Sales\"\n)$\n\n/* Histogram */\nax_draw2d(\n  ax_histogram(makelist(random(100)/10.0, i, 1, 500)),\n  nbins=20, title=\"Distribution\"\n)$\n```\n\n### Style Options\n\nOptions use Plotly-native naming and apply to subsequent objects until overridden:\n\n| Option | Default | Description |\n|--------|---------|-------------|\n| `color` | auto | Line/marker color (atom like `red` or CSS string) |\n| `fill_color` | none | Fill color |\n| `opacity` | 1.0 | Trace opacity (0\u20131) |\n| `line_width` | 2 | Line width in pixels |\n| `dash` | `\"solid\"` | Line style: `\"solid\"`, `\"dot\"`, `\"dash\"`, `\"dashdot\"` |\n| `marker_symbol` | `\"circle\"` | Marker shape |\n| `marker_size` | 6 | Marker size |\n| `name` | auto | Legend entry |\n| `fill` | none | Fill region: `\"tozeroy\"`, `\"toself\"`, etc. |\n| `colorscale` | none | Color scale for contour/heatmap (e.g. `\"Viridis\"`, `\"Hot\"`) |\n| `showscale` | auto | Show/hide colorbar for contour/heatmap |\n| `ncontours` | auto | Number of contour levels (ax_contour) |\n| `nbins` | auto | Number of bins (ax_histogram) |\n| `bar_width` | auto | Bar width fraction (ax_bar) |\n| `nticks` | 500 | Sampling resolution |\n\n### Layout Options\n\n| Option | Description |\n|--------|-------------|\n| `title` | Plot title |\n| `xlabel` / `ylabel` | Axis labels |\n| `xrange` / `yrange` | Axis ranges |\n| `grid` | Show grid lines |\n| `xaxis` / `yaxis` | Show/hide axes |\n| `showlegend` | Show legend |\n| `aspect_ratio` | Lock aspect ratio |\n| `width` | Fixed plot width in pixels |\n| `height` | Fixed plot height in pixels |\n| `bar_mode` | Bar/histogram grouping: `\"group\"`, `\"stack\"`, `\"overlay\"` |\n\nSee also: `ax_plot2d`, `ax_draw3d`, `ax_polar`, `draw2d`",
+      "docs": "## ax_draw2d\n\n`ax_draw2d(options, ..., graphic_object, ...)`\n\nDraw 2D interactive plots using Plotly.js. Accepts Maxima draw package objects and Aximar-specific objects, rendering them as interactive charts with pan, zoom, and hover.\n\n### Supported Objects\n\n**Draw package objects:**\n\n| Object | Syntax | Description |\n|--------|--------|-------------|\n| `explicit` | `explicit(expr, var, lo, hi)` | A curve y=f(x) |\n| `parametric` | `parametric(x(t), y(t), t, tlo, thi)` | A parametric curve |\n| `points` | `points([[x1,y1],[x2,y2],...])` | Scatter points |\n| `implicit` | `implicit(eqn, x, xlo, xhi, y, ylo, yhi)` | An implicit curve f(x,y)=0 |\n\n**Aximar objects:**\n\n| Object | Syntax | Description |\n|--------|--------|-------------|\n| `ax_contour` | `ax_contour(expr, x, xlo, xhi, y, ylo, yhi)` | Filled contour plot |\n| `ax_heatmap` | `ax_heatmap(matrix)` or `ax_heatmap(expr, x, xlo, xhi, y, ylo, yhi)` | Heatmap |\n| `ax_bar` | `ax_bar(categories, values)` or `ax_bar(values)` | Bar chart |\n| `ax_histogram` | `ax_histogram(data)` | Histogram |\n| `ax_vector_field` | `ax_vector_field(Fx, Fy, x, xlo, xhi, y, ylo, yhi)` | 2D vector field |\n| `ax_streamline` | `ax_streamline(Fx, Fy, x, xlo, xhi, y, ylo, yhi)` | Streamline / phase portrait curves |\n\n### Examples\n\n```maxima\n/* Explicit curves with styling */\nax_draw2d(\n  color=\"red\", explicit(x^2, x, -3, 3),\n  color=\"blue\", explicit(x^3, x, -2, 2)\n)$\n\n/* Filled contour */\nax_draw2d(\n  ax_contour(sin(x)*cos(y), x, -%pi, %pi, y, -%pi, %pi),\n  colorscale=\"Viridis\", title=\"Contour Plot\"\n)$\n\n/* Bar chart */\nax_draw2d(\n  ax_bar([\"Q1\",\"Q2\",\"Q3\",\"Q4\"], [100,150,120,180]),\n  title=\"Quarterly Sales\"\n)$\n\n/* Histogram */\nax_draw2d(\n  ax_histogram(makelist(random(100)/10.0, i, 1, 500)),\n  nbins=20, title=\"Distribution\"\n)$\n\n/* Phase portrait: vector field + streamlines */\nax_draw2d(\n  color=\"#cccccc\", ax_vector_field(-y, x, x, -3, 3, y, -3, 3),\n  color=\"red\", ax_streamline(-y, x, x, -3, 3, y, -3, 3),\n  aspect_ratio=true, title=\"Phase Portrait\"\n)$\n\n/* Streamlines with custom initial conditions */\nax_draw2d(\n  initial_points=[[1,0],[0,1],[-1,0],[0,-1]],\n  t_range=[0,8],\n  ax_streamline(-y, x, x, -3, 3, y, -3, 3),\n  aspect_ratio=true\n)$\n```\n\n### Style Options\n\nOptions use Plotly-native naming and apply to subsequent objects until overridden:\n\n| Option | Default | Description |\n|--------|---------|-------------|\n| `color` | auto | Line/marker color (atom like `red` or CSS string) |\n| `fill_color` | none | Fill color |\n| `opacity` | 1.0 | Trace opacity (0\u20131) |\n| `line_width` | 2 | Line width in pixels |\n| `dash` | `\"solid\"` | Line style: `\"solid\"`, `\"dot\"`, `\"dash\"`, `\"dashdot\"` |\n| `marker_symbol` | `\"circle\"` | Marker shape |\n| `marker_size` | 6 | Marker size |\n| `name` | auto | Legend entry |\n| `fill` | none | Fill region: `\"tozeroy\"`, `\"toself\"`, etc. |\n| `colorscale` | none | Color scale for contour/heatmap (e.g. `\"Viridis\"`, `\"Hot\"`) |\n| `showscale` | auto | Show/hide colorbar for contour/heatmap |\n| `ncontours` | auto | Number of contour levels (ax_contour) |\n| `nbins` | auto | Number of bins (ax_histogram) |\n| `bar_width` | auto | Bar width fraction (ax_bar) |\n| `nticks` | 500 | Sampling resolution |\n| `ngrid` | 20 | Vector field grid resolution (ngrid \u00d7 ngrid) |\n| `arrow_scale` | 1.0 | Arrow length multiplier (ax_vector_field) |\n| `normalize` | false | Equal-length arrows, direction only (ax_vector_field) |\n| `initial_points` | auto | Streamline start points `[[x0,y0],...]` (ax_streamline) |\n| `t_range` | [0, 10] | Integration time span `[t0, tf]` (ax_streamline) |\n| `dt` | 0.05 | RK4 step size (ax_streamline) |\n\n### Layout Options\n\n| Option | Description |\n|--------|-------------|\n| `title` | Plot title |\n| `xlabel` / `ylabel` | Axis labels |\n| `xrange` / `yrange` | Axis ranges |\n| `grid` | Show grid lines |\n| `xaxis` / `yaxis` | Show/hide axes |\n| `showlegend` | Show legend |\n| `aspect_ratio` | Lock aspect ratio |\n| `width` | Fixed plot width in pixels |\n| `height` | Fixed plot height in pixels |\n| `bar_mode` | Bar/histogram grouping: `\"group\"`, `\"stack\"`, `\"overlay\"` |\n\nSee also: `ax_plot2d`, `ax_draw3d`, `ax_polar`, `draw2d`",
       "accepts_objects": true,
       "object_group": "2d",
       "style_options": true,
@@ -134,6 +136,34 @@
         {"input": "ax_draw2d(color=\"blue\", opacity=0.5, ax_histogram(data1), color=\"red\", opacity=0.5, ax_histogram(data2), bar_mode=\"overlay\")$", "description": null}
       ],
       "docs": "## ax_histogram\n\n`ax_histogram(data)`\n\nHistogram of numeric data. Use inside `ax_draw2d`. Takes a flat list of numbers; Plotly handles binning automatically.\n\n### Examples\n\n```maxima\n/* Basic histogram */\ndata: makelist(random(100)/10.0, i, 1, 500)$\nax_draw2d(ax_histogram(data), title=\"Distribution\")$\n\n/* Control bin count */\nax_draw2d(ax_histogram(data), nbins=30)$\n\n/* Overlaid histograms */\ndata1: makelist(random_normal(0, 1), i, 1, 500)$\ndata2: makelist(random_normal(2, 1.5), i, 1, 500)$\nax_draw2d(\n  color=\"blue\", opacity=0.5, name=\"Group A\", ax_histogram(data1),\n  color=\"red\", opacity=0.5, name=\"Group B\", ax_histogram(data2),\n  bar_mode=\"overlay\", title=\"Comparing Distributions\"\n)$\n```\n\n### Relevant Options\n\n| Option | Default | Description |\n|--------|---------|-------------|\n| `nbins` | auto | Number of bins |\n| `color` | auto | Bar fill color |\n| `name` | auto | Legend entry |\n| `opacity` | 1.0 | Bar opacity |\n\n### Layout Options\n\n| Option | Values | Description |\n|--------|--------|-------------|\n| `bar_mode` | `\"group\"`, `\"stack\"`, `\"overlay\"` | How overlapping histograms are displayed |\n\nSee also: `ax_draw2d`, `ax_bar`"
+    },
+    "ax_vector_field": {
+      "signatures": [
+        "ax_vector_field(Fx, Fy, xvar, xlo, xhi, yvar, ylo, yhi)"
+      ],
+      "description": "2D vector field (quiver) plot showing arrows for F = (Fx(x,y), Fy(x,y)). Use inside ax_draw2d. Samples on a grid and renders arrow shafts with triangular heads. Supports ngrid, arrow_scale, and normalize options.",
+      "category": "Plotting",
+      "see_also": ["ax_draw2d", "ax_streamline"],
+      "examples": [
+        {"input": "ax_draw2d(ax_vector_field(-y, x, x, -3, 3, y, -3, 3))$", "description": "Rotation field"},
+        {"input": "ax_draw2d(ax_vector_field(x, y, x, -2, 2, y, -2, 2), ngrid=15, color=\"steelblue\")$", "description": null},
+        {"input": "ax_draw2d(ax_vector_field(-y, x, x, -3, 3, y, -3, 3), normalize=true, title=\"Direction field\")$", "description": null}
+      ],
+      "docs": "## ax_vector_field\n\n`ax_vector_field(Fx, Fy, xvar, xlo, xhi, yvar, ylo, yhi)`\n\n2D vector field (quiver) plot. Use inside `ax_draw2d`. Given a vector field F = (Fx(x,y), Fy(x,y)), samples on a grid and renders arrows showing the field direction and magnitude.\n\n### Examples\n\n```maxima\n/* Rotation field */\nax_draw2d(ax_vector_field(-y, x, x, -3, 3, y, -3, 3))$\n\n/* Source/sink */\nax_draw2d(\n  ax_vector_field(x, y, x, -2, 2, y, -2, 2),\n  title=\"Source\"\n)$\n\n/* Direction-only (normalized arrows) */\nax_draw2d(\n  ax_vector_field(-y, x, x, -3, 3, y, -3, 3),\n  normalize=true, ngrid=25\n)$\n\n/* Phase portrait: vector field + streamlines */\nax_draw2d(\n  color=\"#cccccc\", ax_vector_field(-y, x, x, -3, 3, y, -3, 3),\n  color=\"red\", ax_streamline(-y, x, x, -3, 3, y, -3, 3),\n  aspect_ratio=true, title=\"Phase Portrait\"\n)$\n```\n\n### Relevant Options\n\n| Option | Default | Description |\n|--------|---------|-------------|\n| `ngrid` | 20 | Grid resolution (ngrid \u00d7 ngrid arrows) |\n| `arrow_scale` | 1.0 | Multiplier for arrow length |\n| `normalize` | false | Equal-length arrows (direction only) |\n| `color` | auto | Arrow color |\n| `name` | auto | Legend entry |\n| `opacity` | 1.0 | Trace opacity |\n\nSee also: `ax_draw2d`, `ax_streamline`"
+    },
+    "ax_streamline": {
+      "signatures": [
+        "ax_streamline(Fx, Fy, xvar, xlo, xhi, yvar, ylo, yhi)"
+      ],
+      "description": "Streamline / phase portrait curves for a 2D ODE system dx/dt = Fx(x,y), dy/dt = Fy(x,y). Use inside ax_draw2d. Integrates trajectories from initial points using RK4. Combine with ax_vector_field for a full phase portrait. Supports initial_points, t_range, and dt options.",
+      "category": "Plotting",
+      "see_also": ["ax_draw2d", "ax_vector_field"],
+      "examples": [
+        {"input": "ax_draw2d(ax_streamline(-y, x, x, -3, 3, y, -3, 3))$", "description": "Circular orbits"},
+        {"input": "ax_draw2d(color=\"gray\", ax_vector_field(-y, x, x, -3, 3, y, -3, 3), color=\"red\", ax_streamline(-y, x, x, -3, 3, y, -3, 3), title=\"Phase Portrait\")$", "description": "Vector field + streamlines"},
+        {"input": "ax_draw2d(initial_points=[[1,0],[0,1],[-1,0],[0,-1]], t_range=[0,5], ax_streamline(x-y, x+y, x, -3, 3, y, -3, 3))$", "description": "Custom initial conditions"}
+      ],
+      "docs": "## ax_streamline\n\n`ax_streamline(Fx, Fy, xvar, xlo, xhi, yvar, ylo, yhi)`\n\nStreamline / phase portrait curves for a 2D ODE system dx/dt = Fx(x,y), dy/dt = Fy(x,y). Use inside `ax_draw2d`. Integrates trajectories from initial points using RK4.\n\nCombine with `ax_vector_field` for a full phase portrait:\n\n```maxima\nax_draw2d(\n  color=\"#cccccc\", ax_vector_field(-y, x, x, -3, 3, y, -3, 3),\n  color=\"red\", ax_streamline(-y, x, x, -3, 3, y, -3, 3),\n  aspect_ratio=true, title=\"Phase Portrait\"\n)$\n```\n\n### Examples\n\n```maxima\n/* Auto initial points */\nax_draw2d(ax_streamline(-y, x, x, -3, 3, y, -3, 3))$\n\n/* Custom initial points and time range */\nax_draw2d(\n  initial_points=[[0.5,0.5],[2,2],[3,1]],\n  t_range=[0,20], dt=0.01,\n  ax_streamline(x*(1-y), y*(x-1), x, 0, 4, y, 0, 4),\n  title=\"Lotka-Volterra\"\n)$\n```\n\n### Relevant Options\n\n| Option | Default | Description |\n|--------|---------|-------------|\n| `initial_points` | auto | List of [x0,y0] starting points |\n| `t_range` | [0, 10] | Integration time span [t0, tf] |\n| `dt` | 0.05 | RK4 step size |\n| `color` | auto | Curve color |\n| `line_width` | 1.5 | Curve thickness |\n| `name` | auto | Legend entry |\n| `opacity` | 1.0 | Trace opacity |\n\nSee also: `ax_draw2d`, `ax_vector_field`"
     }
   },
   "draw_objects": {
@@ -193,6 +223,20 @@
         "info": "Histogram of numeric data",
         "snippet_params": ["data"],
         "boost": 3
+      },
+      {
+        "name": "ax_vector_field",
+        "detail": "ax_vector_field(Fx, Fy, xvar, xlo, xhi, yvar, ylo, yhi)",
+        "info": "2D vector field / quiver plot",
+        "snippet_params": ["Fx", "Fy", "x", "xlo", "xhi", "y", "ylo", "yhi"],
+        "boost": 2
+      },
+      {
+        "name": "ax_streamline",
+        "detail": "ax_streamline(Fx, Fy, xvar, xlo, xhi, yvar, ylo, yhi)",
+        "info": "Streamline / phase portrait curves",
+        "snippet_params": ["Fx", "Fy", "x", "xlo", "xhi", "y", "ylo", "yhi"],
+        "boost": 1
       }
     ],
     "3d": [
@@ -227,7 +271,13 @@
     { "name": "showscale", "detail": "Show colorbar (true/false)" },
     { "name": "ncontours", "detail": "Number of contour levels" },
     { "name": "nbins", "detail": "Number of histogram bins" },
-    { "name": "bar_width", "detail": "Bar width fraction" }
+    { "name": "bar_width", "detail": "Bar width fraction" },
+    { "name": "ngrid", "detail": "Vector field grid resolution" },
+    { "name": "arrow_scale", "detail": "Arrow length multiplier (1.0 = auto)" },
+    { "name": "normalize", "detail": "Equal-length arrows (true/false)" },
+    { "name": "initial_points", "detail": "Streamline start points [[x0,y0],...]" },
+    { "name": "t_range", "detail": "Integration time span [t0, tf]" },
+    { "name": "dt", "detail": "RK4 step size" }
   ],
   "layout_options": {
     "2d": [

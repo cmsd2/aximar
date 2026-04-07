@@ -54,7 +54,7 @@
     "signatures": [
       "ax_draw2d(options, ..., graphic_object, ...)"
     ],
-    "description": "Draw 2D interactive plots using Plotly.js. Accepts draw package objects (explicit, parametric, points, implicit) and Aximar objects (ax_contour, ax_heatmap, ax_bar, ax_histogram). Renders as interactive charts with pan, zoom, and hover. Style options: color, line_width, dash, marker_symbol, marker_size, fill, opacity, name, colorscale, showscale, nbins, ncontours, bar_width. Layout options: title, xlabel, ylabel, xrange, yrange, grid, showlegend, aspect_ratio, width, height, bar_mode.",
+    "description": "Draw 2D interactive plots using Plotly.js. Accepts draw package objects (explicit, parametric, points, implicit) and Aximar objects (ax_contour, ax_heatmap, ax_bar, ax_histogram, ax_vector_field, ax_streamline). Renders as interactive charts with pan, zoom, and hover. Style options: color, line_width, dash, marker_symbol, marker_size, fill, opacity, name, colorscale, showscale, nbins, ncontours, bar_width, ngrid, arrow_scale, normalize, initial_points, t_range, dt. Layout options: title, xlabel, ylabel, xrange, yrange, grid, showlegend, aspect_ratio, width, height, bar_mode.",
     "category": "Plotting",
     "examples": [
       {
@@ -88,6 +88,14 @@
       {
         "input": "ax_draw2d(ax_histogram(makelist(random(100)/10.0, i, 1, 500)))$",
         "description": null
+      },
+      {
+        "input": "ax_draw2d(ax_vector_field(-y, x, x, -3, 3, y, -3, 3), aspect_ratio=true)$",
+        "description": "Vector field"
+      },
+      {
+        "input": "ax_draw2d(color=\"#cccccc\", ax_vector_field(-y, x, x, -3, 3, y, -3, 3), color=\"red\", ax_streamline(-y, x, x, -3, 3, y, -3, 3), aspect_ratio=true, title=\"Phase Portrait\")$",
+        "description": "Phase portrait"
       }
     ],
     "see_also": [
@@ -233,6 +241,58 @@
     "see_also": [
       "ax_plot2d",
       "ax_draw2d"
+    ]
+  },
+  {
+    "name": "ax_streamline",
+    "signatures": [
+      "ax_streamline(Fx, Fy, xvar, xlo, xhi, yvar, ylo, yhi)"
+    ],
+    "description": "Streamline / phase portrait curves for a 2D ODE system dx/dt = Fx(x,y), dy/dt = Fy(x,y). Use inside ax_draw2d. Integrates trajectories from initial points using RK4. Combine with ax_vector_field for a full phase portrait. Supports initial_points, t_range, and dt options.",
+    "category": "Plotting",
+    "examples": [
+      {
+        "input": "ax_draw2d(ax_streamline(-y, x, x, -3, 3, y, -3, 3))$",
+        "description": "Circular orbits"
+      },
+      {
+        "input": "ax_draw2d(color=\"gray\", ax_vector_field(-y, x, x, -3, 3, y, -3, 3), color=\"red\", ax_streamline(-y, x, x, -3, 3, y, -3, 3), title=\"Phase Portrait\")$",
+        "description": "Vector field + streamlines"
+      },
+      {
+        "input": "ax_draw2d(initial_points=[[1,0],[0,1],[-1,0],[0,-1]], t_range=[0,5], ax_streamline(x-y, x+y, x, -3, 3, y, -3, 3))$",
+        "description": "Custom initial conditions"
+      }
+    ],
+    "see_also": [
+      "ax_draw2d",
+      "ax_vector_field"
+    ]
+  },
+  {
+    "name": "ax_vector_field",
+    "signatures": [
+      "ax_vector_field(Fx, Fy, xvar, xlo, xhi, yvar, ylo, yhi)"
+    ],
+    "description": "2D vector field (quiver) plot showing arrows for F = (Fx(x,y), Fy(x,y)). Use inside ax_draw2d. Samples on a grid and renders arrow shafts with triangular heads. Supports ngrid, arrow_scale, and normalize options.",
+    "category": "Plotting",
+    "examples": [
+      {
+        "input": "ax_draw2d(ax_vector_field(-y, x, x, -3, 3, y, -3, 3))$",
+        "description": "Rotation field"
+      },
+      {
+        "input": "ax_draw2d(ax_vector_field(x, y, x, -2, 2, y, -2, 2), ngrid=15, color=\"steelblue\")$",
+        "description": null
+      },
+      {
+        "input": "ax_draw2d(ax_vector_field(-y, x, x, -3, 3, y, -3, 3), normalize=true, title=\"Direction field\")$",
+        "description": null
+      }
+    ],
+    "see_also": [
+      "ax_draw2d",
+      "ax_streamline"
     ]
   }
 ]

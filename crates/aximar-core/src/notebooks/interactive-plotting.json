@@ -10,7 +10,7 @@
     "aximar": {
       "template_id": "interactive-plotting",
       "title": "Interactive Plotting",
-      "description": "Interactive Plotly.js charts with ax_plot2d, ax_draw2d, and ax_draw3d."
+      "description": "Interactive Plotly.js charts with ax_plot2d, ax_draw2d, ax_draw3d, vector fields, and phase portraits."
     }
   },
   "cells": [
@@ -219,6 +219,66 @@
     {
       "cell_type": "code",
       "source": "ax_polar(\n  [1 + cos(θ), sin(3*θ)],\n  [θ, 0, 2*%pi],\n  title=\"Polar Curves\"\n)",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## Vector Fields\n\n`ax_vector_field` renders a 2D vector field F = (Fx(x,y), Fy(x,y)) as a grid of arrows. Arrow length encodes magnitude; use `normalize=true` for direction-only arrows.",
+      "metadata": {}
+    },
+    {
+      "cell_type": "code",
+      "source": "ax_draw2d(\n  ax_vector_field(-y, x, x, -3, 3, y, -3, 3),\n  aspect_ratio=true,\n  title=\"Rotation Field: F = (-y, x)\"\n)",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "Normalized arrows show direction only — useful when magnitudes vary widely.",
+      "metadata": {}
+    },
+    {
+      "cell_type": "code",
+      "source": "ax_draw2d(\n  normalize=true, ngrid=25,\n  ax_vector_field(x, -y, x, -2, 2, y, -2, 2),\n  aspect_ratio=true,\n  title=\"Saddle Direction Field (normalized)\"\n)",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## Phase Portraits\n\nCombine `ax_vector_field` with `ax_streamline` to create phase portraits for 2D ODE systems. `ax_streamline` integrates trajectories from initial points using RK4.",
+      "metadata": {}
+    },
+    {
+      "cell_type": "code",
+      "source": "ax_draw2d(\n  color=\"#cccccc\",\n  ax_vector_field(-y, x, x, -3, 3, y, -3, 3),\n  color=\"red\",\n  ax_streamline(-y, x, x, -3, 3, y, -3, 3),\n  aspect_ratio=true,\n  title=\"Phase Portrait: Rotation\"\n)",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "A damped oscillator — spiraling towards the origin.",
+      "metadata": {}
+    },
+    {
+      "cell_type": "code",
+      "source": "ax_draw2d(\n  color=\"#dddddd\", normalize=true,\n  ax_vector_field(-y - x/5, x - y/5, x, -4, 4, y, -4, 4),\n  color=\"steelblue\",\n  ax_streamline(-y - x/5, x - y/5, x, -4, 4, y, -4, 4),\n  aspect_ratio=true,\n  title=\"Damped Oscillator\"\n)",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "Custom initial conditions and integration parameters — a Lotka-Volterra predator-prey system.",
+      "metadata": {}
+    },
+    {
+      "cell_type": "code",
+      "source": "ax_draw2d(\n  color=\"#cccccc\", ngrid=15,\n  ax_vector_field(x*(1-y), y*(x-1), x, 0, 4, y, 0, 4),\n  color=\"crimson\",\n  initial_points=[[0.5,0.5],[1,2],[2,0.5],[2,2.5],[3,3]],\n  t_range=[0,20], dt=0.01,\n  ax_streamline(x*(1-y), y*(x-1), x, 0, 4, y, 0, 4),\n  title=\"Lotka-Volterra Predator-Prey\",\n  xlabel=\"Prey\", ylabel=\"Predator\"\n)",
       "metadata": {},
       "execution_count": null,
       "outputs": []

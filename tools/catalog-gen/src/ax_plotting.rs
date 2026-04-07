@@ -261,6 +261,8 @@ mod tests {
         assert!(catalog.iter().any(|f| f.name == "ax_heatmap"));
         assert!(catalog.iter().any(|f| f.name == "ax_bar"));
         assert!(catalog.iter().any(|f| f.name == "ax_histogram"));
+        assert!(catalog.iter().any(|f| f.name == "ax_vector_field"));
+        assert!(catalog.iter().any(|f| f.name == "ax_streamline"));
     }
 
     #[test]
