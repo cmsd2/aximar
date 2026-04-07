@@ -74,13 +74,16 @@ impl Backend {
         }
     }
 
-    /// Translate a container/WSL SVG path to the host-accessible path.
-    pub fn translate_svg_path(&self, container_path: &str) -> Option<String> {
+    /// Translate a container/WSL file path to the host-accessible path.
+    ///
+    /// Works for any file type (SVG, `.plotly.json`, etc.) written under
+    /// `CONTAINER_TEMP_DIR` (`/tmp/aximar`).
+    pub fn translate_container_path(&self, container_path: &str) -> Option<String> {
         match self {
             Backend::Local => None,
             Backend::Docker { .. } => {
-                // Container writes to /tmp/aximar/maxoutXXX.svg
-                // Host reads from <host_temp>/aximar-docker/maxoutXXX.svg
+                // Container writes to /tmp/aximar/<file>
+                // Host reads from <host_temp>/aximar-docker/<file>
                 if let Some(filename) = container_path.strip_prefix(CONTAINER_TEMP_DIR) {
                     let filename = filename.trim_start_matches('/');
                     if let Some(host_dir) = self.host_temp_dir() {
@@ -90,20 +93,23 @@ impl Backend {
                 None
             }
             Backend::Wsl { distro } => {
-                // WSL writes to /tmp/aximar/maxout.svg
-                // We copy it to a local temp dir with a unique name so plots
+                // WSL writes to /tmp/aximar/<file>
+                // We copy it to a local temp dir with a unique name so files
                 // don't overwrite each other and we avoid UNC path issues.
                 if let Some(filename) = container_path.strip_prefix(CONTAINER_TEMP_DIR) {
                     let filename = filename.trim_start_matches('/');
                     if let Some(host_dir) = self.host_temp_dir() {
-                        let unique_name = format!(
-                            "{}-{}.svg",
-                            filename.trim_end_matches(".svg"),
-                            std::time::SystemTime::now()
-                                .duration_since(std::time::UNIX_EPOCH)
-                                .map(|d| d.as_nanos())
-                                .unwrap_or(0)
-                        );
+                        // Split into stem and extension, preserving compound
+                        // extensions like ".plotly.json".
+                        let (stem, ext) = match filename.find('.') {
+                            Some(pos) => (&filename[..pos], &filename[pos..]),
+                            None => (filename, ""),
+                        };
+                        let nanos = std::time::SystemTime::now()
+                            .duration_since(std::time::UNIX_EPOCH)
+                            .map(|d| d.as_nanos())
+                            .unwrap_or(0);
+                        let unique_name = format!("{}-{}{}", stem, nanos, ext);
                         let host_path = host_dir.join(&unique_name);
 
                         // Build the UNC source path

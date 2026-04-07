@@ -374,7 +374,7 @@ fn parse_output_inner(
         if let Some(raw_svg_path) = raw_svg_path {
             // Translate path for Docker/WSL backends, or use as-is for Local
             let svg_path = backend
-                .translate_svg_path(&raw_svg_path)
+                .translate_container_path(&raw_svg_path)
                 .unwrap_or(raw_svg_path);
             if is_safe_svg_path(&svg_path, backend) {
                 if let Ok(svg_content) = fs::read_to_string(&svg_path) {
@@ -414,7 +414,7 @@ fn parse_output_inner(
             let raw_path = caps[1].to_string();
             // Translate path for Docker/WSL backends
             let plotly_path = backend
-                .translate_svg_path(&raw_path)
+                .translate_container_path(&raw_path)
                 .unwrap_or(raw_path.clone());
             if is_safe_plotly_path(&plotly_path, backend) {
                 match fs::read_to_string(&plotly_path) {
