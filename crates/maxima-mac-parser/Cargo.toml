@@ -1,0 +1,11 @@
+[package]
+name = "maxima-mac-parser"
+version = "0.1.0"
+edition = "2021"
+description = "Parser for Maxima .mac files — extracts function definitions, variable assignments, and load() calls"
+
+[dependencies]
+chumsky = "0.12"
+thiserror = "2"
+
+[dev-dependencies]
