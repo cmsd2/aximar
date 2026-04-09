@@ -1,3 +1,3 @@
 [workspace]
-members = ["src-tauri", "tools/catalog-gen", "crates/aximar-core", "crates/aximar-mcp", "crates/maxima-mac-parser"]
+members = ["src-tauri", "tools/catalog-gen", "crates/aximar-core", "crates/aximar-mcp", "crates/maxima-mac-parser", "crates/maxima-lsp"]
 resolver = "2"
