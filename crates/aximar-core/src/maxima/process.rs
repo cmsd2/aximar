@@ -2,11 +2,12 @@ use std::env;
 use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
-use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader};
+use tokio::io::{AsyncBufReadExt, AsyncReadExt, AsyncWriteExt, BufReader};
 use tokio::process::{Child, Command};
 
 use crate::error::AppError;
 use crate::maxima::backend::Backend;
+use crate::maxima::debugger::{self, PromptKind};
 use crate::maxima::noconsole::hide_console_window;
 use crate::maxima::output::{OutputEvent, OutputSink};
 
@@ -358,6 +359,209 @@ impl MaximaProcess {
         .await;
         // If drain also times out, the process is truly stuck.
         // Caller returns the timeout error; user can restart.
+    }
+
+    /// Read stdout/stderr until either a sentinel string or a debugger prompt
+    /// (`dbm:N>`) appears.
+    ///
+    /// Returns the collected lines and a [`PromptKind`] indicating which
+    /// termination condition was met. The existing `read_until_sentinel` is
+    /// unchanged — MCP and Tauri callers keep working as before.
+    pub async fn read_until_prompt_or_sentinel(
+        &mut self,
+        sentinel: &str,
+    ) -> Result<(Vec<String>, PromptKind), AppError> {
+        let mut lines = Vec::new();
+        let mut stdout_line = String::new();
+        let mut stderr_line = String::new();
+
+        loop {
+            stdout_line.clear();
+            stderr_line.clear();
+
+            tokio::select! {
+                result = self.stdout_reader.read_line(&mut stdout_line) => {
+                    let bytes_read = result.map_err(|e| AppError::CommunicationError(e.to_string()))?;
+                    if bytes_read == 0 {
+                        return Err(AppError::CommunicationError(
+                            "Maxima process closed unexpectedly".into(),
+                        ));
+                    }
+                    let trimmed = stdout_line.trim_end().to_string();
+                    self.emit_output(&trimmed, "stdout");
+
+                    // Check for debugger prompt first
+                    if let Some(level) = debugger::detect_debugger_prompt(&trimmed) {
+                        lines.push(trimmed);
+                        self.drain_stderr(&mut lines).await;
+                        return Ok((lines, PromptKind::Debugger { level }));
+                    }
+
+                    // Then check for sentinel
+                    if trimmed.contains(sentinel) {
+                        lines.push(trimmed);
+                        self.drain_stderr(&mut lines).await;
+                        // Read the print() return value line
+                        let mut extra = String::new();
+                        let _ = tokio::time::timeout(
+                            std::time::Duration::from_millis(200),
+                            self.stdout_reader.read_line(&mut extra),
+                        ).await;
+                        return Ok((lines, PromptKind::Normal));
+                    }
+
+                    lines.push(trimmed);
+                }
+                result = self.stderr_reader.read_line(&mut stderr_line) => {
+                    let bytes_read = result.map_err(|e| AppError::CommunicationError(e.to_string()))?;
+                    if bytes_read == 0 {
+                        continue;
+                    }
+                    let trimmed = stderr_line.trim_end().to_string();
+                    if !trimmed.is_empty() {
+                        self.emit_output(&trimmed, "stderr");
+                        lines.push(trimmed);
+                    }
+                }
+            };
+        }
+    }
+
+    /// Read stdout/stderr until a debugger prompt (`dbm:N>`) appears.
+    ///
+    /// Used after sending debugger commands (`:step`, `:bt`, `:resume`, etc.)
+    /// where only a debugger prompt is expected, not a sentinel.
+    ///
+    /// Returns the collected lines and the debugger nesting level.
+    pub async fn read_until_debugger_prompt(
+        &mut self,
+    ) -> Result<(Vec<String>, u32), AppError> {
+        let mut lines = Vec::new();
+        let mut stdout_line = String::new();
+        let mut stderr_line = String::new();
+
+        loop {
+            stdout_line.clear();
+            stderr_line.clear();
+
+            tokio::select! {
+                result = self.stdout_reader.read_line(&mut stdout_line) => {
+                    let bytes_read = result.map_err(|e| AppError::CommunicationError(e.to_string()))?;
+                    if bytes_read == 0 {
+                        return Err(AppError::CommunicationError(
+                            "Maxima process closed unexpectedly".into(),
+                        ));
+                    }
+                    let trimmed = stdout_line.trim_end().to_string();
+                    self.emit_output(&trimmed, "stdout");
+
+                    if let Some(level) = debugger::detect_debugger_prompt(&trimmed) {
+                        lines.push(trimmed);
+                        self.drain_stderr(&mut lines).await;
+                        return Ok((lines, level));
+                    }
+
+                    lines.push(trimmed);
+                }
+                result = self.stderr_reader.read_line(&mut stderr_line) => {
+                    let bytes_read = result.map_err(|e| AppError::CommunicationError(e.to_string()))?;
+                    if bytes_read == 0 {
+                        continue;
+                    }
+                    let trimmed = stderr_line.trim_end().to_string();
+                    if !trimmed.is_empty() {
+                        self.emit_output(&trimmed, "stderr");
+                        lines.push(trimmed);
+                    }
+                }
+            };
+        }
+    }
+
+    /// Read Maxima output using chunk-based reading, suitable for the DAP
+    /// server.
+    ///
+    /// Unlike [`read_until_sentinel`] and related methods which use
+    /// `read_line`, this uses `read()` to detect debugger prompts
+    /// (`dbm:N>`) that are written without a trailing newline.
+    ///
+    /// If `sentinel` is provided, also checks complete lines for the
+    /// sentinel and returns [`PromptKind::Normal`] when found.
+    /// Returns [`PromptKind::Debugger`] when a debugger prompt is detected.
+    pub async fn read_dap_response(
+        &mut self,
+        sentinel: Option<&str>,
+    ) -> Result<(Vec<String>, PromptKind), AppError> {
+        let mut lines = Vec::new();
+        let mut partial = String::new();
+        let mut read_buf = [0u8; 4096];
+        let mut stderr_line = String::new();
+
+        loop {
+            stderr_line.clear();
+
+            tokio::select! {
+                result = self.stdout_reader.read(&mut read_buf) => {
+                    let n = result.map_err(|e| AppError::CommunicationError(e.to_string()))?;
+                    if n == 0 {
+                        return Err(AppError::CommunicationError(
+                            "Maxima process closed unexpectedly".into(),
+                        ));
+                    }
+
+                    let chunk = String::from_utf8_lossy(&read_buf[..n]);
+                    partial.push_str(&chunk);
+
+                    // Extract and process complete lines
+                    while let Some(newline_pos) = partial.find('\n') {
+                        let line = partial[..newline_pos].trim_end_matches('\r').to_string();
+                        partial = partial[newline_pos + 1..].to_string();
+
+                        self.emit_output(&line, "stdout");
+
+                        if let Some(level) = debugger::detect_debugger_prompt(&line) {
+                            lines.push(line);
+                            self.drain_stderr(&mut lines).await;
+                            return Ok((lines, PromptKind::Debugger { level }));
+                        }
+
+                        if let Some(s) = sentinel {
+                            if line.contains(s) {
+                                lines.push(line);
+                                self.drain_stderr(&mut lines).await;
+                                return Ok((lines, PromptKind::Normal));
+                            }
+                        }
+
+                        lines.push(line);
+                    }
+
+                    // Check remaining partial buffer for a debugger prompt
+                    // (the prompt has no trailing newline)
+                    let trimmed = partial.trim();
+                    if !trimmed.is_empty() {
+                        if let Some(level) = debugger::detect_debugger_prompt(trimmed) {
+                            self.emit_output(trimmed, "stdout");
+                            lines.push(trimmed.to_string());
+                            partial.clear();
+                            self.drain_stderr(&mut lines).await;
+                            return Ok((lines, PromptKind::Debugger { level }));
+                        }
+                    }
+                }
+                result = self.stderr_reader.read_line(&mut stderr_line) => {
+                    let bytes_read = result.map_err(|e| AppError::CommunicationError(e.to_string()))?;
+                    if bytes_read == 0 {
+                        continue;
+                    }
+                    let trimmed = stderr_line.trim_end().to_string();
+                    if !trimmed.is_empty() {
+                        self.emit_output(&trimmed, "stderr");
+                        lines.push(trimmed);
+                    }
+                }
+            }
+        }
     }
 
     pub async fn kill(&mut self) -> Result<(), AppError> {

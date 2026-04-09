@@ -151,7 +151,7 @@ For diagnostics, the LSP can maintain a background Maxima process:
 
 ### 3. maxima-dap (Debug Adapter)
 
-A DAP server wrapping Maxima's built-in text-based debugger.
+A DAP server wrapping Maxima's built-in text-based debugger. See [maxima-dap.md](maxima-dap.md) for full usage documentation, stepping behavior, and known limitations.
 
 #### How Maxima's debugger works
 

@@ -2,7 +2,7 @@
 
 Detailed build plan for VS Code integration with Maxima via LSP and DAP, building on [maxima-extension](https://github.com/yshl/maxima-extension) and the aximar Rust crates.
 
-Companion docs: [ide-features.md](ide-features.md) (architecture), [vscode-integration-usecases.md](vscode-integration-usecases.md) (use cases), [maxima-debugger-internals.md](maxima-debugger-internals.md) (debugger reference).
+Companion docs: [ide-features.md](ide-features.md) (architecture), [vscode-integration-usecases.md](vscode-integration-usecases.md) (use cases), [maxima-debugger-internals.md](maxima-debugger-internals.md) (debugger reference), [maxima-dap.md](maxima-dap.md) (DAP server usage and limitations).
 
 ---
 

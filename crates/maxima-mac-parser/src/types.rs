@@ -25,6 +25,9 @@ pub struct FunctionDef {
     pub body_start_line: u32,
     /// A `/* ... */` comment immediately preceding the definition.
     pub doc_comment: Option<String>,
+    /// Local variable names from `block([var1, var2, ...], ...)` if the
+    /// function body starts with a `block` expression.
+    pub block_locals: Vec<String>,
 }
 
 /// A top-level variable assignment (`name : ...`).

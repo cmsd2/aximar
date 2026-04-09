@@ -1,0 +1,45 @@
+/* 08_multiple_functions.mac
+ *
+ * Scenario: Multiple breakpoints across several functions
+ *
+ * What to try:
+ *   1. Set breakpoints in all three functions (validate, process, run_pipeline)
+ *   2. Launch with evaluate: "run_pipeline(7)"
+ *   3. Execution should stop first in run_pipeline, then in validate,
+ *      then back in run_pipeline, then in process
+ *   4. Check the Stack Trace at each stop to see the call chain
+ *   5. Try removing/adding breakpoints while stopped — setBreakpoints
+ *      should work mid-session
+ */
+
+validate(x) := block(
+    [ok],
+    if numberp(x) and x > 0 then
+        ok : true
+    else
+        ok : false,
+    ok
+)$
+
+process(x) := block(
+    [doubled, result],
+    doubled : 2 * x,
+    result : doubled + 1,
+    result
+)$
+
+run_pipeline(input) := block(
+    [valid, output],
+    valid : validate(input),
+    if valid then (
+        output : process(input),
+        print("result:", output)
+    ) else (
+        print("invalid input:", input),
+        output : false
+    ),
+    output
+)$
+
+run_pipeline(7)$
+run_pipeline(-1)$

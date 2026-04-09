@@ -1,0 +1,45 @@
+/* 11_closures_and_lambda.mac
+ *
+ * Scenario: Stepping through higher-order functions and lambdas
+ *
+ * What to try:
+ *   1. Set a breakpoint inside apply_twice
+ *   2. Launch with evaluate: "demo_higher_order()"
+ *   3. Step through — observe how f is bound to different lambda values
+ *   4. Inspect the Variables panel: f will show as a lambda expression
+ *   5. Try Step In when apply_twice calls f(x) — you may enter the
+ *      lambda body (depends on Maxima debugger support)
+ */
+
+apply_twice(f, x) := block(
+    [first_result, final_result],
+    first_result : f(x),
+    final_result : f(first_result),
+    final_result
+)$
+
+compose(f, g) := block(
+    [h],
+    h : lambda([x], f(g(x))),
+    h
+)$
+
+demo_higher_order() := block(
+    [double, add_one, r1, r2, combined, r3],
+    double : lambda([x], 2 * x),
+    add_one : lambda([x], x + 1),
+
+    r1 : apply_twice(double, 3),
+    print("double applied twice to 3:", r1),
+
+    r2 : apply_twice(add_one, 10),
+    print("add_one applied twice to 10:", r2),
+
+    combined : compose(double, add_one),
+    r3 : combined(5),
+    print("double(add_one(5)):", r3),
+
+    [r1, r2, r3]
+)$
+
+demo_higher_order()$

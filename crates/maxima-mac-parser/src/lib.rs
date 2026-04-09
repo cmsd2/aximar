@@ -39,6 +39,45 @@ pub fn parse(source: &str) -> MacFile {
     converter.convert(raw)
 }
 
+/// Replace top-level statement terminators (`$` and `;`) with commas.
+///
+/// Uses the lexer to correctly handle comments, strings, and nesting.
+/// Only terminators at paren/bracket depth 0 are replaced. This is
+/// useful for embedding multiple Maxima statements inside a `block()`
+/// wrapper where commas separate statements.
+pub fn replace_terminators(source: &str) -> String {
+    let (tokens, _errors) = lexer::lexer().parse(source).into_output_errors();
+    let tokens = tokens.unwrap_or_default();
+
+    let mut result = source.to_string();
+    let mut paren_depth = 0i32;
+    let mut bracket_depth = 0i32;
+
+    // Collect replacement positions (process in reverse to preserve offsets).
+    let mut replacements = Vec::new();
+
+    for (token, span) in &tokens {
+        match token {
+            lexer::Token::LParen => paren_depth += 1,
+            lexer::Token::RParen => paren_depth -= 1,
+            lexer::Token::LBracket => bracket_depth += 1,
+            lexer::Token::RBracket => bracket_depth -= 1,
+            lexer::Token::Dollar | lexer::Token::Semicolon
+                if paren_depth <= 0 && bracket_depth <= 0 =>
+            {
+                replacements.push(span.start..span.end);
+            }
+            _ => {}
+        }
+    }
+
+    for range in replacements.into_iter().rev() {
+        result.replace_range(range, ",");
+    }
+
+    result
+}
+
 /// Classify a chumsky lexer error into a domain-specific `RawParseError`.
 fn classify_lex_error(err: &Rich<'_, char>) -> parser::RawParseError {
     let span = *err.span();
@@ -193,6 +232,7 @@ impl SpanConverter {
             name_span: self.convert_span(f.name_span),
             body_start_line: self.byte_offset_to_position(f.body_start_offset).line,
             doc_comment: f.doc_comment,
+            block_locals: f.block_locals,
         }
     }
 
@@ -386,5 +426,42 @@ mod tests {
         assert!(!file.errors.is_empty());
         let msg = file.errors[0].message();
         assert!(!msg.is_empty(), "error message should not be empty");
+    }
+
+    #[test]
+    fn replace_terminators_simple() {
+        assert_eq!(replace_terminators("a$ b$ c$"), "a, b, c,");
+    }
+
+    #[test]
+    fn replace_terminators_semicolons() {
+        assert_eq!(replace_terminators("a; b; c;"), "a, b, c,");
+    }
+
+    #[test]
+    fn replace_terminators_nested_parens() {
+        assert_eq!(replace_terminators("f(a; b)$ g()$"), "f(a; b), g(),");
+    }
+
+    #[test]
+    fn replace_terminators_strings() {
+        assert_eq!(
+            replace_terminators(r#"print("hello$world")$ x$"#),
+            r#"print("hello$world"), x,"#,
+        );
+    }
+
+    #[test]
+    fn replace_terminators_comments() {
+        assert_eq!(replace_terminators("/* a $ b */ x$"), "/* a $ b */ x,");
+    }
+
+    #[test]
+    fn replace_terminators_multiline() {
+        let code = "classify(-3)$\nclassify(0)$\nclassify(7)$";
+        assert_eq!(
+            replace_terminators(code),
+            "classify(-3),\nclassify(0),\nclassify(7),",
+        );
     }
 }

@@ -1,0 +1,23 @@
+/* 05_loop.mac
+ *
+ * Scenario: Breakpoint inside a loop — repeated hits
+ *
+ * What to try:
+ *   1. Set a breakpoint on the "total : total + i" line
+ *   2. Launch with evaluate: "sum_range(1, 5)"
+ *   3. The breakpoint should hit 5 times (i = 1, 2, 3, 4, 5)
+ *   4. On each hit, inspect i and total in the Variables panel
+ *   5. Watch total accumulate: 1, 3, 6, 10, 15
+ *   6. Use Continue (F5) to advance to the next iteration
+ *   7. The final result should be 15
+ */
+
+sum_range(lo, hi) := block(
+    [total : 0],
+    for i : lo thru hi do (
+        total : total + i
+    ),
+    total
+)$
+
+print("sum_range(1, 5) =", sum_range(1, 5))$

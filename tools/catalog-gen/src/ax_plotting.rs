@@ -31,6 +31,7 @@ pub struct FunctionDef {
     pub accepts_objects: bool,
     pub object_group: Option<String>,
     #[serde(default)]
+    #[allow(dead_code)]
     pub style_options: bool,
     pub layout_group: Option<String>,
     #[serde(default)]

@@ -1,8 +1,8 @@
 # Aximar
 
-A modern, cross-platform desktop GUI for the [Maxima](https://maxima.sourceforge.io/) computer algebra system. Aximar provides a notebook-style interface with beautifully rendered math output via KaTeX.
+A modern, cross-platform desktop GUI and tooling suite for the [Maxima](https://maxima.sourceforge.io/) computer algebra system. Aximar provides a notebook-style interface with beautifully rendered math output via KaTeX, plus an LSP server, a DAP debugger, and an MCP server for AI integration.
 
-Built with [Tauri v2](https://tauri.app/) (Rust backend) and React + TypeScript (frontend).
+The GUI is built with [Tauri v2](https://tauri.app/) (Rust backend) and React + TypeScript (frontend). The shared `aximar-core` library powers all components — GUI, MCP server, and debugger.
 
 ![Aximar screenshot — 2D plot rendered inline](assets/screenshot-2d-plot.png)
 
@@ -249,6 +249,28 @@ cargo test --workspace
 # TypeScript type checking
 npx tsc --noEmit
 ```
+
+## IDE Support
+
+The repository also includes tools for working with Maxima `.mac` files in VS Code and other editors.
+
+### maxima-lsp
+
+A [Language Server Protocol](https://microsoft.github.io/language-server-protocol/) server for Maxima. Provides go-to-definition, document symbols, diagnostics, and hover documentation for `.mac` files. See `docs/maxima-lsp.md` for details.
+
+```bash
+cargo build --release -p maxima-lsp
+```
+
+### maxima-dap
+
+A [Debug Adapter Protocol](https://microsoft.github.io/debug-adapter-protocol/) server for Maxima. Provides interactive debugging of `.mac` files in VS Code — breakpoints, stepping, call stack, and variable inspection. Requires Maxima with the SBCL backend. See `docs/maxima-dap.md` for details.
+
+```bash
+cargo build --release -p maxima-dap
+```
+
+Both work with the [Maxima VS Code extension](https://github.com/cmsd2/maxima-extension), a fork of the [original extension](https://github.com/yshl/maxima-extension) by Ohta Yasuhiro with added LSP and DAP support.
 
 ## Architecture
 

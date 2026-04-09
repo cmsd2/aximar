@@ -1,0 +1,27 @@
+/* 04_recursion.mac
+ *
+ * Scenario: Debug a recursive function — stack depth and unwinding
+ *
+ * What to try:
+ *   1. Set a breakpoint inside my_factorial's block body
+ *   2. Launch with evaluate: "my_factorial(5)"
+ *   3. On each stop, check the Stack Trace panel — you should see
+ *      my_factorial appearing multiple times with increasing depth
+ *   4. Inspect n at each frame to watch it count down: 5, 4, 3, 2, 1
+ *   5. Press Continue repeatedly to see the recursion unwind
+ *   6. The final result should be 120
+ *
+ * Note: "factorial" is a built-in Maxima function (the n! operator),
+ * so we use "my_factorial" to avoid a name conflict.
+ */
+
+my_factorial(n) := block(
+    [result],
+    if n <= 1 then
+        result : 1
+    else
+        result : n * my_factorial(n - 1),
+    result
+)$
+
+print("my_factorial(5) =", my_factorial(5))$

@@ -1,4 +1,5 @@
 pub mod backend;
+pub mod debugger;
 pub mod errors;
 pub mod labels;
 pub mod noconsole;

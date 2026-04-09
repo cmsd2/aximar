@@ -1,0 +1,49 @@
+/* 14_debug_console_eval.mac
+ *
+ * Scenario: Use the Debug Console to evaluate expressions while stopped
+ *
+ * What to try:
+ *   1. Set a breakpoint inside workspace
+ *   2. Launch with evaluate: "workspace()"
+ *   3. When stopped, use the Debug Console (REPL) to evaluate:
+ *
+ *      Basic inspection:
+ *        nums
+ *        length(nums)
+ *        nums[3]
+ *
+ *      Computation:
+ *        apply("+", nums)
+ *        map(lambda([x], x^2), nums)
+ *
+ *      Symbolic:
+ *        diff(poly, x)
+ *        solve(poly, x)
+ *        integrate(poly, x, 0, 1)
+ *
+ *      String operations (stringproc loaded):
+ *        sconcat("result = ", total)
+ *
+ *   4. Step forward and try again — variables change as you step
+ */
+
+load("stringproc")$
+
+workspace() := block(
+    [nums, total, poly, deriv, roots],
+
+    nums : [2, 3, 5, 7, 11, 13],
+    total : apply("+", nums),
+    print("sum of primes:", total),
+
+    poly : x^3 - 6*x^2 + 11*x - 6,
+    deriv : diff(poly, x),
+    print("derivative:", deriv),
+
+    roots : solve(poly, x),
+    print("roots:", roots),
+
+    [total, deriv, roots]
+)$
+
+workspace()$

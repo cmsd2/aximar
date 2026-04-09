@@ -77,10 +77,12 @@ When a breakpoint fires, Maxima outputs something like:
 
 ```
 Bkpt 0:(test.mac 3)
-dbm:1>
+(dbm:1)
 ```
 
-The prompt format is `dbm:N>` where `N` is the debugger nesting level. After executing a debugger command, the prompt reappears. When `:resume` is issued, normal Maxima output continues.
+The prompt format is `(dbm:N)` where `N` is the debugger nesting level (parenthesised, no trailing newline). After executing a debugger command, the prompt reappears. When `:resume` is issued, normal Maxima output continues.
+
+> **Note:** Some Maxima documentation shows the prompt as `dbm:N>`, but the actual SBCL output uses `(dbm:N)`. The `maxima-dap` server uses the regex `\(dbm:(\d+)\)` for detection.
 
 ### Known Issues
 
@@ -320,5 +322,5 @@ From Lisp:
 - Spawns Maxima with `--very-quiet` via pipes (or Docker/WSL)
 - Sentinel-based protocol: expressions wrapped with `__AXIMAR_EVAL_END__`
 - `display2d:false`, captures LaTeX via `tex(%)`
-- No debugger support currently
-- See `docs/maxima-protocol.md` for full details
+- Debugging via the `maxima-dap` DAP server — see [maxima-dap.md](maxima-dap.md) for full details
+- See `docs/maxima-protocol.md` for the evaluation protocol

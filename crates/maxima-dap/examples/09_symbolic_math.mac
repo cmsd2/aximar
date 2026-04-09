@@ -1,0 +1,36 @@
+/* 09_symbolic_math.mac
+ *
+ * Scenario: Debug with symbolic (non-numeric) values
+ *
+ * What to try:
+ *   1. Set a breakpoint inside differentiate_and_eval
+ *   2. Launch with evaluate: "differentiate_and_eval(x^3 + 2*x, x, 3)"
+ *   3. Inspect the variables at each step:
+ *      - expr should be x^3 + 2*x (symbolic)
+ *      - deriv should be 3*x^2 + 2 (symbolic derivative)
+ *      - result should be 29 (numeric, after substitution)
+ *   4. In the Debug Console, try evaluating symbolic expressions:
+ *        diff(expr, var)
+ *        subst(var = pt, expr)
+ *        expand(deriv^2)
+ */
+
+differentiate_and_eval(expr, var, pt) := block(
+    [deriv, result],
+    deriv : diff(expr, var),
+    result : subst(var = pt, deriv),
+    print("d/d", var, "of", expr, "=", deriv),
+    print("evaluated at", var, "=", pt, ":", result),
+    result
+)$
+
+find_extrema(expr, var) := block(
+    [deriv, critical_points],
+    deriv : diff(expr, var),
+    critical_points : solve(deriv, var),
+    print("critical points of", expr, ":", critical_points),
+    critical_points
+)$
+
+differentiate_and_eval(x^3 + 2*x, x, 3)$
+find_extrema(x^3 - 3*x, x)$

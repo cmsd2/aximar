@@ -1,0 +1,31 @@
+/* 07_conditionals.mac
+ *
+ * Scenario: Step through conditional branches
+ *
+ * What to try:
+ *   1. Set breakpoints on each branch body (the lines after then/else)
+ *   2. Launch with evaluate: "classify(-3)"
+ *      -> should hit the "negative" branch
+ *   3. Launch again with evaluate: "classify(0)"
+ *      -> should hit the "zero" branch
+ *   4. Launch again with evaluate: "classify(7)"
+ *      -> should hit the "positive" branch
+ *   5. Use Step (F10) to watch which branch is taken
+ */
+
+classify(x) := block(
+    [label],
+    if x > 0 then (
+        label : "positive"
+    ) elseif x = 0 then (
+        label : "zero"
+    ) else (
+        label : "negative"
+    ),
+    print(x, "is", label),
+    label
+)$
+
+classify(-3)$
+classify(0)$
+classify(7)$

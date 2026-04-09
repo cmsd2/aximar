@@ -1,0 +1,35 @@
+/* 15_unverified_breakpoints.mac
+ *
+ * Scenario: Top-level code vs. function code — breakpoint verification
+ *
+ * The debugger can only set breakpoints inside function definitions.
+ * Lines at the top level (outside any function) will appear as
+ * "unverified" (grey circle) in VS Code.
+ *
+ * What to try:
+ *   1. Set breakpoints on ALL lines that have code:
+ *      - Line with "x : 42" (top-level) -> should be UNVERIFIED
+ *      - Line with "y : x + 8" (top-level) -> should be UNVERIFIED
+ *      - Line inside helper's block body -> should be VERIFIED
+ *      - Line with "print(...)" (top-level) -> should be UNVERIFIED
+ *   2. Verify that only breakpoints inside helper() get a filled circle
+ *   3. Launch with evaluate: "helper(10)"
+ *   4. The verified breakpoint should fire; unverified ones are skipped
+ *   5. Check the breakpoint's tooltip for the reason it's unverified
+ */
+
+/* Top-level assignments — breakpoints here will be unverified */
+x : 42$
+y : x + 8$
+
+/* This function's body CAN have breakpoints */
+helper(n) := block(
+    [a, b],
+    a : n + x,
+    b : a * y,
+    print("a:", a, "b:", b),
+    b
+)$
+
+/* Top-level call — breakpoint here will be unverified */
+print("helper(10) =", helper(10))$

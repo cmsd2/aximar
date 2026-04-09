@@ -1,0 +1,26 @@
+/* 06_list_variables.mac
+ *
+ * Scenario: Inspect compound data — lists and matrices
+ *
+ * What to try:
+ *   1. Set a breakpoint on the "result" line inside transform
+ *   2. Launch with evaluate: "transform([1, 2, 3, 4, 5])"
+ *   3. Inspect variables: lst (input list), squares (list of squares),
+ *      total (sum), result (two-element list)
+ *   4. Try expanding list variables in the Variables panel to see
+ *      individual elements
+ *   5. In the Debug Console, try evaluating:
+ *        lst[3]
+ *        length(squares)
+ *        squares[2]
+ */
+
+transform(lst) := block(
+    [squares, total, result],
+    squares : map(lambda([x], x^2), lst),
+    total : apply("+", squares),
+    result : [squares, total],
+    result
+)$
+
+print("transform([1,2,3,4,5]) =", transform([1, 2, 3, 4, 5]))$

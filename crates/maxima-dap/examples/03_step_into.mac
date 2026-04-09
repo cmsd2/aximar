@@ -1,0 +1,28 @@
+/* 03_step_into.mac
+ *
+ * Scenario: Step Into a nested function call
+ *
+ * What to try:
+ *   1. Set a breakpoint on the "total : square(a) + square(b)" line inside sum_of_squares
+ *   2. Launch with evaluate: "sum_of_squares(3, 4)"
+ *   3. Use Step In (F11) — you should drop into square(x)
+ *   4. Inspect x in the Variables panel (should be 3 on first call)
+ *   5. Continue stepping — you'll return to sum_of_squares,
+ *      then step into square again (x should be 4)
+ *   6. Check the stack trace at each stop — you should see
+ *      square on top and sum_of_squares below
+ */
+
+square(x) := block(
+    [r],
+    r : x * x,
+    r
+)$
+
+sum_of_squares(a, b) := block(
+    [total],
+    total : square(a) + square(b),
+    total
+)$
+
+print("sum_of_squares(3, 4) =", sum_of_squares(3, 4))$

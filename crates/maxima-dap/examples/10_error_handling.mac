@@ -1,0 +1,42 @@
+/* 10_error_handling.mac
+ *
+ * Scenario: Debugging around error handling with errcatch
+ *
+ * Known limitation: breakpoints inside errcatch() may not fire
+ * because errcatch suppresses the debugger. This file lets you
+ * verify that behavior and practice debugging the surrounding code.
+ *
+ * What to try:
+ *   1. Set a breakpoint inside safe_divide on the "result" line
+ *   2. Launch with evaluate: "test_division()"
+ *   3. The breakpoint should fire for safe_divide(10, 2)
+ *   4. Inspect: a=10, b=2, result=5
+ *   5. Continue — for safe_divide(10, 0), the errcatch path runs
+ *      (the breakpoint inside errcatch may not fire)
+ *   6. The function should return "error" for the division by zero case
+ */
+
+safe_divide(a, b) := block(
+    [result, caught],
+    caught : errcatch(
+        result : a / b
+    ),
+    if caught = [] then (
+        print("error: division by zero"),
+        result : "error"
+    ),
+    result
+)$
+
+test_division() := block(
+    [r1, r2, r3],
+    r1 : safe_divide(10, 2),
+    print("10 / 2 =", r1),
+    r2 : safe_divide(10, 0),
+    print("10 / 0 =", r2),
+    r3 : safe_divide(7, 3),
+    print("7 / 3 =", r3),
+    [r1, r2, r3]
+)$
+
+test_division()$

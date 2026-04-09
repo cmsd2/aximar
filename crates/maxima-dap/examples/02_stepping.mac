@@ -1,0 +1,21 @@
+/* 02_stepping.mac
+ *
+ * Scenario: Step through a multi-statement function body
+ *
+ * What to try:
+ *   1. Set a breakpoint on the first line of compute()'s block body
+ *   2. Launch with evaluate: "compute(5)"
+ *   3. Use Step (F10 / Next) to walk through each assignment
+ *   4. Watch the variables panel update: a, b, c should fill in one by one
+ *   5. Verify the final result is 5 + 36 + 7 = 48
+ */
+
+compute(x) := block(
+    [a, b, c],
+    a : x,
+    b : (x + 1)^2,
+    c : x + 2,
+    a + b + c
+)$
+
+print("compute(5) =", compute(5))$

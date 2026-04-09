@@ -1,0 +1,18 @@
+/* 01_basic_breakpoint.mac
+ *
+ * Scenario: Simple breakpoint and variable inspection
+ *
+ * What to try:
+ *   1. Set a breakpoint on the "result : a + b" line (inside add)
+ *   2. Launch with evaluate: "add(3, 4)"
+ *   3. When stopped, inspect variables a, b, result in the Variables panel
+ *   4. Press Continue — the program should finish and print "7"
+ */
+
+add(a, b) := block(
+    [result],
+    result : a + b,
+    result
+)$
+
+print("add(3, 4) =", add(3, 4))$

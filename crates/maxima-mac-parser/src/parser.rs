@@ -25,6 +25,7 @@ pub struct RawFunctionDef<'src> {
     pub name_span: lexer::Span,
     pub body_start_offset: usize,
     pub doc_comment: Option<String>,
+    pub block_locals: Vec<String>,
 }
 
 #[derive(Debug, Clone)]
@@ -190,9 +191,8 @@ impl<'src, 'tok> Parser<'src, 'tok> {
                         self.skip_to_terminator();
                         self.skip_terminator();
                     } else {
-                        let start = self.pos;
+                        // Still a valid function call, just not one we extract info from
                         self.skip_to_terminator();
-                        self.record_skipped(start);
                         self.skip_terminator();
                     }
                 }
@@ -202,9 +202,8 @@ impl<'src, 'tok> Parser<'src, 'tok> {
                         self.skip_to_terminator();
                         self.skip_terminator();
                     } else {
-                        let start = self.pos;
+                        // Still a valid function call, just not a form we recognize
                         self.skip_to_terminator();
-                        self.record_skipped(start);
                         self.skip_terminator();
                     }
                 }
@@ -213,9 +212,8 @@ impl<'src, 'tok> Parser<'src, 'tok> {
                         self.items.push(item);
                         self.skip_terminator();
                     } else {
-                        let start = self.pos;
+                        // Valid expression statement (e.g. print(...), foo(x), bar)
                         self.skip_to_terminator();
-                        self.record_skipped(start);
                         self.skip_terminator();
                     }
                 }
@@ -316,6 +314,8 @@ impl<'src, 'tok> Parser<'src, 'tok> {
         let body_start_offset = self.span().end;
         self.advance(); // consume ,
 
+        let block_locals = self.try_extract_block_locals();
+
         // Skip body until closing ) (balanced)
         let mut depth: i32 = 1;
         while depth > 0 && !self.at_end() {
@@ -347,6 +347,7 @@ impl<'src, 'tok> Parser<'src, 'tok> {
             name_span,
             body_start_offset,
             doc_comment: None,
+            block_locals,
         })
     }
 
@@ -389,6 +390,7 @@ impl<'src, 'tok> Parser<'src, 'tok> {
                 // body_start_offset is the byte offset of the first body token
                 let body_start_offset = self.span().start;
 
+                let block_locals = self.try_extract_block_locals();
                 self.skip_to_terminator();
 
                 let span = self.span_including_terminator(start_span);
@@ -399,6 +401,7 @@ impl<'src, 'tok> Parser<'src, 'tok> {
                     name_span,
                     body_start_offset,
                     doc_comment: None,
+                    block_locals,
                 };
 
                 if is_macro {
@@ -438,6 +441,80 @@ impl<'src, 'tok> Parser<'src, 'tok> {
             start_span.end
         };
         (start_span.start..end).into()
+    }
+
+    /// Try to extract block local variable names from the current position.
+    ///
+    /// Looks for `block([var1, var2, ...], ...)` and returns the variable
+    /// names. Handles initialized locals like `block([a: 0, b], ...)` by
+    /// extracting just the names. This is a lookahead-only operation — the
+    /// parser position is restored afterwards.
+    fn try_extract_block_locals(&mut self) -> Vec<String> {
+        let save = self.pos;
+
+        if !matches!(self.peek(), Some(Token::Ident("block"))) {
+            return Vec::new();
+        }
+        self.advance();
+
+        if !matches!(self.peek(), Some(Token::LParen)) {
+            self.pos = save;
+            return Vec::new();
+        }
+        self.advance();
+
+        if !matches!(self.peek(), Some(Token::LBracket)) {
+            self.pos = save;
+            return Vec::new();
+        }
+        self.advance();
+
+        let mut locals = Vec::new();
+        loop {
+            match self.peek() {
+                Some(Token::RBracket) => break,
+                None => {
+                    self.pos = save;
+                    return Vec::new();
+                }
+                Some(Token::Ident(name)) => {
+                    locals.push(name.to_string());
+                    self.advance();
+                    // Skip initializer if present (e.g. `a: 0`)
+                    if matches!(self.peek(), Some(Token::Colon)) {
+                        self.advance(); // skip :
+                        let mut depth = 0i32;
+                        loop {
+                            match self.peek() {
+                                None => break,
+                                Some(Token::LParen | Token::LBracket) => {
+                                    depth += 1;
+                                    self.advance();
+                                }
+                                Some(Token::RParen | Token::RBracket) if depth > 0 => {
+                                    depth -= 1;
+                                    self.advance();
+                                }
+                                Some(Token::RBracket) if depth == 0 => break,
+                                Some(Token::Comma) if depth == 0 => break,
+                                _ => self.advance(),
+                            }
+                        }
+                    }
+                    if matches!(self.peek(), Some(Token::Comma)) {
+                        self.advance();
+                    }
+                }
+                _ => {
+                    // Not a simple locals list
+                    self.pos = save;
+                    return Vec::new();
+                }
+            }
+        }
+
+        self.pos = save;
+        locals
     }
 
     /// Parse comma-separated parameter list. Handles `[args]` variadic form.
@@ -513,6 +590,42 @@ mod tests {
         assert_eq!(file.items[0].name(), "f");
         if let MacItem::FunctionDef(f) = &file.items[0] {
             assert_eq!(f.params, vec!["x"]);
+            assert_eq!(f.block_locals, vec!["a"]);
+        }
+    }
+
+    #[test]
+    fn block_locals_multiple() {
+        let source = "f(x) := block([a, b, c], a: x+1, b: a*2, c: a+b, c)$";
+        let file = parse(source);
+        if let MacItem::FunctionDef(f) = &file.items[0] {
+            assert_eq!(f.block_locals, vec!["a", "b", "c"]);
+        }
+    }
+
+    #[test]
+    fn block_locals_with_initializers() {
+        let source = "f(x) := block([a: 0, b: [1,2,3], c], c: a+x, c)$";
+        let file = parse(source);
+        if let MacItem::FunctionDef(f) = &file.items[0] {
+            assert_eq!(f.block_locals, vec!["a", "b", "c"]);
+        }
+    }
+
+    #[test]
+    fn block_locals_empty_for_no_block() {
+        let file = parse("f(x) := x^2$");
+        if let MacItem::FunctionDef(f) = &file.items[0] {
+            assert!(f.block_locals.is_empty());
+        }
+    }
+
+    #[test]
+    fn block_locals_define_form() {
+        let source = "define(f(x), block([a], a: x+1, a^2))$";
+        let file = parse(source);
+        if let MacItem::FunctionDef(f) = &file.items[0] {
+            assert_eq!(f.block_locals, vec!["a"]);
         }
     }
 
@@ -642,6 +755,40 @@ g(x) := x^2$
         let file = parse(source);
         assert_eq!(file.items.len(), 1);
         assert_eq!(file.items[0].name(), "f");
+    }
+
+    #[test]
+    fn top_level_function_call_no_warning() {
+        let source = r#"
+f(x) := x^2$
+print("result =", f(3))$
+"#;
+        let file = parse(source);
+        assert_eq!(file.items.len(), 1);
+        assert_eq!(file.items[0].name(), "f");
+        assert!(
+            file.errors.is_empty(),
+            "print() call should not produce a warning, got: {:?}",
+            file.errors
+        );
+    }
+
+    #[test]
+    fn multiple_top_level_calls_no_warning() {
+        let source = r#"
+f(x) := x + 1$
+g(x) := x * 2$
+print("f(3) =", f(3))$
+print("g(4) =", g(4))$
+display(f(5))$
+"#;
+        let file = parse(source);
+        assert_eq!(file.items.len(), 2);
+        assert!(
+            file.errors.is_empty(),
+            "top-level calls should not produce warnings, got: {:?}",
+            file.errors
+        );
     }
 
     #[test]

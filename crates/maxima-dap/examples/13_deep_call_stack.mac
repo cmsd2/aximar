@@ -1,0 +1,45 @@
+/* 13_deep_call_stack.mac
+ *
+ * Scenario: Exercise the stack trace with a deep call chain
+ *
+ * What to try:
+ *   1. Set a breakpoint inside layer_d (the deepest function)
+ *   2. Launch with evaluate: "layer_a(10)"
+ *   3. When stopped, open the Stack Trace panel — you should see:
+ *        layer_d  (top)
+ *        layer_c
+ *        layer_b
+ *        layer_a  (bottom)
+ *   4. Click each frame in the stack trace — the Variables panel
+ *      should show different local variables for each frame
+ *   5. In the Debug Console, evaluate expressions in the context
+ *      of the current frame (e.g. "val" should reflect the
+ *      innermost frame's variable)
+ */
+
+layer_d(val) := block(
+    [final_result],
+    final_result : val + 1,
+    print("layer_d:", final_result),
+    final_result
+)$
+
+layer_c(val) := block(
+    [transformed],
+    transformed : val * 2,
+    layer_d(transformed)
+)$
+
+layer_b(val) := block(
+    [adjusted],
+    adjusted : val + 5,
+    layer_c(adjusted)
+)$
+
+layer_a(val) := block(
+    [prepared],
+    prepared : val - 1,
+    layer_b(prepared)
+)$
+
+print("deep call result:", layer_a(10))$

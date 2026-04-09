@@ -1,0 +1,50 @@
+/* 12_matrix_operations.mac
+ *
+ * Scenario: Inspect matrix values and step through linear algebra
+ *
+ * What to try:
+ *   1. Set a breakpoint inside solve_system
+ *   2. Launch with evaluate: "solve_system()"
+ *   3. Inspect variables at each step:
+ *      - A should display as a matrix
+ *      - b should display as a column vector
+ *      - det_A should be a number
+ *      - solution should be the result vector
+ *   4. In the Debug Console, try:
+ *        A . b
+ *        invert(A)
+ *        A[1][2]
+ *        transpose(A)
+ */
+
+solve_system() := block(
+    [A, b, det_A, solution],
+
+    /* System: 2x + y = 5, x + 3y = 7 */
+    A : matrix([2, 1], [1, 3]),
+    b : matrix([5], [7]),
+
+    det_A : determinant(A),
+    print("determinant:", det_A),
+
+    if det_A # 0 then (
+        solution : invert(A) . b,
+        print("solution:", solution)
+    ) else (
+        print("singular matrix — no unique solution"),
+        solution : false
+    ),
+    solution
+)$
+
+matrix_trace(M) := block(
+    [n, tr : 0],
+    n : length(M),
+    for i : 1 thru n do (
+        tr : tr + M[i][i]
+    ),
+    tr
+)$
+
+solve_system()$
+print("trace:", matrix_trace(matrix([1,2,3],[4,5,6],[7,8,9])))$
