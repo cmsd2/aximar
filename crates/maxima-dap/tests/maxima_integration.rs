@@ -29,7 +29,8 @@ fn example_path(name: &str) -> String {
 }
 
 async fn spawn_maxima() -> MaximaProcess {
-    MaximaProcess::spawn(Backend::Local, None, Arc::new(NullSink))
+    let custom_path = std::env::var("MAXIMA_PATH").ok();
+    MaximaProcess::spawn(Backend::Local, custom_path, Arc::new(NullSink))
         .await
         .expect("failed to spawn Maxima — is it installed?")
 }
@@ -65,7 +66,7 @@ async fn debugger_prompt_detected_on_breakpoint() {
     proc.write_stdin(&format!("print(\"{}\")$\n", sentinel))
         .await
         .unwrap();
-    let lines = proc.read_until_sentinel(sentinel).await.unwrap();
+    let (lines, _) = proc.read_until_sentinel(sentinel).await.unwrap();
     let bp_set = lines.iter().any(|l| l.contains("Bkpt"));
     assert!(bp_set, "expected breakpoint confirmation, got: {:?}", lines);
 
@@ -691,7 +692,7 @@ async fn next_multi_step_through_function() {
     proc.write_stdin(&format!("print(\"{}\")$\n", sentinel))
         .await
         .unwrap();
-    let lines = proc.read_until_sentinel(sentinel).await.unwrap();
+    let (lines, _) = proc.read_until_sentinel(sentinel).await.unwrap();
     assert!(
         lines.iter().any(|l| l.contains("Bkpt")),
         "expected breakpoint confirmation, got: {:?}",
@@ -778,7 +779,7 @@ async fn top_level_code_hits_breakpoint() {
     proc.write_stdin(&format!("print(\"{}\")$\n", sentinel))
         .await
         .unwrap();
-    let lines = proc.read_until_sentinel(sentinel).await.unwrap();
+    let (lines, _) = proc.read_until_sentinel(sentinel).await.unwrap();
     assert!(
         lines.iter().any(|l| l.contains("Bkpt")),
         "expected breakpoint confirmation, got: {:?}",
@@ -814,6 +815,275 @@ async fn top_level_code_hits_breakpoint() {
     proc.write_stdin(":resume\n").await.unwrap();
     let (_lines, prompt) = proc.read_dap_response(Some(eval_sentinel)).await.unwrap();
     assert_eq!(prompt, PromptKind::Normal);
+
+    proc.kill().await.unwrap();
+}
+
+// ===========================================================================
+// Enhanced Maxima debugger tests
+//
+// These tests require a patched Maxima with `set_breakpoint` support.
+// They are skipped at runtime if Legacy Maxima is detected.
+// ===========================================================================
+
+/// Detect whether the running Maxima supports Enhanced debugger features.
+async fn detect_enhanced_maxima(proc: &mut MaximaProcess) -> bool {
+    let sentinel = "__DETECT_DONE__";
+    proc.write_stdin(":lisp (fboundp 'maxima::$set_breakpoint)\n")
+        .await
+        .unwrap();
+    proc.write_stdin(&format!("print(\"{}\")$\n", sentinel))
+        .await
+        .unwrap();
+    let (lines, _) = proc.read_until_sentinel(sentinel).await.unwrap();
+    let output = lines.join(" ");
+    output.contains("T") && !output.contains("NIL")
+}
+
+#[tokio::test]
+#[ignore]
+async fn enhanced_file_line_breakpoint() {
+    let mut proc = spawn_maxima().await;
+
+    let path = example_path("01_basic_breakpoint.mac");
+    let sentinel = "__TEST_DONE__";
+
+    // Setup
+    proc.write_stdin("debugmode(true)$\n").await.unwrap();
+    proc.write_stdin(&format!("print(\"{}\")$\n", sentinel))
+        .await
+        .unwrap();
+    proc.read_until_sentinel(sentinel).await.unwrap();
+
+    if !detect_enhanced_maxima(&mut proc).await {
+        eprintln!("Skipping: Enhanced Maxima not detected");
+        proc.kill().await.unwrap();
+        return;
+    }
+
+    // Batchload the file
+    proc.write_stdin(&format!("batchload(\"{}\")$\n", path.replace('\\', "/")))
+        .await
+        .unwrap();
+    proc.write_stdin(&format!("print(\"{}\")$\n", sentinel))
+        .await
+        .unwrap();
+    proc.read_until_sentinel(sentinel).await.unwrap();
+
+    // Set file:line breakpoint (Enhanced syntax)
+    let cmd = format!(":break \"{}\" 14", path.replace('\\', "/"));
+    proc.write_stdin(&format!("{}\n", cmd)).await.unwrap();
+    proc.write_stdin(&format!("print(\"{}\")$\n", sentinel))
+        .await
+        .unwrap();
+    let (lines, _) = proc.read_until_sentinel(sentinel).await.unwrap();
+    let bp_set = lines.iter().any(|l| l.contains("Bkpt"));
+    assert!(
+        bp_set,
+        "expected file:line breakpoint confirmation, got: {:?}",
+        lines
+    );
+
+    // Trigger — should hit the breakpoint
+    let eval_sentinel = "__EVAL_DONE__";
+    let wrapped = format!(
+        "block([__dap_r__], __dap_r__: (add(3, 4)), print(\"{}\"), __dap_r__)$\n",
+        eval_sentinel
+    );
+    proc.write_stdin(&wrapped).await.unwrap();
+    let (_lines, prompt) = proc.read_dap_response(Some(eval_sentinel)).await.unwrap();
+    assert!(
+        matches!(prompt, PromptKind::Debugger { .. }),
+        "expected debugger prompt after file:line breakpoint hit, got {:?}",
+        prompt
+    );
+
+    proc.kill().await.unwrap();
+}
+
+#[tokio::test]
+#[ignore]
+async fn enhanced_deferred_breakpoint() {
+    let mut proc = spawn_maxima().await;
+
+    let path = example_path("01_basic_breakpoint.mac");
+    let sentinel = "__TEST_DONE__";
+
+    // Setup
+    proc.write_stdin("debugmode(true)$\n").await.unwrap();
+    proc.write_stdin(&format!("print(\"{}\")$\n", sentinel))
+        .await
+        .unwrap();
+    proc.read_until_sentinel(sentinel).await.unwrap();
+
+    if !detect_enhanced_maxima(&mut proc).await {
+        eprintln!("Skipping: Enhanced Maxima not detected");
+        proc.kill().await.unwrap();
+        return;
+    }
+
+    // Set breakpoint BEFORE loading the file (deferred)
+    let cmd = format!(":break \"{}\" 14", path.replace('\\', "/"));
+    proc.write_stdin(&format!("{}\n", cmd)).await.unwrap();
+    proc.write_stdin(&format!("print(\"{}\")$\n", sentinel))
+        .await
+        .unwrap();
+    let (lines, _) = proc.read_until_sentinel(sentinel).await.unwrap();
+    // Should get a "Deferred" message
+    let has_deferred = lines
+        .iter()
+        .any(|l| l.to_lowercase().contains("deferred"));
+    assert!(
+        has_deferred,
+        "expected deferred breakpoint message, got: {:?}",
+        lines
+    );
+
+    // Batchload the file — deferred breakpoints should resolve and fire
+    // when top-level code calls add()
+    let eval_sentinel = "__EVAL_DONE__";
+    let wrapped = format!(
+        "block([__dap_r__], __dap_r__: (batchload(\"{}\")), print(\"{}\"), __dap_r__)$\n",
+        path.replace('\\', "/"),
+        eval_sentinel
+    );
+    proc.write_stdin(&wrapped).await.unwrap();
+    let (_lines, prompt) = proc.read_dap_response(Some(eval_sentinel)).await.unwrap();
+    assert!(
+        matches!(prompt, PromptKind::Debugger { .. }),
+        "expected deferred breakpoint to fire during batchload, got {:?}",
+        prompt
+    );
+
+    proc.kill().await.unwrap();
+}
+
+#[tokio::test]
+#[ignore]
+async fn enhanced_breakpoint_count() {
+    let mut proc = spawn_maxima().await;
+
+    let path = example_path("01_basic_breakpoint.mac");
+    let sentinel = "__TEST_DONE__";
+
+    // Setup
+    proc.write_stdin("debugmode(true)$\n").await.unwrap();
+    proc.write_stdin(&format!("print(\"{}\")$\n", sentinel))
+        .await
+        .unwrap();
+    proc.read_until_sentinel(sentinel).await.unwrap();
+
+    if !detect_enhanced_maxima(&mut proc).await {
+        eprintln!("Skipping: Enhanced Maxima not detected");
+        proc.kill().await.unwrap();
+        return;
+    }
+
+    // Load file
+    proc.write_stdin(&format!("batchload(\"{}\")$\n", path.replace('\\', "/")))
+        .await
+        .unwrap();
+    proc.write_stdin(&format!("print(\"{}\")$\n", sentinel))
+        .await
+        .unwrap();
+    proc.read_until_sentinel(sentinel).await.unwrap();
+
+    // Set two breakpoints
+    let cmd1 = format!(":break \"{}\" 14", path.replace('\\', "/"));
+    proc.write_stdin(&format!("{}\n", cmd1)).await.unwrap();
+    proc.write_stdin(&format!("print(\"{}\")$\n", sentinel))
+        .await
+        .unwrap();
+    proc.read_until_sentinel(sentinel).await.unwrap();
+
+    let cmd2 = format!(":break \"{}\" 15", path.replace('\\', "/"));
+    proc.write_stdin(&format!("{}\n", cmd2)).await.unwrap();
+    proc.write_stdin(&format!("print(\"{}\")$\n", sentinel))
+        .await
+        .unwrap();
+    proc.read_until_sentinel(sentinel).await.unwrap();
+
+    // Query breakpoint_count()
+    proc.write_stdin("breakpoint_count();\n").await.unwrap();
+    proc.write_stdin(&format!("print(\"{}\")$\n", sentinel))
+        .await
+        .unwrap();
+    let (lines, _) = proc.read_until_sentinel(sentinel).await.unwrap();
+    let count: i32 = lines
+        .iter()
+        .filter_map(|l| l.trim().parse().ok())
+        .next()
+        .unwrap_or(-1);
+    assert!(
+        count >= 2,
+        "expected breakpoint_count() >= 2, got {} from lines: {:?}",
+        count,
+        lines
+    );
+
+    proc.kill().await.unwrap();
+}
+
+#[tokio::test]
+#[ignore]
+async fn enhanced_clear_breakpoints() {
+    let mut proc = spawn_maxima().await;
+
+    let path = example_path("01_basic_breakpoint.mac");
+    let sentinel = "__TEST_DONE__";
+
+    // Setup
+    proc.write_stdin("debugmode(true)$\n").await.unwrap();
+    proc.write_stdin(&format!("print(\"{}\")$\n", sentinel))
+        .await
+        .unwrap();
+    proc.read_until_sentinel(sentinel).await.unwrap();
+
+    if !detect_enhanced_maxima(&mut proc).await {
+        eprintln!("Skipping: Enhanced Maxima not detected");
+        proc.kill().await.unwrap();
+        return;
+    }
+
+    // Load file and set a breakpoint
+    proc.write_stdin(&format!("batchload(\"{}\")$\n", path.replace('\\', "/")))
+        .await
+        .unwrap();
+    proc.write_stdin(&format!("print(\"{}\")$\n", sentinel))
+        .await
+        .unwrap();
+    proc.read_until_sentinel(sentinel).await.unwrap();
+
+    let cmd = format!(":break \"{}\" 14", path.replace('\\', "/"));
+    proc.write_stdin(&format!("{}\n", cmd)).await.unwrap();
+    proc.write_stdin(&format!("print(\"{}\")$\n", sentinel))
+        .await
+        .unwrap();
+    proc.read_until_sentinel(sentinel).await.unwrap();
+
+    // Clear all breakpoints
+    proc.write_stdin("clear_breakpoints();\n").await.unwrap();
+    proc.write_stdin(&format!("print(\"{}\")$\n", sentinel))
+        .await
+        .unwrap();
+    proc.read_until_sentinel(sentinel).await.unwrap();
+
+    // Verify count is 0
+    proc.write_stdin("breakpoint_count();\n").await.unwrap();
+    proc.write_stdin(&format!("print(\"{}\")$\n", sentinel))
+        .await
+        .unwrap();
+    let (lines, _) = proc.read_until_sentinel(sentinel).await.unwrap();
+    let count: i32 = lines
+        .iter()
+        .filter_map(|l| l.trim().parse().ok())
+        .next()
+        .unwrap_or(-1);
+    assert_eq!(
+        count, 0,
+        "expected breakpoint_count() == 0 after clear, got {} from lines: {:?}",
+        count, lines
+    );
 
     proc.kill().await.unwrap();
 }

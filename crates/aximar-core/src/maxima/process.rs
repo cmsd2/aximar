@@ -21,6 +21,10 @@ pub struct MaximaProcess {
     backend: Backend,
     container_name: Option<String>,
     output_sink: Arc<dyn OutputSink>,
+    /// When true, `read_until_sentinel` uses chunk-based reading and
+    /// also detects debugger prompts (`dbm:N>`). When false, uses
+    /// simpler line-based reading (sentinel only).
+    debug_mode: bool,
 }
 
 impl MaximaProcess {
@@ -193,6 +197,7 @@ impl MaximaProcess {
             backend,
             container_name,
             output_sink,
+            debug_mode: false,
         };
 
         proc.initialize().await?;
@@ -215,13 +220,20 @@ impl MaximaProcess {
         );
 
         self.write_stdin(&init_commands).await?;
-        self.read_until_sentinel(READY_SENTINEL).await?;
+        self.read_until_sentinel(READY_SENTINEL).await.map(|_| ())?;
 
         // Set % to a harmless value so tex(%) after an error in the first cell
         // doesn't render the sentinel string
         self.write_stdin("0$\n").await?;
 
         Ok(())
+    }
+
+    /// Enable debug mode. In debug mode, `read_until_sentinel` uses
+    /// chunk-based reading and can detect debugger prompts in addition
+    /// to sentinels. Call this after `debugmode(true)$` in Maxima.
+    pub fn set_debug_mode(&mut self, enabled: bool) {
+        self.debug_mode = enabled;
     }
 
     fn emit_output(&self, line: &str, stream: &str) {
@@ -252,7 +264,37 @@ impl MaximaProcess {
         Ok(())
     }
 
-    pub async fn read_until_sentinel(&mut self, sentinel: &str) -> Result<Vec<String>, AppError> {
+    /// Read stdout/stderr until a sentinel string is found (and, in debug
+    /// mode, also until a debugger prompt `(dbm:N)` is encountered).
+    ///
+    /// Returns the collected lines and a [`PromptKind`] indicating what
+    /// terminated the read:
+    /// - `PromptKind::Normal` — the sentinel was found (normal completion)
+    /// - `PromptKind::Debugger { level }` — a debugger prompt appeared
+    ///   (debug mode only; never returned in normal mode)
+    ///
+    /// In **normal mode** (default), uses line-based reading optimized for
+    /// MCP/Tauri — debugger prompts are never expected, so simpler I/O suffices.
+    ///
+    /// In **debug mode** (set via [`set_debug_mode`]), uses chunk-based reading
+    /// that can detect debugger prompts even without a trailing newline.
+    pub async fn read_until_sentinel(
+        &mut self,
+        sentinel: &str,
+    ) -> Result<(Vec<String>, PromptKind), AppError> {
+        if self.debug_mode {
+            self.read_dap_response(Some(sentinel)).await
+        } else {
+            let lines = self.read_until_sentinel_line_based(sentinel).await?;
+            Ok((lines, PromptKind::Normal))
+        }
+    }
+
+    /// Line-based sentinel reader for non-debug mode (MCP/Tauri).
+    async fn read_until_sentinel_line_based(
+        &mut self,
+        sentinel: &str,
+    ) -> Result<Vec<String>, AppError> {
         let mut lines = Vec::new();
         let mut stdout_line = String::new();
         let mut stderr_line = String::new();
@@ -261,7 +303,6 @@ impl MaximaProcess {
             stdout_line.clear();
             stderr_line.clear();
 
-            // Read from both stdout and stderr concurrently
             tokio::select! {
                 result = self.stdout_reader.read_line(&mut stdout_line) => {
                     let bytes_read = result.map_err(|e| AppError::CommunicationError(e.to_string()))?;
@@ -274,7 +315,6 @@ impl MaximaProcess {
                     self.emit_output(&trimmed, "stdout");
                     if trimmed.contains(sentinel) {
                         lines.push(trimmed);
-                        // Drain any remaining stderr
                         self.drain_stderr(&mut lines).await;
                         // Read one more stdout line (the print() return value)
                         let mut extra = String::new();
@@ -289,7 +329,6 @@ impl MaximaProcess {
                 result = self.stderr_reader.read_line(&mut stderr_line) => {
                     let bytes_read = result.map_err(|e| AppError::CommunicationError(e.to_string()))?;
                     if bytes_read == 0 {
-                        // stderr closed, not fatal — continue reading stdout
                         continue;
                     }
                     let trimmed = stderr_line.trim_end().to_string();
@@ -361,127 +400,9 @@ impl MaximaProcess {
         // Caller returns the timeout error; user can restart.
     }
 
-    /// Read stdout/stderr until either a sentinel string or a debugger prompt
-    /// (`dbm:N>`) appears.
+    /// Read Maxima output using chunk-based reading.
     ///
-    /// Returns the collected lines and a [`PromptKind`] indicating which
-    /// termination condition was met. The existing `read_until_sentinel` is
-    /// unchanged — MCP and Tauri callers keep working as before.
-    pub async fn read_until_prompt_or_sentinel(
-        &mut self,
-        sentinel: &str,
-    ) -> Result<(Vec<String>, PromptKind), AppError> {
-        let mut lines = Vec::new();
-        let mut stdout_line = String::new();
-        let mut stderr_line = String::new();
-
-        loop {
-            stdout_line.clear();
-            stderr_line.clear();
-
-            tokio::select! {
-                result = self.stdout_reader.read_line(&mut stdout_line) => {
-                    let bytes_read = result.map_err(|e| AppError::CommunicationError(e.to_string()))?;
-                    if bytes_read == 0 {
-                        return Err(AppError::CommunicationError(
-                            "Maxima process closed unexpectedly".into(),
-                        ));
-                    }
-                    let trimmed = stdout_line.trim_end().to_string();
-                    self.emit_output(&trimmed, "stdout");
-
-                    // Check for debugger prompt first
-                    if let Some(level) = debugger::detect_debugger_prompt(&trimmed) {
-                        lines.push(trimmed);
-                        self.drain_stderr(&mut lines).await;
-                        return Ok((lines, PromptKind::Debugger { level }));
-                    }
-
-                    // Then check for sentinel
-                    if trimmed.contains(sentinel) {
-                        lines.push(trimmed);
-                        self.drain_stderr(&mut lines).await;
-                        // Read the print() return value line
-                        let mut extra = String::new();
-                        let _ = tokio::time::timeout(
-                            std::time::Duration::from_millis(200),
-                            self.stdout_reader.read_line(&mut extra),
-                        ).await;
-                        return Ok((lines, PromptKind::Normal));
-                    }
-
-                    lines.push(trimmed);
-                }
-                result = self.stderr_reader.read_line(&mut stderr_line) => {
-                    let bytes_read = result.map_err(|e| AppError::CommunicationError(e.to_string()))?;
-                    if bytes_read == 0 {
-                        continue;
-                    }
-                    let trimmed = stderr_line.trim_end().to_string();
-                    if !trimmed.is_empty() {
-                        self.emit_output(&trimmed, "stderr");
-                        lines.push(trimmed);
-                    }
-                }
-            };
-        }
-    }
-
-    /// Read stdout/stderr until a debugger prompt (`dbm:N>`) appears.
-    ///
-    /// Used after sending debugger commands (`:step`, `:bt`, `:resume`, etc.)
-    /// where only a debugger prompt is expected, not a sentinel.
-    ///
-    /// Returns the collected lines and the debugger nesting level.
-    pub async fn read_until_debugger_prompt(
-        &mut self,
-    ) -> Result<(Vec<String>, u32), AppError> {
-        let mut lines = Vec::new();
-        let mut stdout_line = String::new();
-        let mut stderr_line = String::new();
-
-        loop {
-            stdout_line.clear();
-            stderr_line.clear();
-
-            tokio::select! {
-                result = self.stdout_reader.read_line(&mut stdout_line) => {
-                    let bytes_read = result.map_err(|e| AppError::CommunicationError(e.to_string()))?;
-                    if bytes_read == 0 {
-                        return Err(AppError::CommunicationError(
-                            "Maxima process closed unexpectedly".into(),
-                        ));
-                    }
-                    let trimmed = stdout_line.trim_end().to_string();
-                    self.emit_output(&trimmed, "stdout");
-
-                    if let Some(level) = debugger::detect_debugger_prompt(&trimmed) {
-                        lines.push(trimmed);
-                        self.drain_stderr(&mut lines).await;
-                        return Ok((lines, level));
-                    }
-
-                    lines.push(trimmed);
-                }
-                result = self.stderr_reader.read_line(&mut stderr_line) => {
-                    let bytes_read = result.map_err(|e| AppError::CommunicationError(e.to_string()))?;
-                    if bytes_read == 0 {
-                        continue;
-                    }
-                    let trimmed = stderr_line.trim_end().to_string();
-                    if !trimmed.is_empty() {
-                        self.emit_output(&trimmed, "stderr");
-                        lines.push(trimmed);
-                    }
-                }
-            };
-        }
-    }
-
-    /// Read Maxima output using chunk-based reading, suitable for the DAP
-    /// server.
-    ///
-    /// Unlike [`read_until_sentinel`] and related methods which use
+    /// Unlike [`read_until_sentinel_line_based`] which uses
     /// `read_line`, this uses `read()` to detect debugger prompts
     /// (`dbm:N>`) that are written without a trailing newline.
     ///

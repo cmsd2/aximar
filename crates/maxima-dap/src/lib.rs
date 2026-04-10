@@ -10,10 +10,21 @@
 //! - **No step-out** — Maxima has no native step-out. `:resume` continues to next breakpoint.
 //! - **Top-level breakpoints impossible** — Lines outside function definitions are marked unverified.
 //! - **`errcatch` suppresses breakpoints** — Breakpoints inside `errcatch()` don't fire.
-//! - **Function redefinition clears breakpoints** — Reloading a file invalidates breakpoints.
+//! - **Function redefinition clears breakpoints** (Legacy only) — Reloading a file invalidates breakpoints.
+//!   Enhanced Maxima auto-reapplies breakpoints on redefinition.
+//!
+//! ## Dual-mode support
+//!
+//! The server auto-detects Enhanced Maxima (with `set_breakpoint` support) at launch
+//! and selects the appropriate breakpoint strategy:
+//! - **Legacy**: function+offset breakpoints, temp file, top-level code extraction
+//! - **Enhanced**: file:line breakpoints, deferred breakpoints, line-snapping, direct batchload
 
 pub mod breakpoints;
 pub mod frames;
 pub mod server;
+pub mod strategy;
+pub mod strategy_enhanced;
+pub mod strategy_legacy;
 pub mod transport;
 pub mod types;

@@ -199,6 +199,30 @@ Setting a breakpoint at the function entry and using Step Over walks through `a`
 
 `:resume` runs until the next breakpoint is hit or the expression completes. There is no "step out" command in Maxima's debugger — `:resume` is the closest equivalent (it continues to the next breakpoint, which may be in a calling function if one is set).
 
+## Maxima Version Compatibility
+
+The DAP server supports two modes, auto-detected at launch:
+
+| Mode | Maxima Version | Detection |
+|------|---------------|-----------|
+| **Legacy** | Stock Maxima | Default fallback |
+| **Enhanced** | Patched Maxima with `set_breakpoint` | Probes for `(fboundp 'maxima::$set_breakpoint)` |
+
+### Legacy mode
+
+Uses function+offset breakpoints (`:break func N`), a temp file for definitions-only loading, and top-level code extraction. This is the original behavior and works with any Maxima installation.
+
+### Enhanced mode
+
+Uses file:line breakpoints (`:break "file.mac" LINE`), deferred breakpoints (set before file is loaded), line-snapping (breakpoints on non-executable lines are adjusted), and direct batchload of the original file (no temp file). Requires a patched Maxima with the enhanced debugger from the `breakpoints-proposal`.
+
+**Enhanced mode benefits:**
+- **Deferred breakpoints** — Set breakpoints before loading, auto-resolve when functions are defined
+- **Line-snapping** — Breakpoints on comment/blank lines snap to the nearest executable line
+- **Path normalization** — File paths are normalized via `probe-file`
+- **Breakpoint survival** — Breakpoints are auto-reapplied when functions are redefined
+- **Simpler protocol** — No temp file, no function+offset mapping, no top-level code extraction
+
 ## Known Limitations
 
 ### SBCL required
@@ -207,7 +231,7 @@ The Maxima debugger features (`:bt`, `:frame`, line info in backtraces) only wor
 
 ### Breakpoints only work inside functions
 
-Maxima's debugger can only set breakpoints on function bodies using `:break funcname offset`. Lines at the top level of a `.mac` file (outside any function or macro definition) cannot have breakpoints. The DAP server marks these as **unverified** with the message "Line N is not inside a function definition".
+Maxima's debugger can only set breakpoints on function bodies. In Legacy mode, this uses `:break funcname offset`; in Enhanced mode, `:break "file" LINE`. In both modes, lines at the top level of a `.mac` file (outside any function or macro definition) cannot have breakpoints. The DAP server marks these as **unverified** with the message "Line N is not inside a function definition" (Legacy) or an appropriate error from Maxima (Enhanced).
 
 ### No Step Out
 
@@ -219,9 +243,11 @@ Maxima's debugger has no native step-out command. The closest alternatives are:
 
 Breakpoints inside `errcatch()` blocks do not fire. This is a Maxima limitation — `errcatch` catches all interrupts including debugger breaks.
 
-### Function redefinition clears breakpoints
+### Function redefinition clears breakpoints (Legacy only)
 
-Redefining a function (via `batchload()`, `load()`, or re-evaluating its `:=` definition) clears all breakpoints on that function. The DAP server works around this by extracting and re-executing only non-definition top-level code when no `evaluate` expression is provided, so function definitions (and their breakpoints) remain intact.
+In Legacy mode, redefining a function (via `batchload()`, `load()`, or re-evaluating its `:=` definition) clears all breakpoints on that function. The DAP server works around this by extracting and re-executing only non-definition top-level code when no `evaluate` expression is provided, so function definitions (and their breakpoints) remain intact.
+
+In Enhanced mode, breakpoints are auto-reapplied when functions are redefined.
 
 ### Built-in name conflicts
 
@@ -354,6 +380,10 @@ Integration tests spawn an actual Maxima process and exercise the debugger commu
 | `next_at_last_statement_completes` | `:next` from last statement (offset 2) exits function correctly |
 | `next_multi_step_through_function` | Multiple `:next` steps walk through a longer function body |
 | `top_level_code_hits_breakpoint` | Breakpoints fire when only top-level code is re-executed (no evaluate) |
+| `enhanced_file_line_breakpoint` | (Enhanced) `:break "file" LINE` works after batchload |
+| `enhanced_deferred_breakpoint` | (Enhanced) Set before load, fires after batchload |
+| `enhanced_breakpoint_count` | (Enhanced) `breakpoint_count()` returns correct value |
+| `enhanced_clear_breakpoints` | (Enhanced) `clear_breakpoints()` clears everything |
 
 ### Example files
 
@@ -383,13 +413,16 @@ Example `.mac` files for testing are in `crates/maxima-dap/examples/`. These cov
 
 ```
 crates/maxima-dap/src/
-├── main.rs          # Binary entry point — tracing setup, stdio transport
-├── lib.rs           # Public module exports
-├── transport.rs     # Content-Length framing over stdin/stdout
-├── server.rs        # DapServer — request dispatch, state machine, Maxima communication
-├── breakpoints.rs   # file:line ↔ function+offset mapping using maxima-mac-parser
-├── frames.rs        # Backtrace parsing → DAP StackFrame, variable extraction
-└── types.rs         # MaximaLaunchArguments, DebugState, MappedBreakpoint, VariableRef
+├── main.rs               # Binary entry point — tracing setup, stdio transport
+├── lib.rs                # Public module exports
+├── transport.rs          # Content-Length framing over stdin/stdout
+├── server.rs             # DapServer — request dispatch, state machine, Maxima communication
+├── strategy.rs           # BreakpointStrategy trait, StrategyContext, result types
+├── strategy_legacy.rs    # LegacyStrategy — function+offset breakpoints, temp file
+├── strategy_enhanced.rs  # EnhancedStrategy — file:line breakpoints, deferred, line-snapping
+├── breakpoints.rs        # file:line ↔ function+offset mapping using maxima-mac-parser
+├── frames.rs             # Backtrace parsing → DAP StackFrame, variable extraction
+└── types.rs              # MaximaLaunchArguments, DebugState, MappedBreakpoint, VariableRef
 ```
 
 ### Related crates

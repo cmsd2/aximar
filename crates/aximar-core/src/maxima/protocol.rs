@@ -41,7 +41,7 @@ pub async fn evaluate(
 
     process.write_stdin(&input).await?;
 
-    let lines = match tokio::time::timeout(
+    let (lines, _prompt) = match tokio::time::timeout(
         std::time::Duration::from_secs(eval_timeout_secs),
         process.read_until_sentinel(EVAL_SENTINEL),
     )
@@ -85,7 +85,7 @@ pub async fn evaluate_with_packages(
 
     process.write_stdin(&input).await?;
 
-    let lines = match tokio::time::timeout(
+    let (lines, _prompt) = match tokio::time::timeout(
         std::time::Duration::from_secs(eval_timeout_secs),
         process.read_until_sentinel(EVAL_SENTINEL),
     )
@@ -113,7 +113,7 @@ pub async fn query_variables(process: &mut MaximaProcess) -> Result<Vec<String>,
 
     process.write_stdin(&input).await?;
 
-    let lines = match tokio::time::timeout(
+    let (lines, _prompt) = match tokio::time::timeout(
         std::time::Duration::from_secs(VARS_TIMEOUT_SECS),
         process.read_until_sentinel(VARS_SENTINEL),
     )

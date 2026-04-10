@@ -60,10 +60,13 @@ pub struct MappedBreakpoint {
     pub line: i64,
     /// Maxima function name (if the line is inside a function).
     pub function: Option<String>,
-    /// Offset within the function body.
+    /// Offset within the function body (Legacy mode only).
     pub offset: Option<u32>,
     /// Whether the breakpoint was successfully set in Maxima.
     pub verified: bool,
+    /// Actual line after line-snapping (Enhanced mode only).
+    /// When set, differs from `line` — the breakpoint was moved to a nearby executable line.
+    pub actual_line: Option<i64>,
     /// Maxima's internal breakpoint ID (from `:break` response).
     pub maxima_id: Option<u32>,
     /// Message for unverified breakpoints (e.g. "line is not inside a function").
