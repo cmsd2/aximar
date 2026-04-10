@@ -6,5 +6,6 @@ pub use aximar_core::notebook;
 pub use aximar_core::registry;
 
 mod convert;
+pub mod http;
 mod params;
 pub mod server;

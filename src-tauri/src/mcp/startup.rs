@@ -1,11 +1,5 @@
 use std::sync::Arc;
 
-use axum::extract::Request;
-use axum::http::StatusCode;
-use axum::middleware::Next;
-use rmcp::transport::streamable_http_server::{
-    session::local::LocalSessionManager, StreamableHttpServerConfig, StreamableHttpService,
-};
 use tokio_util::sync::CancellationToken;
 
 use aximar_core::maxima::backend::{Backend, BackendKind, ContainerEngine};
@@ -114,43 +108,13 @@ pub async fn start_mcp_server(state: AppState, listen_address: String, token: St
         on_session_status,
     );
 
-    let service = StreamableHttpService::new(
-        move || Ok(server.clone()),
-        Arc::new(LocalSessionManager::default()),
-        StreamableHttpServerConfig {
-            stateful_mode: true,
-            cancellation_token: ct.child_token(),
-            ..Default::default()
-        },
-    );
-
-    let expected = format!("Bearer {token}");
-    let router = axum::Router::new()
-        .nest_service("/mcp", service)
-        .layer(axum::middleware::from_fn(move |req: Request, next: Next| {
-            let expected = expected.clone();
-            async move {
-                let auth = req
-                    .headers()
-                    .get(axum::http::header::AUTHORIZATION)
-                    .and_then(|v| v.to_str().ok());
-                match auth {
-                    Some(v) if v == expected => Ok(next.run(req).await),
-                    _ => Err(StatusCode::UNAUTHORIZED),
-                }
-            }
-        }));
-
     let addr = listen_address;
     let app_handle_for_log = state.app_handle.clone();
     match tokio::net::TcpListener::bind(&addr).await {
         Ok(listener) => {
             tracing::info!("MCP HTTP server listening on http://{addr}/mcp");
             emit_app_log(&app_handle_for_log, &state.app_log, "info", &format!("MCP server listening on http://{addr}/mcp"), "mcp");
-            if let Err(e) = axum::serve(listener, router)
-                .with_graceful_shutdown(async move { ct.cancelled_owned().await })
-                .await
-            {
+            if let Err(e) = aximar_mcp::http::serve_mcp_http(server, listener, Some(token), ct).await {
                 tracing::error!("MCP HTTP server error: {e}");
                 emit_app_log(&app_handle_for_log, &state.app_log, "error", &format!("MCP server error: {e}"), "mcp");
             }
