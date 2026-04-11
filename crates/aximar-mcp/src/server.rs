@@ -32,37 +32,28 @@ use crate::params::*;
 pub type ProcessSinkFactory =
     Arc<dyn Fn(&str, &Arc<CaptureOutputSink>) -> Arc<dyn OutputSink> + Send + Sync>;
 
+// ── Shared server core ────────────────────────────────────────────────
+
+/// Shared state and logic used by both `AximarMcpServer` (notebook mode)
+/// and `SimpleMcpServer` (simple mode).
 #[derive(Clone)]
-pub struct AximarMcpServer {
-    #[allow(dead_code)]
-    tool_router: rmcp::handler::server::router::tool::ToolRouter<Self>,
-    registry: Arc<Mutex<NotebookRegistry>>,
-    catalog: Arc<Catalog>,
-    docs: Arc<Docs>,
-    packages: Arc<PackageCatalog>,
-    backend: Backend,
-    maxima_path: Option<String>,
-    eval_timeout: u64,
-    /// Factory for creating per-notebook process output sinks.
-    process_sink_factory: ProcessSinkFactory,
-    /// Optional callback invoked after any notebook mutation (used by connected
-    /// mode to push state to the Tauri frontend). Args: (notebook_id, effect).
-    on_notebook_change: Option<Arc<dyn Fn(&str, CommandEffect) + Send + Sync>>,
-    /// Optional callback for notebook lifecycle events (create, close, switch).
-    /// Args: (notebook_id, event_type). Event types: "created", "closed", "switched".
-    on_notebook_lifecycle: Option<Arc<dyn Fn(&str, &str) + Send + Sync>>,
-    /// Optional callback invoked on session status transitions (connected mode).
-    /// Used to push status updates to the Tauri frontend.
-    on_session_status: Option<SessionStatusCallback>,
-    /// Whether to allow dangerous function calls without approval (headless --allow-dangerous).
-    allow_dangerous: bool,
+pub struct ServerCore {
+    pub(crate) registry: Arc<Mutex<NotebookRegistry>>,
+    pub(crate) catalog: Arc<Catalog>,
+    pub(crate) docs: Arc<Docs>,
+    pub(crate) packages: Arc<PackageCatalog>,
+    pub(crate) backend: Backend,
+    pub(crate) maxima_path: Option<String>,
+    pub(crate) eval_timeout: u64,
+    pub(crate) process_sink_factory: ProcessSinkFactory,
+    pub(crate) on_notebook_change: Option<Arc<dyn Fn(&str, CommandEffect) + Send + Sync>>,
+    pub(crate) on_notebook_lifecycle: Option<Arc<dyn Fn(&str, &str) + Send + Sync>>,
+    pub(crate) on_session_status: Option<SessionStatusCallback>,
+    pub(crate) allow_dangerous: bool,
 }
 
-impl AximarMcpServer {
-    /// Create a server for standalone mode (headless, stdio transport).
-    ///
-    /// In standalone mode the process output sink is just the capture sink
-    /// and there is no notebook-change callback.
+impl ServerCore {
+    /// Create a core for standalone mode (headless).
     pub fn new(
         registry: Arc<Mutex<NotebookRegistry>>,
         catalog: Arc<Catalog>,
@@ -75,7 +66,7 @@ impl AximarMcpServer {
     ) -> Self {
         let process_sink_factory: ProcessSinkFactory =
             Arc::new(|_id, capture| capture.clone() as Arc<dyn OutputSink>);
-        Self::build(
+        Self {
             registry,
             catalog,
             docs,
@@ -84,15 +75,14 @@ impl AximarMcpServer {
             maxima_path,
             eval_timeout,
             process_sink_factory,
-            None,
-            None,
-            None,
+            on_notebook_change: None,
+            on_notebook_lifecycle: None,
+            on_session_status: None,
             allow_dangerous,
-        )
+        }
     }
 
-    /// Create a server for connected mode (embedded in Tauri) with a custom
-    /// process sink factory and callbacks for GUI synchronization.
+    /// Create a core for connected mode (GUI) with custom callbacks.
     pub fn new_connected(
         registry: Arc<Mutex<NotebookRegistry>>,
         catalog: Arc<Catalog>,
@@ -106,7 +96,7 @@ impl AximarMcpServer {
         on_notebook_lifecycle: Arc<dyn Fn(&str, &str) + Send + Sync>,
         on_session_status: SessionStatusCallback,
     ) -> Self {
-        Self::build(
+        Self {
             registry,
             catalog,
             docs,
@@ -115,46 +105,17 @@ impl AximarMcpServer {
             maxima_path,
             eval_timeout,
             process_sink_factory,
-            Some(on_notebook_change),
-            Some(on_notebook_lifecycle),
-            Some(on_session_status),
-            false, // connected mode: GUI handles approval
-        )
-    }
-
-    fn build(
-        registry: Arc<Mutex<NotebookRegistry>>,
-        catalog: Arc<Catalog>,
-        docs: Arc<Docs>,
-        packages: Arc<PackageCatalog>,
-        backend: Backend,
-        maxima_path: Option<String>,
-        eval_timeout: u64,
-        process_sink_factory: ProcessSinkFactory,
-        on_notebook_change: Option<Arc<dyn Fn(&str, CommandEffect) + Send + Sync>>,
-        on_notebook_lifecycle: Option<Arc<dyn Fn(&str, &str) + Send + Sync>>,
-        on_session_status: Option<SessionStatusCallback>,
-        allow_dangerous: bool,
-    ) -> Self {
-        AximarMcpServer {
-            tool_router: Self::tool_router(),
-            registry,
-            catalog,
-            docs,
-            packages,
-            backend,
-            maxima_path,
-            eval_timeout,
-            process_sink_factory,
-            on_notebook_change,
-            on_notebook_lifecycle,
-            on_session_status,
-            allow_dangerous,
+            on_notebook_change: Some(on_notebook_change),
+            on_notebook_lifecycle: Some(on_notebook_lifecycle),
+            on_session_status: Some(on_session_status),
+            allow_dangerous: false, // connected mode: GUI handles approval
         }
     }
 
+    // ── Helpers ───────────────────────────────────────────────────
+
     /// Resolve a notebook context from an optional ID (defaults to active).
-    async fn resolve_context(
+    pub(crate) async fn resolve_context(
         &self,
         notebook_id: Option<&str>,
     ) -> Result<NotebookContextRef, String> {
@@ -163,21 +124,21 @@ impl AximarMcpServer {
     }
 
     /// Invoke the notebook-change callback if one is registered (connected mode).
-    fn notify_notebook_change(&self, notebook_id: &str, effect: CommandEffect) {
+    pub(crate) fn notify_notebook_change(&self, notebook_id: &str, effect: CommandEffect) {
         if let Some(ref cb) = self.on_notebook_change {
             cb(notebook_id, effect);
         }
     }
 
     /// Invoke the lifecycle callback if one is registered (connected mode).
-    fn notify_lifecycle(&self, notebook_id: &str, event_type: &str) {
+    pub(crate) fn notify_lifecycle(&self, notebook_id: &str, event_type: &str) {
         if let Some(ref cb) = self.on_notebook_lifecycle {
             cb(notebook_id, event_type);
         }
     }
 
     /// Ensure Maxima session is started for the given notebook context.
-    async fn ensure_session(&self, ctx: &NotebookContextRef) -> Result<(), String> {
+    pub(crate) async fn ensure_session(&self, ctx: &NotebookContextRef) -> Result<(), String> {
         let factory = self.process_sink_factory.clone();
         session_ops::ensure_session(
             ctx,
@@ -191,24 +152,15 @@ impl AximarMcpServer {
         .await
         .map_err(|e| e.to_string())
     }
-}
 
-// ── Tool implementations ──────────────────────────────────────────────
+    // ── Shared tool implementations ──────────────────────────────
 
-#[tool_router]
-impl AximarMcpServer {
-    // ── Documentation tools ───────────────────────────────────────
-
-    #[tool(description = "Search the Maxima function catalog by name or description. Returns matching functions with signatures and brief descriptions. Searches across 2500+ built-in and package functions. Supports partial name matching (e.g. \"integ\" finds integrate) and description keywords (e.g. \"matrix inverse\").")]
-    async fn search_functions(
-        &self,
-        Parameters(params): Parameters<SearchFunctionsParams>,
-    ) -> Result<String, String> {
-        let results = self.catalog.search(&params.query);
+    pub(crate) async fn do_search_functions(&self, query: &str) -> Result<String, String> {
+        let results = self.catalog.search(query);
         if results.is_empty() {
             return success_json(&serde_json::json!({
                 "results": [],
-                "message": format!("No functions matching '{}'", params.query)
+                "message": format!("No functions matching '{query}'")
             }));
         }
         let items: Vec<serde_json::Value> = results
@@ -226,14 +178,10 @@ impl AximarMcpServer {
         success_json(&serde_json::json!({ "results": items }))
     }
 
-    #[tool(description = "Get full documentation for a Maxima function, including usage, examples, and related functions. Falls back to a catalog summary if full docs are unavailable. Suggests similar function names if the exact name is not found.")]
-    async fn get_function_docs(
-        &self,
-        Parameters(params): Parameters<GetFunctionDocsParams>,
-    ) -> Result<String, String> {
-        if let Some(doc) = self.docs.get(&params.name) {
+    pub(crate) async fn do_get_function_docs(&self, name: &str) -> Result<String, String> {
+        if let Some(doc) = self.docs.get(name) {
             Ok(doc.to_string())
-        } else if let Some(func) = self.catalog.get(&params.name) {
+        } else if let Some(func) = self.catalog.get(name) {
             success_json(&serde_json::json!({
                 "name": func.name,
                 "signatures": func.signatures,
@@ -242,21 +190,19 @@ impl AximarMcpServer {
                 "note": "Full documentation not available; showing catalog entry."
             }))
         } else {
-            let similar = self.catalog.find_similar(&params.name, 3);
+            let similar = self.catalog.find_similar(name, 3);
             if similar.is_empty() {
-                error_result(format!("Function '{}' not found", params.name))
+                error_result(format!("Function '{name}' not found"))
             } else {
                 error_result(format!(
-                    "Function '{}' not found. Did you mean: {}?",
-                    params.name,
+                    "Function '{name}' not found. Did you mean: {}?",
                     similar.join(", ")
                 ))
             }
         }
     }
 
-    #[tool(description = "List Maxima functions that are deprecated, obsolete, or superseded. Returns names, descriptions, and suggested replacements where available. Consider calling this at the start of a session to avoid using obsolete functions in your notebook.")]
-    async fn list_deprecated(&self) -> Result<String, String> {
+    pub(crate) async fn do_list_deprecated(&self) -> Result<String, String> {
         let results = self.catalog.find_deprecated();
         success_json(&serde_json::json!({
             "count": results.len(),
@@ -264,15 +210,11 @@ impl AximarMcpServer {
         }))
     }
 
-    #[tool(description = "Autocomplete a Maxima function name prefix. Returns matching function names with signatures. Includes both built-in and package functions alongside each other.")]
-    async fn complete_function(
-        &self,
-        Parameters(params): Parameters<CompleteFunctionParams>,
-    ) -> Result<String, String> {
-        let mut results = self.catalog.complete(&params.prefix);
+    pub(crate) async fn do_complete_function(&self, prefix: &str) -> Result<String, String> {
+        let mut results = self.catalog.complete(prefix);
 
         // Also include package functions (deduped)
-        let pkg_results = self.packages.complete_functions(&params.prefix);
+        let pkg_results = self.packages.complete_functions(prefix);
         let existing: std::collections::HashSet<String> =
             results.iter().map(|r| r.name.to_lowercase()).collect();
         for r in pkg_results {
@@ -299,18 +241,12 @@ impl AximarMcpServer {
         success_json(&serde_json::json!({ "completions": items }))
     }
 
-    // ── Package tools ─────────────────────────────────────────────
-
-    #[tool(description = "Search available Maxima packages by name or description. Returns packages with their load paths and function lists. Load a package in a code cell with load(\"name\")$ before using its functions.")]
-    async fn search_packages(
-        &self,
-        Parameters(params): Parameters<SearchPackagesParams>,
-    ) -> Result<String, String> {
-        let results = self.packages.search(&params.query);
+    pub(crate) async fn do_search_packages(&self, query: &str) -> Result<String, String> {
+        let results = self.packages.search(query);
         if results.is_empty() {
             return success_json(&serde_json::json!({
                 "results": [],
-                "message": format!("No packages matching '{}'", params.query)
+                "message": format!("No packages matching '{query}'")
             }));
         }
         let items: Vec<serde_json::Value> = results
@@ -327,8 +263,7 @@ impl AximarMcpServer {
         success_json(&serde_json::json!({ "results": items }))
     }
 
-    #[tool(description = "List all available Maxima packages that can be loaded with load(\"name\")$. Use get_package to see what functions a specific package provides.")]
-    async fn list_packages(&self) -> Result<String, String> {
+    pub(crate) async fn do_list_packages(&self) -> Result<String, String> {
         let all = self.packages.all();
         let items: Vec<serde_json::Value> = all
             .iter()
@@ -346,27 +281,377 @@ impl AximarMcpServer {
         }))
     }
 
-    #[tool(description = "Get details of a specific Maxima package, including description and list of functions it provides. Load a package in a code cell with load(\"name\")$ before using its functions.")]
-    async fn get_package(
-        &self,
-        Parameters(params): Parameters<GetPackageParams>,
-    ) -> Result<String, String> {
-        match self.packages.get(&params.name) {
+    pub(crate) async fn do_get_package(&self, name: &str) -> Result<String, String> {
+        match self.packages.get(name) {
             Some(pkg) => success_json(&serde_json::json!({
                 "name": pkg.name,
                 "description": pkg.description,
                 "functions": pkg.functions,
                 "load_command": format!("load(\"{}\")$", pkg.name),
             })),
-            None => error_result(format!("Package '{}' not found", params.name)),
+            None => error_result(format!("Package '{name}' not found")),
         }
+    }
+
+    pub(crate) async fn do_evaluate_expression(
+        &self,
+        expression: &str,
+        notebook_id: Option<&str>,
+    ) -> Result<String, String> {
+        // Safety: evaluate_expression has no cell → no approval path → always block dangerous calls
+        if !self.allow_dangerous {
+            let dangerous = safety::detect_dangerous_calls(expression, Some(&self.packages));
+            if !dangerous.is_empty() {
+                let names: Vec<&str> = dangerous.iter().map(|d| d.function_name.as_str()).collect();
+                return error_result(format!(
+                    "Dangerous function(s) blocked: {}. Use a notebook cell for approval, or --allow-dangerous in headless mode.",
+                    names.join(", ")
+                ));
+            }
+        }
+
+        let ctx = self.resolve_context(notebook_id).await?;
+        if let Err(e) = self.ensure_session(&ctx).await {
+            return error_result(format!("Failed to start session: {e}"));
+        }
+
+        // Clear capture
+        ctx.capture_sink.take_cell_output();
+
+        let mut guard = ctx.session.lock().await;
+        let process = match guard.try_begin_eval() {
+            Ok(p) => p,
+            Err(e) => return error_result(format!("Session not ready: {e}")),
+        };
+
+        let translated = unicode_to_maxima(expression);
+        let result = protocol::evaluate_with_packages(
+            process,
+            "__ephemeral__",
+            &translated,
+            &self.catalog,
+            &self.packages,
+            self.eval_timeout,
+        )
+        .await;
+
+        guard.end_eval();
+
+        match result {
+            Ok(eval_result) => success_json(&serde_json::json!({
+                "text_output": eval_result.text_output,
+                "latex": eval_result.latex,
+                "plot_svg": eval_result.plot_svg,
+                "plot_data": eval_result.plot_data,
+                "error": eval_result.error,
+                "is_error": eval_result.is_error,
+                "duration_ms": eval_result.duration_ms,
+                "output_label": eval_result.output_label,
+            })),
+            Err(e) => error_result(format!("Evaluation failed: {e}")),
+        }
+    }
+
+    pub(crate) async fn do_get_session_status(
+        &self,
+        notebook_id: Option<&str>,
+    ) -> Result<String, String> {
+        let ctx = self.resolve_context(notebook_id).await?;
+        let status = ctx.session.status();
+        success_json(&serde_json::json!({
+            "status": format!("{:?}", status),
+        }))
+    }
+
+    pub(crate) async fn do_restart_session(
+        &self,
+        notebook_id: Option<&str>,
+    ) -> Result<String, String> {
+        let ctx = self.resolve_context(notebook_id).await?;
+        // Stop current session
+        if let Err(e) = ctx.session.stop().await {
+            tracing::warn!("Error stopping session: {e}");
+        }
+
+        // Start fresh
+        match self.ensure_session(&ctx).await {
+            Ok(()) => success_json(&serde_json::json!({
+                "restarted": true,
+                "status": format!("{:?}", ctx.session.status()),
+            })),
+            Err(e) => error_result(format!("Failed to restart: {e}")),
+        }
+    }
+
+    pub(crate) async fn do_list_variables(
+        &self,
+        notebook_id: Option<&str>,
+    ) -> Result<String, String> {
+        let ctx = self.resolve_context(notebook_id).await?;
+        if let Err(e) = self.ensure_session(&ctx).await {
+            return error_result(format!("Failed to start session: {e}"));
+        }
+
+        let mut guard = ctx.session.lock().await;
+        let process = match guard.try_begin_eval() {
+            Ok(p) => p,
+            Err(e) => return error_result(format!("Session not ready: {e}")),
+        };
+
+        let result = protocol::query_variables(process).await;
+        guard.end_eval();
+
+        match result {
+            Ok(vars) => success_json(&serde_json::json!({ "variables": vars })),
+            Err(e) => error_result(format!("Failed to query variables: {e}")),
+        }
+    }
+
+    pub(crate) async fn do_kill_variable(
+        &self,
+        name: &str,
+        notebook_id: Option<&str>,
+    ) -> Result<String, String> {
+        let ctx = self.resolve_context(notebook_id).await?;
+        if let Err(e) = self.ensure_session(&ctx).await {
+            return error_result(format!("Failed to start session: {e}"));
+        }
+
+        let mut guard = ctx.session.lock().await;
+        let process = match guard.try_begin_eval() {
+            Ok(p) => p,
+            Err(e) => return error_result(format!("Session not ready: {e}")),
+        };
+
+        let result = protocol::kill_variable(process, name).await;
+        guard.end_eval();
+
+        match result {
+            Ok(()) => success_json(&serde_json::json!({ "killed": name })),
+            Err(e) => error_result(format!("Failed to kill variable: {e}")),
+        }
+    }
+
+    pub(crate) async fn do_get_server_log(
+        &self,
+        notebook_id: Option<&str>,
+        stream: Option<&str>,
+        limit: Option<usize>,
+    ) -> Result<String, String> {
+        let ctx = self.resolve_context(notebook_id).await?;
+        let entries = ctx.server_log.get(limit, stream);
+        let lines: Vec<serde_json::Value> = entries
+            .iter()
+            .map(|e| {
+                serde_json::json!({
+                    "stream": e.stream,
+                    "line": e.line,
+                    "timestamp": e.timestamp,
+                })
+            })
+            .collect();
+        success_json(&serde_json::json!({
+            "count": lines.len(),
+            "log": lines,
+        }))
+    }
+
+    pub(crate) async fn do_create_session(&self) -> Result<String, String> {
+        let mut reg = self.registry.lock().await;
+        let id = reg.create();
+        drop(reg);
+        self.notify_lifecycle(&id, "created");
+        success_json(&serde_json::json!({ "session_id": id }))
+    }
+
+    pub(crate) async fn do_close_session(&self, session_id: &str) -> Result<String, String> {
+        // Validate the session exists
+        {
+            let reg = self.registry.lock().await;
+            if let Err(e) = reg.get(session_id) {
+                return error_result(e);
+            }
+        }
+
+        // In connected mode, emit close_requested and let the frontend mediate
+        if self.on_notebook_lifecycle.is_some() {
+            self.notify_lifecycle(session_id, "close_requested");
+            return success_json(&serde_json::json!({
+                "status": "pending_confirmation",
+                "session_id": session_id,
+            }));
+        }
+
+        // Standalone mode: close directly
+        let session = {
+            let reg = self.registry.lock().await;
+            match reg.get(session_id) {
+                Ok(ctx) => ctx.session.clone(),
+                Err(e) => return error_result(e),
+            }
+        };
+        let _ = session.stop().await;
+        let mut reg = self.registry.lock().await;
+        match reg.close(session_id) {
+            Ok(_) => {
+                drop(reg);
+                self.notify_lifecycle(session_id, "closed");
+                success_json(&serde_json::json!({
+                    "closed": true,
+                    "session_id": session_id,
+                }))
+            }
+            Err(e) => error_result(e),
+        }
+    }
+
+    pub(crate) async fn do_list_sessions(&self) -> Result<String, String> {
+        let reg = self.registry.lock().await;
+        let notebooks = reg.list();
+        success_json(&serde_json::json!({
+            "active_session_id": reg.active_id(),
+            "sessions": notebooks,
+        }))
+    }
+}
+
+// ── AximarMcpServer (notebook mode) ───────────────────────────────────
+
+#[derive(Clone)]
+pub struct AximarMcpServer {
+    #[allow(dead_code)]
+    tool_router: rmcp::handler::server::router::tool::ToolRouter<Self>,
+    pub(crate) core: ServerCore,
+}
+
+impl AximarMcpServer {
+    /// Create a server for standalone mode (headless, stdio transport).
+    pub fn new(
+        registry: Arc<Mutex<NotebookRegistry>>,
+        catalog: Arc<Catalog>,
+        docs: Arc<Docs>,
+        packages: Arc<PackageCatalog>,
+        backend: Backend,
+        maxima_path: Option<String>,
+        eval_timeout: u64,
+        allow_dangerous: bool,
+    ) -> Self {
+        let core = ServerCore::new(
+            registry,
+            catalog,
+            docs,
+            packages,
+            backend,
+            maxima_path,
+            eval_timeout,
+            allow_dangerous,
+        );
+        Self::from_core(core)
+    }
+
+    /// Create a server for connected mode (embedded in Tauri) with a custom
+    /// process sink factory and callbacks for GUI synchronization.
+    pub fn new_connected(
+        registry: Arc<Mutex<NotebookRegistry>>,
+        catalog: Arc<Catalog>,
+        docs: Arc<Docs>,
+        packages: Arc<PackageCatalog>,
+        backend: Backend,
+        maxima_path: Option<String>,
+        eval_timeout: u64,
+        process_sink_factory: ProcessSinkFactory,
+        on_notebook_change: Arc<dyn Fn(&str, CommandEffect) + Send + Sync>,
+        on_notebook_lifecycle: Arc<dyn Fn(&str, &str) + Send + Sync>,
+        on_session_status: SessionStatusCallback,
+    ) -> Self {
+        let core = ServerCore::new_connected(
+            registry,
+            catalog,
+            docs,
+            packages,
+            backend,
+            maxima_path,
+            eval_timeout,
+            process_sink_factory,
+            on_notebook_change,
+            on_notebook_lifecycle,
+            on_session_status,
+        );
+        Self::from_core(core)
+    }
+
+    /// Build from an existing `ServerCore`.
+    pub fn from_core(core: ServerCore) -> Self {
+        AximarMcpServer {
+            tool_router: Self::tool_router(),
+            core,
+        }
+    }
+}
+
+// ── Tool implementations (notebook mode — all tools) ──────────────────
+
+#[tool_router]
+impl AximarMcpServer {
+    // ── Documentation tools ───────────────────────────────────────
+
+    #[tool(description = "Search the Maxima function catalog by name or description. Returns matching functions with signatures and brief descriptions. Searches across 2500+ built-in and package functions. Supports partial name matching (e.g. \"integ\" finds integrate) and description keywords (e.g. \"matrix inverse\").")]
+    async fn search_functions(
+        &self,
+        Parameters(params): Parameters<SearchFunctionsParams>,
+    ) -> Result<String, String> {
+        self.core.do_search_functions(&params.query).await
+    }
+
+    #[tool(description = "Get full documentation for a Maxima function, including usage, examples, and related functions. Falls back to a catalog summary if full docs are unavailable. Suggests similar function names if the exact name is not found.")]
+    async fn get_function_docs(
+        &self,
+        Parameters(params): Parameters<GetFunctionDocsParams>,
+    ) -> Result<String, String> {
+        self.core.do_get_function_docs(&params.name).await
+    }
+
+    #[tool(description = "List Maxima functions that are deprecated, obsolete, or superseded. Returns names, descriptions, and suggested replacements where available. Consider calling this at the start of a session to avoid using obsolete functions in your notebook.")]
+    async fn list_deprecated(&self) -> Result<String, String> {
+        self.core.do_list_deprecated().await
+    }
+
+    #[tool(description = "Autocomplete a Maxima function name prefix. Returns matching function names with signatures. Includes both built-in and package functions alongside each other.")]
+    async fn complete_function(
+        &self,
+        Parameters(params): Parameters<CompleteFunctionParams>,
+    ) -> Result<String, String> {
+        self.core.do_complete_function(&params.prefix).await
+    }
+
+    // ── Package tools ─────────────────────────────────────────────
+
+    #[tool(description = "Search available Maxima packages by name or description. Returns packages with their load paths and function lists. Load a package in a code cell with load(\"name\")$ before using its functions.")]
+    async fn search_packages(
+        &self,
+        Parameters(params): Parameters<SearchPackagesParams>,
+    ) -> Result<String, String> {
+        self.core.do_search_packages(&params.query).await
+    }
+
+    #[tool(description = "List all available Maxima packages that can be loaded with load(\"name\")$. Use get_package to see what functions a specific package provides.")]
+    async fn list_packages(&self) -> Result<String, String> {
+        self.core.do_list_packages().await
+    }
+
+    #[tool(description = "Get details of a specific Maxima package, including description and list of functions it provides. Load a package in a code cell with load(\"name\")$ before using its functions.")]
+    async fn get_package(
+        &self,
+        Parameters(params): Parameters<GetPackageParams>,
+    ) -> Result<String, String> {
+        self.core.do_get_package(&params.name).await
     }
 
     // ── Notebook lifecycle tools ──────────────────────────────────
 
     #[tool(description = "List all open notebooks with their IDs, titles, and active status.")]
     async fn list_notebooks(&self) -> Result<String, String> {
-        let reg = self.registry.lock().await;
+        let reg = self.core.registry.lock().await;
         let notebooks = reg.list();
         success_json(&serde_json::json!({
             "active_notebook_id": reg.active_id(),
@@ -376,10 +661,10 @@ impl AximarMcpServer {
 
     #[tool(description = "Create a new notebook with its own independent Maxima session. Returns the new notebook's ID. Variables and definitions in one notebook are isolated from other notebooks.")]
     async fn create_notebook(&self) -> Result<String, String> {
-        let mut reg = self.registry.lock().await;
+        let mut reg = self.core.registry.lock().await;
         let id = reg.create();
         drop(reg);
-        self.notify_lifecycle(&id, "created");
+        self.core.notify_lifecycle(&id, "created");
         success_json(&serde_json::json!({ "notebook_id": id }))
     }
 
@@ -390,15 +675,15 @@ impl AximarMcpServer {
     ) -> Result<String, String> {
         // Validate the notebook exists before doing anything
         {
-            let reg = self.registry.lock().await;
+            let reg = self.core.registry.lock().await;
             if let Err(e) = reg.get(&params.notebook_id) {
                 return error_result(e);
             }
         }
 
         // In connected mode, emit close_requested and let the frontend mediate
-        if self.on_notebook_lifecycle.is_some() {
-            self.notify_lifecycle(&params.notebook_id, "close_requested");
+        if self.core.on_notebook_lifecycle.is_some() {
+            self.core.notify_lifecycle(&params.notebook_id, "close_requested");
             return success_json(&serde_json::json!({
                 "status": "pending_confirmation",
                 "notebook_id": params.notebook_id,
@@ -407,18 +692,18 @@ impl AximarMcpServer {
 
         // Standalone mode: close directly
         let session = {
-            let reg = self.registry.lock().await;
+            let reg = self.core.registry.lock().await;
             match reg.get(&params.notebook_id) {
                 Ok(ctx) => ctx.session.clone(),
                 Err(e) => return error_result(e),
             }
         };
         let _ = session.stop().await;
-        let mut reg = self.registry.lock().await;
+        let mut reg = self.core.registry.lock().await;
         match reg.close(&params.notebook_id) {
             Ok(_) => {
                 drop(reg);
-                self.notify_lifecycle(&params.notebook_id, "closed");
+                self.core.notify_lifecycle(&params.notebook_id, "closed");
                 success_json(&serde_json::json!({
                     "closed": true,
                     "notebook_id": params.notebook_id,
@@ -433,7 +718,7 @@ impl AximarMcpServer {
         &self,
         Parameters(params): Parameters<SwitchNotebookParams>,
     ) -> Result<String, String> {
-        let mut reg = self.registry.lock().await;
+        let mut reg = self.core.registry.lock().await;
         match reg.set_active(&params.notebook_id) {
             Ok(()) => success_json(&serde_json::json!({
                 "active_notebook_id": params.notebook_id,
@@ -449,7 +734,7 @@ impl AximarMcpServer {
         &self,
         Parameters(params): Parameters<NotebookIdParam>,
     ) -> Result<String, String> {
-        let ctx = self.resolve_context(params.notebook_id.as_deref()).await?;
+        let ctx = self.core.resolve_context(params.notebook_id.as_deref()).await?;
         let nb = ctx.notebook.lock().await;
         let summaries: Vec<CellSummary> = nb
             .cells()
@@ -478,7 +763,7 @@ impl AximarMcpServer {
         &self,
         Parameters(params): Parameters<CellIdParams>,
     ) -> Result<String, String> {
-        let ctx = self.resolve_context(params.notebook_id.as_deref()).await?;
+        let ctx = self.core.resolve_context(params.notebook_id.as_deref()).await?;
         let nb = ctx.notebook.lock().await;
         match nb.get_cell(&params.cell_id) {
             Some(cell) => success_json(cell),
@@ -492,12 +777,12 @@ Unicode Greek letters (α, β, γ, θ, π, etc.) are supported in code cells and
 
 Output display: only the last statement's result is rendered as LaTeX. Intermediate results are suppressed (but assignments and side effects still execute). Use print(expr) for plain text or tex(expr) for intermediate LaTeX output. End the last statement with $ instead of ; to suppress the final result.
 
-Best practice: run each cell immediately after creating it (using run_cell) to verify the output before moving on.")]
+Best practice: run each cell immediately after creating it (using run_cell) to verify the output before proceeding.")]
     async fn add_cell(
         &self,
         Parameters(params): Parameters<AddCellParams>,
     ) -> Result<String, String> {
-        let ctx = self.resolve_context(params.notebook_id.as_deref()).await?;
+        let ctx = self.core.resolve_context(params.notebook_id.as_deref()).await?;
         let cell_type = match params.cell_type.as_deref() {
             Some("markdown") => CellType::Markdown,
             _ => CellType::Code,
@@ -512,7 +797,7 @@ Best practice: run each cell immediately after creating it (using run_cell) to v
         })?;
         let cell_id = effect.cell_id().unwrap_or("").to_string();
         drop(nb);
-        self.notify_notebook_change(&ctx.id, effect);
+        self.core.notify_notebook_change(&ctx.id, effect);
         success_json(&serde_json::json!({ "cell_id": cell_id }))
     }
 
@@ -527,7 +812,7 @@ Best practice: run each cell immediately after updating it (using run_cell) to v
         &self,
         Parameters(params): Parameters<UpdateCellParams>,
     ) -> Result<String, String> {
-        let ctx = self.resolve_context(params.notebook_id.as_deref()).await?;
+        let ctx = self.core.resolve_context(params.notebook_id.as_deref()).await?;
         let mut nb = ctx.notebook.lock().await;
         let mut last_effect = None;
         // Apply input update if provided
@@ -556,7 +841,7 @@ Best practice: run each cell immediately after updating it (using run_cell) to v
         }
         drop(nb);
         if let Some(effect) = last_effect {
-            self.notify_notebook_change(&ctx.id, effect);
+            self.core.notify_notebook_change(&ctx.id, effect);
         }
         success_json(&serde_json::json!({ "updated": true }))
     }
@@ -566,13 +851,13 @@ Best practice: run each cell immediately after updating it (using run_cell) to v
         &self,
         Parameters(params): Parameters<CellIdParams>,
     ) -> Result<String, String> {
-        let ctx = self.resolve_context(params.notebook_id.as_deref()).await?;
+        let ctx = self.core.resolve_context(params.notebook_id.as_deref()).await?;
         let mut nb = ctx.notebook.lock().await;
         let effect = nb.apply(NotebookCommand::DeleteCell {
             cell_id: params.cell_id.clone(),
         })?;
         drop(nb);
-        self.notify_notebook_change(&ctx.id, effect.clone());
+        self.core.notify_notebook_change(&ctx.id, effect.clone());
         match effect {
             CommandEffect::NoOp { reason } => {
                 error_result(reason)
@@ -586,14 +871,14 @@ Best practice: run each cell immediately after updating it (using run_cell) to v
         &self,
         Parameters(params): Parameters<MoveCellParams>,
     ) -> Result<String, String> {
-        let ctx = self.resolve_context(params.notebook_id.as_deref()).await?;
+        let ctx = self.core.resolve_context(params.notebook_id.as_deref()).await?;
         let mut nb = ctx.notebook.lock().await;
         let effect = nb.apply(NotebookCommand::MoveCell {
             cell_id: params.cell_id.clone(),
             direction: params.direction.clone(),
         })?;
         drop(nb);
-        self.notify_notebook_change(&ctx.id, effect.clone());
+        self.core.notify_notebook_change(&ctx.id, effect.clone());
         match effect {
             CommandEffect::NoOp { reason } => {
                 error_result(reason)
@@ -615,7 +900,7 @@ Best practice: run each cell immediately after creating it before moving on to t
         &self,
         Parameters(params): Parameters<CellIdParams>,
     ) -> Result<String, String> {
-        let ctx = self.resolve_context(params.notebook_id.as_deref()).await?;
+        let ctx = self.core.resolve_context(params.notebook_id.as_deref()).await?;
 
         // Safety check for dangerous functions
         {
@@ -627,13 +912,13 @@ Best practice: run each cell immediately after creating it before moving on to t
             drop(nb);
 
             if !trusted {
-                let dangerous = safety::detect_dangerous_calls(&input, Some(&self.packages));
+                let dangerous = safety::detect_dangerous_calls(&input, Some(&self.core.packages));
                 if !dangerous.is_empty() {
                     let func_names: Vec<String> = dangerous.iter().map(|d| d.function_name.clone()).collect();
 
-                    if self.allow_dangerous {
+                    if self.core.allow_dangerous {
                         // Headless + --allow-dangerous: proceed
-                    } else if self.on_notebook_change.is_some() {
+                    } else if self.core.on_notebook_change.is_some() {
                         // Connected mode: set pending approval and notify GUI
                         let mut nb = ctx.notebook.lock().await;
                         let effect = nb.apply(NotebookCommand::SetCellPendingApproval {
@@ -641,7 +926,7 @@ Best practice: run each cell immediately after creating it before moving on to t
                             dangerous_functions: func_names.clone(),
                         })?;
                         drop(nb);
-                        self.notify_notebook_change(&ctx.id, effect);
+                        self.core.notify_notebook_change(&ctx.id, effect);
                         return success_json(&serde_json::json!({
                             "cell_id": params.cell_id,
                             "pending_approval": true,
@@ -659,17 +944,17 @@ Best practice: run each cell immediately after creating it before moving on to t
             }
         }
 
-        if let Err(e) = self.ensure_session(&ctx).await {
+        if let Err(e) = self.core.ensure_session(&ctx).await {
             return error_result(format!("Failed to start session: {e}"));
         }
 
         use aximar_core::error::AppError;
         use aximar_core::evaluation::evaluate_cell;
 
-        match evaluate_cell(&ctx, &params.cell_id, &self.catalog, &self.packages, self.eval_timeout).await {
+        match evaluate_cell(&ctx, &params.cell_id, &self.core.catalog, &self.core.packages, self.core.eval_timeout).await {
             Ok(result) => {
                 for effect in &result.effects {
-                    self.notify_notebook_change(&ctx.id, effect.clone());
+                    self.core.notify_notebook_change(&ctx.id, effect.clone());
                 }
                 success_json(&serde_json::json!({
                     "cell_id": params.cell_id,
@@ -704,8 +989,8 @@ Best practice: run each cell immediately after creating it before moving on to t
         &self,
         Parameters(params): Parameters<NotebookIdParam>,
     ) -> Result<String, String> {
-        let ctx = self.resolve_context(params.notebook_id.as_deref()).await?;
-        if let Err(e) = self.ensure_session(&ctx).await {
+        let ctx = self.core.resolve_context(params.notebook_id.as_deref()).await?;
+        if let Err(e) = self.core.ensure_session(&ctx).await {
             return error_result(format!("Failed to start session: {e}"));
         }
 
@@ -765,56 +1050,9 @@ Unicode Greek letters (α, β, γ, θ, π, etc.) are translated to Maxima symbol
         &self,
         Parameters(params): Parameters<EvaluateExpressionParams>,
     ) -> Result<String, String> {
-        // Safety: evaluate_expression has no cell → no approval path → always block dangerous calls
-        if !self.allow_dangerous {
-            let dangerous = safety::detect_dangerous_calls(&params.expression, Some(&self.packages));
-            if !dangerous.is_empty() {
-                let names: Vec<&str> = dangerous.iter().map(|d| d.function_name.as_str()).collect();
-                return error_result(format!(
-                    "Dangerous function(s) blocked: {}. Use a notebook cell for approval, or --allow-dangerous in headless mode.",
-                    names.join(", ")
-                ));
-            }
-        }
-
-        let ctx = self.resolve_context(params.notebook_id.as_deref()).await?;
-        if let Err(e) = self.ensure_session(&ctx).await {
-            return error_result(format!("Failed to start session: {e}"));
-        }
-
-        // Clear capture
-        ctx.capture_sink.take_cell_output();
-
-        let mut guard = ctx.session.lock().await;
-        let process = match guard.try_begin_eval() {
-            Ok(p) => p,
-            Err(e) => return error_result(format!("Session not ready: {e}")),
-        };
-
-        let translated = unicode_to_maxima(&params.expression);
-        let result = protocol::evaluate_with_packages(
-            process,
-            "__ephemeral__",
-            &translated,
-            &self.catalog,
-            &self.packages,
-            self.eval_timeout,
-        )
-        .await;
-
-        guard.end_eval();
-
-        match result {
-            Ok(eval_result) => success_json(&serde_json::json!({
-                "text_output": eval_result.text_output,
-                "latex": eval_result.latex,
-                "plot_svg": eval_result.plot_svg,
-                "error": eval_result.error,
-                "is_error": eval_result.is_error,
-                "duration_ms": eval_result.duration_ms,
-            })),
-            Err(e) => error_result(format!("Evaluation failed: {e}")),
-        }
+        self.core
+            .do_evaluate_expression(&params.expression, params.notebook_id.as_deref())
+            .await
     }
 
     // ── Session tools ─────────────────────────────────────────────
@@ -824,11 +1062,9 @@ Unicode Greek letters (α, β, γ, θ, π, etc.) are translated to Maxima symbol
         &self,
         Parameters(params): Parameters<NotebookIdParam>,
     ) -> Result<String, String> {
-        let ctx = self.resolve_context(params.notebook_id.as_deref()).await?;
-        let status = ctx.session.status();
-        success_json(&serde_json::json!({
-            "status": format!("{:?}", status),
-        }))
+        self.core
+            .do_get_session_status(params.notebook_id.as_deref())
+            .await
     }
 
     #[tool(description = "Restart the Maxima session. Kills the current process and starts a new one. All session state is lost, including variables, function definitions, and loaded packages. You will need to re-run cells or re-load packages after restarting.")]
@@ -836,20 +1072,9 @@ Unicode Greek letters (α, β, γ, θ, π, etc.) are translated to Maxima symbol
         &self,
         Parameters(params): Parameters<NotebookIdParam>,
     ) -> Result<String, String> {
-        let ctx = self.resolve_context(params.notebook_id.as_deref()).await?;
-        // Stop current session
-        if let Err(e) = ctx.session.stop().await {
-            tracing::warn!("Error stopping session: {e}");
-        }
-
-        // Start fresh
-        match self.ensure_session(&ctx).await {
-            Ok(()) => success_json(&serde_json::json!({
-                "restarted": true,
-                "status": format!("{:?}", ctx.session.status()),
-            })),
-            Err(e) => error_result(format!("Failed to restart: {e}")),
-        }
+        self.core
+            .do_restart_session(params.notebook_id.as_deref())
+            .await
     }
 
     #[tool(description = "List all user-defined variables in the current Maxima session. Internal Maxima and package variables are filtered out — only variables you have explicitly assigned are shown.")]
@@ -857,24 +1082,9 @@ Unicode Greek letters (α, β, γ, θ, π, etc.) are translated to Maxima symbol
         &self,
         Parameters(params): Parameters<NotebookIdParam>,
     ) -> Result<String, String> {
-        let ctx = self.resolve_context(params.notebook_id.as_deref()).await?;
-        if let Err(e) = self.ensure_session(&ctx).await {
-            return error_result(format!("Failed to start session: {e}"));
-        }
-
-        let mut guard = ctx.session.lock().await;
-        let process = match guard.try_begin_eval() {
-            Ok(p) => p,
-            Err(e) => return error_result(format!("Session not ready: {e}")),
-        };
-
-        let result = protocol::query_variables(process).await;
-        guard.end_eval();
-
-        match result {
-            Ok(vars) => success_json(&serde_json::json!({ "variables": vars })),
-            Err(e) => error_result(format!("Failed to query variables: {e}")),
-        }
+        self.core
+            .do_list_variables(params.notebook_id.as_deref())
+            .await
     }
 
     #[tool(description = "Remove a variable from the Maxima session (equivalent to `kill(name)` in Maxima). For reproducible notebooks, prefer adding a code cell with kill(name)$ instead, so the operation is visible and re-runnable.")]
@@ -882,24 +1092,9 @@ Unicode Greek letters (α, β, γ, θ, π, etc.) are translated to Maxima symbol
         &self,
         Parameters(params): Parameters<KillVariableParams>,
     ) -> Result<String, String> {
-        let ctx = self.resolve_context(params.notebook_id.as_deref()).await?;
-        if let Err(e) = self.ensure_session(&ctx).await {
-            return error_result(format!("Failed to start session: {e}"));
-        }
-
-        let mut guard = ctx.session.lock().await;
-        let process = match guard.try_begin_eval() {
-            Ok(p) => p,
-            Err(e) => return error_result(format!("Session not ready: {e}")),
-        };
-
-        let result = protocol::kill_variable(process, &params.name).await;
-        guard.end_eval();
-
-        match result {
-            Ok(()) => success_json(&serde_json::json!({ "killed": params.name })),
-            Err(e) => error_result(format!("Failed to kill variable: {e}")),
-        }
+        self.core
+            .do_kill_variable(&params.name, params.notebook_id.as_deref())
+            .await
     }
 
     // ── Log tools ─────────────────────────────────────────────────
@@ -909,7 +1104,7 @@ Unicode Greek letters (α, β, γ, θ, π, etc.) are translated to Maxima symbol
         &self,
         Parameters(params): Parameters<CellIdParams>,
     ) -> Result<String, String> {
-        let ctx = self.resolve_context(params.notebook_id.as_deref()).await?;
+        let ctx = self.core.resolve_context(params.notebook_id.as_deref()).await?;
         let nb = ctx.notebook.lock().await;
         match nb.get_cell(&params.cell_id) {
             Some(cell) => {
@@ -935,24 +1130,13 @@ Unicode Greek letters (α, β, γ, θ, π, etc.) are translated to Maxima symbol
         &self,
         Parameters(params): Parameters<GetServerLogParams>,
     ) -> Result<String, String> {
-        let ctx = self.resolve_context(params.notebook_id.as_deref()).await?;
-        let entries = ctx
-            .server_log
-            .get(params.limit, params.stream.as_deref());
-        let lines: Vec<serde_json::Value> = entries
-            .iter()
-            .map(|e| {
-                serde_json::json!({
-                    "stream": e.stream,
-                    "line": e.line,
-                    "timestamp": e.timestamp,
-                })
-            })
-            .collect();
-        success_json(&serde_json::json!({
-            "count": lines.len(),
-            "log": lines,
-        }))
+        self.core
+            .do_get_server_log(
+                params.notebook_id.as_deref(),
+                params.stream.as_deref(),
+                params.limit,
+            )
+            .await
     }
 
     // ── Notebook I/O tools ────────────────────────────────────────
@@ -962,7 +1146,7 @@ Unicode Greek letters (α, β, γ, θ, π, etc.) are translated to Maxima symbol
         &self,
         Parameters(params): Parameters<NotebookPathParams>,
     ) -> Result<String, String> {
-        let ctx = self.resolve_context(params.notebook_id.as_deref()).await?;
+        let ctx = self.core.resolve_context(params.notebook_id.as_deref()).await?;
         let nb = ctx.notebook.lock().await;
         let notebook = notebook_to_ipynb(&nb);
         drop(nb);
@@ -981,7 +1165,7 @@ Unicode Greek letters (α, β, γ, θ, π, etc.) are translated to Maxima symbol
         &self,
         Parameters(params): Parameters<NotebookPathParams>,
     ) -> Result<String, String> {
-        let ctx = self.resolve_context(params.notebook_id.as_deref()).await?;
+        let ctx = self.core.resolve_context(params.notebook_id.as_deref()).await?;
         match notebook_io::read_notebook(&params.path) {
             Ok(notebook) => {
                 let cells = ipynb_to_cell_tuples(&notebook);
@@ -989,7 +1173,7 @@ Unicode Greek letters (α, β, γ, θ, π, etc.) are translated to Maxima symbol
                 let effect = nb.apply(NotebookCommand::LoadCells { cells })?;
                 let cell_count = nb.cells().len();
                 drop(nb);
-                self.notify_notebook_change(&ctx.id, effect);
+                self.core.notify_notebook_change(&ctx.id, effect);
                 success_json(&serde_json::json!({
                     "opened": true,
                     "path": params.path,
@@ -1022,7 +1206,7 @@ Unicode Greek letters (α, β, γ, θ, π, etc.) are translated to Maxima symbol
         &self,
         Parameters(params): Parameters<LoadTemplateParams>,
     ) -> Result<String, String> {
-        let ctx = self.resolve_context(params.notebook_id.as_deref()).await?;
+        let ctx = self.core.resolve_context(params.notebook_id.as_deref()).await?;
         match notebook_data::get_template(&params.template_id) {
             Some(notebook) => {
                 let cells = ipynb_to_cell_tuples(&notebook);
@@ -1030,7 +1214,7 @@ Unicode Greek letters (α, β, γ, θ, π, etc.) are translated to Maxima symbol
                 let effect = nb.apply(NotebookCommand::LoadCells { cells })?;
                 let cell_count = nb.cells().len();
                 drop(nb);
-                self.notify_notebook_change(&ctx.id, effect);
+                self.core.notify_notebook_change(&ctx.id, effect);
                 success_json(&serde_json::json!({
                     "loaded": true,
                     "template_id": params.template_id,
@@ -1050,7 +1234,7 @@ Unicode Greek letters (α, β, γ, θ, π, etc.) are translated to Maxima symbol
     }
 }
 
-// ── ServerHandler implementation ──────────────────────────────────────
+// ── ServerHandler implementation (notebook mode) ──────────────────────
 
 #[tool_handler]
 impl rmcp::handler::server::ServerHandler for AximarMcpServer {

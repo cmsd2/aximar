@@ -3,6 +3,7 @@ mod config;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
+use rmcp::handler::server::ServerHandler;
 use rmcp::ServiceExt;
 
 use aximar_core::catalog::docs::Docs;
@@ -10,7 +11,8 @@ use aximar_core::catalog::packages::PackageCatalog;
 use aximar_core::catalog::search::Catalog;
 use aximar_core::registry::NotebookRegistry;
 
-use aximar_mcp::server::AximarMcpServer;
+use aximar_mcp::server::{AximarMcpServer, ServerCore};
+use aximar_mcp::simple_server::SimpleMcpServer;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -31,6 +33,7 @@ async fn main() -> anyhow::Result<()> {
     let use_http = args.iter().any(|a| a == "--http");
     let no_auth = args.iter().any(|a| a == "--no-auth");
     let allow_dangerous = args.iter().any(|a| a == "--allow-dangerous");
+    let notebook_mode = args.iter().any(|a| a == "--notebook");
 
     let port: u16 = args
         .windows(2)
@@ -64,11 +67,11 @@ async fn main() -> anyhow::Result<()> {
     let maxima_path = config::maxima_path_from_env();
     let eval_timeout = config::eval_timeout_from_env();
 
-    // Create registry with one default notebook
+    // Create registry with one default notebook/session
     let registry = Arc::new(Mutex::new(NotebookRegistry::new()));
 
-    // Build MCP server
-    let server = AximarMcpServer::new(
+    // Build server core (shared state)
+    let core = ServerCore::new(
         registry,
         catalog,
         docs,
@@ -79,14 +82,29 @@ async fn main() -> anyhow::Result<()> {
         allow_dangerous,
     );
 
-    if use_http {
-        serve_http(server, &address, port, token, no_auth).await
+    if notebook_mode {
+        tracing::info!("Running in notebook mode (full tool set)");
+        let server = AximarMcpServer::from_core(core);
+        if use_http {
+            serve_http(server, &address, port, token, no_auth).await
+        } else {
+            serve_stdio(server).await
+        }
     } else {
-        serve_stdio(server).await
+        tracing::info!("Running in simple mode (session-oriented tools)");
+        let server = SimpleMcpServer::new(core);
+        if use_http {
+            serve_http(server, &address, port, token, no_auth).await
+        } else {
+            serve_stdio(server).await
+        }
     }
 }
 
-async fn serve_stdio(server: AximarMcpServer) -> anyhow::Result<()> {
+async fn serve_stdio<S>(server: S) -> anyhow::Result<()>
+where
+    S: ServerHandler + Send + Sync + 'static,
+{
     tracing::info!("Serving MCP over stdio");
     let transport = rmcp::transport::io::stdio();
     let service = server.serve(transport).await?;
@@ -94,13 +112,16 @@ async fn serve_stdio(server: AximarMcpServer) -> anyhow::Result<()> {
     Ok(())
 }
 
-async fn serve_http(
-    server: AximarMcpServer,
+async fn serve_http<S>(
+    server: S,
     address: &str,
     port: u16,
     token: Option<String>,
     no_auth: bool,
-) -> anyhow::Result<()> {
+) -> anyhow::Result<()>
+where
+    S: ServerHandler + Clone + Send + Sync + 'static,
+{
     use tokio_util::sync::CancellationToken;
 
     // Determine auth token
@@ -119,6 +140,19 @@ async fn serve_http(
     let bind_addr = format!("{address}:{port}");
     let listener = tokio::net::TcpListener::bind(&bind_addr).await?;
     let local_addr = listener.local_addr()?;
+
+    // Machine-readable JSON on stdout (safe: HTTP mode doesn't use stdout for MCP protocol)
+    {
+        let token_json = match &auth_token {
+            Some(t) => format!("\"{}\"", t),
+            None => "null".to_string(),
+        };
+        println!(
+            "{{\"port\":{},\"token\":{}}}",
+            local_addr.port(),
+            token_json
+        );
+    }
 
     if let Some(ref token) = auth_token {
         tracing::info!("MCP HTTP server listening on http://{local_addr}/mcp (token: {token})");

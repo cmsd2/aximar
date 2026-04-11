@@ -2,33 +2,35 @@
 //!
 //! Both the standalone `aximar-mcp` binary and the Tauri GUI app use this
 //! module to serve MCP over Streamable HTTP.  Callers are responsible for
-//! constructing the [`AximarMcpServer`], binding the [`TcpListener`], and
-//! providing a [`CancellationToken`] for graceful shutdown.
+//! constructing the server, binding the [`TcpListener`], and providing a
+//! [`CancellationToken`] for graceful shutdown.
 
 use std::sync::Arc;
 
 use axum::extract::Request;
 use axum::http::StatusCode;
 use axum::middleware::Next;
+use rmcp::handler::server::ServerHandler;
 use rmcp::transport::streamable_http_server::{
     session::local::LocalSessionManager, StreamableHttpServerConfig, StreamableHttpService,
 };
 use tokio_util::sync::CancellationToken;
 
-use crate::server::AximarMcpServer;
-
-/// Serve the MCP server over HTTP.
+/// Serve an MCP server over HTTP.
 ///
-/// - `server` — a fully configured [`AximarMcpServer`] (standalone or connected)
+/// - `server` — a fully configured MCP server implementing [`ServerHandler`]
 /// - `listener` — a bound [`TcpListener`] (caller controls address/port)
 /// - `token` — bearer token for authentication; `None` disables auth
 /// - `ct` — cancellation token for graceful shutdown
-pub async fn serve_mcp_http(
-    server: AximarMcpServer,
+pub async fn serve_mcp_http<S>(
+    server: S,
     listener: tokio::net::TcpListener,
     token: Option<String>,
     ct: CancellationToken,
-) -> anyhow::Result<()> {
+) -> anyhow::Result<()>
+where
+    S: ServerHandler + Clone + Send + Sync + 'static,
+{
     let service = StreamableHttpService::new(
         move || Ok(server.clone()),
         Arc::new(LocalSessionManager::default()),
