@@ -812,13 +812,22 @@ ax__build_layout_2d(opts) := block(
       parts: endcons(sconcat("\"showlegend\":", if val then "true" else "false"), parts)
     else if key = aspect_ratio then
       yaxis_parts: endcons("\"scaleanchor\":\"x\",\"scaleratio\":1", yaxis_parts)
-    else if key = width then
-      parts: endcons(sconcat("\"width\":", string(val)), parts)
-    else if key = height then
-      parts: endcons(sconcat("\"height\":", string(val)), parts)
+    else if key = width then (
+      if val # 'auto then
+        parts: endcons(sconcat("\"width\":", string(val)), parts)
+    )
+    else if key = height then (
+      if val # 'auto then
+        parts: endcons(sconcat("\"height\":", string(val)), parts)
+    )
     else if key = bar_mode then
       parts: endcons(sconcat("\"barmode\":", ax__json_string(val)), parts)
   ),
+  /* Default dimensions if not explicitly provided; auto skips the default */
+  if not member(width, map(lhs, opts)) then
+    parts: endcons("\"width\":700", parts),
+  if not member(height, map(lhs, opts)) then
+    parts: endcons("\"height\":450", parts),
   if xaxis_parts # [] then
     parts: endcons(sconcat("\"xaxis\":{", simplode(xaxis_parts, ","), "}"), parts),
   if yaxis_parts # [] then
@@ -850,11 +859,20 @@ ax__build_layout_3d(opts) := block(
       zaxis_parts: endcons(sconcat("\"title\":{\"text\":", ax__json_string(val), "}"), zaxis_parts)
     else if key = showlegend then
       parts: endcons(sconcat("\"showlegend\":", if val then "true" else "false"), parts)
-    else if key = width then
-      parts: endcons(sconcat("\"width\":", string(val)), parts)
-    else if key = height then
-      parts: endcons(sconcat("\"height\":", string(val)), parts)
+    else if key = width then (
+      if val # 'auto then
+        parts: endcons(sconcat("\"width\":", string(val)), parts)
+    )
+    else if key = height then (
+      if val # 'auto then
+        parts: endcons(sconcat("\"height\":", string(val)), parts)
+    )
   ),
+  /* Default dimensions if not explicitly provided; auto skips the default */
+  if not member(width, map(lhs, opts)) then
+    parts: endcons("\"width\":700", parts),
+  if not member(height, map(lhs, opts)) then
+    parts: endcons("\"height\":450", parts),
   if xaxis_parts # [] then
     scene_parts: endcons(sconcat("\"xaxis\":{", simplode(xaxis_parts, ","), "}"), scene_parts),
   if yaxis_parts # [] then
@@ -972,11 +990,20 @@ ax__build_layout_polar(opts) := block(
       parts: endcons(sconcat("\"title\":{\"text\":", ax__json_string(val), "}"), parts)
     else if key = showlegend then
       parts: endcons(sconcat("\"showlegend\":", if val then "true" else "false"), parts)
-    else if key = width then
-      parts: endcons(sconcat("\"width\":", string(val)), parts)
-    else if key = height then
-      parts: endcons(sconcat("\"height\":", string(val)), parts)
+    else if key = width then (
+      if val # 'auto then
+        parts: endcons(sconcat("\"width\":", string(val)), parts)
+    )
+    else if key = height then (
+      if val # 'auto then
+        parts: endcons(sconcat("\"height\":", string(val)), parts)
+    )
   ),
+  /* Default dimensions if not explicitly provided; auto skips the default */
+  if not member(width, map(lhs, opts)) then
+    parts: endcons("\"width\":700", parts),
+  if not member(height, map(lhs, opts)) then
+    parts: endcons("\"height\":450", parts),
   if radial_parts # [] then
     polar_parts: endcons(sconcat("\"radialaxis\":{", simplode(radial_parts, ","), "}"), polar_parts),
   if angular_parts # [] then
