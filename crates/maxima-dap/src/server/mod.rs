@@ -36,7 +36,7 @@ use std::sync::LazyLock;
 
 use aximar_core::error::AppError;
 use aximar_core::maxima::backend::Backend;
-use aximar_core::maxima::debugger::{self, PromptKind};
+use aximar_core::maxima::debugger::{self, CanonicalLocation, PromptKind};
 use aximar_core::maxima::output::{OutputEvent, OutputSink};
 use aximar_core::maxima::process::MaximaProcess;
 

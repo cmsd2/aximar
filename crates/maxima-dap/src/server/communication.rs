@@ -35,7 +35,7 @@ impl DapServer {
     pub(super) async fn send_maxima_and_wait(
         &mut self,
         expr: &str,
-    ) -> Result<PromptKind, AppError> {
+    ) -> Result<(PromptKind, Option<CanonicalLocation>), AppError> {
         let process = self
             .process
             .as_mut()
@@ -65,7 +65,8 @@ impl DapServer {
                 prompt_kind,
                 lines
             );
-            return Ok(prompt_kind);
+            let canonical = debugger::find_canonical_location(&lines);
+            return Ok((prompt_kind, canonical));
         }
 
         let timeout = std::time::Duration::from_secs(timeout_secs);
@@ -77,7 +78,8 @@ impl DapServer {
                     prompt_kind,
                     lines
                 );
-                Ok(prompt_kind)
+                let canonical = debugger::find_canonical_location(&lines);
+                Ok((prompt_kind, canonical))
             }
             Err(_) => {
                 tracing::warn!(
@@ -107,7 +109,7 @@ impl DapServer {
     pub(super) async fn send_debugger_command(
         &mut self,
         cmd: &str,
-    ) -> Result<PromptKind, AppError> {
+    ) -> Result<(PromptKind, Option<CanonicalLocation>), AppError> {
         let process = self
             .process
             .as_mut()
@@ -121,7 +123,8 @@ impl DapServer {
             prompt_kind,
             lines
         );
-        Ok(prompt_kind)
+        let canonical = debugger::find_canonical_location(&lines);
+        Ok((prompt_kind, canonical))
     }
 
     /// Send a raw debugger command and read until the debugger prompt.
@@ -148,20 +151,42 @@ impl DapServer {
     }
 
     /// Get the backtrace from Maxima.
-    /// Returns (raw lines, args text per frame).
+    /// Returns (raw lines, args text per frame, canonical paths per frame index).
+    ///
+    /// Delegates to the strategy's `resolve_frame_paths` method — Enhanced
+    /// mode issues `:frame N` per frame to get canonical absolute paths;
+    /// Legacy mode returns an empty map (heuristic resolution).
     pub(super) async fn get_backtrace(
         &mut self,
-    ) -> Result<(Vec<String>, Vec<String>), AppError> {
+    ) -> Result<(Vec<String>, Vec<String>, HashMap<u32, CanonicalLocation>), AppError> {
         let (lines, _level) = self.send_debugger_command_raw(":bt").await?;
 
         let mut args_per_frame = Vec::new();
+        let mut frame_indices = Vec::new();
         for line in &lines {
             if let Some(frame) = debugger::parse_backtrace_frame(line) {
+                frame_indices.push(frame.index);
                 args_per_frame.push(frame.args);
             }
         }
 
-        Ok((lines, args_per_frame))
+        // Delegate to strategy to resolve frame paths.
+        let canonical_paths = if let Some(strategy) = self.strategy.as_ref() {
+            let process = self
+                .process
+                .as_mut()
+                .ok_or(AppError::ProcessNotRunning)?;
+            let mut ctx = StrategyContext {
+                process,
+                state: &self.state,
+                source_index: &self.source_index,
+            };
+            strategy.resolve_frame_paths(&mut ctx, &frame_indices).await
+        } else {
+            HashMap::new()
+        };
+
+        Ok((lines, args_per_frame, canonical_paths))
     }
 
     /// Evaluate an expression at the debugger prompt.

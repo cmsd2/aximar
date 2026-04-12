@@ -6,10 +6,11 @@
 //! built. The `DapServer` holds a `Box<dyn BreakpointStrategy>` chosen
 //! at launch based on runtime detection.
 
+use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
 use aximar_core::error::AppError;
-use aximar_core::maxima::debugger::PromptKind;
+use aximar_core::maxima::debugger::{CanonicalLocation, PromptKind};
 use aximar_core::maxima::process::MaximaProcess;
 
 use crate::breakpoints::SourceIndex;
@@ -118,6 +119,24 @@ pub trait BreakpointStrategy: Send {
         evaluate: Option<&str>,
         source_index: &SourceIndex,
     ) -> Option<String>;
+
+    /// Resolve canonical absolute paths for backtrace frames.
+    ///
+    /// Given the frame indices from a `:bt` output, returns a map of
+    /// frame index → canonical location. Enhanced mode issues `:frame N`
+    /// for each frame; Legacy returns an empty map (heuristic resolution).
+    async fn resolve_frame_paths(
+        &self,
+        ctx: &mut StrategyContext<'_>,
+        frame_indices: &[u32],
+    ) -> HashMap<u32, CanonicalLocation>;
+
+    /// Whether this strategy supports deferred breakpoints.
+    ///
+    /// Enhanced mode sets breakpoints before the file is loaded (they
+    /// resolve during batchload). Legacy mode requires functions to exist
+    /// before `:break` works, so pending breakpoints must wait.
+    fn supports_deferred_breakpoints(&self) -> bool;
 
     /// Returns a human-readable name for this strategy (for logging).
     fn name(&self) -> &'static str;

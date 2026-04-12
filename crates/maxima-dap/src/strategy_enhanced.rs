@@ -5,9 +5,11 @@
 //! breakpoints (set before loading), and direct batchload of the
 //! original file (no temp file needed).
 
+use std::collections::HashMap;
 use std::path::Path;
 
 use aximar_core::error::AppError;
+use aximar_core::maxima::debugger::{self, CanonicalLocation};
 use regex::Regex;
 use tracing;
 
@@ -114,6 +116,32 @@ impl BreakpointStrategy for EnhancedStrategy {
             }
             _ => Some(format!("batchload(\"{}\")", path_str)),
         }
+    }
+
+    async fn resolve_frame_paths(
+        &self,
+        ctx: &mut StrategyContext<'_>,
+        frame_indices: &[u32],
+    ) -> HashMap<u32, CanonicalLocation> {
+        let mut canonical_paths = HashMap::new();
+        for &idx in frame_indices {
+            let cmd = format!(":frame {}", idx);
+            match ctx.send_debugger_command_raw(&cmd).await {
+                Ok((frame_lines, _)) => {
+                    if let Some(loc) = debugger::find_canonical_location(&frame_lines) {
+                        canonical_paths.insert(idx, loc);
+                    }
+                }
+                Err(e) => {
+                    tracing::warn!("resolve_frame_paths: :frame {} failed: {}", idx, e);
+                }
+            }
+        }
+        canonical_paths
+    }
+
+    fn supports_deferred_breakpoints(&self) -> bool {
+        true
     }
 
     fn name(&self) -> &'static str {

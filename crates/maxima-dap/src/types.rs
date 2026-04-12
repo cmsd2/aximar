@@ -53,7 +53,13 @@ pub enum DebugState {
     /// Program is running (not at a breakpoint).
     Running,
     /// Stopped at a debugger prompt with the given nesting level.
-    Stopped { level: u32 },
+    Stopped {
+        level: u32,
+        /// Canonical absolute file path from Enhanced Maxima's `file:line::` output.
+        canonical_file: Option<String>,
+        /// Line number from the canonical location.
+        canonical_line: Option<u32>,
+    },
     /// Session has ended.
     Terminated,
 }

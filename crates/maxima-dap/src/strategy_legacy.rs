@@ -5,10 +5,11 @@
 //! evaluate expression. This is the original behavior before Enhanced
 //! Maxima support.
 
+use std::collections::HashMap;
 use std::path::Path;
 
 use aximar_core::error::AppError;
-use aximar_core::maxima::debugger;
+use aximar_core::maxima::debugger::{self, CanonicalLocation};
 use regex::Regex;
 use tracing;
 
@@ -255,6 +256,19 @@ impl BreakpointStrategy for LegacyStrategy {
                 }
             }
         }
+    }
+
+    async fn resolve_frame_paths(
+        &self,
+        _ctx: &mut StrategyContext<'_>,
+        _frame_indices: &[u32],
+    ) -> HashMap<u32, CanonicalLocation> {
+        // Legacy Maxima doesn't output canonical paths — use heuristic resolution.
+        HashMap::new()
+    }
+
+    fn supports_deferred_breakpoints(&self) -> bool {
+        false
     }
 
     fn name(&self) -> &'static str {

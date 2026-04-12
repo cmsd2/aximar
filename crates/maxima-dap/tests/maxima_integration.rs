@@ -437,7 +437,8 @@ async fn backtrace_frame_has_source_line() {
     let source_index = maxima_dap::breakpoints::SourceIndex::new();
     let program_path = Path::new(&path);
     let remaps = std::collections::HashMap::new();
-    let dap_frames = maxima_dap::frames::parse_backtrace(&bt_lines, &source_index, program_path, &remaps, None);
+    let canonical_paths = std::collections::HashMap::new();
+    let dap_frames = maxima_dap::frames::parse_backtrace(&bt_lines, &source_index, program_path, &remaps, None, &canonical_paths);
 
     assert!(!dap_frames.is_empty(), "expected DAP stack frames");
     let dap_top = &dap_frames[0];
@@ -1308,6 +1309,176 @@ async fn enhanced_clear_breakpoints() {
     );
 
     proc.kill().await.unwrap();
+}
+
+// ---------------------------------------------------------------------------
+// Legacy backtrace resolves temp file path via remap
+// ---------------------------------------------------------------------------
+
+#[tokio::test]
+#[ignore]
+async fn legacy_backtrace_resolves_temp_path_via_remap() {
+    // Demonstrates the full Legacy path resolution chain:
+    //
+    // 1. LegacyStrategy::load_program extracts definitions into a temp file
+    //    and batchloads it — Maxima associates functions with the temp path.
+    // 2. :bt output shows the temp file basename, NOT the original file.
+    // 3. parse_backtrace with remaps (temp → original) resolves the DAP
+    //    frame source to the original .mac file.
+    // 4. Without remaps, the path does NOT resolve to the original file.
+    let mut proc = spawn_maxima().await;
+
+    let sentinel = "__TEST_DONE__";
+
+    // Setup
+    proc.write_stdin("debugmode(true)$\n").await.unwrap();
+    proc.write_stdin(&format!("print(\"{}\")$\n", sentinel))
+        .await
+        .unwrap();
+    proc.read_until_sentinel(sentinel).await.unwrap();
+
+    // Use LegacyStrategy to load the program (creates temp file)
+    let program_path =
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("examples/01_basic_breakpoint.mac");
+
+    let mut source_index = SourceIndex::new();
+    source_index.index_file(&program_path).unwrap();
+
+    let strategy = LegacyStrategy;
+    let state = DebugState::Running;
+
+    let mut ctx = StrategyContext {
+        process: &mut proc,
+        state: &state,
+        source_index: &source_index,
+    };
+
+    let load_result = strategy
+        .load_program(&mut ctx, &program_path)
+        .await
+        .expect("load_program should succeed");
+
+    // The legacy strategy should have created a temp file
+    assert!(
+        load_result.temp_file.is_some(),
+        "Legacy strategy should create a temp file for definitions"
+    );
+    let temp_path = load_result.loaded_path.clone();
+    assert_ne!(
+        temp_path, program_path,
+        "temp path should differ from original program path"
+    );
+
+    // Set breakpoint and trigger it
+    let proc = &mut ctx.process;
+    proc.write_stdin(":break add 0\n").await.unwrap();
+    proc.write_stdin(&format!("print(\"{}\")$\n", sentinel))
+        .await
+        .unwrap();
+    proc.read_until_sentinel(sentinel).await.unwrap();
+
+    proc.set_debug_mode(true);
+
+    let eval_sentinel = "__EVAL_DONE__";
+    let wrapped = format!(
+        "block([__dap_r__], __dap_r__: (add(3, 4)), print(\"{}\"), __dap_r__)$\n",
+        eval_sentinel
+    );
+    proc.write_stdin(&wrapped).await.unwrap();
+    let (_lines, prompt) = proc.read_dap_response(Some(eval_sentinel)).await.unwrap();
+    assert!(
+        matches!(prompt, PromptKind::Debugger { .. }),
+        "should hit breakpoint, got {:?}",
+        prompt
+    );
+
+    // Get backtrace
+    proc.write_stdin(":bt\n").await.unwrap();
+    let (bt_lines, prompt) = proc.read_dap_response(None).await.unwrap();
+    assert!(matches!(prompt, PromptKind::Debugger { .. }));
+
+    // Parse raw frames — the file should be the TEMP file basename, not
+    // the original, because Maxima associated the function with the temp file.
+    let frames: Vec<_> = bt_lines
+        .iter()
+        .filter_map(|l| debugger::parse_backtrace_frame(l))
+        .collect();
+    assert!(!frames.is_empty(), "expected backtrace frames");
+
+    let top = &frames[0];
+    assert_eq!(top.function, "add");
+    let raw_file = top.file.as_ref().expect("frame should have a file name");
+    assert!(
+        !raw_file.contains("01_basic_breakpoint"),
+        "raw :bt file should be the temp file basename, not the original; got: {}",
+        raw_file
+    );
+
+    // WITHOUT remaps: parse_backtrace should NOT resolve to the original file
+    let empty_remaps = std::collections::HashMap::new();
+    let empty_canonical = std::collections::HashMap::new();
+    let dap_frames_no_remap = maxima_dap::frames::parse_backtrace(
+        &bt_lines,
+        &source_index,
+        &program_path,
+        &empty_remaps,
+        None,
+        &empty_canonical,
+    );
+    assert!(!dap_frames_no_remap.is_empty());
+    let source_no_remap = dap_frames_no_remap[0]
+        .source
+        .as_ref()
+        .expect("DAP frame should have source");
+    if let Some(ref path_str) = source_no_remap.path {
+        assert!(
+            !path_str.contains("01_basic_breakpoint"),
+            "without remaps, path should NOT resolve to original file; got: {}",
+            path_str
+        );
+    }
+
+    // WITH remaps: parse_backtrace should resolve to the original file
+    let mut remaps = std::collections::HashMap::new();
+    remaps.insert(temp_path.clone(), program_path.clone());
+    // Also add the canonical form in case Maxima resolves symlinks
+    if let Ok(canonical) = temp_path.canonicalize() {
+        remaps.insert(canonical, program_path.clone());
+    }
+
+    let dap_frames_with_remap = maxima_dap::frames::parse_backtrace(
+        &bt_lines,
+        &source_index,
+        &program_path,
+        &remaps,
+        None,
+        &empty_canonical,
+    );
+    assert!(!dap_frames_with_remap.is_empty());
+    let source_remapped = dap_frames_with_remap[0]
+        .source
+        .as_ref()
+        .expect("DAP frame should have source");
+    let remapped_path = source_remapped
+        .path
+        .as_ref()
+        .expect("remapped source should have a path");
+    assert!(
+        remapped_path.contains("01_basic_breakpoint.mac"),
+        "with remaps, path should resolve to original file; got: {}",
+        remapped_path
+    );
+    assert_eq!(
+        source_remapped.name.as_deref(),
+        Some("01_basic_breakpoint.mac"),
+        "display name should be the original file basename"
+    );
+
+    // Clean up — keep temp_file alive until we're done
+    proc.write_stdin(":resume\n").await.unwrap();
+    let _ = proc.read_dap_response(Some(eval_sentinel)).await;
+    proc.kill().await.unwrap();
+    drop(load_result);
 }
 
 // ---------------------------------------------------------------------------

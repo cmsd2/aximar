@@ -38,6 +38,15 @@ static BACKTRACE_FRAME_RE: LazyLock<Regex> = LazyLock::new(|| {
 static BACKTRACE_FRAME_NO_SRC_RE: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"#(\d+):\s+(\w+)\((.*?)\)\s*$").unwrap());
 
+/// Matches the canonical location line output by the Enhanced Maxima debugger.
+///
+/// Format: `/absolute/path/to/file.mac:42::`
+///
+/// This appears after breakpoint hits, step/next stops, error entry, and
+/// `:frame N` output. It is the primary reliable source of canonical paths.
+static CANONICAL_LOC_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"^(/[^:]+):(\d+)::$").unwrap());
+
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
@@ -59,6 +68,18 @@ pub struct BreakpointHit {
     /// The function where the breakpoint was hit.
     pub function: String,
     /// The line offset within the function.
+    pub line: u32,
+}
+
+/// A canonical source location from the Enhanced Maxima debugger.
+///
+/// Parsed from lines like `/absolute/path/file.mac:42::` which appear
+/// after breakpoint hits, step/next stops, and `:frame N` output.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CanonicalLocation {
+    /// Absolute file path (resolved by Maxima's `probe-file`).
+    pub file: String,
+    /// Line number in the file.
     pub line: u32,
 }
 
@@ -142,6 +163,25 @@ pub fn parse_backtrace_frame(line: &str) -> Option<BacktraceFrame> {
         });
     }
     None
+}
+
+/// Parse a canonical location line from Enhanced Maxima debugger output.
+///
+/// Matches lines like `/absolute/path/file.mac:42::`.
+pub fn parse_canonical_location(line: &str) -> Option<CanonicalLocation> {
+    let caps = CANONICAL_LOC_RE.captures(line.trim())?;
+    Some(CanonicalLocation {
+        file: caps.get(1)?.as_str().to_string(),
+        line: caps.get(2)?.as_str().parse().ok()?,
+    })
+}
+
+/// Scan a sequence of debugger output lines for the last canonical location.
+///
+/// The `file:line::` line typically appears just before the `(dbm:N)` prompt.
+/// Returns the last one found (in case of multiple).
+pub fn find_canonical_location(lines: &[String]) -> Option<CanonicalLocation> {
+    lines.iter().rev().find_map(|l| parse_canonical_location(l))
 }
 
 /// Parse variable bindings from debugger output.
@@ -350,5 +390,70 @@ mod tests {
     fn parse_bindings_single() {
         let bindings = parse_variable_bindings("x = 42");
         assert_eq!(bindings, vec![("x".into(), "42".into())]);
+    }
+
+    // -- parse_canonical_location --
+
+    #[test]
+    fn canonical_location_basic() {
+        let loc = parse_canonical_location("/Users/me/maxima/myfile.mac:4::").unwrap();
+        assert_eq!(loc.file, "/Users/me/maxima/myfile.mac");
+        assert_eq!(loc.line, 4);
+    }
+
+    #[test]
+    fn canonical_location_deep_path() {
+        let loc = parse_canonical_location("/tmp/aximar/.maxima-dap-abc123.mac:42::").unwrap();
+        assert_eq!(loc.file, "/tmp/aximar/.maxima-dap-abc123.mac");
+        assert_eq!(loc.line, 42);
+    }
+
+    #[test]
+    fn canonical_location_with_whitespace() {
+        let loc = parse_canonical_location("  /tmp/file.mac:10::  ").unwrap();
+        assert_eq!(loc.file, "/tmp/file.mac");
+        assert_eq!(loc.line, 10);
+    }
+
+    #[test]
+    fn canonical_location_no_match() {
+        assert!(parse_canonical_location("some other output").is_none());
+        assert!(parse_canonical_location("#0: foo(x = 5) (test.mac line 3)").is_none());
+        assert!(parse_canonical_location("(dbm:1)").is_none());
+    }
+
+    // -- find_canonical_location --
+
+    #[test]
+    fn find_canonical_in_stop_output() {
+        let lines = vec![
+            "Bkpt 0: (myfile.mac line 4, in function $foo)".to_string(),
+            "/Users/me/maxima/myfile.mac:4::".to_string(),
+            "(dbm:1) ".to_string(),
+        ];
+        let loc = find_canonical_location(&lines).unwrap();
+        assert_eq!(loc.file, "/Users/me/maxima/myfile.mac");
+        assert_eq!(loc.line, 4);
+    }
+
+    #[test]
+    fn find_canonical_in_step_output() {
+        let lines = vec![
+            "(myfile.mac line 5, in function foo)".to_string(),
+            "/Users/me/maxima/myfile.mac:5::".to_string(),
+            "(dbm:1) ".to_string(),
+        ];
+        let loc = find_canonical_location(&lines).unwrap();
+        assert_eq!(loc.file, "/Users/me/maxima/myfile.mac");
+        assert_eq!(loc.line, 5);
+    }
+
+    #[test]
+    fn find_canonical_none_when_absent() {
+        let lines = vec![
+            "#0: foo(x = 5) (test.mac line 3)".to_string(),
+            "#1: bar(a = 1) (test.mac line 10)".to_string(),
+        ];
+        assert!(find_canonical_location(&lines).is_none());
     }
 }

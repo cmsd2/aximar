@@ -67,16 +67,20 @@ impl DapServer {
 
         tracing::debug!("configurationDone: evaluating {:?}", expr);
         match self.send_maxima_and_wait(&expr).await {
-            Ok(PromptKind::Debugger { level }) => {
+            Ok((PromptKind::Debugger { level }, canonical)) => {
                 tracing::debug!("configurationDone: hit breakpoint at level {}", level);
-                self.state = DebugState::Stopped { level };
+                self.state = DebugState::Stopped {
+                    level,
+                    canonical_file: canonical.as_ref().map(|c| c.file.clone()),
+                    canonical_line: canonical.as_ref().map(|c| c.line),
+                };
                 // For Enhanced mode, refresh deferred breakpoint status now
                 // that batchload has resolved them.
                 self.refresh_breakpoint_status().await?;
                 self.send_stopped_event(StoppedEventReason::Breakpoint)
                     .await?;
             }
-            Ok(PromptKind::Normal) => {
+            Ok((PromptKind::Normal, _)) => {
                 tracing::debug!("configurationDone: expression completed without breakpoint");
                 // Refresh before terminating too — breakpoints may have resolved
                 // even though none fired.
@@ -131,13 +135,17 @@ impl DapServer {
         .await?;
 
         match self.send_debugger_command(":resume").await {
-            Ok(PromptKind::Debugger { level }) => {
-                self.state = DebugState::Stopped { level };
+            Ok((PromptKind::Debugger { level }, canonical)) => {
+                self.state = DebugState::Stopped {
+                    level,
+                    canonical_file: canonical.as_ref().map(|c| c.file.clone()),
+                    canonical_line: canonical.as_ref().map(|c| c.line),
+                };
                 self.flush_output().await?;
                 self.send_stopped_event(StoppedEventReason::Breakpoint)
                     .await?;
             }
-            Ok(PromptKind::Normal) => {
+            Ok((PromptKind::Normal, _)) => {
                 self.state = DebugState::Terminated;
                 self.flush_output().await?;
                 self.send_event(Event::Terminated(None)).await?;
@@ -167,13 +175,17 @@ impl DapServer {
 
         tracing::debug!("handle_next: sending :next (state={:?})", self.state);
         match self.send_debugger_command(":next").await {
-            Ok(PromptKind::Debugger { level }) => {
+            Ok((PromptKind::Debugger { level }, canonical)) => {
                 tracing::debug!("handle_next: stopped at debugger level {}", level);
-                self.state = DebugState::Stopped { level };
+                self.state = DebugState::Stopped {
+                    level,
+                    canonical_file: canonical.as_ref().map(|c| c.file.clone()),
+                    canonical_line: canonical.as_ref().map(|c| c.line),
+                };
                 self.flush_output().await?;
                 self.send_stopped_event(StoppedEventReason::Step).await?;
             }
-            Ok(PromptKind::Normal) => {
+            Ok((PromptKind::Normal, _)) => {
                 tracing::debug!("handle_next: expression completed (sentinel reached)");
                 self.state = DebugState::Terminated;
                 self.flush_output().await?;
@@ -204,12 +216,16 @@ impl DapServer {
             .await?;
 
         match self.send_debugger_command(":step").await {
-            Ok(PromptKind::Debugger { level }) => {
-                self.state = DebugState::Stopped { level };
+            Ok((PromptKind::Debugger { level }, canonical)) => {
+                self.state = DebugState::Stopped {
+                    level,
+                    canonical_file: canonical.as_ref().map(|c| c.file.clone()),
+                    canonical_line: canonical.as_ref().map(|c| c.line),
+                };
                 self.flush_output().await?;
                 self.send_stopped_event(StoppedEventReason::Step).await?;
             }
-            Ok(PromptKind::Normal) => {
+            Ok((PromptKind::Normal, _)) => {
                 self.state = DebugState::Terminated;
                 self.flush_output().await?;
                 self.send_event(Event::Terminated(None)).await?;

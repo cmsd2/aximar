@@ -47,10 +47,10 @@ impl DapServer {
             let _ = self.source_index.index_file(&source_path);
         }
 
-        let is_enhanced = self
+        let is_deferred = self
             .strategy
             .as_ref()
-            .map(|s| s.name() == "Enhanced")
+            .map(|s| s.supports_deferred_breakpoints())
             .unwrap_or(false);
 
 
@@ -59,7 +59,7 @@ impl DapServer {
             let bp_id = self.next_breakpoint_id;
             self.next_breakpoint_id += 1;
 
-            if is_enhanced {
+            if is_deferred {
                 // Enhanced mode: set file:line breakpoint directly (or deferred).
                 // We can always try to set the breakpoint — Enhanced supports
                 // deferred breakpoints even before the file is loaded.
@@ -278,14 +278,14 @@ impl DapServer {
     /// For Enhanced mode: breakpoints were already set as deferred, so this
     /// is a no-op (they'll resolve during batchload).
     pub(super) async fn set_pending_breakpoints(&mut self) -> Result<(), TransportError> {
-        let is_enhanced = self
+        let is_deferred = self
             .strategy
             .as_ref()
-            .map(|s| s.name() == "Enhanced")
+            .map(|s| s.supports_deferred_breakpoints())
             .unwrap_or(false);
 
-        // Enhanced breakpoints are deferred — nothing to do here.
-        if is_enhanced {
+        // Deferred breakpoints resolve during batchload — nothing to do here.
+        if is_deferred {
             return Ok(());
         }
 
@@ -366,13 +366,13 @@ impl DapServer {
     ///
     /// No-op for Legacy mode (no deferred breakpoints).
     pub(super) async fn refresh_breakpoint_status(&mut self) -> Result<(), TransportError> {
-        let is_enhanced = self
+        let is_deferred = self
             .strategy
             .as_ref()
-            .map(|s| s.name() == "Enhanced")
+            .map(|s| s.supports_deferred_breakpoints())
             .unwrap_or(false);
 
-        if !is_enhanced {
+        if !is_deferred {
             return Ok(());
         }
 

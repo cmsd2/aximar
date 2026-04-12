@@ -2,7 +2,7 @@
 //!
 //! Converts Maxima's `:bt` output into DAP `StackFrame` and `Variable` types.
 
-use aximar_core::maxima::debugger;
+use aximar_core::maxima::debugger::{self, CanonicalLocation};
 use emmy_dap_types::types::{Source, StackFrame, Variable};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
@@ -15,12 +15,17 @@ use crate::breakpoints::SourceIndex;
 /// frame names a file that has been indexed. `path_remaps` maps temp
 /// file paths back to original source paths (e.g. the definitions temp
 /// file → the user's `.mac` file).
+///
+/// When `canonical_paths` is provided (Enhanced mode), those absolute
+/// paths are used directly instead of heuristic resolution. Remaps
+/// are still applied to translate temp file paths to original sources.
 pub fn parse_backtrace(
     lines: &[String],
     source_index: &SourceIndex,
     program_path: &Path,
     path_remaps: &HashMap<PathBuf, PathBuf>,
     cwd: Option<&Path>,
+    canonical_paths: &HashMap<u32, CanonicalLocation>,
 ) -> Vec<StackFrame> {
     let program_dir = program_path.parent();
     let mut frames = Vec::new();
@@ -30,13 +35,18 @@ pub fn parse_backtrace(
             continue;
         };
 
-        let (source, dap_line) = resolve_frame_source(
-            &bt_frame,
-            source_index,
-            program_dir,
-            cwd,
-            path_remaps,
-        );
+        // Prefer canonical path from :frame N output (Enhanced mode).
+        let (source, dap_line) = if let Some(canonical) = canonical_paths.get(&bt_frame.index) {
+            resolve_canonical_source(canonical, path_remaps)
+        } else {
+            resolve_frame_source(
+                &bt_frame,
+                source_index,
+                program_dir,
+                cwd,
+                path_remaps,
+            )
+        };
 
         frames.push(StackFrame {
             id: bt_frame.index as i64,
@@ -54,6 +64,35 @@ pub fn parse_backtrace(
     }
 
     frames
+}
+
+/// Resolve source from a canonical location (Enhanced mode).
+///
+/// Uses the absolute path directly, applying remaps to translate
+/// temp file paths back to original sources.
+fn resolve_canonical_source(
+    canonical: &CanonicalLocation,
+    path_remaps: &HashMap<PathBuf, PathBuf>,
+) -> (Option<Source>, i64) {
+    let canonical_path = PathBuf::from(&canonical.file);
+
+    // Check if this canonical path should be remapped (e.g. temp file → original).
+    let resolved = path_remaps
+        .get(&canonical_path)
+        .cloned()
+        .unwrap_or(canonical_path);
+
+    let display_name = resolved
+        .file_name()
+        .map(|n| n.to_string_lossy().to_string())
+        .unwrap_or_else(|| canonical.file.clone());
+
+    let source = Source {
+        name: Some(display_name),
+        path: Some(resolved.to_string_lossy().to_string()),
+        ..Default::default()
+    };
+    (Some(source), canonical.line as i64)
 }
 
 /// Resolve source location for a backtrace frame.
@@ -184,7 +223,8 @@ mod tests {
     fn parse_backtrace_empty() {
         let source_index = SourceIndex::new();
         let remaps = HashMap::new();
-        let frames = parse_backtrace(&[], &source_index, Path::new("/test/file.mac"), &remaps, None);
+        let canonical = HashMap::new();
+        let frames = parse_backtrace(&[], &source_index, Path::new("/test/file.mac"), &remaps, None, &canonical);
         assert!(frames.is_empty());
     }
 
@@ -197,12 +237,52 @@ mod tests {
         ];
         let source_index = SourceIndex::new();
         let remaps = HashMap::new();
-        let frames = parse_backtrace(&lines, &source_index, Path::new("/test/file.mac"), &remaps, None);
+        let canonical = HashMap::new();
+        let frames = parse_backtrace(&lines, &source_index, Path::new("/test/file.mac"), &remaps, None, &canonical);
         assert_eq!(frames.len(), 2);
         assert_eq!(frames[0].name, "foo");
         assert_eq!(frames[0].id, 0);
         assert_eq!(frames[1].name, "bar");
         assert_eq!(frames[1].id, 1);
+    }
+
+    #[test]
+    fn parse_backtrace_with_canonical_paths() {
+        let lines = vec![
+            "#0: foo(x = 5) (test.mac line 3)".to_string(),
+            "#1: bar(a = 1, b = 2) (other.mac line 10)".to_string(),
+        ];
+        let source_index = SourceIndex::new();
+        let remaps = HashMap::new();
+        let mut canonical = HashMap::new();
+        canonical.insert(0, CanonicalLocation { file: "/abs/path/test.mac".to_string(), line: 3 });
+        canonical.insert(1, CanonicalLocation { file: "/abs/path/other.mac".to_string(), line: 10 });
+        let frames = parse_backtrace(&lines, &source_index, Path::new("/test/file.mac"), &remaps, None, &canonical);
+        assert_eq!(frames.len(), 2);
+        assert_eq!(frames[0].source.as_ref().unwrap().path.as_deref(), Some("/abs/path/test.mac"));
+        assert_eq!(frames[0].line, 3);
+        assert_eq!(frames[1].source.as_ref().unwrap().path.as_deref(), Some("/abs/path/other.mac"));
+        assert_eq!(frames[1].line, 10);
+    }
+
+    #[test]
+    fn parse_backtrace_canonical_with_remap() {
+        let lines = vec![
+            "#0: foo(x = 5) (tmp12345.mac line 3)".to_string(),
+        ];
+        let source_index = SourceIndex::new();
+        let mut remaps = HashMap::new();
+        remaps.insert(
+            PathBuf::from("/tmp/tmp12345.mac"),
+            PathBuf::from("/home/user/myfile.mac"),
+        );
+        let mut canonical = HashMap::new();
+        canonical.insert(0, CanonicalLocation { file: "/tmp/tmp12345.mac".to_string(), line: 3 });
+        let frames = parse_backtrace(&lines, &source_index, Path::new("/test/file.mac"), &remaps, None, &canonical);
+        assert_eq!(frames.len(), 1);
+        assert_eq!(frames[0].source.as_ref().unwrap().path.as_deref(), Some("/home/user/myfile.mac"));
+        assert_eq!(frames[0].source.as_ref().unwrap().name.as_deref(), Some("myfile.mac"));
+        assert_eq!(frames[0].line, 3);
     }
 
     #[test]

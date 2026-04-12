@@ -8,7 +8,7 @@ impl DapServer {
         request: &Request,
         _args: &emmy_dap_types::requests::StackTraceArguments,
     ) -> Result<(), TransportError> {
-        let (bt_lines, bt_frame_args) = match self.get_backtrace().await {
+        let (bt_lines, bt_frame_args, canonical_paths) = match self.get_backtrace().await {
             Ok(result) => result,
             Err(e) => {
                 return self
@@ -24,7 +24,7 @@ impl DapServer {
         let path_remaps = self.build_path_remaps();
         let cwd = self.launch_args.as_ref().and_then(|a| a.cwd.as_deref()).map(Path::new);
         let stack_frames =
-            frames::parse_backtrace(&bt_lines, &self.source_index, &program_path, &path_remaps, cwd);
+            frames::parse_backtrace(&bt_lines, &self.source_index, &program_path, &path_remaps, cwd, &canonical_paths);
 
         // Cache for scopes/variables requests
         self.cached_frame_args = bt_frame_args;
