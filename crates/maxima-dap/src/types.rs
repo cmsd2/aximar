@@ -28,6 +28,15 @@ pub struct MaximaLaunchArguments {
     /// Working directory for the debug session.
     #[serde(default)]
     pub cwd: Option<String>,
+    /// Evaluation timeout in seconds.  If an expression takes longer
+    /// than this, Maxima is interrupted and the session terminates.
+    /// Set to 0 to disable.  Default: 60.
+    #[serde(default = "default_eval_timeout")]
+    pub eval_timeout: u64,
+}
+
+fn default_eval_timeout() -> u64 {
+    60
 }
 
 fn default_backend() -> String {

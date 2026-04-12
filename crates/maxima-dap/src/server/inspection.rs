@@ -22,8 +22,9 @@ impl DapServer {
 
         let program_path = self.program_path.clone().unwrap_or_default();
         let path_remaps = self.build_path_remaps();
+        let cwd = self.launch_args.as_ref().and_then(|a| a.cwd.as_deref()).map(Path::new);
         let stack_frames =
-            frames::parse_backtrace(&bt_lines, &self.source_index, &program_path, &path_remaps);
+            frames::parse_backtrace(&bt_lines, &self.source_index, &program_path, &path_remaps, cwd);
 
         // Cache for scopes/variables requests
         self.cached_frame_args = bt_frame_args;

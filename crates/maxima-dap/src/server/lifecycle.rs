@@ -80,10 +80,17 @@ impl DapServer {
             }
         };
 
-        // Spawn Maxima process
+        // Spawn Maxima process with working directory set to cwd from
+        // launch args, or the program file's parent directory.  This ensures
+        // relative load()/batchload() paths in user code resolve correctly.
         let custom_path = launch_args.maxima_path.clone();
+        let cwd = launch_args
+            .cwd
+            .as_deref()
+            .map(Path::new)
+            .or_else(|| program_path.parent());
         let process =
-            match MaximaProcess::spawn(backend, custom_path, self.output_sink.clone()).await {
+            match MaximaProcess::spawn_with_cwd(backend, custom_path, self.output_sink.clone(), cwd).await {
                 Ok(p) => p,
                 Err(e) => {
                     return self

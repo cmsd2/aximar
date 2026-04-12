@@ -28,15 +28,15 @@ pub async fn evaluate(
     } else {
         format!("{};", expr)
     };
-    // Suppress display of intermediate statement results so only the final
-    // result appears (and gets captured by tex(%)).  print()/tex() side
-    // effects still produce output.
-    let expr = suppress_display(&expr);
+    // Suppress the last statement's 1D display (we render it as LaTeX instead).
+    // If the user ended with `$`, they don't want any result shown.
+    let (expr, emit_latex) = suppress_display(&expr);
 
+    // Always run tex(%) so the parser can detect plot file paths from LaTeX
+    // \mbox{} blocks, even when the user suppressed output with $.
     let input = format!(
         "{}\ntex(%);\nprint(\"__AXIMAR_LABEL__\", linenum)$\nprint(\"{}\");\n",
-        expr,
-        EVAL_SENTINEL
+        expr, EVAL_SENTINEL
     );
 
     process.write_stdin(&input).await?;
@@ -56,7 +56,13 @@ pub async fn evaluate(
 
     let duration_ms = start.elapsed().as_millis() as u64;
 
-    Ok(parser::parse_output(cell_id, &lines, duration_ms, catalog, process.backend()))
+    let mut result = parser::parse_output(cell_id, &lines, duration_ms, catalog, process.backend());
+    // If user suppressed output with $, clear the LaTeX (but plot detection
+    // already happened in the parser using raw_latex).
+    if !emit_latex {
+        result.latex = None;
+    }
+    Ok(result)
 }
 
 pub async fn evaluate_with_packages(
@@ -75,12 +81,13 @@ pub async fn evaluate_with_packages(
     } else {
         format!("{};", expr)
     };
-    let expr = suppress_display(&expr);
+    let (expr, emit_latex) = suppress_display(&expr);
 
+    // Always run tex(%) so the parser can detect plot file paths from LaTeX
+    // \mbox{} blocks, even when the user suppressed output with $.
     let input = format!(
         "{}\ntex(%);\nprint(\"__AXIMAR_LABEL__\", linenum)$\nprint(\"{}\");\n",
-        expr,
-        EVAL_SENTINEL
+        expr, EVAL_SENTINEL
     );
 
     process.write_stdin(&input).await?;
@@ -100,9 +107,13 @@ pub async fn evaluate_with_packages(
 
     let duration_ms = start.elapsed().as_millis() as u64;
 
-    Ok(parser::parse_output_with_packages(
+    let mut result = parser::parse_output_with_packages(
         cell_id, &lines, duration_ms, catalog, packages, process.backend(),
-    ))
+    );
+    if !emit_latex {
+        result.latex = None;
+    }
+    Ok(result)
 }
 
 pub async fn query_variables(process: &mut MaximaProcess) -> Result<Vec<String>, AppError> {
@@ -272,23 +283,27 @@ fn find_terminators(expr: &str) -> Vec<usize> {
     positions
 }
 
-/// Replace all `;` terminators with `$` to suppress Maxima's automatic 1D
-/// result display.  The result is still computed and available via `%` — we
-/// capture it as LaTeX with the injected `tex(%)` call.  `print()` and `tex()`
-/// side effects still produce output; only the redundant text display is removed.
-fn suppress_display(expr: &str) -> String {
+/// Replace only the **last** `;` terminator with `$` to suppress its
+/// automatic 1D display, since we capture the final result via `tex(%)`.
+/// Intermediate statements keep their original terminators: `;` shows the
+/// result, `$` stays silent — matching the user's intent.
+///
+/// Returns `(modified_expr, emit_latex)`:
+/// - `emit_latex = true` if the last terminator was `;` (user wanted display)
+/// - `emit_latex = false` if the last terminator was `$` (user suppressed output)
+fn suppress_display(expr: &str) -> (String, bool) {
     let terminators = find_terminators(expr);
     if terminators.is_empty() {
-        return expr.to_string();
+        return (expr.to_string(), true);
     }
+    let last = *terminators.last().unwrap();
+    let emit_latex = expr.as_bytes()[last] == b';';
     let mut result = expr.as_bytes().to_vec();
-    for &pos in &terminators {
-        if result[pos] == b';' {
-            result[pos] = b'$';
-        }
+    if result[last] == b';' {
+        result[last] = b'$';
     }
     // expr is valid UTF-8, and we only replaced ASCII bytes
-    String::from_utf8(result).expect("valid UTF-8")
+    (String::from_utf8(result).expect("valid UTF-8"), emit_latex)
 }
 
 #[cfg(test)]
@@ -296,41 +311,56 @@ mod tests {
     use super::*;
 
     #[test]
-    fn single_statement() {
-        assert_eq!(suppress_display("x+1;"), "x+1$");
+    fn single_statement_semicolon() {
+        // `;` → suppressed, emit LaTeX
+        assert_eq!(suppress_display("x+1;"), ("x+1$".into(), true));
+    }
+
+    #[test]
+    fn single_statement_dollar() {
+        // `$` → no change, no LaTeX
+        assert_eq!(suppress_display("x+1$"), ("x+1$".into(), false));
     }
 
     #[test]
     fn two_statements() {
-        assert_eq!(suppress_display("a:5; b:10;"), "a:5$ b:10$");
+        assert_eq!(suppress_display("a:5; b:10;"), ("a:5; b:10$".into(), true));
     }
 
     #[test]
     fn three_statements() {
         assert_eq!(
             suppress_display("a:5; b:10; c:a+b;"),
-            "a:5$ b:10$ c:a+b$"
+            ("a:5; b:10; c:a+b$".into(), true)
         );
     }
 
     #[test]
-    fn mixed_terminators() {
+    fn mixed_terminators_last_semi() {
         assert_eq!(
             suppress_display("a:5; b:10$ c:15;"),
-            "a:5$ b:10$ c:15$"
+            ("a:5; b:10$ c:15$".into(), true)
+        );
+    }
+
+    #[test]
+    fn mixed_terminators_last_dollar() {
+        assert_eq!(
+            suppress_display("a:5; b:10$ c:15$"),
+            ("a:5; b:10$ c:15$".into(), false)
         );
     }
 
     #[test]
     fn already_silent() {
-        assert_eq!(suppress_display("a:5$ b:10$"), "a:5$ b:10$");
+        assert_eq!(suppress_display("a:5$ b:10$"), ("a:5$ b:10$".into(), false));
     }
 
     #[test]
     fn semicolon_in_string_ignored() {
         assert_eq!(
             suppress_display(r#"print("a;b"); x;"#),
-            r#"print("a;b")$ x$"#
+            (r#"print("a;b"); x$"#.into(), true)
         );
     }
 
@@ -338,20 +368,21 @@ mod tests {
     fn semicolon_in_comment_ignored() {
         assert_eq!(
             suppress_display("/* a; */ x; y;"),
-            "/* a; */ x$ y$"
+            ("/* a; */ x; y$".into(), true)
         );
     }
 
     #[test]
     fn no_terminator() {
-        assert_eq!(suppress_display("x+1"), "x+1");
+        // No terminator → defaults to emit LaTeX
+        assert_eq!(suppress_display("x+1"), ("x+1".into(), true));
     }
 
     #[test]
     fn newlines_between_statements() {
         assert_eq!(
             suppress_display("a:5;\nb:10;\nc:15;"),
-            "a:5$\nb:10$\nc:15$"
+            ("a:5;\nb:10;\nc:15$".into(), true)
         );
     }
 
@@ -359,7 +390,7 @@ mod tests {
     fn trailing_dollar() {
         assert_eq!(
             suppress_display("a:5; b:10$"),
-            "a:5$ b:10$"
+            ("a:5; b:10$".into(), false)
         );
     }
 }

@@ -16,6 +16,12 @@ use std::sync::LazyLock;
 static DEBUGGER_PROMPT_RE: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"^\(dbm:(\d+)\)\s*$").unwrap());
 
+/// Matches the SBCL Lisp debugger prompt `N]` (e.g. `0]`, `1]`).
+/// This appears when Maxima hits a Lisp-level error that bypasses the
+/// Maxima debugger entirely.
+static SBCL_DEBUGGER_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"^(\d+)\]\s*$").unwrap());
+
 /// Matches a breakpoint-hit message.
 ///
 /// Format: `Bkpt N: (file.mac line M, in function $FUNC)`
@@ -83,6 +89,25 @@ pub fn detect_debugger_prompt(line: &str) -> Option<u32> {
         .captures(line.trim())
         .and_then(|c| c.get(1)?.as_str().parse().ok())
 }
+
+/// Detect whether a line is the SBCL Lisp debugger prompt (`N]`).
+///
+/// Returns `true` if the line matches.  This prompt appears when Maxima
+/// hits a Lisp-level error that bypasses `debugmode(true)`.
+pub fn detect_sbcl_debugger_prompt(line: &str) -> bool {
+    SBCL_DEBUGGER_RE.is_match(line.trim())
+}
+
+/// Known Maxima error markers that indicate evaluation failed.
+/// After one of these, Maxima returns to its input prompt (invisible
+/// with `--very-quiet`), so the sentinel inside a `block()` wrapper
+/// will never fire.
+pub const ERROR_MARKERS: &[&str] = &[
+    " -- an error.",
+    "Maxima encountered a Lisp error",
+    "MACSYMA restart",
+    "incorrect syntax:",
+];
 
 /// Parse a breakpoint-hit message from Maxima output.
 pub fn parse_breakpoint_hit(line: &str) -> Option<BreakpointHit> {

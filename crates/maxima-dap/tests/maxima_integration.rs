@@ -13,6 +13,11 @@ use aximar_core::maxima::backend::Backend;
 use aximar_core::maxima::debugger::{self, PromptKind};
 use aximar_core::maxima::output::{OutputEvent, OutputSink};
 use aximar_core::maxima::process::MaximaProcess;
+use maxima_dap::breakpoints::SourceIndex;
+use maxima_dap::strategy::BreakpointStrategy;
+use maxima_dap::strategy::StrategyContext;
+use maxima_dap::strategy_legacy::LegacyStrategy;
+use maxima_dap::types::DebugState;
 
 /// Null output sink for tests.
 struct NullSink;
@@ -432,7 +437,7 @@ async fn backtrace_frame_has_source_line() {
     let source_index = maxima_dap::breakpoints::SourceIndex::new();
     let program_path = Path::new(&path);
     let remaps = std::collections::HashMap::new();
-    let dap_frames = maxima_dap::frames::parse_backtrace(&bt_lines, &source_index, program_path, &remaps);
+    let dap_frames = maxima_dap::frames::parse_backtrace(&bt_lines, &source_index, program_path, &remaps, None);
 
     assert!(!dap_frames.is_empty(), "expected DAP stack frames");
     let dap_top = &dap_frames[0];
@@ -1024,6 +1029,223 @@ async fn enhanced_breakpoint_count() {
     proc.kill().await.unwrap();
 }
 
+// ---------------------------------------------------------------------------
+// Error detection: parse error returns Err instead of hanging
+// ---------------------------------------------------------------------------
+
+#[tokio::test]
+#[ignore]
+async fn parse_error_detected_not_hanging() {
+    // When invalid Maxima code is wrapped in block() with a sentinel,
+    // the parse error causes Maxima to print " -- an error." and return
+    // to its input prompt WITHOUT executing the sentinel.  The error
+    // detection in read_dap_response should catch this and return Err
+    // within a few seconds, rather than hanging forever.
+    let mut proc = spawn_maxima().await;
+    proc.set_debug_mode(true);
+
+    // Enable debugmode (the DAP server always does this)
+    let sentinel = "__TEST_DONE__";
+    proc.write_stdin("debugmode(true)$\n").await.unwrap();
+    proc.write_stdin(&format!("print(\"{}\")$\n", sentinel))
+        .await
+        .unwrap();
+    proc.read_until_sentinel(sentinel).await.unwrap();
+
+    // Send syntactically invalid code, wrapped exactly like send_maxima_and_wait does.
+    // "1 +" is an incomplete expression that Maxima will reject as a syntax error.
+    let eval_sentinel = "__EVAL_DONE__";
+    let wrapped = format!(
+        "block([__dap_r__], __dap_r__: (1 +), print(\"{}\"), __dap_r__)$\n",
+        eval_sentinel
+    );
+    proc.write_stdin(&wrapped).await.unwrap();
+
+    // Should return an error within the grace period (~2s), not hang.
+    let result = tokio::time::timeout(
+        std::time::Duration::from_secs(10),
+        proc.read_dap_response(Some(eval_sentinel)),
+    )
+    .await;
+
+    match result {
+        Ok(Ok((_lines, prompt))) => {
+            // If debugmode caught the error, that's also acceptable —
+            // it means Maxima entered the debugger for the parse error.
+            assert!(
+                matches!(prompt, PromptKind::Debugger { .. }),
+                "expected either Err or Debugger prompt, got Normal"
+            );
+        }
+        Ok(Err(e)) => {
+            // Expected: error detection kicked in.
+            let msg = e.to_string();
+            assert!(
+                msg.contains("error") || msg.contains("Maxima"),
+                "expected error message about Maxima error, got: {}",
+                msg
+            );
+        }
+        Err(_) => {
+            panic!("read_dap_response hung for >10s on parse error — error detection did not trigger");
+        }
+    }
+
+    proc.kill().await.unwrap();
+}
+
+// ---------------------------------------------------------------------------
+// Error detection: runtime error with debugmode enters debugger
+// ---------------------------------------------------------------------------
+
+#[tokio::test]
+#[ignore]
+async fn runtime_error_enters_debugger() {
+    // When a runtime error occurs inside a function with debugmode(true),
+    // Maxima should enter the debugger (dbm:N prompt) rather than
+    // returning an error.  Verify read_dap_response returns Debugger.
+    let mut proc = spawn_maxima().await;
+    proc.set_debug_mode(true);
+
+    let sentinel = "__TEST_DONE__";
+
+    // Enable debugmode
+    proc.write_stdin("debugmode(true)$\n").await.unwrap();
+    proc.write_stdin(&format!("print(\"{}\")$\n", sentinel))
+        .await
+        .unwrap();
+    proc.read_until_sentinel(sentinel).await.unwrap();
+
+    // Define a function that will trigger a runtime error (division by zero).
+    proc.write_stdin("divzero(x) := block([r], r : x / 0, r)$\n")
+        .await
+        .unwrap();
+    proc.write_stdin(&format!("print(\"{}\")$\n", sentinel))
+        .await
+        .unwrap();
+    proc.read_until_sentinel(sentinel).await.unwrap();
+
+    // Evaluate expression — division by zero should trigger debugger
+    let eval_sentinel = "__EVAL_DONE__";
+    let wrapped = format!(
+        "block([__dap_r__], __dap_r__: (divzero(5)), print(\"{}\"), __dap_r__)$\n",
+        eval_sentinel
+    );
+    proc.write_stdin(&wrapped).await.unwrap();
+
+    let result = tokio::time::timeout(
+        std::time::Duration::from_secs(10),
+        proc.read_dap_response(Some(eval_sentinel)),
+    )
+    .await;
+
+    match result {
+        Ok(Ok((_lines, prompt))) => {
+            // Division by zero with debugmode should enter the debugger.
+            // (Some Maxima versions may handle this differently — the
+            // debugger or a completion with error are both valid.)
+            eprintln!("Got prompt: {:?}", prompt);
+        }
+        Ok(Err(e)) => {
+            // Error detection kicked in — acceptable if debugmode didn't catch it.
+            eprintln!("Got error (acceptable): {}", e);
+        }
+        Err(_) => {
+            panic!("read_dap_response hung for >10s — neither debugger nor error detection triggered");
+        }
+    }
+
+    proc.kill().await.unwrap();
+}
+
+// ---------------------------------------------------------------------------
+// Error detection: process stays usable after error
+// ---------------------------------------------------------------------------
+
+#[tokio::test]
+#[ignore]
+async fn session_recovers_after_error() {
+    // After a parse error is detected, the session should still be usable
+    // for subsequent commands. This tests that the error detection doesn't
+    // leave the process in a broken state.
+    let mut proc = spawn_maxima().await;
+    proc.set_debug_mode(true);
+
+    let sentinel = "__TEST_DONE__";
+
+    // Enable debugmode
+    proc.write_stdin("debugmode(true)$\n").await.unwrap();
+    proc.write_stdin(&format!("print(\"{}\")$\n", sentinel))
+        .await
+        .unwrap();
+    proc.read_until_sentinel(sentinel).await.unwrap();
+
+    // Send an expression that triggers an error. We use an undefined variable
+    // in a context where Maxima prints an error and returns to prompt.
+    // Use a simple command that's more reliably an error.
+    let eval_sentinel = "__EVAL1_DONE__";
+    let wrapped = format!(
+        "block([__dap_r__], __dap_r__: (1 +), print(\"{}\"), __dap_r__)$\n",
+        eval_sentinel
+    );
+    proc.write_stdin(&wrapped).await.unwrap();
+
+    let result = tokio::time::timeout(
+        std::time::Duration::from_secs(10),
+        proc.read_dap_response(Some(eval_sentinel)),
+    )
+    .await;
+
+    // We don't care what happened (Err or Debugger) — just that it didn't hang.
+    match &result {
+        Ok(Ok((_lines, PromptKind::Debugger { .. }))) => {
+            // Resume from debugger first.
+            proc.write_stdin(":resume\n").await.unwrap();
+            let _ = tokio::time::timeout(
+                std::time::Duration::from_secs(5),
+                proc.read_dap_response(Some(eval_sentinel)),
+            )
+            .await;
+        }
+        Ok(Ok(_)) => {}
+        Ok(Err(_)) => {}
+        Err(_) => panic!("first command hung"),
+    }
+
+    // Now send a valid expression to verify the session works.
+    // Use the simpler send_maxima pattern (sentinel after command).
+    let sentinel2 = "__RECOVER_DONE__";
+    proc.write_stdin("2 + 3;\n").await.unwrap();
+    proc.write_stdin(&format!("print(\"{}\")$\n", sentinel2))
+        .await
+        .unwrap();
+
+    let result2 = tokio::time::timeout(
+        std::time::Duration::from_secs(10),
+        proc.read_until_sentinel(sentinel2),
+    )
+    .await;
+
+    match result2 {
+        Ok(Ok((lines, _))) => {
+            let has_five = lines.iter().any(|l| l.contains('5'));
+            assert!(
+                has_five,
+                "expected '5' in recovery output, got: {:?}",
+                lines
+            );
+        }
+        Ok(Err(e)) => {
+            panic!("recovery command failed: {}", e);
+        }
+        Err(_) => {
+            panic!("recovery command hung — session not usable after error");
+        }
+    }
+
+    proc.kill().await.unwrap();
+}
+
 #[tokio::test]
 #[ignore]
 async fn enhanced_clear_breakpoints() {
@@ -1083,6 +1305,57 @@ async fn enhanced_clear_breakpoints() {
         count, 0,
         "expected breakpoint_count() == 0 after clear, got {} from lines: {:?}",
         count, lines
+    );
+
+    proc.kill().await.unwrap();
+}
+
+// ---------------------------------------------------------------------------
+// Legacy strategy: syntax error in batchload is reported
+// ---------------------------------------------------------------------------
+
+#[tokio::test]
+#[ignore]
+async fn legacy_load_program_reports_syntax_error() {
+    // When a .mac file contains a function definition with a syntax error
+    // (e.g. semicolons inside block()), batchload fails. The legacy
+    // strategy's load_program must return Err, not silently succeed.
+    let mut proc = spawn_maxima().await;
+
+    let sentinel = "__TEST_DONE__";
+
+    // Enable debugmode (the DAP server always does this)
+    proc.write_stdin("debugmode(true)$\n").await.unwrap();
+    proc.write_stdin(&format!("print(\"{}\")$\n", sentinel))
+        .await
+        .unwrap();
+    proc.read_until_sentinel(sentinel).await.unwrap();
+
+    let program_path =
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("examples/16_syntax_error_in_definition.mac");
+
+    let mut source_index = SourceIndex::new();
+    source_index.index_file(&program_path).unwrap();
+
+    let strategy = LegacyStrategy;
+    let state = DebugState::Running;
+
+    let mut ctx = StrategyContext {
+        process: &mut proc,
+        state: &state,
+        source_index: &source_index,
+    };
+
+    let result = strategy.load_program(&mut ctx, &program_path).await;
+
+    let err_msg = match result {
+        Ok(_) => panic!("load_program should return Err for a file with syntax errors, got Ok"),
+        Err(e) => e.to_string(),
+    };
+    assert!(
+        err_msg.contains("incorrect syntax") || err_msg.contains("error"),
+        "error message should mention the syntax error, got: {}",
+        err_msg
     );
 
     proc.kill().await.unwrap();

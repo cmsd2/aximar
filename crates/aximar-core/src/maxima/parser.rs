@@ -219,6 +219,12 @@ fn parse_output_inner(
             continue;
         }
 
+        // Skip gnuplot warnings that leak into the Maxima output stream.
+        // These can appear mid-output and corrupt multi-line LaTeX blocks.
+        if trimmed.contains("warning:") && trimmed.contains(".gnuplot") {
+            continue;
+        }
+
         // Always skip sentinel lines (including LaTeX-escaped versions with \_)
         if trimmed.contains("AXIMAR_EVAL_END") || trimmed.contains("AXIMAR_READY") {
             continue;

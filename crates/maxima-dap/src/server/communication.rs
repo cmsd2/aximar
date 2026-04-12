@@ -26,6 +26,12 @@ impl DapServer {
     /// The sentinel is embedded *inside* a wrapping `block()` so it only
     /// fires when the expression completes — it is never left as a separate
     /// line in stdin that could be consumed at a `dbm:>` prompt.
+    ///
+    /// A configurable timeout (`evalTimeout` in launch config, default 60s,
+    /// 0 to disable) guards against hangs caused by parse errors that bypass
+    /// the debugger, runaway computations, or blocking I/O (e.g. gnuplot).
+    /// On timeout the Maxima process is interrupted and the sentinel is
+    /// drained so the session can be reused.
     pub(super) async fn send_maxima_and_wait(
         &mut self,
         expr: &str,
@@ -44,9 +50,49 @@ impl DapServer {
         );
         tracing::debug!("send_maxima_and_wait: sending {:?}", wrapped.trim());
         process.write_stdin(&wrapped).await?;
-        let (lines, prompt_kind) = process.read_dap_response(Some(sentinel)).await?;
-        tracing::debug!("send_maxima_and_wait: got {:?}, lines: {:?}", prompt_kind, lines);
-        Ok(prompt_kind)
+
+        let timeout_secs = self
+            .launch_args
+            .as_ref()
+            .map(|a| a.eval_timeout)
+            .unwrap_or(60);
+
+        if timeout_secs == 0 {
+            // No timeout — wait indefinitely (original behaviour).
+            let (lines, prompt_kind) = process.read_dap_response(Some(sentinel)).await?;
+            tracing::debug!(
+                "send_maxima_and_wait: got {:?}, lines: {:?}",
+                prompt_kind,
+                lines
+            );
+            return Ok(prompt_kind);
+        }
+
+        let timeout = std::time::Duration::from_secs(timeout_secs);
+        match tokio::time::timeout(timeout, process.read_dap_response(Some(sentinel))).await {
+            Ok(result) => {
+                let (lines, prompt_kind) = result?;
+                tracing::debug!(
+                    "send_maxima_and_wait: got {:?}, lines: {:?}",
+                    prompt_kind,
+                    lines
+                );
+                Ok(prompt_kind)
+            }
+            Err(_) => {
+                tracing::warn!(
+                    "send_maxima_and_wait: timed out after {}s, interrupting",
+                    timeout_secs
+                );
+                // Re-borrow process after the timeout future is dropped.
+                let process = self
+                    .process
+                    .as_mut()
+                    .ok_or(AppError::ProcessNotRunning)?;
+                process.interrupt_and_resync(sentinel).await;
+                Err(AppError::Timeout(timeout_secs))
+            }
+        }
     }
 
     /// Send a debugger command (like `:step`, `:resume`) and wait for the

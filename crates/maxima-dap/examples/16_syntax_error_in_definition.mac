@@ -1,0 +1,15 @@
+/* 16_syntax_error_in_definition.mac
+ *
+ * Scenario: Function definition with a syntax error
+ *
+ * The semicolons inside block() are invalid — Maxima uses commas
+ * to separate expressions inside block(). This should cause a
+ * parse error during batchload, NOT silently succeed.
+ */
+
+f(x) := block([y],
+  y: x^2 + 3*x + 5;
+  return y;
+)$
+
+print(f(2))$

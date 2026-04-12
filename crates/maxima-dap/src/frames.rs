@@ -20,6 +20,7 @@ pub fn parse_backtrace(
     source_index: &SourceIndex,
     program_path: &Path,
     path_remaps: &HashMap<PathBuf, PathBuf>,
+    cwd: Option<&Path>,
 ) -> Vec<StackFrame> {
     let program_dir = program_path.parent();
     let mut frames = Vec::new();
@@ -33,6 +34,7 @@ pub fn parse_backtrace(
             &bt_frame,
             source_index,
             program_dir,
+            cwd,
             path_remaps,
         );
 
@@ -64,13 +66,14 @@ fn resolve_frame_source(
     bt_frame: &debugger::BacktraceFrame,
     _source_index: &SourceIndex,
     program_dir: Option<&Path>,
+    cwd: Option<&Path>,
     path_remaps: &HashMap<PathBuf, PathBuf>,
 ) -> (Option<Source>, i64) {
     let Some(ref file_name) = bt_frame.file else {
         return (None, 0);
     };
     let Some(bt_line) = bt_frame.line else {
-        return (make_source(file_name, program_dir), 0);
+        return (make_source(file_name, cwd, program_dir), 0);
     };
 
     // Check if the file name (bare or full path) matches a remapped path.
@@ -88,14 +91,15 @@ fn resolve_frame_source(
         return (Some(source), bt_line as i64);
     }
 
-    // No remap — resolve normally.
-    let file_path = resolve_file_path(file_name, program_dir);
+    // No remap — resolve relative paths, trying cwd first (where user
+    // files live), then program_dir (where the temp file lives).
+    let file_path = resolve_file_path(file_name, cwd, program_dir);
     let source = file_path.as_ref().map(|p| Source {
         name: Some(file_name.clone()),
         path: Some(p.to_string_lossy().to_string()),
         ..Default::default()
     });
-    (source.or_else(|| make_source(file_name, program_dir)), bt_line as i64)
+    (source.or_else(|| make_source(file_name, cwd, program_dir)), bt_line as i64)
 }
 
 /// Check if a file name from Maxima output matches any remapped path.
@@ -122,17 +126,31 @@ fn find_remap(file_name: &str, remaps: &HashMap<PathBuf, PathBuf>) -> Option<Pat
 }
 
 /// Resolve a file name from a backtrace frame to a full path.
-fn resolve_file_path(file_name: &str, program_dir: Option<&Path>) -> Option<std::path::PathBuf> {
+///
+/// Tries `cwd` first (where user files are loaded from), then
+/// `program_dir` (where the temp/program file lives). Prefers the
+/// directory where the file actually exists on disk.
+fn resolve_file_path(file_name: &str, cwd: Option<&Path>, program_dir: Option<&Path>) -> Option<PathBuf> {
     let path = Path::new(file_name);
     if path.is_absolute() {
         return Some(path.to_path_buf());
     }
-    program_dir.map(|dir| dir.join(file_name))
+    // Try cwd first, then program_dir. Prefer whichever actually exists.
+    // Canonicalize so paths like "../foo.mac" resolve cleanly for VS Code.
+    let candidates = [cwd, program_dir];
+    for dir in candidates.into_iter().flatten() {
+        let candidate = dir.join(file_name);
+        if let Ok(canonical) = candidate.canonicalize() {
+            return Some(canonical);
+        }
+    }
+    // Neither exists — return cwd-based path as the default.
+    cwd.or(program_dir).map(|dir| dir.join(file_name))
 }
 
 /// Create a DAP `Source` from a file name.
-fn make_source(file_name: &str, program_dir: Option<&Path>) -> Option<Source> {
-    let path = resolve_file_path(file_name, program_dir);
+fn make_source(file_name: &str, cwd: Option<&Path>, program_dir: Option<&Path>) -> Option<Source> {
+    let path = resolve_file_path(file_name, cwd, program_dir);
     Some(Source {
         name: Some(file_name.to_string()),
         path: path.map(|p| p.to_string_lossy().to_string()),
@@ -166,7 +184,7 @@ mod tests {
     fn parse_backtrace_empty() {
         let source_index = SourceIndex::new();
         let remaps = HashMap::new();
-        let frames = parse_backtrace(&[], &source_index, Path::new("/test/file.mac"), &remaps);
+        let frames = parse_backtrace(&[], &source_index, Path::new("/test/file.mac"), &remaps, None);
         assert!(frames.is_empty());
     }
 
@@ -179,7 +197,7 @@ mod tests {
         ];
         let source_index = SourceIndex::new();
         let remaps = HashMap::new();
-        let frames = parse_backtrace(&lines, &source_index, Path::new("/test/file.mac"), &remaps);
+        let frames = parse_backtrace(&lines, &source_index, Path::new("/test/file.mac"), &remaps, None);
         assert_eq!(frames.len(), 2);
         assert_eq!(frames[0].name, "foo");
         assert_eq!(frames[0].id, 0);

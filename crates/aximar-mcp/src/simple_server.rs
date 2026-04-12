@@ -39,12 +39,17 @@ impl SimpleMcpServer {
 impl SimpleMcpServer {
     // ── Session lifecycle tools ───────────────────────────────────
 
-    #[tool(description = "Create a new isolated Maxima session. Returns the new session's ID. Variables and definitions in one session are isolated from other sessions.")]
-    async fn create_session(&self) -> Result<String, String> {
-        self.core.do_create_session().await
+    #[tool(description = "Create a new isolated Maxima session. Returns the new session's ID. Variables and definitions in one session are isolated from other sessions. Optionally pass a filesystem path so that load() and batchload() resolve relative paths from that directory.",
+           annotations(read_only_hint = false, destructive_hint = false))]
+    async fn create_session(
+        &self,
+        Parameters(params): Parameters<CreateSessionParams>,
+    ) -> Result<String, String> {
+        self.core.do_create_session(params.path.as_deref()).await
     }
 
-    #[tool(description = "Close a session and stop its Maxima process. Cannot close the last remaining session.")]
+    #[tool(description = "Close a session and stop its Maxima process. Cannot close the last remaining session.",
+           annotations(read_only_hint = false, destructive_hint = true))]
     async fn close_session(
         &self,
         Parameters(params): Parameters<CloseSessionParams>,
@@ -52,7 +57,8 @@ impl SimpleMcpServer {
         self.core.do_close_session(&params.session_id).await
     }
 
-    #[tool(description = "List all open sessions with their IDs and active status.")]
+    #[tool(description = "List all open sessions with their IDs and active status.",
+           annotations(read_only_hint = true))]
     async fn list_sessions(&self) -> Result<String, String> {
         self.core.do_list_sessions().await
     }
@@ -61,7 +67,8 @@ impl SimpleMcpServer {
 
     #[tool(description = "Evaluate a Maxima expression. Auto-starts the session if needed. Session state persists — variables and definitions set here are available to subsequent expressions.
 
-Unicode Greek letters (α, β, γ, θ, π, etc.) are translated to Maxima symbols automatically. Only the last statement's result is returned. Use print(expr) for plain text or tex(expr) for intermediate LaTeX output. End the last statement with $ instead of ; to suppress the final result.")]
+Unicode Greek letters (α, β, γ, θ, π, etc.) are translated to Maxima symbols automatically. Statements ending with `;` display their result; statements ending with `$` are silent. The last statement's result is rendered as LaTeX when it ends with `;`. End the last statement with `$` to suppress all output, just like in normal Maxima.",
+           annotations(read_only_hint = false, destructive_hint = false))]
     async fn evaluate_expression(
         &self,
         Parameters(params): Parameters<SimpleEvaluateExpressionParams>,
@@ -73,7 +80,8 @@ Unicode Greek letters (α, β, γ, θ, π, etc.) are translated to Maxima symbol
 
     // ── Session management ────────────────────────────────────────
 
-    #[tool(description = "Get the current Maxima session status: Starting, Ready, Busy, Stopped, or Error.")]
+    #[tool(description = "Get the current Maxima session status: Starting, Ready, Busy, Stopped, or Error.",
+           annotations(read_only_hint = true))]
     async fn get_session_status(
         &self,
         Parameters(params): Parameters<SessionIdParam>,
@@ -83,7 +91,8 @@ Unicode Greek letters (α, β, γ, θ, π, etc.) are translated to Maxima symbol
             .await
     }
 
-    #[tool(description = "Restart the Maxima session. Kills the current process and starts a new one. All session state is lost, including variables, function definitions, and loaded packages.")]
+    #[tool(description = "Restart the Maxima session. Kills the current process and starts a new one. All session state is lost, including variables, function definitions, and loaded packages.",
+           annotations(read_only_hint = false, destructive_hint = true))]
     async fn restart_session(
         &self,
         Parameters(params): Parameters<SessionIdParam>,
@@ -93,7 +102,8 @@ Unicode Greek letters (α, β, γ, θ, π, etc.) are translated to Maxima symbol
             .await
     }
 
-    #[tool(description = "List all user-defined variables in the current Maxima session. Internal Maxima and package variables are filtered out — only variables you have explicitly assigned are shown.")]
+    #[tool(description = "List all user-defined variables in the current Maxima session. Internal Maxima and package variables are filtered out — only variables you have explicitly assigned are shown.",
+           annotations(read_only_hint = true))]
     async fn list_variables(
         &self,
         Parameters(params): Parameters<SessionIdParam>,
@@ -103,7 +113,8 @@ Unicode Greek letters (α, β, γ, θ, π, etc.) are translated to Maxima symbol
             .await
     }
 
-    #[tool(description = "Remove a variable from the Maxima session (equivalent to `kill(name)` in Maxima).")]
+    #[tool(description = "Remove a variable from the Maxima session (equivalent to `kill(name)` in Maxima).",
+           annotations(read_only_hint = false, destructive_hint = true))]
     async fn kill_variable(
         &self,
         Parameters(params): Parameters<SimpleKillVariableParams>,
@@ -115,7 +126,8 @@ Unicode Greek letters (α, β, γ, θ, π, etc.) are translated to Maxima symbol
 
     // ── Documentation tools ───────────────────────────────────────
 
-    #[tool(description = "Search the Maxima function catalog by name or description. Returns matching functions with signatures and brief descriptions. Searches across 2500+ built-in and package functions. Supports partial name matching (e.g. \"integ\" finds integrate) and description keywords (e.g. \"matrix inverse\").")]
+    #[tool(description = "Search the Maxima function catalog by name or description. Returns matching functions with signatures and brief descriptions. Searches across 2500+ built-in and package functions. Supports partial name matching (e.g. \"integ\" finds integrate) and description keywords (e.g. \"matrix inverse\").",
+           annotations(read_only_hint = true))]
     async fn search_functions(
         &self,
         Parameters(params): Parameters<SearchFunctionsParams>,
@@ -123,7 +135,8 @@ Unicode Greek letters (α, β, γ, θ, π, etc.) are translated to Maxima symbol
         self.core.do_search_functions(&params.query).await
     }
 
-    #[tool(description = "Get full documentation for a Maxima function, including usage, examples, and related functions. Falls back to a catalog summary if full docs are unavailable. Suggests similar function names if the exact name is not found.")]
+    #[tool(description = "Get full documentation for a Maxima function, including usage, examples, and related functions. Falls back to a catalog summary if full docs are unavailable. Suggests similar function names if the exact name is not found.",
+           annotations(read_only_hint = true))]
     async fn get_function_docs(
         &self,
         Parameters(params): Parameters<GetFunctionDocsParams>,
@@ -131,12 +144,14 @@ Unicode Greek letters (α, β, γ, θ, π, etc.) are translated to Maxima symbol
         self.core.do_get_function_docs(&params.name).await
     }
 
-    #[tool(description = "List Maxima functions that are deprecated, obsolete, or superseded. Returns names, descriptions, and suggested replacements where available.")]
+    #[tool(description = "List Maxima functions that are deprecated, obsolete, or superseded. Returns names, descriptions, and suggested replacements where available.",
+           annotations(read_only_hint = true))]
     async fn list_deprecated(&self) -> Result<String, String> {
         self.core.do_list_deprecated().await
     }
 
-    #[tool(description = "Autocomplete a Maxima function name prefix. Returns matching function names with signatures. Includes both built-in and package functions.")]
+    #[tool(description = "Autocomplete a Maxima function name prefix. Returns matching function names with signatures. Includes both built-in and package functions.",
+           annotations(read_only_hint = true))]
     async fn complete_function(
         &self,
         Parameters(params): Parameters<CompleteFunctionParams>,
@@ -146,7 +161,8 @@ Unicode Greek letters (α, β, γ, θ, π, etc.) are translated to Maxima symbol
 
     // ── Package tools ─────────────────────────────────────────────
 
-    #[tool(description = "Search available Maxima packages by name or description. Returns packages with their load paths and function lists. Load a package with load(\"name\")$ before using its functions.")]
+    #[tool(description = "Search available Maxima packages by name or description. Returns packages with their load paths and function lists. Load a package with load(\"name\")$ before using its functions.",
+           annotations(read_only_hint = true))]
     async fn search_packages(
         &self,
         Parameters(params): Parameters<SearchPackagesParams>,
@@ -154,12 +170,14 @@ Unicode Greek letters (α, β, γ, θ, π, etc.) are translated to Maxima symbol
         self.core.do_search_packages(&params.query).await
     }
 
-    #[tool(description = "List all available Maxima packages that can be loaded with load(\"name\")$. Use get_package to see what functions a specific package provides.")]
+    #[tool(description = "List all available Maxima packages that can be loaded with load(\"name\")$. Use get_package to see what functions a specific package provides.",
+           annotations(read_only_hint = true))]
     async fn list_packages(&self) -> Result<String, String> {
         self.core.do_list_packages().await
     }
 
-    #[tool(description = "Get details of a specific Maxima package, including description and list of functions it provides.")]
+    #[tool(description = "Get details of a specific Maxima package, including description and list of functions it provides.",
+           annotations(read_only_hint = true))]
     async fn get_package(
         &self,
         Parameters(params): Parameters<GetPackageParams>,
@@ -169,7 +187,8 @@ Unicode Greek letters (α, β, γ, θ, π, etc.) are translated to Maxima symbol
 
     // ── Log tools ─────────────────────────────────────────────────
 
-    #[tool(description = "Get the server-wide Maxima output log. Useful for debugging session startup or crash issues. Supports optional stream filter (\"stdout\", \"stderr\", or \"stdin\") and a limit on the number of entries returned.")]
+    #[tool(description = "Get the server-wide Maxima output log. Useful for debugging session startup or crash issues. Supports optional stream filter (\"stdout\", \"stderr\", or \"stdin\") and a limit on the number of entries returned.",
+           annotations(read_only_hint = true))]
     async fn get_server_log(
         &self,
         Parameters(params): Parameters<SimpleGetServerLogParams>,
@@ -215,9 +234,10 @@ impl rmcp::handler::server::ServerHandler for SimpleMcpServer {
                  `linearalgebra`). Use `search_packages` or `list_packages` to discover \
                  available packages and `get_package` to see what functions a package \
                  provides. Load a package with `load(\"name\")$`.\n\n\
-                 Only the last statement's result is returned. Use `print(expr)` for \
-                 plain text or `tex(expr)` for intermediate LaTeX output. End the last \
-                 statement with `$` instead of `;` to suppress the final result.\n\n\
+                 Output works like normal Maxima: statements ending with `;` display \
+                 their result, statements ending with `$` are silent. The last \
+                 statement's result is rendered as LaTeX when it ends with `;`. End \
+                 the last statement with `$` to suppress all output.\n\n\
                  Multiple sessions are supported. Use `create_session` to create an \
                  isolated session, `list_sessions` to see all open sessions, and pass \
                  `session_id` to target a specific session. When omitted, tools target \

@@ -27,6 +27,14 @@ pub(crate) struct SimpleKillVariableParams {
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]
+pub(crate) struct CreateSessionParams {
+    /// Optional filesystem path for the working directory (e.g. the notebook's parent directory).
+    /// When set, the Maxima process will use this as its current directory so that
+    /// relative file paths in load() and batchload() resolve correctly.
+    pub path: Option<String>,
+}
+
+#[derive(Debug, Deserialize, JsonSchema)]
 pub(crate) struct CloseSessionParams {
     /// ID of the session to close
     pub session_id: String,

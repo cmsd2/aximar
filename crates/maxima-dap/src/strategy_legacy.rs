@@ -79,6 +79,25 @@ impl BreakpointStrategy for LegacyStrategy {
             )));
         }
 
+        // Also check for error markers (e.g. syntax errors) that don't
+        // trigger the debugger — Maxima just prints the error and returns
+        // to its normal prompt, so the sentinel still arrives and
+        // send_maxima succeeds.
+        let has_error = response_lines
+            .iter()
+            .any(|l| debugger::ERROR_MARKERS.iter().any(|marker| l.contains(marker)));
+        if has_error {
+            let error_msg = response_lines
+                .iter()
+                .find(|l| debugger::ERROR_MARKERS.iter().any(|marker| l.contains(marker)))
+                .cloned()
+                .unwrap_or_else(|| "batchload failed".to_string());
+            return Err(AppError::CommunicationError(format!(
+                "Error loading definitions: {}",
+                error_msg
+            )));
+        }
+
         Ok(LoadResult {
             loaded_path: temp_path,
             temp_file: Some(temp_file),

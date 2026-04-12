@@ -38,7 +38,13 @@ pub async fn spawn_and_init_session(
     eval_timeout: u64,
     on_status: Option<&SessionStatusCallback>,
 ) -> Result<(), AppError> {
-    match MaximaProcess::spawn(backend, maxima_path, output_sink).await {
+    // ctx.path may be a directory (from create_session's path param) or a
+    // file (from open_notebook). Use it directly if it's a directory,
+    // otherwise take the parent.
+    let cwd = ctx.path.as_deref().map(|p| {
+        if p.is_dir() { p } else { p.parent().unwrap_or(p) }
+    });
+    match MaximaProcess::spawn_with_cwd(backend, maxima_path, output_sink, cwd).await {
         Ok(process) => {
             ctx.session.set_ready(process).await;
 
@@ -48,6 +54,11 @@ pub async fn spawn_and_init_session(
             if let Ok(p) = guard.process_mut() {
                 let _ =
                     protocol::evaluate(p, "__init__", &init, catalog, eval_timeout).await;
+                // Configure plot2d to produce SVG files (detectable by parser)
+                // instead of opening a gnuplot window (not useful in notebook/MCP context).
+                let _ =
+                    protocol::evaluate(p, "__init__", "set_plot_option([plot_format, svg])$", catalog, eval_timeout)
+                        .await;
                 // Load Lisp helpers for plotting (ax__mktemp)
                 let lisp_init = plotting_lisp_stdin();
                 p.write_stdin(lisp_init).await.ok();

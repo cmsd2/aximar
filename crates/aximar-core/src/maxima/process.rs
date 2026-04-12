@@ -29,6 +29,10 @@ pub struct MaximaProcess {
 
 impl MaximaProcess {
     pub async fn spawn(backend: Backend, custom_path: Option<String>, output_sink: Arc<dyn OutputSink>) -> Result<Self, AppError> {
+        Self::spawn_with_cwd(backend, custom_path, output_sink, None).await
+    }
+
+    pub async fn spawn_with_cwd(backend: Backend, custom_path: Option<String>, output_sink: Arc<dyn OutputSink>, cwd: Option<&std::path::Path>) -> Result<Self, AppError> {
         Self::preflight_check(&backend).await?;
 
         let (mut child, container_name) = match &backend {
@@ -43,9 +47,30 @@ impl MaximaProcess {
                     .stdout(std::process::Stdio::piped())
                     .stderr(std::process::Stdio::piped())
                     .kill_on_drop(true);
+                if let Some(dir) = cwd {
+                    cmd.current_dir(dir);
+                }
                 #[cfg(windows)]
                 {
                     cmd.creation_flags(0x00000200); // CREATE_NEW_PROCESS_GROUP
+                }
+                // Detach from the controlling terminal so SBCL cannot
+                // open /dev/tty.  Without this, *debug-io* on Linux
+                // writes to /dev/tty (bypassing our piped stdout/stderr)
+                // and we never see debugger prompts or some error messages.
+                // On macOS /dev/tty typically already fails to open; on
+                // Windows SBCL never tries.
+                #[cfg(unix)]
+                {
+                    // SAFETY: setsid() is async-signal-safe and has no
+                    // preconditions beyond being called in the child
+                    // process before exec, which pre_exec guarantees.
+                    unsafe {
+                        cmd.pre_exec(|| {
+                            libc::setsid();
+                            Ok(())
+                        });
+                    }
                 }
                 hide_console_window(&mut cmd);
                 let child = cmd.spawn()
@@ -409,6 +434,12 @@ impl MaximaProcess {
     /// If `sentinel` is provided, also checks complete lines for the
     /// sentinel and returns [`PromptKind::Normal`] when found.
     /// Returns [`PromptKind::Debugger`] when a debugger prompt is detected.
+    ///
+    /// Also detects error conditions that would otherwise cause a hang:
+    /// - SBCL Lisp debugger prompt (`0]`) — Lisp-level crash
+    /// - Maxima error markers (`" -- an error."`) followed by silence —
+    ///   parse errors that bypass `debugmode(true)` and leave Maxima
+    ///   waiting at an invisible prompt (with `--very-quiet`)
     pub async fn read_dap_response(
         &mut self,
         sentinel: Option<&str>,
@@ -417,6 +448,14 @@ impl MaximaProcess {
         let mut partial = String::new();
         let mut read_buf = [0u8; 4096];
         let mut stderr_line = String::new();
+
+        // After seeing a Maxima error marker, we give debugmode 2 seconds
+        // to produce a (dbm:N) prompt.  If it doesn't, the error was a
+        // parse error (or similar) that bypassed the debugger and Maxima
+        // is silently waiting for input — we'll never get a sentinel.
+        let error_grace = std::time::Duration::from_secs(2);
+        let mut error_deadline = std::pin::pin!(tokio::time::sleep(error_grace));
+        let mut saw_error = false;
 
         loop {
             stderr_line.clear();
@@ -454,11 +493,24 @@ impl MaximaProcess {
                             }
                         }
 
+                        // Detect Maxima error markers.  Don't return yet —
+                        // debugmode may still produce a (dbm:N) prompt.
+                        if !saw_error
+                            && debugger::ERROR_MARKERS
+                                .iter()
+                                .any(|m| line.contains(m))
+                        {
+                            saw_error = true;
+                            error_deadline
+                                .as_mut()
+                                .reset(tokio::time::Instant::now() + error_grace);
+                        }
+
                         lines.push(line);
                     }
 
-                    // Check remaining partial buffer for a debugger prompt
-                    // (the prompt has no trailing newline)
+                    // Check remaining partial buffer for prompts without
+                    // a trailing newline.
                     let trimmed = partial.trim();
                     if !trimmed.is_empty() {
                         if let Some(level) = debugger::detect_debugger_prompt(trimmed) {
@@ -467,6 +519,27 @@ impl MaximaProcess {
                             partial.clear();
                             self.drain_stderr(&mut lines).await;
                             return Ok((lines, PromptKind::Debugger { level }));
+                        }
+                        // SBCL Lisp debugger prompt (e.g. "0]").
+                        if debugger::detect_sbcl_debugger_prompt(trimmed) {
+                            self.emit_output(trimmed, "stdout");
+                            lines.push(trimmed.to_string());
+                            partial.clear();
+                            self.drain_stderr(&mut lines).await;
+                            let context = lines
+                                .iter()
+                                .rev()
+                                .take(5)
+                                .collect::<Vec<_>>()
+                                .into_iter()
+                                .rev()
+                                .map(|s| s.as_str())
+                                .collect::<Vec<_>>()
+                                .join("\n");
+                            return Err(AppError::CommunicationError(format!(
+                                "Lisp-level error (SBCL debugger entered):\n{}",
+                                context
+                            )));
                         }
                     }
                 }
@@ -478,8 +551,42 @@ impl MaximaProcess {
                     let trimmed = stderr_line.trim_end().to_string();
                     if !trimmed.is_empty() {
                         self.emit_output(&trimmed, "stderr");
+
+                        // Check stderr for error markers too — syntax
+                        // errors go to *error-output* (stderr) on SBCL.
+                        if !saw_error
+                            && debugger::ERROR_MARKERS
+                                .iter()
+                                .any(|m| trimmed.contains(m))
+                        {
+                            saw_error = true;
+                            error_deadline
+                                .as_mut()
+                                .reset(tokio::time::Instant::now() + error_grace);
+                        }
+
                         lines.push(trimmed);
                     }
+                }
+                // Error grace period expired — no debugger prompt arrived
+                // after a Maxima error marker.  This is a parse error or
+                // similar that left Maxima silently waiting for input.
+                _ = &mut error_deadline, if saw_error => {
+                    self.drain_stderr(&mut lines).await;
+                    let context = lines
+                        .iter()
+                        .rev()
+                        .take(5)
+                        .collect::<Vec<_>>()
+                        .into_iter()
+                        .rev()
+                        .map(|s| s.as_str())
+                        .collect::<Vec<_>>()
+                        .join("\n");
+                    return Err(AppError::CommunicationError(format!(
+                        "Maxima error (no debugger recovery):\n{}",
+                        context
+                    )));
                 }
             }
         }

@@ -85,6 +85,7 @@ impl DapServer {
                 self.send_event(Event::Terminated(None)).await?;
             }
             Err(e) => {
+                self.flush_output().await?;
                 self.send_output_event(
                     &format!("Error evaluating expression: {}\n", e),
                     OutputEventCategory::Stderr,
@@ -142,11 +143,14 @@ impl DapServer {
                 self.send_event(Event::Terminated(None)).await?;
             }
             Err(e) => {
+                self.flush_output().await?;
                 self.send_output_event(
                     &format!("Error: {}\n", e),
                     OutputEventCategory::Stderr,
                 )
                 .await?;
+                self.state = DebugState::Terminated;
+                self.send_event(Event::Terminated(None)).await?;
             }
         }
 
@@ -177,11 +181,14 @@ impl DapServer {
             }
             Err(e) => {
                 tracing::error!("handle_next: error: {}", e);
+                self.flush_output().await?;
                 self.send_output_event(
                     &format!("Error: {}\n", e),
                     OutputEventCategory::Stderr,
                 )
                 .await?;
+                self.state = DebugState::Terminated;
+                self.send_event(Event::Terminated(None)).await?;
             }
         }
 
@@ -208,11 +215,14 @@ impl DapServer {
                 self.send_event(Event::Terminated(None)).await?;
             }
             Err(e) => {
+                self.flush_output().await?;
                 self.send_output_event(
                     &format!("Error: {}\n", e),
                     OutputEventCategory::Stderr,
                 )
                 .await?;
+                self.state = DebugState::Terminated;
+                self.send_event(Event::Terminated(None)).await?;
             }
         }
 

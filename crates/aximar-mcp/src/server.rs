@@ -456,9 +456,12 @@ impl ServerCore {
         }))
     }
 
-    pub(crate) async fn do_create_session(&self) -> Result<String, String> {
+    pub(crate) async fn do_create_session(&self, path: Option<&str>) -> Result<String, String> {
         let mut reg = self.registry.lock().await;
         let id = reg.create();
+        if let Some(p) = path {
+            let _ = reg.set_path(&id, Some(std::path::PathBuf::from(p)));
+        }
         drop(reg);
         self.notify_lifecycle(&id, "created");
         success_json(&serde_json::json!({ "session_id": id }))
@@ -775,7 +778,7 @@ impl AximarMcpServer {
 
 Unicode Greek letters (α, β, γ, θ, π, etc.) are supported in code cells and translated to Maxima symbols automatically. For markdown cells: use real newlines (not literal \\n) for line breaks, and single backslashes for LaTeX commands (e.g. \\sin, \\varphi).
 
-Output display: only the last statement's result is rendered as LaTeX. Intermediate results are suppressed (but assignments and side effects still execute). Use print(expr) for plain text or tex(expr) for intermediate LaTeX output. End the last statement with $ instead of ; to suppress the final result.
+Output works like normal Maxima: statements ending with `;` display their result, statements ending with `$` are silent. The last statement's result is rendered as LaTeX when it ends with `;`. End the last statement with `$` to suppress all output.
 
 Best practice: run each cell immediately after creating it (using run_cell) to verify the output before proceeding.")]
     async fn add_cell(
@@ -805,7 +808,7 @@ Best practice: run each cell immediately after creating it (using run_cell) to v
 
 Unicode Greek letters (α, β, γ, θ, π, etc.) are supported in code cells and translated to Maxima symbols automatically. For markdown cells: use real newlines (not literal \\n) for line breaks, and single backslashes for LaTeX commands (e.g. \\sin, \\varphi).
 
-Output display: only the last statement's result is rendered as LaTeX. Intermediate results are suppressed (but assignments and side effects still execute). Use print(expr) for plain text or tex(expr) for intermediate LaTeX output. End the last statement with $ instead of ; to suppress the final result.
+Output works like normal Maxima: statements ending with `;` display their result, statements ending with `$` are silent. The last statement's result is rendered as LaTeX when it ends with `;`. End the last statement with `$` to suppress all output.
 
 Best practice: run each cell immediately after updating it (using run_cell) to verify the output before moving on.")]
     async fn update_cell(
@@ -891,7 +894,7 @@ Best practice: run each cell immediately after updating it (using run_cell) to v
 
     #[tool(description = "Execute a notebook cell. Auto-starts the Maxima session if needed. Returns the evaluation result including text output, LaTeX, plots, and errors.
 
-Output display: only the last statement's result is rendered as LaTeX. Intermediate statement results are suppressed (but assignments and side effects still execute). Use print(expr) for plain text output or tex(expr) to render intermediate results as LaTeX. End the last statement with $ instead of ; to suppress the final result entirely.
+Output works like normal Maxima: statements ending with `;` display their result, statements ending with `$` are silent. The last statement's result is rendered as LaTeX when it ends with `;`. End the last statement with `$` to suppress all output.
 
 Plots: plot2d and plot3d produce inline SVG returned in the result. Prefer these over the draw package, which outputs to gnuplot directly and won't be captured.
 
@@ -1045,7 +1048,7 @@ Best practice: run each cell immediately after creating it before moving on to t
 
     #[tool(description = "Evaluate a Maxima expression without creating a notebook cell. Good for quick calculations and checks. Auto-starts the session if needed. The expression is ephemeral (no cell is created), but session state persists — variables and definitions set here are available to subsequent cells and expressions.
 
-Unicode Greek letters (α, β, γ, θ, π, etc.) are translated to Maxima symbols automatically. Only the last statement's result is returned. Use print(expr) for plain text or tex(expr) for intermediate LaTeX output. End the last statement with $ instead of ; to suppress the final result.")]
+Unicode Greek letters (α, β, γ, θ, π, etc.) are translated to Maxima symbols automatically. Statements ending with `;` display their result, statements ending with `$` are silent. The last statement's result is rendered as LaTeX when it ends with `;`. End the last statement with `$` to suppress all output.")]
     async fn evaluate_expression(
         &self,
         Parameters(params): Parameters<EvaluateExpressionParams>,
@@ -1281,20 +1284,15 @@ impl rmcp::handler::server::ServerHandler for AximarMcpServer {
                  discover available packages and `get_package` to see what functions a \
                  package provides. Load a package with a code cell containing \
                  `load(\"name\")$`.\n\n\
-                 Cell output: only the **last** statement's result is rendered as LaTeX. \
-                 When a cell contains multiple statements (e.g. `a: 5; b: 10; a+b;`), \
-                 intermediate results are suppressed — only the final result appears. \
-                 All intermediate statements still execute (assignments take effect, \
-                 side effects run), but their display is silenced. To show intermediate \
-                 results explicitly, use `print(expr)` for plain text or `tex(expr)` for \
-                 rendered LaTeX. Only the last `tex()` call (the one Aximar injects \
-                 automatically) becomes the cell's main LaTeX result; earlier user \
-                 `tex()` calls appear as rendered LaTeX blocks in the text output. \
-                 This is useful in loops — e.g. \
-                 `for n:1 thru 3 do (print(\"n =\", n, \":\"), tex(f(n)))` produces labelled \
-                 rendered math for each iteration. Avoid `tex(0)` or `tex(false)` as those \
-                 are filtered as trivial results. To suppress the final result entirely, \
-                 end the last statement with `$` instead of `;`.\n\n\
+                 Cell output works like normal Maxima: statements ending with `;` \
+                 display their result, statements ending with `$` are silent. The \
+                 last statement's result is rendered as LaTeX when it ends with `;`. \
+                 End the last statement with `$` to suppress all output. Use \
+                 `print(expr)` for explicit plain text or `tex(expr)` for rendered \
+                 LaTeX at any point. User `tex()` calls appear as rendered LaTeX \
+                 blocks in the text output — useful in loops, e.g. \
+                 `for n:1 thru 3 do (print(\"n =\", n, \":\"), tex(f(n)))` produces \
+                 labelled rendered math for each iteration.\n\n\
                  When working with multiple notebooks, use `list_notebooks` to see all open \
                  notebooks, `create_notebook` to open a new one, `close_notebook` to remove \
                  one, and `switch_notebook` to change the active default. Most tools accept \
