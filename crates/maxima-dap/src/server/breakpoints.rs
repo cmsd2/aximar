@@ -360,9 +360,10 @@ impl DapServer {
 
     /// Refresh breakpoint status after deferred breakpoints have resolved.
     ///
-    /// Enhanced mode only: queries `:info :bkpt` to get the list of active
-    /// breakpoints with their resolved lines, then sends breakpoint-changed
-    /// events to VS Code with the updated line numbers.
+    /// Enhanced mode only: uses breakpoint resolution messages collected
+    /// from execution output (populated by `send_maxima_and_wait` and
+    /// `send_debugger_command`), then sends breakpoint-changed events to
+    /// VS Code with the updated line numbers.
     ///
     /// No-op for Legacy mode (no deferred breakpoints).
     pub(super) async fn refresh_breakpoint_status(&mut self) -> Result<(), TransportError> {
@@ -376,44 +377,35 @@ impl DapServer {
             return Ok(());
         }
 
-        // Suppress output during breakpoint status queries — the
-        // :info :bkpt responses are internal.
-        self.suppress_output = true;
+        // Consume resolutions collected from execution output.
+        let resolved = std::mem::take(&mut self.pending_resolutions);
 
-        // Query resolved breakpoint info from Enhanced Maxima
-        let resolved = if let Some(process) = self.process.as_mut() {
-            let mut ctx = StrategyContext {
-                process,
-                state: &self.state,
-                source_index: &self.source_index,
-            };
-            let at_debugger = matches!(self.state, DebugState::Stopped { .. });
-            match EnhancedStrategy::query_resolved_breakpoints(&mut ctx, at_debugger).await {
-                Ok(r) => r,
-                Err(e) => {
-                    tracing::warn!("refresh_breakpoint_status: query failed: {}", e);
-                    let _ = self.flush_output().await;
-                    self.suppress_output = false;
-                    return Ok(());
-                }
-            }
-        } else {
-            self.suppress_output = false;
+        if resolved.is_empty() {
             return Ok(());
-        };
+        }
 
-        let _ = self.flush_output().await;
-        self.suppress_output = false;
-
-        // resolved is Vec<(maxima_id, actual_line)> — 0-based Maxima breakpoint IDs.
-        // We need to match these against our stored DAP breakpoints.
+        // Match resolved Maxima breakpoints back to our stored DAP breakpoints.
         //
         // Two cases:
-        // 1. Breakpoint already has a maxima_id (was set while file was loaded) — match by ID
-        // 2. Breakpoint has no maxima_id (deferred) — match by line number proximity
+        // 1. Breakpoint already has a maxima_id (set while file was loaded) — match by ID
+        // 2. Breakpoint has no maxima_id (deferred) — match by line proximity,
+        //    scoped to the same source file to avoid cross-file mismatches.
 
         // Collect resolved breakpoints into a mutable vec so we can mark them as consumed
-        let mut unmatched_resolved: Vec<(u32, i64)> = resolved;
+        let mut unmatched_resolved = resolved;
+
+        tracing::debug!(
+            "refresh_breakpoint_status: {} resolved breakpoints from execution output",
+            unmatched_resolved.len(),
+        );
+        for r in &unmatched_resolved {
+            tracing::debug!(
+                "  resolved: maxima_id={} line={} file={:?}",
+                r.maxima_id,
+                r.line,
+                r.file,
+            );
+        }
 
         let all_paths: Vec<PathBuf> = self.breakpoints.keys().cloned().collect();
         for path in all_paths {
@@ -422,6 +414,8 @@ impl DapServer {
                 None => continue,
             };
 
+            let path_str = path.to_string_lossy();
+
             let mut updated = Vec::new();
             for mut bp in bps {
                 let was_unverified = !bp.verified;
@@ -429,25 +423,39 @@ impl DapServer {
                 // Try to match this breakpoint to a resolved Maxima breakpoint
                 let match_idx = if let Some(mid) = bp.maxima_id {
                     // Case 1: already has a maxima_id — find by ID
-                    unmatched_resolved.iter().position(|(id, _)| *id == mid)
+                    unmatched_resolved.iter().position(|r| r.maxima_id == mid)
                 } else if was_unverified {
-                    // Case 2: deferred breakpoint with no ID — match by line number.
-                    // Find the closest resolved breakpoint to the requested line.
+                    // Case 2: deferred breakpoint with no ID — match by file path
+                    // and line proximity. Execution output provides full paths.
                     unmatched_resolved
                         .iter()
                         .enumerate()
-                        .min_by_key(|(_, (_, actual_line))| (bp.line - *actual_line).abs())
+                        .filter(|(_, r)| match &r.file {
+                            Some(f) => f.as_str() == path_str.as_ref(),
+                            None => false,
+                        })
+                        .min_by_key(|(_, r)| (bp.line - r.line).abs())
                         .map(|(idx, _)| idx)
                 } else {
                     None
                 };
 
+                tracing::debug!(
+                    "refresh_breakpoint_status: dap_id={} path={} line={} verified={} maxima_id={:?} → match_idx={:?}",
+                    bp.dap_id,
+                    path_str,
+                    bp.line,
+                    bp.verified,
+                    bp.maxima_id,
+                    match_idx,
+                );
+
                 if let Some(idx) = match_idx {
-                    let (maxima_id, actual_line) = unmatched_resolved.remove(idx);
-                    bp.maxima_id = Some(maxima_id);
+                    let r = unmatched_resolved.remove(idx);
+                    bp.maxima_id = Some(r.maxima_id);
                     bp.verified = true;
-                    bp.actual_line = if actual_line != bp.line {
-                        Some(actual_line)
+                    bp.actual_line = if r.line != bp.line {
+                        Some(r.line)
                     } else {
                         None
                     };

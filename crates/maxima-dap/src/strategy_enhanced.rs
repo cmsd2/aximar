@@ -233,52 +233,58 @@ fn parse_enhanced_breakpoint_response(lines: &[String], requested_line: i64) -> 
     }
 }
 
-impl EnhancedStrategy {
-    /// Query breakpoint status after deferred breakpoints have resolved.
-    ///
-    /// Returns a list of `(maxima_id, actual_line)` for each active breakpoint.
-    /// Uses the `:info :bkpt` debugger command which lists all breakpoints.
-    ///
-    /// When `at_debugger` is true, uses `send_debugger_command_raw` (chunk-based
-    /// reading). Otherwise uses `send_maxima` (sentinel-based).
-    ///
-    /// Parses output lines matching `Bkpt N ... line M` or `Bkpt N:(file M)`.
-    pub async fn query_resolved_breakpoints(
-        ctx: &mut StrategyContext<'_>,
-        at_debugger: bool,
-    ) -> Result<Vec<(u32, i64)>, AppError> {
-        let lines = if at_debugger {
-            let (lines, _) = ctx.send_debugger_command_raw(":info :bkpt").await?;
-            lines
-        } else {
-            let (lines, _) = ctx.send_maxima(":info :bkpt\n").await?;
-            lines
-        };
-
-        Ok(parse_info_bkpt(&lines))
-    }
+/// Parsed breakpoint from execution output.
+pub struct ResolvedBreakpoint {
+    pub maxima_id: u32,
+    pub line: i64,
+    pub file: Option<String>,
 }
 
-/// Parse `:info :bkpt` output into `(maxima_id, line)` pairs.
+/// Parse breakpoint resolution messages from Maxima output.
 ///
-/// Expected formats:
-/// - Enhanced: `Bkpt N for $func (in /path/file.mac line M)`
-/// - Legacy:   `Bkpt N:(file.mac M)`
-/// - Legacy:   `Bkpt N for func at line M`
-fn parse_info_bkpt(lines: &[String]) -> Vec<(u32, i64)> {
+/// Extracts resolved breakpoint info from lines like:
+///   `Bkpt N for $func (in /path/file.mac line M)` — resolution during batchload
+///   `Bkpt N: (file.mac line M) (line K of $FUNC)` — `:info :bkpt` format
+///   `Bkpt N for func at line M` — legacy format
+pub fn parse_breakpoint_resolutions(lines: &[String]) -> Vec<ResolvedBreakpoint> {
     let bkpt_id_re = Regex::new(r"Bkpt\s+(\d+)").unwrap();
-    let line_re = Regex::new(r"\bline\s+(\d+)").unwrap();
+    // Breakpoint-hit format: "(in /full/path/file.mac line M)"
+    let in_file_re = Regex::new(r"\(in\s+(.+?)\s+line\s+(\d+)\)").unwrap();
+    // :info :bkpt format: "(file.mac line M)"  (short filename, no "in" prefix)
+    let info_file_re = Regex::new(r"\(([^)]+?)\s+line\s+(\d+)\)").unwrap();
+    let at_line_re = Regex::new(r"\bline\s+(\d+)").unwrap();
 
     let mut results = Vec::new();
     for line in lines {
         let trimmed = line.trim();
         if let Some(id_caps) = bkpt_id_re.captures(trimmed) {
             if let Some(id) = id_caps.get(1).and_then(|m| m.as_str().parse::<u32>().ok()) {
-                if let Some(line_caps) = line_re.captures(trimmed) {
+                // Try breakpoint-hit format first: "(in /path/file.mac line M)"
+                if let Some(file_caps) = in_file_re.captures(trimmed) {
+                    let file = file_caps.get(1).map(|m| m.as_str().to_string());
+                    if let Some(l) =
+                        file_caps.get(2).and_then(|m| m.as_str().parse::<i64>().ok())
+                    {
+                        results.push(ResolvedBreakpoint { maxima_id: id, line: l, file });
+                        continue;
+                    }
+                }
+                // Try :info :bkpt format: "(file.mac line M)"
+                if let Some(file_caps) = info_file_re.captures(trimmed) {
+                    let file = file_caps.get(1).map(|m| m.as_str().to_string());
+                    if let Some(l) =
+                        file_caps.get(2).and_then(|m| m.as_str().parse::<i64>().ok())
+                    {
+                        results.push(ResolvedBreakpoint { maxima_id: id, line: l, file });
+                        continue;
+                    }
+                }
+                // Fallback: "at line M" (no file info)
+                if let Some(line_caps) = at_line_re.captures(trimmed) {
                     if let Some(l) =
                         line_caps.get(1).and_then(|m| m.as_str().parse::<i64>().ok())
                     {
-                        results.push((id, l));
+                        results.push(ResolvedBreakpoint { maxima_id: id, line: l, file: None });
                     }
                 }
             }
@@ -357,12 +363,36 @@ mod tests {
 
     #[test]
     fn info_bkpt_enhanced_format() {
+        // Breakpoint-hit format with full path
         let lines = vec![
             "Bkpt 0 for $add (in /tmp/test.mac line 14)".to_string(),
             "Bkpt 1 for $mul (in /tmp/test.mac line 20)".to_string(),
         ];
-        let result = parse_info_bkpt(&lines);
-        assert_eq!(result, vec![(0, 14), (1, 20)]);
+        let result = parse_breakpoint_resolutions(&lines);
+        assert_eq!(result.len(), 2);
+        assert_eq!(result[0].maxima_id, 0);
+        assert_eq!(result[0].line, 14);
+        assert_eq!(result[0].file.as_deref(), Some("/tmp/test.mac"));
+        assert_eq!(result[1].maxima_id, 1);
+        assert_eq!(result[1].line, 20);
+        assert_eq!(result[1].file.as_deref(), Some("/tmp/test.mac"));
+    }
+
+    #[test]
+    fn info_bkpt_short_filename_format() {
+        // Actual :info :bkpt output from Enhanced Maxima
+        let lines = vec![
+            "Bkpt 0: (debug.mac line 2) (line 1 of $G)".to_string(),
+            "Bkpt 1: (temp.mac line 9) (line 1 of $F)".to_string(),
+        ];
+        let result = parse_breakpoint_resolutions(&lines);
+        assert_eq!(result.len(), 2);
+        assert_eq!(result[0].maxima_id, 0);
+        assert_eq!(result[0].line, 2);
+        assert_eq!(result[0].file.as_deref(), Some("debug.mac"));
+        assert_eq!(result[1].maxima_id, 1);
+        assert_eq!(result[1].line, 9);
+        assert_eq!(result[1].file.as_deref(), Some("temp.mac"));
     }
 
     #[test]
@@ -371,8 +401,8 @@ mod tests {
             "Bkpt 0:(test.mac 3)".to_string(),
         ];
         // Legacy format has no "line" keyword — should not match
-        let result = parse_info_bkpt(&lines);
-        assert_eq!(result, vec![]);
+        let result = parse_breakpoint_resolutions(&lines);
+        assert_eq!(result.len(), 0);
     }
 
     #[test]
@@ -380,8 +410,11 @@ mod tests {
         let lines = vec![
             "Bkpt 2 for $add at line 14".to_string(),
         ];
-        let result = parse_info_bkpt(&lines);
-        assert_eq!(result, vec![(2, 14)]);
+        let result = parse_breakpoint_resolutions(&lines);
+        assert_eq!(result.len(), 1);
+        assert_eq!(result[0].maxima_id, 2);
+        assert_eq!(result[0].line, 14);
+        assert_eq!(result[0].file, None);
     }
 
     #[test]
@@ -392,7 +425,11 @@ mod tests {
             "some noise".to_string(),
             "Bkpt 1 for $mul (in /tmp/test.mac line 20)".to_string(),
         ];
-        let result = parse_info_bkpt(&lines);
-        assert_eq!(result, vec![(0, 14), (1, 20)]);
+        let result = parse_breakpoint_resolutions(&lines);
+        assert_eq!(result.len(), 2);
+        assert_eq!(result[0].maxima_id, 0);
+        assert_eq!(result[0].line, 14);
+        assert_eq!(result[1].maxima_id, 1);
+        assert_eq!(result[1].line, 20);
     }
 }

@@ -1,5 +1,7 @@
 //! Maxima I/O helpers: sending commands, reading responses, variable expansion.
 
+use crate::strategy_enhanced::parse_breakpoint_resolutions;
+
 use super::*;
 
 impl DapServer {
@@ -66,6 +68,14 @@ impl DapServer {
                 lines
             );
             let canonical = debugger::find_canonical_location(&lines);
+            let resolutions = parse_breakpoint_resolutions(&lines);
+            if !resolutions.is_empty() {
+                tracing::debug!(
+                    "send_maxima_and_wait: captured {} breakpoint resolutions",
+                    resolutions.len()
+                );
+            }
+            self.pending_resolutions.extend(resolutions);
             return Ok((prompt_kind, canonical));
         }
 
@@ -79,6 +89,14 @@ impl DapServer {
                     lines
                 );
                 let canonical = debugger::find_canonical_location(&lines);
+                let resolutions = parse_breakpoint_resolutions(&lines);
+                if !resolutions.is_empty() {
+                    tracing::debug!(
+                        "send_maxima_and_wait: captured {} breakpoint resolutions",
+                        resolutions.len()
+                    );
+                }
+                self.pending_resolutions.extend(resolutions);
                 Ok((prompt_kind, canonical))
             }
             Err(_) => {
@@ -124,6 +142,14 @@ impl DapServer {
             lines
         );
         let canonical = debugger::find_canonical_location(&lines);
+        let resolutions = parse_breakpoint_resolutions(&lines);
+        if !resolutions.is_empty() {
+            tracing::debug!(
+                "send_debugger_command: captured {} breakpoint resolutions",
+                resolutions.len()
+            );
+        }
+        self.pending_resolutions.extend(resolutions);
         Ok((prompt_kind, canonical))
     }
 

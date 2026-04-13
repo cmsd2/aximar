@@ -141,6 +141,7 @@ impl DapServer {
                     canonical_file: canonical.as_ref().map(|c| c.file.clone()),
                     canonical_line: canonical.as_ref().map(|c| c.line),
                 };
+                self.refresh_breakpoint_status().await?;
                 self.flush_output().await?;
                 self.send_stopped_event(StoppedEventReason::Breakpoint)
                     .await?;
@@ -182,6 +183,7 @@ impl DapServer {
                     canonical_file: canonical.as_ref().map(|c| c.file.clone()),
                     canonical_line: canonical.as_ref().map(|c| c.line),
                 };
+                self.refresh_breakpoint_status().await?;
                 self.flush_output().await?;
                 self.send_stopped_event(StoppedEventReason::Step).await?;
             }
@@ -222,6 +224,7 @@ impl DapServer {
                     canonical_file: canonical.as_ref().map(|c| c.file.clone()),
                     canonical_line: canonical.as_ref().map(|c| c.line),
                 };
+                self.refresh_breakpoint_status().await?;
                 self.flush_output().await?;
                 self.send_stopped_event(StoppedEventReason::Step).await?;
             }

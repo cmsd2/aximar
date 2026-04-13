@@ -45,7 +45,7 @@ use maxima_mac_parser::MacItem;
 use crate::breakpoints::SourceIndex;
 use crate::frames;
 use crate::strategy::{BreakpointStrategy, StrategyContext};
-use crate::strategy_enhanced::EnhancedStrategy;
+use crate::strategy_enhanced::{EnhancedStrategy, ResolvedBreakpoint};
 use crate::strategy_legacy::LegacyStrategy;
 use crate::transport::{DapTransport, TransportError};
 use crate::types::{DebugState, MappedBreakpoint, MaximaLaunchArguments, VariableRef};
@@ -113,6 +113,11 @@ pub struct DapServer {
     /// Breakpoint strategy: Legacy (function+offset) or Enhanced (file:line).
     /// Set during `handle_launch` based on runtime detection.
     strategy: Option<Box<dyn BreakpointStrategy>>,
+    /// Breakpoint resolutions collected from execution output.
+    /// Populated by `send_maxima_and_wait` and `send_debugger_command`
+    /// when Maxima prints `Bkpt N for $func (in /path line M)`.
+    /// Consumed by `refresh_breakpoint_status`.
+    pending_resolutions: Vec<ResolvedBreakpoint>,
 }
 
 impl DapServer {
@@ -139,6 +144,7 @@ impl DapServer {
             defs_temp_path: None,
             suppress_output: false,
             strategy: None,
+            pending_resolutions: Vec::new(),
         }
     }
 
