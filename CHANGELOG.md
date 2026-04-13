@@ -13,6 +13,23 @@ see the `v*` releases on GitHub.
   directly from execution output (e.g. `batchload`, `:resume`, `:step`) instead
   of querying `:info :bkpt` after each stop. This gives exact full-path file
   matching and eliminates a round-trip to the Maxima process on every debug stop.
+- **Runtime errors surfaced in debug GUI**: When Maxima hits a runtime error
+  (e.g. `ev: improper argument`), the stopped event now reports
+  `reason: "exception"` with the error message, instead of a generic breakpoint
+  stop with no context.
+- **Synthetic stack frame for top-level errors**: When the backtrace is empty
+  (error outside any user-defined function), a synthetic frame is generated from
+  the canonical location so the call stack panel isn't blank.
+- **Fixed canonical location parsing**: The regex now handles the `\x1a\x1a`
+  Emacs/GDB annotation prefix that Maxima emits, which was silently preventing
+  all canonical location matching.
+- **Fixed breakpoint deletion**: Use `:delete` (the correct Maxima command)
+  instead of `:delbreak` (nonexistent).
+
+### aximar-mcp
+
+- **Comma/ev gotcha in instructions**: Added warning that the comma operator
+  in Maxima is `ev()`, not a statement separator.
 
 ## [0.1.0] — 2026-04-13
 

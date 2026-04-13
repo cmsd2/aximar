@@ -169,7 +169,7 @@ impl DapServer {
         process.write_stdin(&format!("{}\n", cmd)).await?;
         let (lines, prompt_kind) = process.read_dap_response(None).await?;
         match prompt_kind {
-            PromptKind::Debugger { level } => Ok((lines, level)),
+            PromptKind::Debugger { level, .. } => Ok((lines, level)),
             PromptKind::Normal => Err(AppError::CommunicationError(
                 "unexpected normal prompt in debugger context".into(),
             )),

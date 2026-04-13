@@ -23,8 +23,85 @@ impl DapServer {
         let program_path = self.program_path.clone().unwrap_or_default();
         let path_remaps = self.build_path_remaps();
         let cwd = self.launch_args.as_ref().and_then(|a| a.cwd.as_deref()).map(Path::new);
-        let stack_frames =
+        let mut stack_frames =
             frames::parse_backtrace(&bt_lines, &self.source_index, &program_path, &path_remaps, cwd, &canonical_paths);
+
+        // When the backtrace is empty (e.g. top-level error outside any
+        // function), synthesize a frame from the stopped state so the user
+        // has *something* to click on in the call stack.
+        if stack_frames.is_empty() {
+            if let DebugState::Stopped {
+                ref canonical_file,
+                canonical_line,
+                ref error_context,
+                ..
+            } = self.state
+            {
+                let (source, line) = if let (Some(file), Some(ln)) =
+                    (canonical_file, canonical_line)
+                {
+                    let file_path = PathBuf::from(file);
+                    let resolved = path_remaps
+                        .get(&file_path)
+                        .cloned()
+                        .unwrap_or(file_path);
+                    let name = resolved
+                        .file_name()
+                        .map(|n| n.to_string_lossy().to_string())
+                        .unwrap_or_else(|| file.clone());
+                    (
+                        Some(Source {
+                            name: Some(name),
+                            path: Some(resolved.to_string_lossy().to_string()),
+                            ..Default::default()
+                        }),
+                        ln as i64,
+                    )
+                } else if !program_path.as_os_str().is_empty() {
+                    let name = program_path
+                        .file_name()
+                        .map(|n| n.to_string_lossy().to_string())
+                        .unwrap_or_default();
+                    // Remap temp file paths back to the original source.
+                    let resolved = path_remaps
+                        .get(&program_path)
+                        .cloned()
+                        .unwrap_or_else(|| program_path.clone());
+                    (
+                        Some(Source {
+                            name: Some(name),
+                            path: Some(resolved.to_string_lossy().to_string()),
+                            ..Default::default()
+                        }),
+                        1, // line 1 — we don't know the exact line, but 0 causes bad remapping
+                    )
+                } else {
+                    (None, 1)
+                };
+
+                let frame_name = match error_context {
+                    Some(ref err) => {
+                        // Use first line of error as the frame name
+                        err.lines().next().unwrap_or("(error)").to_string()
+                    }
+                    None => "(top level)".to_string(),
+                };
+
+                stack_frames.push(StackFrame {
+                    id: 0,
+                    name: frame_name,
+                    source,
+                    line,
+                    column: 1,
+                    end_line: None,
+                    end_column: None,
+                    can_restart: None,
+                    instruction_pointer_reference: None,
+                    module_id: None,
+                    presentation_hint: None,
+                });
+            }
+        }
 
         // Cache for scopes/variables requests
         self.cached_frame_args = bt_frame_args;

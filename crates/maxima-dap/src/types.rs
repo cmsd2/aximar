@@ -59,6 +59,8 @@ pub enum DebugState {
         canonical_file: Option<String>,
         /// Line number from the canonical location.
         canonical_line: Option<u32>,
+        /// Error context if we entered the debugger due to a runtime error.
+        error_context: Option<String>,
     },
     /// Session has ended.
     Terminated,

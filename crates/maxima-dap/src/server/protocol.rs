@@ -94,13 +94,15 @@ impl DapServer {
     pub(super) async fn send_stopped_event(
         &mut self,
         reason: StoppedEventReason,
+        description: Option<String>,
+        text: Option<String>,
     ) -> Result<(), TransportError> {
         self.send_event(Event::Stopped(StoppedEventBody {
             reason,
-            description: None,
+            description,
             thread_id: Some(1),
             preserve_focus_hint: None,
-            text: None,
+            text,
             all_threads_stopped: Some(true),
             hit_breakpoint_ids: None,
         }))

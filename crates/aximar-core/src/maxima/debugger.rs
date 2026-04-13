@@ -44,8 +44,10 @@ static BACKTRACE_FRAME_NO_SRC_RE: LazyLock<Regex> =
 ///
 /// This appears after breakpoint hits, step/next stops, error entry, and
 /// `:frame N` output. It is the primary reliable source of canonical paths.
+/// The optional `\x1a\x1a` prefix is an Emacs/GDB-style annotation that
+/// Maxima's `set-env` and `break-frame` emit before the path.
 static CANONICAL_LOC_RE: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"^(/[^:]+):(\d+)::$").unwrap());
+    LazyLock::new(|| Regex::new(r"^(?:\x1a\x1a)?(/[^:]+):(\d+)::$").unwrap());
 
 // ---------------------------------------------------------------------------
 // Types
@@ -57,7 +59,12 @@ pub enum PromptKind {
     /// Normal evaluation prompt (detected by sentinel).
     Normal,
     /// Debugger prompt with a nesting level (1-based).
-    Debugger { level: u32 },
+    /// When Maxima enters the debugger due to an error, `error_context`
+    /// carries the error message (e.g. "ev: improper argument: 601").
+    Debugger {
+        level: u32,
+        error_context: Option<String>,
+    },
 }
 
 /// Information about a breakpoint hit event.
@@ -411,6 +418,14 @@ mod tests {
     #[test]
     fn canonical_location_with_whitespace() {
         let loc = parse_canonical_location("  /tmp/file.mac:10::  ").unwrap();
+        assert_eq!(loc.file, "/tmp/file.mac");
+        assert_eq!(loc.line, 10);
+    }
+
+    #[test]
+    fn canonical_location_with_emacs_annotation() {
+        // Maxima's set-env and break-frame emit \x1a\x1a before the path
+        let loc = parse_canonical_location("\x1a\x1a/tmp/file.mac:10::").unwrap();
         assert_eq!(loc.file, "/tmp/file.mac");
         assert_eq!(loc.line, 10);
     }

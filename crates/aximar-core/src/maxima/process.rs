@@ -386,6 +386,30 @@ impl MaximaProcess {
         }
     }
 
+    /// Extract the error message from collected output lines.
+    ///
+    /// Scans backwards for an error marker line (e.g. `" -- an error."`)
+    /// and includes the preceding line(s) which typically contain the
+    /// actual error description (e.g. `"ev: improper argument: 601"`).
+    fn extract_error_context(lines: &[String]) -> Option<String> {
+        for (i, line) in lines.iter().enumerate().rev() {
+            if debugger::ERROR_MARKERS.iter().any(|m| line.contains(m)) {
+                // Include the line before the error marker if available —
+                // that's typically the actual error message.
+                let start = if i > 0 { i - 1 } else { i };
+                let context: Vec<&str> = lines[start..=i]
+                    .iter()
+                    .map(|s| s.trim())
+                    .filter(|s| !s.is_empty())
+                    .collect();
+                if !context.is_empty() {
+                    return Some(context.join("\n"));
+                }
+            }
+        }
+        None
+    }
+
     /// Send an interrupt signal to the Maxima process.
     /// Unix: SIGINT. Windows: CTRL_BREAK_EVENT (requires CREATE_NEW_PROCESS_GROUP at spawn).
     pub fn interrupt(&self) {
@@ -482,7 +506,12 @@ impl MaximaProcess {
                         if let Some(level) = debugger::detect_debugger_prompt(&line) {
                             lines.push(line);
                             self.drain_stderr(&mut lines).await;
-                            return Ok((lines, PromptKind::Debugger { level }));
+                            let error_context = if saw_error {
+                                Self::extract_error_context(&lines)
+                            } else {
+                                None
+                            };
+                            return Ok((lines, PromptKind::Debugger { level, error_context }));
                         }
 
                         if let Some(s) = sentinel {
@@ -518,7 +547,12 @@ impl MaximaProcess {
                             lines.push(trimmed.to_string());
                             partial.clear();
                             self.drain_stderr(&mut lines).await;
-                            return Ok((lines, PromptKind::Debugger { level }));
+                            let error_context = if saw_error {
+                                Self::extract_error_context(&lines)
+                            } else {
+                                None
+                            };
+                            return Ok((lines, PromptKind::Debugger { level, error_context }));
                         }
                         // SBCL Lisp debugger prompt (e.g. "0]").
                         if debugger::detect_sbcl_debugger_prompt(trimmed) {

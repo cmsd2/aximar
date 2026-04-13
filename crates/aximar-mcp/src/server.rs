@@ -1293,6 +1293,12 @@ impl rmcp::handler::server::ServerHandler for AximarMcpServer {
                  blocks in the text output — useful in loops, e.g. \
                  `for n:1 thru 3 do (print(\"n =\", n, \":\"), tex(f(n)))` produces \
                  labelled rendered math for each iteration.\n\n\
+                 IMPORTANT: The comma operator in Maxima is NOT a statement separator — \
+                 `a, b` means `ev(a, b)` (re-evaluate a with b as an ev-flag). Writing \
+                 `print(\"hello\"), print(x)` will fail because `print(x)` evaluates to a \
+                 value which is not a valid ev-flag. To sequence expressions, use separate \
+                 statements (`print(\"hello\")$ print(x);`), a `block()`, or a single \
+                 `print(\"hello\", x)` call.\n\n\
                  When working with multiple notebooks, use `list_notebooks` to see all open \
                  notebooks, `create_notebook` to open a new one, `close_notebook` to remove \
                  one, and `switch_notebook` to change the active default. Most tools accept \

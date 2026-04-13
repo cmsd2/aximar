@@ -95,7 +95,7 @@ impl BreakpointStrategy for EnhancedStrategy {
         ctx: &mut StrategyContext<'_>,
         maxima_id: u32,
     ) {
-        let cmd = format!(":delbreak {}", maxima_id);
+        let cmd = format!(":delete {}", maxima_id);
         if matches!(ctx.state, crate::types::DebugState::Stopped { .. }) {
             let _ = ctx.send_debugger_command_raw(&cmd).await;
         } else {
