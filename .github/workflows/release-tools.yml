@@ -1,0 +1,108 @@
+name: Release Tools
+
+on:
+  push:
+    tags:
+      - "tools-v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            target: aarch64-apple-darwin
+          - os: macos-latest
+            target: x86_64-apple-darwin
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+          - os: ubuntu-latest
+            target: aarch64-unknown-linux-gnu
+            cross: true
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+          - os: windows-11-arm
+            target: aarch64-pc-windows-msvc
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Cargo cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.target }}
+
+      - name: Install system dependencies (Linux x64)
+        if: matrix.target == 'x86_64-unknown-linux-gnu'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libssl-dev
+
+      - name: Install cross-compilation dependencies (Linux arm64)
+        if: matrix.cross
+        run: |
+          sudo dpkg --add-architecture arm64
+
+          # Pin existing sources to amd64 only, then add arm64 from ports
+          for f in /etc/apt/sources.list.d/*.sources; do
+            [ -f "$f" ] && sudo sed -i '/^Architectures:/d; /^Types:/a Architectures: amd64' "$f"
+          done
+          for f in /etc/apt/sources.list.d/*.list; do
+            [ -f "$f" ] && sudo sed -i 's|^deb \[|deb [arch=amd64,|; s|^deb http|deb [arch=amd64] http|' "$f"
+          done
+
+          CODENAME=$(lsb_release -cs)
+          cat <<SOURCES | sudo tee /etc/apt/sources.list.d/arm64-ports.list
+          deb [arch=arm64] http://ports.ubuntu.com/ ${CODENAME} main restricted universe multiverse
+          deb [arch=arm64] http://ports.ubuntu.com/ ${CODENAME}-updates main restricted universe multiverse
+          SOURCES
+
+          sudo apt-get update
+          sudo apt-get install -y \
+            gcc-aarch64-linux-gnu \
+            g++-aarch64-linux-gnu
+          sudo apt-get install -y --fix-broken \
+            libssl-dev:arm64
+
+      - name: Configure cross-compilation environment (Linux arm64)
+        if: matrix.cross
+        run: |
+          echo "PKG_CONFIG_SYSROOT_DIR=/usr/aarch64-linux-gnu" >> $GITHUB_ENV
+          echo "PKG_CONFIG_PATH=/usr/lib/aarch64-linux-gnu/pkgconfig" >> $GITHUB_ENV
+          echo "CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc" >> $GITHUB_ENV
+
+      - name: Build tools
+        run: cargo build --release --target ${{ matrix.target }} -p maxima-lsp -p maxima-dap -p aximar-mcp
+
+      - name: Package archive (Unix)
+        if: runner.os != 'Windows'
+        run: |
+          cd target/${{ matrix.target }}/release
+          tar czf ../../../aximar-tools-${{ matrix.target }}.tar.gz \
+            maxima-lsp maxima-dap aximar-mcp
+
+      - name: Package archive (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $binDir = "target/${{ matrix.target }}/release"
+          Compress-Archive -Path "$binDir/maxima-lsp.exe","$binDir/maxima-dap.exe","$binDir/aximar-mcp.exe" `
+            -DestinationPath "aximar-tools-${{ matrix.target }}.zip"
+
+      - name: Upload release assets
+        uses: softprops/action-gh-release@v2
+        with:
+          files: aximar-tools-${{ matrix.target }}.*
+          draft: true
+          generate_release_notes: true
