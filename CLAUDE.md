@@ -6,4 +6,4 @@
 ## Releases
 
 - Tool releases use the `tools-v*` tag convention (e.g. `tools-v0.2.0`). Tauri desktop app releases use `v*`.
-- When cutting a release, write a meaningful changelog in the GitHub Release description. List user-facing changes, bug fixes, and breaking changes — not just commit messages. The VS Code extension links to the release page via a "What's New" button in the update notification.
+- Maintain `CHANGELOG.md` in the repo root using [Keep a Changelog](https://keepachangelog.com/) style. When cutting a tools release, add an entry there first, then copy the relevant section to the GitHub Release description. The VS Code extension links to the release page via a "What's New" button in the update notification.
