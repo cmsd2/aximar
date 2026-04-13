@@ -500,9 +500,9 @@ async fn run_cell_evaluates() {
         }))
         .await,
     );
-    assert_eq!(v["text_output"], "5");
     assert_eq!(v["is_error"], false);
-    assert!(v["latex"].is_string());
+    // Single expression: 1D display is suppressed, result is in LaTeX only
+    assert!(v["latex"].as_str().unwrap().contains("5"), "latex should contain the result");
 }
 
 #[tokio::test]
@@ -579,8 +579,10 @@ async fn evaluate_expression_quick() {
         }))
         .await,
     );
-    assert_eq!(v["text_output"], "(x-1)*(x+1)");
     assert_eq!(v["is_error"], false);
+    // Single expression: 1D display is suppressed, result is in LaTeX only
+    let latex = v["latex"].as_str().unwrap();
+    assert!(latex.contains("x-1") && latex.contains("x+1"), "latex should contain factored result: {}", latex);
 }
 
 #[tokio::test]
