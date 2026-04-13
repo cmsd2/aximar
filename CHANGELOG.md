@@ -5,14 +5,10 @@ All notable changes to the standalone Maxima language tools are documented here.
 This changelog covers releases tagged `tools-v*`. For the Aximar desktop app,
 see the `v*` releases on GitHub.
 
-## [0.2.0] — 2026-04-13
+## [0.2.1] — 2026-04-13
 
 ### maxima-dap
 
-- **Improved breakpoint resolution**: Breakpoint locations are now captured
-  directly from execution output (e.g. `batchload`, `:resume`, `:step`) instead
-  of querying `:info :bkpt` after each stop. This gives exact full-path file
-  matching and eliminates a round-trip to the Maxima process on every debug stop.
 - **Runtime errors surfaced in debug GUI**: When Maxima hits a runtime error
   (e.g. `ev: improper argument`), the stopped event now reports
   `reason: "exception"` with the error message, instead of a generic breakpoint
@@ -30,6 +26,15 @@ see the `v*` releases on GitHub.
 
 - **Comma/ev gotcha in instructions**: Added warning that the comma operator
   in Maxima is `ev()`, not a statement separator.
+
+## [0.2.0] — 2026-04-13
+
+### maxima-dap
+
+- **Improved breakpoint resolution**: Breakpoint locations are now captured
+  directly from execution output (e.g. `batchload`, `:resume`, `:step`) instead
+  of querying `:info :bkpt` after each stop. This gives exact full-path file
+  matching and eliminates a round-trip to the Maxima process on every debug stop.
 
 ## [0.1.0] — 2026-04-13
 
@@ -61,5 +66,6 @@ Initial standalone release of the Maxima language tools.
 - Dangerous function safety gates
 - Structured JSON startup output for VS Code integration
 
+[0.2.1]: https://github.com/cmsd2/aximar/releases/tag/tools-v0.2.1
 [0.2.0]: https://github.com/cmsd2/aximar/releases/tag/tools-v0.2.0
 [0.1.0]: https://github.com/cmsd2/aximar/releases/tag/tools-v0.1.0
