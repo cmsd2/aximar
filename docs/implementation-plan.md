@@ -193,7 +193,7 @@ Maxima's `tex()` output needs preprocessing for KaTeX compatibility:
    - ✅ `Escape` — blur editor
 6. ✅ Run All
 7. ✅ Responsive layout at various window sizes
-8. ✅ `.axm` / `.ipynb` JSON notebook format (Jupyter nbformat 4)
+8. ✅ `.macnb` / `.ipynb` JSON notebook format (Jupyter nbformat 4)
 9. ✅ Save/Load commands with native file picker dialog (`tauri-plugin-dialog`)
 10. ✅ Native macOS menu bar with File menu (New, Open, Save, Save As) + accelerators
 11. ✅ Unsaved changes warning on close

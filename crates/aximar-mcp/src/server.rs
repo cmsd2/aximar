@@ -1293,6 +1293,15 @@ impl rmcp::handler::server::ServerHandler for AximarMcpServer {
                  blocks in the text output — useful in loops, e.g. \
                  `for n:1 thru 3 do (print(\"n =\", n, \":\"), tex(f(n)))` produces \
                  labelled rendered math for each iteration.\n\n\
+                 Symbolic vs numeric gotcha: Maxima keeps expressions like \
+                 `cos(2*%pi*0.73)` symbolic because `%pi` is a symbolic constant — \
+                 the result is an unevaluated `cos(1.46*%pi)`, not a float. This \
+                 causes severe performance problems when building large numeric lists \
+                 (e.g. random sampling). Always wrap such expressions in `float()` to \
+                 force numeric evaluation: \
+                 `float(sqrt(-2*log(u1)) * cos(2*%pi*u2))`. The same applies to any \
+                 expression involving symbolic constants (%pi, %e, %phi, etc.) when \
+                 you need a numeric result.\n\n\
                  IMPORTANT: The comma operator in Maxima is NOT a statement separator — \
                  `a, b` means `ev(a, b)` (re-evaluate a with b as an ev-flag). Writing \
                  `print(\"hello\"), print(x)` will fail because `print(x)` evaluates to a \

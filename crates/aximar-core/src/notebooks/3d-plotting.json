@@ -1,0 +1,184 @@
+{
+  "nbformat": 4,
+  "nbformat_minor": 0,
+  "metadata": {
+    "kernelspec": {
+      "name": "maxima",
+      "display_name": "Maxima",
+      "language": "maxima"
+    },
+    "aximar": {
+      "template_id": "3d-plotting",
+      "title": "3D Plotting",
+      "description": "Interactive 3D plots: surfaces, parametric curves, implicit surfaces, contours, and vector fields."
+    }
+  },
+  "cells": [
+    {
+      "cell_type": "markdown",
+      "source": "# 3D Plotting\n\n`ax_draw3d` produces interactive 3D plots you can rotate, zoom, and hover over. It supports surfaces, parametric curves, parametric surfaces, implicit surfaces, contour projections, scatter data, and vector fields.",
+      "metadata": {}
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## Surfaces\n\n`explicit(expr, x, xlo, xhi, y, ylo, yhi)` renders z = f(x,y). Drag to orbit, scroll to zoom.",
+      "metadata": {}
+    },
+    {
+      "cell_type": "code",
+      "source": "ax_draw3d(\n  explicit(sin(x)*cos(y), x, -%pi, %pi, y, -%pi, %pi),\n  title=\"sin(x)·cos(y)\",\n  xlabel=\"x\", ylabel=\"y\", zlabel=\"z\"\n)",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "Use `colorscale` to change the colour palette.",
+      "metadata": {}
+    },
+    {
+      "cell_type": "code",
+      "source": "ax_draw3d(\n  explicit(x^2 - y^2, x, -2, 2, y, -2, 2),\n  colorscale=\"Viridis\",\n  title=\"Saddle: x² − y²\"\n)",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## Parametric Curves\n\n`parametric(x(t), y(t), z(t), t, t₀, t₁)` traces a space curve.",
+      "metadata": {}
+    },
+    {
+      "cell_type": "code",
+      "source": "ax_draw3d(\n  color=\"crimson\", line_width=3,\n  parametric(cos(t), sin(t), t/(2*%pi), t, 0, 4*%pi),\n  title=\"Helix\"\n)",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "A trefoil knot — increase `nticks` for smoother curves.",
+      "metadata": {}
+    },
+    {
+      "cell_type": "code",
+      "source": "ax_draw3d(\n  color=\"teal\", line_width=3, nticks=1000,\n  parametric(\n    sin(t) + 2*sin(2*t),\n    cos(t) - 2*cos(2*t),\n    -sin(3*t),\n    t, 0, 2*%pi\n  ),\n  title=\"Trefoil Knot\"\n)",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## Parametric Surfaces\n\n`parametric_surface(x(u,v), y(u,v), z(u,v), u, u₀, u₁, v, v₀, v₁)` builds surfaces that can't be expressed as z = f(x,y) — spheres, tori, and more.",
+      "metadata": {}
+    },
+    {
+      "cell_type": "code",
+      "source": "ax_draw3d(\n  parametric_surface(\n    cos(u)*sin(v), sin(u)*sin(v), cos(v),\n    u, 0, 2*%pi, v, 0, %pi\n  ),\n  colorscale=\"Blues\",\n  title=\"Sphere\"\n)",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "A torus — the outer radius is 3, the tube radius is 1.",
+      "metadata": {}
+    },
+    {
+      "cell_type": "code",
+      "source": "ax_draw3d(\n  parametric_surface(\n    (3 + cos(v))*cos(u),\n    (3 + cos(v))*sin(u),\n    sin(v),\n    u, 0, 2*%pi, v, 0, 2*%pi\n  ),\n  colorscale=\"Viridis\",\n  title=\"Torus\"\n)",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## Implicit Surfaces\n\n`implicit(eqn, x, x₀, x₁, y, y₀, y₁, z, z₀, z₁)` renders the isosurface f(x,y,z) = 0. This is slower than explicit surfaces (default 20³ = 8 000 evaluations) but handles any equation. Use `nticks=N` to control the grid resolution.",
+      "metadata": {}
+    },
+    {
+      "cell_type": "code",
+      "source": "ax_draw3d(\n  implicit(\n    x^2 + y^2 + z^2 = 1,\n    x, -1.5, 1.5, y, -1.5, 1.5, z, -1.5, 1.5\n  ),\n  title=\"Unit Sphere (implicit)\"\n)",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "A genus-2 surface — try rotating it to see the holes.",
+      "metadata": {}
+    },
+    {
+      "cell_type": "code",
+      "source": "ax_draw3d(\n  opacity=0.8,\n  implicit(\n    2*y*(y^2 - 3*x^2)*(1 - z^2) + (x^2 + y^2)^2 - (9*z^2 - 1)*(1 - z^2) = 0,\n    x, -3, 3, y, -3, 3, z, -2, 2\n  ),\n  title=\"Genus-2 Surface\"\n)",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## Surface Contours\n\n`ax_contour3d` renders z = f(x,y) as a surface with contour lines projected below — a useful way to see level sets in 3D.",
+      "metadata": {}
+    },
+    {
+      "cell_type": "code",
+      "source": "ax_draw3d(\n  ax_contour3d(sin(x)*cos(y), x, -%pi, %pi, y, -%pi, %pi),\n  colorscale=\"Viridis\",\n  title=\"sin(x)·cos(y) with contour projection\"\n)",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## 3D Vector Fields\n\n`ax_vector_field3d(Fx, Fy, Fz, x, x₀, x₁, y, y₀, y₁, z, z₀, z₁)` renders a vector field as cones. The default grid is 8³ = 512 cones.",
+      "metadata": {}
+    },
+    {
+      "cell_type": "code",
+      "source": "ax_draw3d(\n  ax_vector_field3d(-y, x, 0, x, -2, 2, y, -2, 2, z, -1, 1),\n  colorscale=\"Blues\",\n  title=\"Rotation Field: F = (−y, x, 0)\"\n)",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "A radial field — cones point outwards from the origin.",
+      "metadata": {}
+    },
+    {
+      "cell_type": "code",
+      "source": "ax_draw3d(\n  ax_vector_field3d(x, y, z, x, -1, 1, y, -1, 1, z, -1, 1),\n  colorscale=\"Hot\",\n  title=\"Radial Field: F = (x, y, z)\"\n)",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## 3D Scatter Data",
+      "metadata": {}
+    },
+    {
+      "cell_type": "code",
+      "source": "ax_draw3d(\n  marker_size=5, color=\"darkorange\",\n  points([[1,1,1],[2,2,8],[3,3,27],[4,4,64],[5,5,125]]),\n  title=\"Cubic Growth\"\n)",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## Combining Objects\n\nMix different 3D types in a single plot — here a surface with a parametric curve lying on it.",
+      "metadata": {}
+    },
+    {
+      "cell_type": "code",
+      "source": "ax_draw3d(\n  opacity=0.6,\n  explicit(sin(x)*cos(y), x, -%pi, %pi, y, -%pi, %pi),\n  color=\"red\", line_width=4,\n  parametric(t, t, sin(t)*cos(t), t, -%pi, %pi),\n  title=\"Curve on Surface\"\n)",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## Tips\n\n- **Rotate**: drag to orbit the view\n- **Zoom**: scroll wheel\n- **Pan**: ctrl+drag (or right-drag)\n- **Hover**: hover over surfaces/cones to read coordinates\n- Use `nticks=N` to control grid resolution (default 50 for surfaces, 20 for implicit, 500 for curves)\n- Use `ngrid=N` for vector field density (default 8 — keep ≤ 15 for performance)\n- Use `opacity` < 1 to see through overlapping surfaces",
+      "metadata": {}
+    }
+  ]
+}

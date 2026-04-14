@@ -580,3 +580,179 @@ fn test_unique_filenames() {
     assert_eq!(paths.len(), 2, "should produce two plotly files");
     assert_ne!(paths[0], paths[1], "file paths must be unique");
 }
+
+#[test]
+#[ignore]
+fn test_ax_draw3d_parametric_curve() {
+    let (stdout, _) = run_maxima(
+        "ax_draw3d(parametric(cos(t), sin(t), t/5, t, 0, 4*%pi));",
+    );
+    let json = extract_plotly_json(&stdout).expect("should produce plotly JSON");
+    let spec = parse_plotly(&json);
+
+    let data = spec["data"].as_array().unwrap();
+    assert_eq!(data.len(), 1);
+    assert_eq!(data[0]["type"], "scatter3d");
+    assert_eq!(data[0]["mode"], "lines");
+    assert!(data[0]["x"].as_array().unwrap().len() > 10);
+    assert!(data[0]["z"].as_array().unwrap().len() > 10);
+}
+
+#[test]
+#[ignore]
+fn test_ax_draw3d_parametric_surface() {
+    let (stdout, _) = run_maxima(
+        "ax_draw3d(parametric_surface(cos(u)*sin(v), sin(u)*sin(v), cos(v), u, 0, 2*%pi, v, 0, %pi));",
+    );
+    let json = extract_plotly_json(&stdout).expect("should produce plotly JSON");
+    let spec = parse_plotly(&json);
+
+    let data = spec["data"].as_array().unwrap();
+    assert_eq!(data.len(), 1);
+    assert_eq!(data[0]["type"], "surface");
+    // x, y, z should all be 2D matrices
+    let x = data[0]["x"].as_array().unwrap();
+    assert!(!x.is_empty());
+    assert!(x[0].is_array(), "x should be a 2D matrix for parametric_surface");
+    let y = data[0]["y"].as_array().unwrap();
+    assert!(y[0].is_array(), "y should be a 2D matrix for parametric_surface");
+    let z = data[0]["z"].as_array().unwrap();
+    assert!(z[0].is_array());
+}
+
+#[test]
+#[ignore]
+fn test_ax_draw3d_implicit() {
+    let (stdout, _) = run_maxima(
+        "ax_draw3d(implicit(x^2 + y^2 + z^2 = 1, x, -1.5, 1.5, y, -1.5, 1.5, z, -1.5, 1.5));",
+    );
+    let json = extract_plotly_json(&stdout).expect("should produce plotly JSON");
+    let spec = parse_plotly(&json);
+
+    let data = spec["data"].as_array().unwrap();
+    assert_eq!(data.len(), 1);
+    assert_eq!(data[0]["type"], "isosurface");
+    assert_eq!(data[0]["isomin"], 0);
+    assert_eq!(data[0]["isomax"], 0);
+    // flat arrays for x, y, z, value
+    let x = data[0]["x"].as_array().unwrap();
+    let value = data[0]["value"].as_array().unwrap();
+    assert!(!x.is_empty());
+    assert_eq!(x.len(), value.len());
+}
+
+#[test]
+#[ignore]
+fn test_ax_draw3d_contour() {
+    let (stdout, _) = run_maxima(
+        "ax_draw3d(ax_contour3d(x^2 - y^2, x, -2, 2, y, -2, 2));",
+    );
+    let json = extract_plotly_json(&stdout).expect("should produce plotly JSON");
+    let spec = parse_plotly(&json);
+
+    let data = spec["data"].as_array().unwrap();
+    assert_eq!(data.len(), 1);
+    assert_eq!(data[0]["type"], "surface");
+    // Should have contours.z.show = true
+    assert_eq!(data[0]["contours"]["z"]["show"], true);
+    assert_eq!(data[0]["contours"]["z"]["project"]["z"], true);
+}
+
+#[test]
+#[ignore]
+fn test_ax_draw3d_vector_field() {
+    let (stdout, _) = run_maxima(
+        "ax_draw3d(ax_vector_field3d(-y, x, 0, x, -2, 2, y, -2, 2, z, -1, 1));",
+    );
+    let json = extract_plotly_json(&stdout).expect("should produce plotly JSON");
+    let spec = parse_plotly(&json);
+
+    let data = spec["data"].as_array().unwrap();
+    assert_eq!(data.len(), 1);
+    assert_eq!(data[0]["type"], "cone");
+    // Should have flat arrays for x, y, z, u, v, w
+    let x = data[0]["x"].as_array().unwrap();
+    let u = data[0]["u"].as_array().unwrap();
+    assert!(!x.is_empty());
+    assert_eq!(x.len(), u.len());
+}
+
+#[test]
+#[ignore]
+fn test_ax_draw2d_box() {
+    let (stdout, _) = run_maxima(
+        "ax_draw2d(boxpoints=\"all\", boxmean=\"sd\", ax_box(makelist(random(100)/10.0, i, 1, 30)));",
+    );
+    let json = extract_plotly_json(&stdout).expect("should produce plotly JSON");
+    let spec = parse_plotly(&json);
+
+    let data = spec["data"].as_array().unwrap();
+    assert_eq!(data.len(), 1);
+    assert_eq!(data[0]["type"], "box");
+    let y = data[0]["y"].as_array().unwrap();
+    assert_eq!(y.len(), 30);
+    assert_eq!(data[0]["boxpoints"], "all");
+    assert_eq!(data[0]["boxmean"], "sd");
+}
+
+#[test]
+#[ignore]
+fn test_ax_draw2d_violin() {
+    let (stdout, _) = run_maxima(
+        "ax_draw2d(ax_violin(makelist(random(100)/10.0, i, 1, 50), \"Group A\"));",
+    );
+    let json = extract_plotly_json(&stdout).expect("should produce plotly JSON");
+    let spec = parse_plotly(&json);
+
+    let data = spec["data"].as_array().unwrap();
+    assert_eq!(data.len(), 1);
+    assert_eq!(data[0]["type"], "violin");
+    let y = data[0]["y"].as_array().unwrap();
+    assert_eq!(y.len(), 50);
+    assert_eq!(data[0]["box"]["visible"], true);
+    assert_eq!(data[0]["meanline"]["visible"], true);
+}
+
+#[test]
+#[ignore]
+fn test_ax_draw2d_pie() {
+    let (stdout, _) = run_maxima(
+        "ax_draw2d(hole=0.4, ax_pie([40, 30, 20, 10], [\"A\", \"B\", \"C\", \"D\"]));",
+    );
+    let json = extract_plotly_json(&stdout).expect("should produce plotly JSON");
+    let spec = parse_plotly(&json);
+
+    let data = spec["data"].as_array().unwrap();
+    assert_eq!(data.len(), 1);
+    assert_eq!(data[0]["type"], "pie");
+    let values = data[0]["values"].as_array().unwrap();
+    assert_eq!(values.len(), 4);
+    let labels = data[0]["labels"].as_array().unwrap();
+    assert_eq!(labels.len(), 4);
+    assert_eq!(labels[0], "A");
+    let hole = data[0]["hole"].as_f64().unwrap();
+    assert!((hole - 0.4).abs() < 1e-6);
+}
+
+#[test]
+#[ignore]
+fn test_ax_draw2d_error_bar() {
+    let (stdout, _) = run_maxima(
+        "ax_draw2d(ax_error_bar([1,2,3,4], [2.1,3.9,6.2,7.8], [0.3,0.5,0.2,0.4], [0.1,0.15,0.1,0.2]));",
+    );
+    let json = extract_plotly_json(&stdout).expect("should produce plotly JSON");
+    let spec = parse_plotly(&json);
+
+    let data = spec["data"].as_array().unwrap();
+    assert_eq!(data.len(), 1);
+    assert_eq!(data[0]["type"], "scatter");
+    assert_eq!(data[0]["mode"], "markers");
+    // y error bars
+    assert_eq!(data[0]["error_y"]["visible"], true);
+    let y_err = data[0]["error_y"]["array"].as_array().unwrap();
+    assert_eq!(y_err.len(), 4);
+    // x error bars
+    assert_eq!(data[0]["error_x"]["visible"], true);
+    let x_err = data[0]["error_x"]["array"].as_array().unwrap();
+    assert_eq!(x_err.len(), 4);
+}

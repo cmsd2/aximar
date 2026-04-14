@@ -1,0 +1,211 @@
+{
+  "nbformat": 4,
+  "nbformat_minor": 0,
+  "metadata": {
+    "kernelspec": {
+      "name": "maxima",
+      "display_name": "Maxima",
+      "language": "maxima"
+    },
+    "aximar": {
+      "template_id": "statistical-plotting",
+      "title": "Statistics",
+      "description": "Descriptive statistics, distributions, and interactive statistical charts: histograms, box plots, violin plots, error bars, bar charts, and pie charts."
+    }
+  },
+  "cells": [
+    {
+      "cell_type": "markdown",
+      "source": "# Statistics with Maxima\n\nThis notebook combines Maxima's symbolic and numeric capabilities with Aximar's interactive statistical charts. We'll compute descriptive statistics, work with probability distributions, and visualize results using `ax_draw2d`.\n\n| Chart type | Syntax | Use case |\n|---|---|---|\n| `ax_histogram` | `ax_histogram(data)` | Visualize frequency distributions |\n| `ax_box` | `ax_box(data)` | Summarize quartiles and outliers |\n| `ax_violin` | `ax_violin(data)` | Show distribution shape |\n| `ax_error_bar` | `ax_error_bar(xs, ys, errs)` | Measurements with uncertainty |\n| `ax_bar` | `ax_bar(categories, values)` | Categorical summaries |\n| `ax_pie` | `ax_pie(values, labels)` | Proportions |",
+      "metadata": {}
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## Descriptive Statistics\n\nLoad the `descriptive` package for sample statistics. We'll generate a dataset and compute its key properties.",
+      "metadata": {}
+    },
+    {
+      "cell_type": "code",
+      "source": "load(descriptive)$\ndata: makelist(random(100)/10.0, i, 1, 200)$\nprint(\"n     =\", length(data))$\nprint(\"mean  =\", mean(data))$\nprint(\"median=\", median(data))$\nprint(\"std   =\", std(data))$\nprint(\"var   =\", var(data))$\nprint(\"range =\", range(data))$\nprint(\"IQR   =\", quantile(data, 3/4) - quantile(data, 1/4))$",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "### Visualizing the Distribution\n\nA histogram shows the frequency distribution. The box plot below summarizes the same data as quartiles — the box spans Q1 to Q3 (the IQR), the line is the median, and whiskers extend to 1.5 × IQR. Points beyond are outliers.",
+      "metadata": {}
+    },
+    {
+      "cell_type": "code",
+      "source": "ax_draw2d(\n  ax_histogram(data),\n  nbins=20,\n  title=\"Histogram of Sample Data\",\n  xlabel=\"Value\", ylabel=\"Frequency\"\n)",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": "ax_draw2d(\n  boxpoints=\"all\", boxmean=\"sd\",\n  ax_box(data),\n  title=\"Box Plot with All Points and Mean ± SD\"\n)",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## The Normal Distribution\n\nThe probability density function (PDF) of the normal distribution is:\n\n$$f(x) = \\frac{1}{\\sigma\\sqrt{2\\pi}}\\,e^{-\\frac{(x-\\mu)^2}{2\\sigma^2}}$$\n\nLet's define it symbolically in Maxima and plot it for different parameters.",
+      "metadata": {}
+    },
+    {
+      "cell_type": "code",
+      "source": "normal_pdf(x, mu, sigma) := exp(-(x - mu)^2 / (2*sigma^2)) / (sigma * sqrt(2*%pi))$\nax_draw2d(\n  color=\"steelblue\", name=\"μ=0, σ=1\",\n  explicit(normal_pdf(x, 0, 1), x, -5, 5),\n  color=\"coral\", name=\"μ=0, σ=2\",\n  explicit(normal_pdf(x, 0, 2), x, -5, 5),\n  color=\"seagreen\", dash=\"dash\", name=\"μ=1, σ=0.5\",\n  explicit(normal_pdf(x, 1, 0.5), x, -5, 5),\n  title=\"Normal Distribution PDF\",\n  xlabel=\"x\", ylabel=\"f(x)\"\n)",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "### Comparing a Sample to Its Theoretical Distribution\n\nGenerate 500 samples from a standard normal (using the Box–Muller transform) and overlay the theoretical PDF on the histogram. A violin plot shows the same comparison as a smooth kernel density estimate.",
+      "metadata": {}
+    },
+    {
+      "cell_type": "code",
+      "source": "/* Box-Muller transform: generate standard normal samples.\n   float() forces numeric evaluation — without it, cos(2·π·u) stays symbolic. */\nnormal_samples: makelist(\n  block([u1: random(1.0), u2: random(1.0)],\n    float(sqrt(-2*log(u1)) * cos(2*%pi*u2))),\n  i, 1, 500)$\nprint(\"Sample mean =\", mean(normal_samples))$\nprint(\"Sample std  =\", std(normal_samples))$",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": "ax_draw2d(\n  color=\"steelblue\", opacity=0.6,\n  ax_histogram(normal_samples),\n  nbins=30,\n  title=\"Standard Normal Samples (n=500)\",\n  xlabel=\"x\", ylabel=\"Count\"\n)",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": "ax_draw2d(\n  color=\"mediumpurple\",\n  ax_violin(normal_samples),\n  title=\"Violin Plot — Normal Samples\"\n)",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## Comparing Distributions\n\nBox plots and violin plots are ideal for comparing distributions side by side. Here we compare three groups with different means.",
+      "metadata": {}
+    },
+    {
+      "cell_type": "code",
+      "source": "/* Three groups with different means */\ngroup_a: makelist(\n  block([u1: random(1.0), u2: random(1.0)],\n    float(0 + 1*sqrt(-2*log(u1))*cos(2*%pi*u2))),\n  i, 1, 100)$\ngroup_b: makelist(\n  block([u1: random(1.0), u2: random(1.0)],\n    float(2 + 1.5*sqrt(-2*log(u1))*cos(2*%pi*u2))),\n  i, 1, 100)$\ngroup_c: makelist(\n  block([u1: random(1.0), u2: random(1.0)],\n    float(1 + 0.5*sqrt(-2*log(u1))*cos(2*%pi*u2))),\n  i, 1, 100)$",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": "ax_draw2d(\n  color=\"steelblue\", ax_box(group_a, \"μ=0, σ=1\"),\n  color=\"coral\", ax_box(group_b, \"μ=2, σ=1.5\"),\n  color=\"seagreen\", ax_box(group_c, \"μ=1, σ=0.5\"),\n  title=\"Comparing Distributions — Box Plots\"\n)",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": "ax_draw2d(\n  color=\"steelblue\", ax_violin(group_a, \"μ=0, σ=1\"),\n  color=\"coral\", ax_violin(group_b, \"μ=2, σ=1.5\"),\n  color=\"seagreen\", ax_violin(group_c, \"μ=1, σ=0.5\"),\n  title=\"Comparing Distributions — Violin Plots\"\n)",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "### Overlaid Histograms\n\nUse `bar_mode=\"overlay\"` with reduced opacity to superimpose two distributions.",
+      "metadata": {}
+    },
+    {
+      "cell_type": "code",
+      "source": "ax_draw2d(\n  color=\"steelblue\", opacity=0.5, name=\"μ=0, σ=1\",\n  ax_histogram(group_a),\n  color=\"coral\", opacity=0.5, name=\"μ=2, σ=1.5\",\n  ax_histogram(group_b),\n  bar_mode=\"overlay\", nbins=20,\n  title=\"Overlaid Histograms\"\n)",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## Linear Regression\n\nFit a line $y = a + bx$ to noisy data using the least-squares formulas:\n\n$$b = \\frac{n\\sum x_i y_i - \\sum x_i \\sum y_i}{n\\sum x_i^2 - (\\sum x_i)^2}, \\qquad a = \\bar{y} - b\\bar{x}$$\n\nThen plot the data with error bars alongside the fitted line.",
+      "metadata": {}
+    },
+    {
+      "cell_type": "code",
+      "source": "/* Generate noisy linear data: y ≈ 2x + 1 */\nxs: makelist(i, i, 1, 10)$\nnoise: makelist(\n  block([u1: random(1.0), u2: random(1.0)],\n    float(0.5*sqrt(-2*log(u1))*cos(2*%pi*u2))),\n  i, 1, 10)$\nys: makelist(2*xs[i] + 1 + noise[i], i, 1, 10)$\nerrs: makelist(0.3 + random(5)/10.0, i, 1, 10)$\n\n/* Least-squares fit */\nn: length(xs)$\nsx: apply(\"+\", xs)$\nsy: apply(\"+\", ys)$\nsxy: apply(\"+\", makelist(xs[i]*ys[i], i, 1, n))$\nsx2: apply(\"+\", makelist(xs[i]^2, i, 1, n))$\nb_hat: float((n*sxy - sx*sy) / (n*sx2 - sx^2))$\na_hat: float(sy/n - b_hat*sx/n)$\nprint(\"Fitted line: y =\", a_hat, \"+\", b_hat, \"x\")$",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": "ax_draw2d(\n  color=\"navy\", marker_size=8, name=\"Data\",\n  ax_error_bar(xs, ys, errs),\n  color=\"red\", dash=\"dash\", line_width=2,\n  name=sconcat(\"Fit: y = \", string(a_hat), \" + \", string(b_hat), \"x\"),\n  explicit(a_hat + b_hat*x, x, 0, 11),\n  title=\"Linear Regression with Error Bars\",\n  xlabel=\"x\", ylabel=\"y\"\n)",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## Categorical Data\n\nBar charts and pie charts are useful for summarizing categorical data — counts, proportions, or grouped comparisons.",
+      "metadata": {}
+    },
+    {
+      "cell_type": "code",
+      "source": "categories: [\"Calculus\", \"Algebra\", \"Statistics\", \"Geometry\"]$\nenrollments: [45, 38, 52, 25]$\nax_draw2d(\n  color=\"steelblue\",\n  ax_bar(categories, enrollments),\n  title=\"Course Enrollments\",\n  ylabel=\"Students\"\n)",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": "ax_draw2d(\n  hole=0.4,\n  ax_pie(enrollments, categories),\n  title=\"Enrollment Proportions\"\n)",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "### Grouped Bar Charts\n\nCompare across categories and groups with `bar_mode=\"group\"`.",
+      "metadata": {}
+    },
+    {
+      "cell_type": "code",
+      "source": "ax_draw2d(\n  name=\"Fall\", color=\"steelblue\",\n  ax_bar([\"Calc\",\"Alg\",\"Stats\",\"Geom\"], [45,38,52,25]),\n  name=\"Spring\", color=\"coral\",\n  ax_bar([\"Calc\",\"Alg\",\"Stats\",\"Geom\"], [50,42,48,30]),\n  bar_mode=\"group\",\n  title=\"Semester Comparison\"\n)",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## The Central Limit Theorem\n\nThe CLT states that the distribution of sample means approaches a normal distribution as sample size increases, regardless of the original distribution. Let's demonstrate with a uniform distribution.\n\nWe draw $n$ samples from Uniform(0, 1) and compute their mean. Repeating this 1000 times, the resulting distribution of means should approximate $N(\\mu = 0.5,\\, \\sigma = 1/\\sqrt{12n})$.",
+      "metadata": {}
+    },
+    {
+      "cell_type": "code",
+      "source": "/* Sample means of n uniform samples, repeated 500 times */\nsample_means(n) := makelist(\n  block([s: makelist(random(1.0), j, 1, n)],\n    apply(\"+\", s) / n),\n  i, 1, 500)$\nmeans_2:  sample_means(2)$\nmeans_10: sample_means(10)$\nmeans_50: sample_means(50)$",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": "ax_draw2d(\n  color=\"steelblue\", opacity=0.6, name=\"n=2\",\n  ax_histogram(means_2),\n  color=\"coral\", opacity=0.6, name=\"n=10\",\n  ax_histogram(means_10),\n  color=\"seagreen\", opacity=0.6, name=\"n=50\",\n  ax_histogram(means_50),\n  bar_mode=\"overlay\", nbins=30,\n  title=\"Central Limit Theorem: Uniform(0,1) Sample Means\",\n  xlabel=\"Sample Mean\", ylabel=\"Frequency\"\n)",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": "ax_draw2d(\n  color=\"steelblue\", ax_violin(means_2, \"n=2\"),\n  color=\"coral\", ax_violin(means_10, \"n=10\"),\n  color=\"seagreen\", ax_violin(means_50, \"n=50\"),\n  title=\"CLT: Distribution Shape Converges to Normal\"\n)",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## Tips\n\n- **Hover**: hover over any bar, point, or slice to see exact values\n- **Legend**: click legend entries to show/hide traces\n- Use `bar_mode=\"group\"` for side-by-side bars, `\"stack\"` for stacked, `\"overlay\"` for overlaid histograms\n- Use `boxpoints=\"all\"` to show every data point alongside box/violin plots\n- Use `boxmean=\"sd\"` to display mean ± standard deviation on box plots\n- Use `hole=0.4` to turn a pie chart into a donut chart\n- For curves, contours, and other chart types, see the **Interactive Plotting** and **3D Plotting** templates",
+      "metadata": {}
+    }
+  ]
+}

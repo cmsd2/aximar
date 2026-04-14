@@ -5,7 +5,7 @@ import type { TemplateSummary } from "../types/notebooks";
 import type { Cell } from "../types/notebook";
 
 const NOTEBOOK_FILTERS = [
-  { name: "Aximar Notebook", extensions: ["axm"] },
+  { name: "Maxima Notebook", extensions: ["macnb"] },
   { name: "Jupyter Notebook", extensions: ["ipynb"] },
 ];
 
@@ -64,7 +64,7 @@ export async function saveNotebook(
   const path =
     filePath ??
     (await save({
-      defaultPath: "notebook.axm",
+      defaultPath: "notebook.macnb",
       filters: NOTEBOOK_FILTERS,
     }));
   if (!path) return null;
@@ -101,7 +101,7 @@ export async function saveNotebookAs(
   cells: Cell[],
   currentPath: string | null,
 ): Promise<string | null> {
-  const defaultPath = currentPath ?? "notebook.axm";
+  const defaultPath = currentPath ?? "notebook.macnb";
   const path = await save({
     defaultPath,
     filters: NOTEBOOK_FILTERS,

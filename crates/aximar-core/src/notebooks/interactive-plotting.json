@@ -10,13 +10,13 @@
     "aximar": {
       "template_id": "interactive-plotting",
       "title": "Interactive Plotting",
-      "description": "Interactive Plotly.js charts with ax_plot2d, ax_draw2d, ax_draw3d, vector fields, and phase portraits."
+      "description": "Interactive 2D Plotly.js charts: curves, contours, heatmaps, vector fields, and phase portraits."
     }
   },
   "cells": [
     {
       "cell_type": "markdown",
-      "source": "# Interactive Plotting with Aximar\n\nAximar provides `ax_plot2d`, `ax_draw2d`, and `ax_draw3d` for interactive Plotly.js plots. These functions use the same draw-package object syntax you already know (`explicit`, `parametric`, `points`, `implicit`) but render as interactive charts you can pan, zoom, and hover over.\n\n| Aximar (interactive) | Maxima (static gnuplot) |\n|---|---|\n| `ax_plot2d(...)` | `plot2d(...)` |\n| `ax_draw2d(...)` | `draw2d(...)` |\n| `ax_draw3d(...)` | `draw3d(...)` |",
+      "source": "# Interactive 2D Plotting\n\nAximar provides `ax_plot2d` and `ax_draw2d` for interactive Plotly.js plots. These functions use the same draw-package object syntax you already know (`explicit`, `parametric`, `points`, `implicit`) but render as interactive charts you can pan, zoom, and hover over. For 3D plots, see the **3D Plotting** template.\n\n| Aximar (interactive) | Maxima (static gnuplot) |\n|---|---|\n| `ax_plot2d(...)` | `plot2d(...)` |\n| `ax_draw2d(...)` | `draw2d(...)` |",
       "metadata": {}
     },
     {
@@ -129,42 +129,6 @@
     },
     {
       "cell_type": "markdown",
-      "source": "## 3D Surfaces\n\n`ax_draw3d` produces interactive 3D plots you can rotate and zoom. Drag to orbit, scroll to zoom.",
-      "metadata": {}
-    },
-    {
-      "cell_type": "code",
-      "source": "ax_draw3d(\n  explicit(sin(x)*cos(y), x, -%pi, %pi, y, -%pi, %pi),\n  title=\"sin(x)·cos(y)\",\n  xlabel=\"x\", ylabel=\"y\", zlabel=\"z\"\n)",
-      "metadata": {},
-      "execution_count": null,
-      "outputs": []
-    },
-    {
-      "cell_type": "markdown",
-      "source": "A saddle surface — hover over the surface to read coordinates.",
-      "metadata": {}
-    },
-    {
-      "cell_type": "code",
-      "source": "ax_draw3d(\n  explicit(x^2 - y^2, x, -2, 2, y, -2, 2),\n  title=\"Saddle: x² − y²\"\n)",
-      "metadata": {},
-      "execution_count": null,
-      "outputs": []
-    },
-    {
-      "cell_type": "markdown",
-      "source": "## 3D Scatter Data",
-      "metadata": {}
-    },
-    {
-      "cell_type": "code",
-      "source": "ax_draw3d(\n  marker_size=5, color=\"darkorange\",\n  points([[1,1,1],[2,2,8],[3,3,27],[4,4,64],[5,5,125]]),\n  title=\"Cubic Growth\"\n)",
-      "metadata": {},
-      "execution_count": null,
-      "outputs": []
-    },
-    {
-      "cell_type": "markdown",
       "source": "## Filled Contour Plots\n\n`ax_contour` renders a 2D expression f(x,y) as a filled contour chart with multiple level curves. Use `colorscale` to change the color palette and `ncontours` to control the number of levels.",
       "metadata": {}
     },
@@ -183,30 +147,6 @@
     {
       "cell_type": "code",
       "source": "ax_draw2d(\n  ax_heatmap(matrix([1,2,3,4],[5,6,7,8],[9,10,11,12])),\n  colorscale=\"Blues\",\n  title=\"Matrix Heatmap\"\n)",
-      "metadata": {},
-      "execution_count": null,
-      "outputs": []
-    },
-    {
-      "cell_type": "markdown",
-      "source": "## Bar Charts\n\n`ax_bar` creates bar charts from categorical data. Pass string categories and numeric values. Use `bar_mode` for grouped or stacked multi-series charts.",
-      "metadata": {}
-    },
-    {
-      "cell_type": "code",
-      "source": "ax_draw2d(\n  name=\"2024\", color=\"steelblue\",\n  ax_bar([\"Q1\",\"Q2\",\"Q3\",\"Q4\"], [100,150,120,180]),\n  name=\"2025\", color=\"coral\",\n  ax_bar([\"Q1\",\"Q2\",\"Q3\",\"Q4\"], [110,160,140,200]),\n  bar_mode=\"group\",\n  title=\"Quarterly Revenue\"\n)",
-      "metadata": {},
-      "execution_count": null,
-      "outputs": []
-    },
-    {
-      "cell_type": "markdown",
-      "source": "## Histograms\n\n`ax_histogram` bins numeric data into a frequency distribution. Plotly handles binning automatically — use `nbins` to control the number of bins.",
-      "metadata": {}
-    },
-    {
-      "cell_type": "code",
-      "source": "data: makelist(random(100)/10.0, i, 1, 500)$\nax_draw2d(\n  color=\"mediumseagreen\",\n  ax_histogram(data),\n  nbins=25,\n  title=\"Random Distribution\"\n)",
       "metadata": {},
       "execution_count": null,
       "outputs": []
@@ -297,7 +237,7 @@
     },
     {
       "cell_type": "markdown",
-      "source": "## Tips\n\n- **Pan & zoom**: drag to pan, scroll to zoom, double-click to reset\n- **Hover**: hover over any point to see exact coordinates\n- **Legend**: click a legend entry to hide/show that trace\n- **3D rotation**: drag to orbit, scroll to zoom, ctrl+drag to pan\n- Use `nticks=N` to control sampling resolution (default 500 for 2D, 50 for 3D)\n- The original `plot2d`/`plot3d` still work for static gnuplot SVGs",
+      "source": "## Tips\n\n- **Pan & zoom**: drag to pan, scroll to zoom, double-click to reset\n- **Hover**: hover over any point to see exact coordinates\n- **Legend**: click a legend entry to hide/show that trace\n- Use `nticks=N` to control sampling resolution (default 500)\n- The original `plot2d` still works for static gnuplot SVGs\n- For 3D surfaces, parametric curves, and vector fields, see the **3D Plotting** template",
       "metadata": {}
     }
   ]

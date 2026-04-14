@@ -90,7 +90,10 @@ ax__default_style() := [
   [normalize, false],       /* vector field: equal-length arrows (direction only) */
   [initial_points, false],  /* streamline: list of [x0,y0] starting points (auto if false) */
   [t_range, false],         /* streamline: integration time span [t0, tf] (default [0,10]) */
-  [dt, false]               /* streamline: RK4 step size (default 0.05) */
+  [dt, false],              /* streamline: RK4 step size (default 0.05) */
+  [boxpoints, false],       /* box/violin: "all", "outliers", false (auto if false) */
+  [boxmean, false],         /* box: true, "sd", or false */
+  [hole, false]             /* pie: donut hole fraction 0–1 */
 ]$
 
 /* Get a style value from the style state */
@@ -115,12 +118,15 @@ ax__layout_option_names : [title, xrange, yrange, zrange, grid, xaxis, yaxis,
 ax__trace_option_names : [color, fill_color, opacity, line_width, dash,
   marker_symbol, marker_size, name, fill, colorscale, hover_text, nticks,
   nbins, ncontours, showscale, bar_width,
-  ngrid, arrow_scale, normalize, initial_points, t_range, dt]$
+  ngrid, arrow_scale, normalize, initial_points, t_range, dt,
+  boxpoints, boxmean, hole]$
 
 /* Draw object names we recognize */
 ax__draw_object_names : [explicit, parametric, points, implicit,
   ax_contour, ax_heatmap, ax_bar, ax_histogram,
-  ax_vector_field, ax_streamline]$
+  ax_vector_field, ax_streamline,
+  parametric_surface, ax_contour3d, ax_vector_field3d,
+  ax_box, ax_violin, ax_pie, ax_error_bar]$
 
 /* Check if an argument is a layout option (e.g. title="Foo") */
 ax__is_layout_option(item) :=
@@ -220,6 +226,130 @@ ax__sample_vector_field_2d(fxexpr, fyexpr, xvar, xlo, xhi, yvar, ylo, yhi, ng) :
       j, 0, ng - 1),
     i, 0, ng - 1),
   [xs, ys, fxmat, fymat])$
+
+/* Sample a 3D parametric curve: returns [xs, ys, zs] */
+ax__sample_parametric_3d(xexpr, yexpr, zexpr, tvar, tlo, thi, n) := block(
+  [h, ts, xs, ys, zs],
+  tlo: float(tlo), thi: float(thi),
+  h: (thi - tlo) / (n - 1),
+  ts: makelist(tlo + i * h, i, 0, n - 1),
+  xs: makelist(
+    block([xv: errcatch(float(subst(ts[i+1], tvar, xexpr)))],
+      if xv = [] then false else first(xv)),
+    i, 0, n - 1),
+  ys: makelist(
+    block([yv: errcatch(float(subst(ts[i+1], tvar, yexpr)))],
+      if yv = [] then false else first(yv)),
+    i, 0, n - 1),
+  zs: makelist(
+    block([zv: errcatch(float(subst(ts[i+1], tvar, zexpr)))],
+      if zv = [] then false else first(zv)),
+    i, 0, n - 1),
+  [xs, ys, zs])$
+
+/* Sample a parametric surface: returns [xmat, ymat, zmat] where each is a 2D matrix.
+   Evaluates x(u,v), y(u,v), z(u,v) over a nu×nv grid. */
+ax__sample_parametric_surface(xexpr, yexpr, zexpr, uvar, ulo, uhi, vvar, vlo, vhi, nu, nv) := block(
+  [ustep, vstep, us, vs, xmat, ymat, zmat],
+  ulo: float(ulo), uhi: float(uhi),
+  vlo: float(vlo), vhi: float(vhi),
+  ustep: (uhi - ulo) / (nu - 1),
+  vstep: (vhi - vlo) / (nv - 1),
+  us: makelist(ulo + i * ustep, i, 0, nu - 1),
+  vs: makelist(vlo + j * vstep, j, 0, nv - 1),
+  xmat: makelist(
+    makelist(
+      block([xv: errcatch(float(subst([uvar = us[i+1], vvar = vs[j+1]], xexpr)))],
+        if xv = [] then false else first(xv)),
+      j, 0, nv - 1),
+    i, 0, nu - 1),
+  ymat: makelist(
+    makelist(
+      block([yv: errcatch(float(subst([uvar = us[i+1], vvar = vs[j+1]], yexpr)))],
+        if yv = [] then false else first(yv)),
+      j, 0, nv - 1),
+    i, 0, nu - 1),
+  zmat: makelist(
+    makelist(
+      block([zv: errcatch(float(subst([uvar = us[i+1], vvar = vs[j+1]], zexpr)))],
+        if zv = [] then false else first(zv)),
+      j, 0, nv - 1),
+    i, 0, nu - 1),
+  [xmat, ymat, zmat])$
+
+/* Sample f(x,y,z) on a 3D grid for isosurface rendering.
+   Returns [xs_flat, ys_flat, zs_flat, vals_flat] as flat arrays
+   (Plotly isosurface format: one value per grid point). */
+ax__sample_3d(expr, xvar, xlo, xhi, yvar, ylo, yhi, zvar, zlo, zhi, n) := block(
+  [xstep, ystep, zstep, xpts, ypts, zpts, total,
+   xs_flat, ys_flat, zs_flat, vals_flat, idx, fv],
+  xlo: float(xlo), xhi: float(xhi),
+  ylo: float(ylo), yhi: float(yhi),
+  zlo: float(zlo), zhi: float(zhi),
+  xstep: (xhi - xlo) / (n - 1),
+  ystep: (yhi - ylo) / (n - 1),
+  zstep: (zhi - zlo) / (n - 1),
+  xpts: makelist(xlo + i * xstep, i, 0, n - 1),
+  ypts: makelist(ylo + j * ystep, j, 0, n - 1),
+  zpts: makelist(zlo + k * zstep, k, 0, n - 1),
+  /* Pre-allocate flat arrays to avoid O(n^6) endcons copying */
+  total: n * n * n,
+  xs_flat: makelist(0.0, total),
+  ys_flat: makelist(0.0, total),
+  zs_flat: makelist(0.0, total),
+  vals_flat: makelist(0.0, total),
+  idx: 0,
+  for i: 1 thru n do
+    for j: 1 thru n do
+      for k: 1 thru n do (
+        idx: idx + 1,
+        xs_flat[idx]: xpts[i],
+        ys_flat[idx]: ypts[j],
+        zs_flat[idx]: zpts[k],
+        fv: errcatch(float(subst([xvar = xpts[i], yvar = ypts[j], zvar = zpts[k]], expr))),
+        vals_flat[idx]: if fv = [] then false else first(fv)
+      ),
+  [xs_flat, ys_flat, zs_flat, vals_flat])$
+
+/* Sample a 3D vector field (Fx, Fy, Fz) on a grid.
+   Returns [xs, ys, zs, us, vs, ws] as flat arrays (Plotly cone format). */
+ax__sample_vector_field_3d(fxexpr, fyexpr, fzexpr, xvar, xlo, xhi, yvar, ylo, yhi, zvar, zlo, zhi, ng) := block(
+  [xstep, ystep, zstep, xpts, ypts, zpts, total, idx,
+   xs_flat, ys_flat, zs_flat, us_flat, vs_flat, ws_flat, fu, fv_val, fw],
+  xlo: float(xlo), xhi: float(xhi),
+  ylo: float(ylo), yhi: float(yhi),
+  zlo: float(zlo), zhi: float(zhi),
+  xstep: (xhi - xlo) / (ng - 1),
+  ystep: (yhi - ylo) / (ng - 1),
+  zstep: (zhi - zlo) / (ng - 1),
+  xpts: makelist(xlo + i * xstep, i, 0, ng - 1),
+  ypts: makelist(ylo + j * ystep, j, 0, ng - 1),
+  zpts: makelist(zlo + k * zstep, k, 0, ng - 1),
+  /* Pre-allocate flat arrays */
+  total: ng * ng * ng,
+  xs_flat: makelist(0.0, total),
+  ys_flat: makelist(0.0, total),
+  zs_flat: makelist(0.0, total),
+  us_flat: makelist(0.0, total),
+  vs_flat: makelist(0.0, total),
+  ws_flat: makelist(0.0, total),
+  idx: 0,
+  for i: 1 thru ng do
+    for j: 1 thru ng do
+      for k: 1 thru ng do block(
+        [subs: [xvar = xpts[i], yvar = ypts[j], zvar = zpts[k]]],
+        idx: idx + 1,
+        xs_flat[idx]: xpts[i],
+        ys_flat[idx]: ypts[j],
+        zs_flat[idx]: zpts[k],
+        fu: errcatch(float(subst(subs, fxexpr))),
+        us_flat[idx]: if fu = [] then 0.0 else first(fu),
+        fv_val: errcatch(float(subst(subs, fyexpr))),
+        vs_flat[idx]: if fv_val = [] then 0.0 else first(fv_val),
+        fw: errcatch(float(subst(subs, fzexpr))),
+        ws_flat[idx]: if fw = [] then 0.0 else first(fw)
+      ),
+  [xs_flat, ys_flat, zs_flat, us_flat, vs_flat, ws_flat])$
 
 /* RK4 integrator for 2D ODE system dx/dt = Fx(x,y), dy/dt = Fy(x,y).
    Integrates from (x0, y0) over time t0 to tf with step h.
@@ -442,6 +572,150 @@ ax__trace_points_3d(obj, style) := block(
   parts: append(parts, ax__build_trace_style(style, "points")),
   sconcat("{", simplode(parts, ","), "}"))$
 
+/* 3D parametric curve: parametric(x(t), y(t), z(t), t, t0, tf) → scatter3d lines */
+ax__trace_parametric_3d(obj, style) := block(
+  [a, xexpr, yexpr, zexpr, tvar, tlo, thi, n, data, xs, ys, zs, parts],
+  a: args(obj),
+  xexpr: a[1], yexpr: a[2], zexpr: a[3], tvar: a[4], tlo: a[5], thi: a[6],
+  n: ax__style_get(style, nticks),
+  if n = false then n: 500,
+  data: ax__sample_parametric_3d(xexpr, yexpr, zexpr, tvar, tlo, thi, n),
+  xs: data[1], ys: data[2], zs: data[3],
+  parts: [
+    sconcat("\"x\":", ax__float_list_to_json(xs)),
+    sconcat("\"y\":", ax__float_list_to_json(ys)),
+    sconcat("\"z\":", ax__float_list_to_json(zs)),
+    "\"type\":\"scatter3d\"",
+    "\"mode\":\"lines\"",
+    sconcat("\"line\":", ax__build_line_style(style))
+  ],
+  parts: append(parts, ax__build_trace_style(style,
+    sconcat("(", string(xexpr), ", ", string(yexpr), ", ", string(zexpr), ")"))),
+  sconcat("{", simplode(parts, ","), "}"))$
+
+/* 3D parametric surface: parametric_surface(x(u,v), y(u,v), z(u,v), u, u0, u1, v, v0, v1) → surface */
+ax__trace_parametric_surface_3d(obj, style) := block(
+  [a, xexpr, yexpr, zexpr, uvar, ulo, uhi, vvar, vlo, vhi, n, data, xmat, ymat, zmat, parts, cs],
+  a: args(obj),
+  if length(a) # 9 then
+    error("parametric_surface requires 9 arguments: parametric_surface(x(u,v), y(u,v), z(u,v), u, u0, u1, v, v0, v1)"),
+  xexpr: a[1], yexpr: a[2], zexpr: a[3],
+  uvar: a[4], ulo: a[5], uhi: a[6],
+  vvar: a[7], vlo: a[8], vhi: a[9],
+  n: ax__style_get(style, nticks),
+  if n = false or n > 200 then n: 50,
+  data: ax__sample_parametric_surface(xexpr, yexpr, zexpr, uvar, ulo, uhi, vvar, vlo, vhi, n, n),
+  xmat: data[1], ymat: data[2], zmat: data[3],
+  cs: ax__style_get(style, colorscale),
+  parts: [
+    sconcat("\"x\":", ax__float_matrix_to_json(xmat)),
+    sconcat("\"y\":", ax__float_matrix_to_json(ymat)),
+    sconcat("\"z\":", ax__float_matrix_to_json(zmat)),
+    "\"type\":\"surface\""
+  ],
+  if cs # false then
+    parts: endcons(sconcat("\"colorscale\":", ax__json_string(cs)), parts),
+  parts: append(parts, ax__build_trace_style(style,
+    sconcat("(", string(xexpr), ", ", string(yexpr), ", ", string(zexpr), ")"))),
+  sconcat("{", simplode(parts, ","), "}"))$
+
+/* 3D implicit surface: implicit(eqn, x, x0, x1, y, y0, y1, z, z0, z1) → isosurface */
+ax__trace_implicit_3d(obj, style) := block(
+  [a, eqn, fexpr, xvar, xlo, xhi, yvar, ylo, yhi, zvar, zlo, zhi,
+   n, data, xs, ys, zs, vals, parts, cs, op_val],
+  a: args(obj),
+  if length(a) # 10 then
+    error("implicit (3D) requires 10 arguments: implicit(eqn, x, x0, x1, y, y0, y1, z, z0, z1)"),
+  eqn: a[1],
+  xvar: a[2], xlo: a[3], xhi: a[4],
+  yvar: a[5], ylo: a[6], yhi: a[7],
+  zvar: a[8], zlo: a[9], zhi: a[10],
+  /* Convert equation lhs=rhs to lhs-rhs */
+  if not atom(eqn) and op(eqn) = "=" then fexpr: lhs(eqn) - rhs(eqn)
+  else fexpr: eqn,
+  n: ax__style_get(style, nticks),
+  if n = false or n > 50 then n: 20, /* 20^3 = 8000 evaluations */
+  data: ax__sample_3d(fexpr, xvar, xlo, xhi, yvar, ylo, yhi, zvar, zlo, zhi, n),
+  xs: data[1], ys: data[2], zs: data[3], vals: data[4],
+  cs: ax__style_get(style, colorscale),
+  op_val: ax__style_get(style, opacity),
+  parts: [
+    sconcat("\"x\":", ax__float_list_to_json(xs)),
+    sconcat("\"y\":", ax__float_list_to_json(ys)),
+    sconcat("\"z\":", ax__float_list_to_json(zs)),
+    sconcat("\"value\":", ax__float_list_to_json(vals)),
+    "\"type\":\"isosurface\"",
+    "\"isomin\":0",
+    "\"isomax\":0",
+    "\"surface\":{\"count\":1}"
+  ],
+  if cs # false then
+    parts: endcons(sconcat("\"colorscale\":", ax__json_string(cs)), parts),
+  if op_val # false and op_val # 1.0 then
+    parts: endcons(sconcat("\"opacity\":", string(float(op_val))), parts),
+  parts: append(parts, ax__build_trace_style(style, string(eqn))),
+  sconcat("{", simplode(parts, ","), "}"))$
+
+/* 3D contour surface: ax_contour3d(expr, x, x0, x1, y, y0, y1) → surface with contour lines */
+ax__trace_contour3d(obj, style) := block(
+  [a, expr, xvar, xlo, xhi, yvar, ylo, yhi, n, data, xs, ys, zmat, parts, cs, nc],
+  a: args(obj),
+  if length(a) # 7 then
+    error("ax_contour3d requires 7 arguments: ax_contour3d(expr, xvar, xlo, xhi, yvar, ylo, yhi)"),
+  expr: a[1], xvar: a[2], xlo: a[3], xhi: a[4], yvar: a[5], ylo: a[6], yhi: a[7],
+  n: ax__style_get(style, nticks),
+  if n = false or n > 200 then n: 50,
+  data: ax__sample_2d(expr, xvar, xlo, xhi, yvar, ylo, yhi, n, n),
+  xs: data[1], ys: data[2], zmat: data[3],
+  cs: ax__style_get(style, colorscale),
+  nc: ax__style_get(style, ncontours),
+  parts: [
+    sconcat("\"x\":", ax__float_list_to_json(xs)),
+    sconcat("\"y\":", ax__float_list_to_json(ys)),
+    sconcat("\"z\":", ax__float_matrix_to_json(zmat)),
+    "\"type\":\"surface\"",
+    "\"contours\":{\"z\":{\"show\":true,\"usecolormap\":true,\"highlightcolor\":\"white\",\"project\":{\"z\":true}}}"
+  ],
+  if cs # false then
+    parts: endcons(sconcat("\"colorscale\":", ax__json_string(cs)), parts),
+  parts: append(parts, ax__build_trace_style(style, string(expr))),
+  sconcat("{", simplode(parts, ","), "}"))$
+
+/* 3D vector field: ax_vector_field3d(Fx, Fy, Fz, x, x0, x1, y, y0, y1, z, z0, z1) → cone */
+ax__trace_vector_field_3d(obj, style) := block(
+  [a, fxexpr, fyexpr, fzexpr, xvar, xlo, xhi, yvar, ylo, yhi, zvar, zlo, zhi,
+   ng, data, xs, ys, zs, us, vs, ws, parts, cs, norm, sm],
+  a: args(obj),
+  if length(a) # 12 then
+    error("ax_vector_field3d requires 12 arguments: ax_vector_field3d(Fx, Fy, Fz, x, x0, x1, y, y0, y1, z, z0, z1)"),
+  fxexpr: a[1], fyexpr: a[2], fzexpr: a[3],
+  xvar: a[4], xlo: a[5], xhi: a[6],
+  yvar: a[7], ylo: a[8], yhi: a[9],
+  zvar: a[10], zlo: a[11], zhi: a[12],
+  ng: ax__style_get(style, ngrid),
+  if ng = false or ng > 15 then ng: 8, /* 8^3 = 512 cones */
+  data: ax__sample_vector_field_3d(fxexpr, fyexpr, fzexpr,
+    xvar, xlo, xhi, yvar, ylo, yhi, zvar, zlo, zhi, ng),
+  xs: data[1], ys: data[2], zs: data[3],
+  us: data[4], vs: data[5], ws: data[6],
+  cs: ax__style_get(style, colorscale),
+  norm: ax__style_get(style, normalize),
+  sm: if norm = true then "\"absolute\"" else "\"scaled\"",
+  parts: [
+    sconcat("\"x\":", ax__float_list_to_json(xs)),
+    sconcat("\"y\":", ax__float_list_to_json(ys)),
+    sconcat("\"z\":", ax__float_list_to_json(zs)),
+    sconcat("\"u\":", ax__float_list_to_json(us)),
+    sconcat("\"v\":", ax__float_list_to_json(vs)),
+    sconcat("\"w\":", ax__float_list_to_json(ws)),
+    "\"type\":\"cone\"",
+    sconcat("\"sizemode\":", sm)
+  ],
+  if cs # false then
+    parts: endcons(sconcat("\"colorscale\":", ax__json_string(cs)), parts),
+  parts: append(parts, ax__build_trace_style(style, "vector field")),
+  sconcat("{", simplode(parts, ","), "}"))$
+
 /* 2D filled contour trace: ax_contour(expr, xvar, xlo, xhi, yvar, ylo, yhi) → contour */
 ax__trace_contour_2d(obj, style) := block(
   [a, expr, xvar, xlo, xhi, yvar, ylo, yhi, n, data, xs, ys, zmat, parts, cs, nc, ss],
@@ -572,6 +846,121 @@ ax__trace_histogram_2d(obj, style) := block(
   if nb # false then
     parts: endcons(sconcat("\"nbinsx\":", string(nb)), parts),
   parts: append(parts, ax__build_trace_style(style, "histogram")),
+  sconcat("{", simplode(parts, ","), "}"))$
+
+/* Box plot trace: ax_box(data) or ax_box(data, category) */
+ax__trace_box_2d(obj, style) := block(
+  [a, data, cat, parts, c, bp, bm],
+  a: args(obj),
+  if length(a) < 1 or length(a) > 2 then
+    error("ax_box: expected 1 or 2 arguments: ax_box(data) or ax_box(data, category)"),
+  data: a[1],
+  c: ax__style_get(style, color),
+  bp: ax__style_get(style, boxpoints),
+  bm: ax__style_get(style, boxmean),
+  parts: [
+    sconcat("\"y\":", ax__float_list_to_json(data)),
+    "\"type\":\"box\""
+  ],
+  if length(a) = 2 then (
+    cat: a[2],
+    if stringp(cat) then
+      parts: endcons(sconcat("\"x\":", ax__string_list_to_json(makelist(cat, i, 1, length(data)))), parts)
+  ),
+  if c # false then
+    parts: endcons(sconcat("\"marker\":{\"color\":", ax__json_string(ax__color_to_css(c)), "}"), parts),
+  if bp # false then (
+    if bp = 'all or bp = all then
+      parts: endcons("\"boxpoints\":\"all\"", parts)
+    else if bp = 'outliers or bp = outliers then
+      parts: endcons("\"boxpoints\":\"outliers\"", parts)
+    else if stringp(bp) then
+      parts: endcons(sconcat("\"boxpoints\":", ax__json_string(bp)), parts)
+  ),
+  if bm # false then (
+    if bm = true then
+      parts: endcons("\"boxmean\":true", parts)
+    else if bm = 'sd or bm = sd then
+      parts: endcons("\"boxmean\":\"sd\"", parts)
+    else if stringp(bm) then
+      parts: endcons(sconcat("\"boxmean\":", ax__json_string(bm)), parts)
+  ),
+  parts: append(parts, ax__build_trace_style(style, "box")),
+  sconcat("{", simplode(parts, ","), "}"))$
+
+/* Violin plot trace: ax_violin(data) or ax_violin(data, category) */
+ax__trace_violin_2d(obj, style) := block(
+  [a, data, cat, parts, c, bp],
+  a: args(obj),
+  if length(a) < 1 or length(a) > 2 then
+    error("ax_violin: expected 1 or 2 arguments: ax_violin(data) or ax_violin(data, category)"),
+  data: a[1],
+  c: ax__style_get(style, color),
+  bp: ax__style_get(style, boxpoints),
+  parts: [
+    sconcat("\"y\":", ax__float_list_to_json(data)),
+    "\"type\":\"violin\"",
+    "\"box\":{\"visible\":true}",
+    "\"meanline\":{\"visible\":true}"
+  ],
+  if length(a) = 2 then (
+    cat: a[2],
+    if stringp(cat) then
+      parts: endcons(sconcat("\"x\":", ax__string_list_to_json(makelist(cat, i, 1, length(data)))), parts)
+  ),
+  if c # false then
+    parts: endcons(sconcat("\"marker\":{\"color\":", ax__json_string(ax__color_to_css(c)), "}"), parts),
+  if bp # false then (
+    if bp = 'all or bp = all then
+      parts: endcons("\"points\":\"all\"", parts)
+    else if bp = 'outliers or bp = outliers then
+      parts: endcons("\"points\":\"outliers\"", parts)
+    else if stringp(bp) then
+      parts: endcons(sconcat("\"points\":", ax__json_string(bp)), parts)
+  ),
+  parts: append(parts, ax__build_trace_style(style, "violin")),
+  sconcat("{", simplode(parts, ","), "}"))$
+
+/* Pie chart trace: ax_pie(values, labels) or ax_pie(values) */
+ax__trace_pie_2d(obj, style) := block(
+  [a, vals, lbls, parts, h],
+  a: args(obj),
+  if length(a) < 1 or length(a) > 2 then
+    error("ax_pie: expected 1 or 2 arguments: ax_pie(values) or ax_pie(values, labels)"),
+  vals: a[1],
+  parts: [
+    sconcat("\"values\":", ax__float_list_to_json(vals)),
+    "\"type\":\"pie\""
+  ],
+  if length(a) = 2 then (
+    lbls: a[2],
+    parts: endcons(sconcat("\"labels\":", ax__string_list_to_json(lbls)), parts)
+  ),
+  h: ax__style_get(style, hole),
+  if h # false then
+    parts: endcons(sconcat("\"hole\":", string(float(h))), parts),
+  parts: append(parts, ax__build_trace_style(style, "pie")),
+  sconcat("{", simplode(parts, ","), "}"))$
+
+/* Scatter with error bars: ax_error_bar(xs, ys, errors) or ax_error_bar(xs, ys, y_errors, x_errors) */
+ax__trace_error_bar_2d(obj, style) := block(
+  [a, xs, ys, parts, c],
+  a: args(obj),
+  if length(a) < 3 or length(a) > 4 then
+    error("ax_error_bar: expected 3 or 4 arguments: ax_error_bar(xs, ys, y_errors) or ax_error_bar(xs, ys, y_errors, x_errors)"),
+  xs: a[1], ys: a[2],
+  c: ax__style_get(style, color),
+  parts: [
+    sconcat("\"x\":", ax__float_list_to_json(xs)),
+    sconcat("\"y\":", ax__float_list_to_json(ys)),
+    "\"type\":\"scatter\"",
+    "\"mode\":\"markers\"",
+    sconcat("\"marker\":", ax__build_marker_style(style)),
+    sconcat("\"error_y\":{\"type\":\"data\",\"array\":", ax__float_list_to_json(a[3]), ",\"visible\":true}")
+  ],
+  if length(a) = 4 then
+    parts: endcons(sconcat("\"error_x\":{\"type\":\"data\",\"array\":", ax__float_list_to_json(a[4]), ",\"visible\":true}"), parts),
+  parts: append(parts, ax__build_trace_style(style, "error bars")),
   sconcat("{", simplode(parts, ","), "}"))$
 
 /* 2D vector field trace: ax_vector_field(Fx, Fy, xvar, xlo, xhi, yvar, ylo, yhi)
@@ -768,6 +1157,10 @@ ax__build_trace_2d(obj, style) := block([objop],
   else if objop = ax_histogram then ax__trace_histogram_2d(obj, style)
   else if objop = ax_vector_field then ax__trace_vector_field_2d(obj, style)
   else if objop = ax_streamline then ax__trace_streamline_2d(obj, style)
+  else if objop = ax_box then ax__trace_box_2d(obj, style)
+  else if objop = ax_violin then ax__trace_violin_2d(obj, style)
+  else if objop = ax_pie then ax__trace_pie_2d(obj, style)
+  else if objop = ax_error_bar then ax__trace_error_bar_2d(obj, style)
   else error("ax_draw2d: unsupported object type:", objop))$
 
 /* Dispatch to the correct 3D trace builder based on object type */
@@ -775,6 +1168,11 @@ ax__build_trace_3d(obj, style) := block([objop],
   objop: op(obj),
   if objop = explicit then ax__trace_explicit_3d(obj, style)
   else if objop = points then ax__trace_points_3d(obj, style)
+  else if objop = parametric then ax__trace_parametric_3d(obj, style)
+  else if objop = parametric_surface then ax__trace_parametric_surface_3d(obj, style)
+  else if objop = implicit then ax__trace_implicit_3d(obj, style)
+  else if objop = ax_contour3d then ax__trace_contour3d(obj, style)
+  else if objop = ax_vector_field3d then ax__trace_vector_field_3d(obj, style)
   else error("ax_draw3d: unsupported object type:", objop))$
 
 /* ========================================================================
@@ -934,7 +1332,11 @@ ax_draw3d([ax__args]) := block(
     else if ax__is_trace_option(item) then
       style: ax__apply_option(style, item)
     else if ax__is_draw_object(item) then
-      traces: endcons(ax__build_trace_3d(item, style), traces)
+      block([result: ax__build_trace_3d(item, style)],
+        if listp(result) then
+          traces: append(traces, result)
+        else
+          traces: endcons(result, traces))
     else error("ax_draw3d: unrecognized argument:", item)
   ),
   ax__emit_plotly(traces, ax__build_layout_3d(layout_opts)),

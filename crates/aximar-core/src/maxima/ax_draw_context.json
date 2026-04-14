@@ -37,7 +37,7 @@
       "signatures": [
         "ax_draw2d(options, ..., graphic_object, ...)"
       ],
-      "description": "Draw 2D interactive plots using Plotly.js. Accepts draw package objects (explicit, parametric, points, implicit) and Aximar objects (ax_contour, ax_heatmap, ax_bar, ax_histogram, ax_vector_field, ax_streamline). Renders as interactive charts with pan, zoom, and hover. Style options: color, line_width, dash, marker_symbol, marker_size, fill, opacity, name, colorscale, showscale, nbins, ncontours, bar_width, ngrid, arrow_scale, normalize, initial_points, t_range, dt. Layout options: title, xlabel, ylabel, xrange, yrange, grid, showlegend, aspect_ratio, width, height, bar_mode. Default size is 700x450 pixels; use width=auto or height=auto for responsive sizing.",
+      "description": "Draw 2D interactive plots using Plotly.js. Accepts draw package objects (explicit, parametric, points, implicit) and Aximar objects (ax_contour, ax_heatmap, ax_bar, ax_histogram, ax_box, ax_violin, ax_pie, ax_error_bar, ax_vector_field, ax_streamline). Renders as interactive charts with pan, zoom, and hover. Style options: color, line_width, dash, marker_symbol, marker_size, fill, opacity, name, colorscale, showscale, nbins, ncontours, bar_width, boxpoints, boxmean, hole, ngrid, arrow_scale, normalize, initial_points, t_range, dt. Layout options: title, xlabel, ylabel, xrange, yrange, grid, showlegend, aspect_ratio, width, height, bar_mode. Default size is 700x450 pixels; use width=auto or height=auto for responsive sizing.",
       "category": "Plotting",
       "see_also": [
         "ax_plot2d",
@@ -45,7 +45,7 @@
         "ax_polar",
         "draw2d"
       ],
-      "search_keywords": "draw plot chart graph 2d canvas interactive plotly contour heatmap bar histogram vector streamline",
+      "search_keywords": "draw plot chart graph 2d canvas interactive plotly contour heatmap bar histogram box violin pie error statistics vector streamline",
       "examples": [
         {
           "input": "ax_draw2d(explicit(sin(x), x, -%pi, %pi))$",
@@ -86,9 +86,21 @@
         {
           "input": "ax_draw2d(color=\"#cccccc\", ax_vector_field(-y, x, x, -3, 3, y, -3, 3), color=\"red\", ax_streamline(-y, x, x, -3, 3, y, -3, 3), aspect_ratio=true, title=\"Phase Portrait\")$",
           "description": "Phase portrait"
+        },
+        {
+          "input": "ax_draw2d(ax_box(makelist(random(100)/10.0, i, 1, 50)), title=\"Box Plot\")$",
+          "description": "Box plot"
+        },
+        {
+          "input": "ax_draw2d(ax_pie([40, 30, 20, 10], [\"A\", \"B\", \"C\", \"D\"]))$",
+          "description": "Pie chart"
+        },
+        {
+          "input": "ax_draw2d(ax_error_bar([1,2,3,4], [2.1,3.9,6.2,7.8], [0.3,0.5,0.2,0.4]))$",
+          "description": "Error bars"
         }
       ],
-      "docs": "## ax_draw2d\n\n`ax_draw2d(options, ..., graphic_object, ...)`\n\nDraw 2D interactive plots using Plotly.js. Accepts Maxima draw package objects and Aximar-specific objects, rendering them as interactive charts with pan, zoom, and hover.\n\n### Supported Objects\n\n**Draw package objects:**\n\n| Object | Syntax | Description |\n|--------|--------|-------------|\n| `explicit` | `explicit(expr, var, lo, hi)` | A curve y=f(x) |\n| `parametric` | `parametric(x(t), y(t), t, tlo, thi)` | A parametric curve |\n| `points` | `points([[x1,y1],[x2,y2],...])` | Scatter points |\n| `implicit` | `implicit(eqn, x, xlo, xhi, y, ylo, yhi)` | An implicit curve f(x,y)=0 |\n\n**Aximar objects:**\n\n| Object | Syntax | Description |\n|--------|--------|-------------|\n| `ax_contour` | `ax_contour(expr, x, xlo, xhi, y, ylo, yhi)` | Filled contour plot |\n| `ax_heatmap` | `ax_heatmap(matrix)` or `ax_heatmap(expr, x, xlo, xhi, y, ylo, yhi)` | Heatmap |\n| `ax_bar` | `ax_bar(categories, values)` or `ax_bar(values)` | Bar chart |\n| `ax_histogram` | `ax_histogram(data)` | Histogram |\n| `ax_vector_field` | `ax_vector_field(Fx, Fy, x, xlo, xhi, y, ylo, yhi)` | 2D vector field |\n| `ax_streamline` | `ax_streamline(Fx, Fy, x, xlo, xhi, y, ylo, yhi)` | Streamline / phase portrait curves |\n\n### Examples\n\n```maxima\n/* Explicit curves with styling */\nax_draw2d(\n  color=\"red\", explicit(x^2, x, -3, 3),\n  color=\"blue\", explicit(x^3, x, -2, 2)\n)$\n\n/* Filled contour */\nax_draw2d(\n  ax_contour(sin(x)*cos(y), x, -%pi, %pi, y, -%pi, %pi),\n  colorscale=\"Viridis\", title=\"Contour Plot\"\n)$\n\n/* Bar chart */\nax_draw2d(\n  ax_bar([\"Q1\",\"Q2\",\"Q3\",\"Q4\"], [100,150,120,180]),\n  title=\"Quarterly Sales\"\n)$\n\n/* Histogram */\nax_draw2d(\n  ax_histogram(makelist(random(100)/10.0, i, 1, 500)),\n  nbins=20, title=\"Distribution\"\n)$\n\n/* Phase portrait: vector field + streamlines */\nax_draw2d(\n  color=\"#cccccc\", ax_vector_field(-y, x, x, -3, 3, y, -3, 3),\n  color=\"red\", ax_streamline(-y, x, x, -3, 3, y, -3, 3),\n  aspect_ratio=true, title=\"Phase Portrait\"\n)$\n\n/* Streamlines with custom initial conditions */\nax_draw2d(\n  initial_points=[[1,0],[0,1],[-1,0],[0,-1]],\n  t_range=[0,8],\n  ax_streamline(-y, x, x, -3, 3, y, -3, 3),\n  aspect_ratio=true\n)$\n```\n\n### Style Options\n\nOptions use Plotly-native naming and apply to subsequent objects until overridden:\n\n| Option | Default | Description |\n|--------|---------|-------------|\n| `color` | auto | Line/marker color (atom like `red` or CSS string) |\n| `fill_color` | none | Fill color |\n| `opacity` | 1.0 | Trace opacity (0–1) |\n| `line_width` | 2 | Line width in pixels |\n| `dash` | `\"solid\"` | Line style: `\"solid\"`, `\"dot\"`, `\"dash\"`, `\"dashdot\"` |\n| `marker_symbol` | `\"circle\"` | Marker shape |\n| `marker_size` | 6 | Marker size |\n| `name` | auto | Legend entry |\n| `fill` | none | Fill region: `\"tozeroy\"`, `\"toself\"`, etc. |\n| `colorscale` | none | Color scale for contour/heatmap (e.g. `\"Viridis\"`, `\"Hot\"`) |\n| `showscale` | auto | Show/hide colorbar for contour/heatmap |\n| `ncontours` | auto | Number of contour levels (ax_contour) |\n| `nbins` | auto | Number of bins (ax_histogram) |\n| `bar_width` | auto | Bar width fraction (ax_bar) |\n| `nticks` | 500 | Sampling resolution |\n| `ngrid` | 20 | Vector field grid resolution (ngrid × ngrid) |\n| `arrow_scale` | 1.0 | Arrow length multiplier (ax_vector_field) |\n| `normalize` | false | Equal-length arrows, direction only (ax_vector_field) |\n| `initial_points` | auto | Streamline start points `[[x0,y0],...]` (ax_streamline) |\n| `t_range` | [0, 10] | Integration time span `[t0, tf]` (ax_streamline) |\n| `dt` | 0.05 | RK4 step size (ax_streamline) |\n\n### Layout Options\n\n| Option | Description |\n|--------|-------------|\n| `title` | Plot title |\n| `xlabel` / `ylabel` | Axis labels |\n| `xrange` / `yrange` | Axis ranges |\n| `grid` | Show grid lines |\n| `xaxis` / `yaxis` | Show/hide axes |\n| `showlegend` | Show legend |\n| `aspect_ratio` | Lock aspect ratio |\n| `width` | Plot width in pixels (default: 700, `auto` = fill container) |\n| `height` | Plot height in pixels (default: 450, `auto` = fill container) |\n| `bar_mode` | Bar/histogram grouping: `\"group\"`, `\"stack\"`, `\"overlay\"` |\n\nSee also: `ax_plot2d`, `ax_draw3d`, `ax_polar`, `draw2d`",
+      "docs": "## ax_draw2d\n\n`ax_draw2d(options, ..., graphic_object, ...)`\n\nDraw 2D interactive plots using Plotly.js. Accepts Maxima draw package objects and Aximar-specific objects, rendering them as interactive charts with pan, zoom, and hover.\n\n### Supported Objects\n\n**Draw package objects:**\n\n| Object | Syntax | Description |\n|--------|--------|-------------|\n| `explicit` | `explicit(expr, var, lo, hi)` | A curve y=f(x) |\n| `parametric` | `parametric(x(t), y(t), t, tlo, thi)` | A parametric curve |\n| `points` | `points([[x1,y1],[x2,y2],...])` | Scatter points |\n| `implicit` | `implicit(eqn, x, xlo, xhi, y, ylo, yhi)` | An implicit curve f(x,y)=0 |\n\n**Aximar objects:**\n\n| Object | Syntax | Description |\n|--------|--------|-------------|\n| `ax_contour` | `ax_contour(expr, x, xlo, xhi, y, ylo, yhi)` | Filled contour plot |\n| `ax_heatmap` | `ax_heatmap(matrix)` or `ax_heatmap(expr, x, xlo, xhi, y, ylo, yhi)` | Heatmap |\n| `ax_bar` | `ax_bar(categories, values)` or `ax_bar(values)` | Bar chart |\n| `ax_histogram` | `ax_histogram(data)` | Histogram |\n| `ax_box` | `ax_box(data)` or `ax_box(data, category)` | Box plot |\n| `ax_violin` | `ax_violin(data)` or `ax_violin(data, category)` | Violin plot |\n| `ax_pie` | `ax_pie(values, labels)` | Pie / donut chart |\n| `ax_error_bar` | `ax_error_bar(xs, ys, y_errors)` | Scatter with error bars |\n| `ax_vector_field` | `ax_vector_field(Fx, Fy, x, xlo, xhi, y, ylo, yhi)` | 2D vector field |\n| `ax_streamline` | `ax_streamline(Fx, Fy, x, xlo, xhi, y, ylo, yhi)` | Streamline / phase portrait curves |\n\n### Examples\n\n```maxima\n/* Explicit curves with styling */\nax_draw2d(\n  color=\"red\", explicit(x^2, x, -3, 3),\n  color=\"blue\", explicit(x^3, x, -2, 2)\n)$\n\n/* Filled contour */\nax_draw2d(\n  ax_contour(sin(x)*cos(y), x, -%pi, %pi, y, -%pi, %pi),\n  colorscale=\"Viridis\", title=\"Contour Plot\"\n)$\n\n/* Bar chart */\nax_draw2d(\n  ax_bar([\"Q1\",\"Q2\",\"Q3\",\"Q4\"], [100,150,120,180]),\n  title=\"Quarterly Sales\"\n)$\n\n/* Histogram */\nax_draw2d(\n  ax_histogram(makelist(random(100)/10.0, i, 1, 500)),\n  nbins=20, title=\"Distribution\"\n)$\n\n/* Phase portrait: vector field + streamlines */\nax_draw2d(\n  color=\"#cccccc\", ax_vector_field(-y, x, x, -3, 3, y, -3, 3),\n  color=\"red\", ax_streamline(-y, x, x, -3, 3, y, -3, 3),\n  aspect_ratio=true, title=\"Phase Portrait\"\n)$\n\n/* Streamlines with custom initial conditions */\nax_draw2d(\n  initial_points=[[1,0],[0,1],[-1,0],[0,-1]],\n  t_range=[0,8],\n  ax_streamline(-y, x, x, -3, 3, y, -3, 3),\n  aspect_ratio=true\n)$\n```\n\n### Style Options\n\nOptions use Plotly-native naming and apply to subsequent objects until overridden:\n\n| Option | Default | Description |\n|--------|---------|-------------|\n| `color` | auto | Line/marker color (atom like `red` or CSS string) |\n| `fill_color` | none | Fill color |\n| `opacity` | 1.0 | Trace opacity (0–1) |\n| `line_width` | 2 | Line width in pixels |\n| `dash` | `\"solid\"` | Line style: `\"solid\"`, `\"dot\"`, `\"dash\"`, `\"dashdot\"` |\n| `marker_symbol` | `\"circle\"` | Marker shape |\n| `marker_size` | 6 | Marker size |\n| `name` | auto | Legend entry |\n| `fill` | none | Fill region: `\"tozeroy\"`, `\"toself\"`, etc. |\n| `colorscale` | none | Color scale for contour/heatmap (e.g. `\"Viridis\"`, `\"Hot\"`) |\n| `showscale` | auto | Show/hide colorbar for contour/heatmap |\n| `ncontours` | auto | Number of contour levels (ax_contour) |\n| `nbins` | auto | Number of bins (ax_histogram) |\n| `bar_width` | auto | Bar width fraction (ax_bar) |\n| `boxpoints` | auto | `\"all\"`, `\"outliers\"`, or `false` (ax_box, ax_violin) |\n| `boxmean` | false | `true`, `\"sd\"` (mean ± SD) (ax_box) |\n| `hole` | 0 | Donut hole fraction 0–1 (ax_pie) |\n| `nticks` | 500 | Sampling resolution |\n| `ngrid` | 20 | Vector field grid resolution (ngrid × ngrid) |\n| `arrow_scale` | 1.0 | Arrow length multiplier (ax_vector_field) |\n| `normalize` | false | Equal-length arrows, direction only (ax_vector_field) |\n| `initial_points` | auto | Streamline start points `[[x0,y0],...]` (ax_streamline) |\n| `t_range` | [0, 10] | Integration time span `[t0, tf]` (ax_streamline) |\n| `dt` | 0.05 | RK4 step size (ax_streamline) |\n\n### Layout Options\n\n| Option | Description |\n|--------|-------------|\n| `title` | Plot title |\n| `xlabel` / `ylabel` | Axis labels |\n| `xrange` / `yrange` | Axis ranges |\n| `grid` | Show grid lines |\n| `xaxis` / `yaxis` | Show/hide axes |\n| `showlegend` | Show legend |\n| `aspect_ratio` | Lock aspect ratio |\n| `width` | Plot width in pixels (default: 700, `auto` = fill container) |\n| `height` | Plot height in pixels (default: 450, `auto` = fill container) |\n| `bar_mode` | Bar/histogram grouping: `\"group\"`, `\"stack\"`, `\"overlay\"` |\n\nSee also: `ax_plot2d`, `ax_draw3d`, `ax_polar`, `draw2d`",
       "accepts_objects": true,
       "object_group": "2d",
       "style_options": true,
@@ -98,7 +110,7 @@
       "signatures": [
         "ax_draw3d(options, ..., graphic_object, ...)"
       ],
-      "description": "Draw 3D interactive plots using Plotly.js with WebGL. Accepts draw package objects (explicit for surfaces, points for 3D scatter) and renders them as rotatable, zoomable 3D charts. Style options: color, opacity, colorscale, marker_size, marker_symbol, name. Layout options: title, xlabel, ylabel, zlabel, xrange, yrange, zrange, showlegend, width, height. Default size is 700x450 pixels; use width=auto or height=auto for responsive sizing.",
+      "description": "Draw 3D interactive plots using Plotly.js with WebGL. Accepts draw package objects (explicit, parametric, points, implicit, parametric_surface) and Aximar objects (ax_contour3d, ax_vector_field3d). Renders as rotatable, zoomable 3D charts. Style options: color, opacity, colorscale, marker_size, marker_symbol, name, nticks, ngrid, normalize. Layout options: title, xlabel, ylabel, zlabel, xrange, yrange, zrange, showlegend, width, height. Default size is 700x450 pixels; use width=auto or height=auto for responsive sizing.",
       "category": "Plotting",
       "see_also": [
         "ax_plot2d",
@@ -106,22 +118,38 @@
         "ax_polar",
         "draw3d"
       ],
-      "search_keywords": "draw plot chart graph 3d surface webgl interactive plotly rotate",
+      "search_keywords": "draw plot chart graph 3d surface webgl interactive plotly rotate parametric implicit contour vector cone isosurface helix sphere torus",
       "examples": [
         {
           "input": "ax_draw3d(explicit(sin(x)*cos(y), x, -%pi, %pi, y, -%pi, %pi))$",
-          "description": null
+          "description": "Surface"
+        },
+        {
+          "input": "ax_draw3d(parametric(cos(t), sin(t), t/5, t, 0, 4*%pi), title=\"Helix\")$",
+          "description": "Parametric curve"
+        },
+        {
+          "input": "ax_draw3d(parametric_surface(cos(u)*sin(v), sin(u)*sin(v), cos(v), u, 0, 2*%pi, v, 0, %pi), title=\"Sphere\")$",
+          "description": "Parametric surface"
+        },
+        {
+          "input": "ax_draw3d(implicit(x^2 + y^2 + z^2 = 1, x, -1.5, 1.5, y, -1.5, 1.5, z, -1.5, 1.5))$",
+          "description": "Implicit surface"
+        },
+        {
+          "input": "ax_draw3d(ax_contour3d(x^2 - y^2, x, -2, 2, y, -2, 2), colorscale=\"Viridis\")$",
+          "description": "Surface with contour lines"
+        },
+        {
+          "input": "ax_draw3d(ax_vector_field3d(-y, x, 0, x, -2, 2, y, -2, 2, z, -1, 1))$",
+          "description": "3D vector field"
         },
         {
           "input": "ax_draw3d(points([[1,1,1],[2,2,4],[3,3,9]]), marker_size=5)$",
-          "description": null
-        },
-        {
-          "input": "ax_draw3d(explicit(x^2 - y^2, x, -2, 2, y, -2, 2), title=\"Saddle\", colorscale=\"Viridis\")$",
-          "description": null
+          "description": "3D scatter"
         }
       ],
-      "docs": "## ax_draw3d\n\n`ax_draw3d(options, ..., graphic_object, ...)`\n\nDraw 3D interactive plots using Plotly.js with WebGL rendering. Produces rotatable, zoomable 3D charts.\n\n### Supported Draw Objects\n\n| Object | Syntax | Description |\n|--------|--------|-------------|\n| `explicit` | `explicit(expr, x, xlo, xhi, y, ylo, yhi)` | A surface z=f(x,y) |\n| `points` | `points([[x1,y1,z1],[x2,y2,z2],...])` | 3D scatter points |\n\n### Examples\n\n```maxima\n/* 3D surface */\nax_draw3d(explicit(sin(x)*cos(y), x, -%pi, %pi, y, -%pi, %pi))$\n\n/* 3D scatter */\nax_draw3d(points([[1,1,1],[2,2,4],[3,3,9]]), marker_size=5)$\n\n/* With options */\nax_draw3d(\n  explicit(x^2 - y^2, x, -2, 2, y, -2, 2),\n  title=\"Saddle Surface\",\n  colorscale=\"Viridis\"\n)$\n```\n\n### Style Options\n\n| Option | Default | Description |\n|--------|---------|-------------|\n| `color` | auto | Trace color |\n| `opacity` | 1.0 | Trace opacity |\n| `colorscale` | none | Surface colorscale (e.g. `\"Viridis\"`, `\"Hot\"`) |\n| `marker_size` | 6 | Marker size for scatter points |\n| `marker_symbol` | `\"circle\"` | Marker shape |\n| `name` | auto | Legend entry |\n| `nticks` | 50 | Grid resolution (nticks x nticks) |\n\n### Layout Options\n\n| Option | Description |\n|--------|-------------|\n| `title` | Plot title |\n| `xlabel` / `ylabel` / `zlabel` | Axis labels |\n| `xrange` / `yrange` / `zrange` | Axis ranges |\n| `showlegend` | Show legend |\n| `width` | Plot width in pixels (default: 700, `auto` = fill container) |\n| `height` | Plot height in pixels (default: 450, `auto` = fill container) |\n\nSee also: `ax_plot2d`, `ax_draw2d`, `ax_polar`, `draw3d`",
+      "docs": "## ax_draw3d\n\n`ax_draw3d(options, ..., graphic_object, ...)`\n\nDraw 3D interactive plots using Plotly.js with WebGL rendering. Produces rotatable, zoomable 3D charts.\n\n### Supported Draw Objects\n\n**Draw package objects:**\n\n| Object | Syntax | Description |\n|--------|--------|-------------|\n| `explicit` | `explicit(expr, x, xlo, xhi, y, ylo, yhi)` | A surface z=f(x,y) |\n| `parametric` | `parametric(x(t), y(t), z(t), t, tlo, thi)` | A 3D parametric curve |\n| `points` | `points([[x1,y1,z1],...])` | 3D scatter points |\n| `parametric_surface` | `parametric_surface(x(u,v), y(u,v), z(u,v), u, ulo, uhi, v, vlo, vhi)` | A parametric surface |\n| `implicit` | `implicit(eqn, x, xlo, xhi, y, ylo, yhi, z, zlo, zhi)` | An implicit surface f(x,y,z)=0 |\n\n**Aximar objects:**\n\n| Object | Syntax | Description |\n|--------|--------|-------------|\n| `ax_contour3d` | `ax_contour3d(expr, x, xlo, xhi, y, ylo, yhi)` | Surface with projected contour lines |\n| `ax_vector_field3d` | `ax_vector_field3d(Fx, Fy, Fz, x, xlo, xhi, y, ylo, yhi, z, zlo, zhi)` | 3D vector field (cones) |\n\n### Examples\n\n```maxima\n/* 3D surface */\nax_draw3d(explicit(sin(x)*cos(y), x, -%pi, %pi, y, -%pi, %pi))$\n\n/* Helix (parametric curve) */\nax_draw3d(parametric(cos(t), sin(t), t/5, t, 0, 4*%pi), title=\"Helix\")$\n\n/* Sphere (parametric surface) */\nax_draw3d(\n  parametric_surface(\n    cos(u)*sin(v), sin(u)*sin(v), cos(v),\n    u, 0, 2*%pi, v, 0, %pi\n  ),\n  colorscale=\"Viridis\"\n)$\n\n/* Implicit surface */\nax_draw3d(\n  implicit(x^2 + y^2 + z^2 = 1,\n    x, -1.5, 1.5, y, -1.5, 1.5, z, -1.5, 1.5)\n)$\n\n/* Surface with contour lines */\nax_draw3d(\n  ax_contour3d(x^2 - y^2, x, -2, 2, y, -2, 2),\n  colorscale=\"Viridis\", title=\"Saddle\"\n)$\n\n/* 3D vector field */\nax_draw3d(\n  ax_vector_field3d(-y, x, 0, x, -2, 2, y, -2, 2, z, -1, 1),\n  colorscale=\"Blues\"\n)$\n```\n\n### Style Options\n\n| Option | Default | Description |\n|--------|---------|-------------|\n| `color` | auto | Trace color |\n| `opacity` | 1.0 | Trace opacity |\n| `colorscale` | none | Surface/cone colorscale (e.g. `\"Viridis\"`, `\"Hot\"`) |\n| `marker_size` | 6 | Marker size for scatter points |\n| `marker_symbol` | `\"circle\"` | Marker shape |\n| `name` | auto | Legend entry |\n| `nticks` | 50 | Grid resolution (surfaces: nticks x nticks, implicit: nticks^3, default 20) |\n| `ngrid` | 8 | Vector field grid resolution (ngrid^3 cones) |\n| `normalize` | false | Equal-size cones, direction only (ax_vector_field3d) |\n| `ncontours` | auto | Number of contour levels (ax_contour3d) |\n\n### Layout Options\n\n| Option | Description |\n|--------|-------------|\n| `title` | Plot title |\n| `xlabel` / `ylabel` / `zlabel` | Axis labels |\n| `xrange` / `yrange` / `zrange` | Axis ranges |\n| `showlegend` | Show legend |\n| `width` | Plot width in pixels (default: 700, `auto` = fill container) |\n| `height` | Plot height in pixels (default: 450, `auto` = fill container) |\n\nSee also: `ax_plot2d`, `ax_draw2d`, `ax_polar`, `draw3d`",
       "accepts_objects": true,
       "object_group": "3d",
       "style_options": true,
@@ -319,6 +347,155 @@
       ],
       "docs": "## ax_streamline\n\n`ax_streamline(Fx, Fy, xvar, xlo, xhi, yvar, ylo, yhi)`\n\nStreamline / phase portrait curves for a 2D ODE system dx/dt = Fx(x,y), dy/dt = Fy(x,y). Use inside `ax_draw2d`. Integrates trajectories from initial points using RK4.\n\nCombine with `ax_vector_field` for a full phase portrait:\n\n```maxima\nax_draw2d(\n  color=\"#cccccc\", ax_vector_field(-y, x, x, -3, 3, y, -3, 3),\n  color=\"red\", ax_streamline(-y, x, x, -3, 3, y, -3, 3),\n  aspect_ratio=true, title=\"Phase Portrait\"\n)$\n```\n\n### Examples\n\n```maxima\n/* Auto initial points */\nax_draw2d(ax_streamline(-y, x, x, -3, 3, y, -3, 3))$\n\n/* Custom initial points and time range */\nax_draw2d(\n  initial_points=[[0.5,0.5],[2,2],[3,1]],\n  t_range=[0,20], dt=0.01,\n  ax_streamline(x*(1-y), y*(x-1), x, 0, 4, y, 0, 4),\n  title=\"Lotka-Volterra\"\n)$\n```\n\n### Relevant Options\n\n| Option | Default | Description |\n|--------|---------|-------------|\n| `initial_points` | auto | List of [x0,y0] starting points |\n| `t_range` | [0, 10] | Integration time span [t0, tf] |\n| `dt` | 0.05 | RK4 step size |\n| `color` | auto | Curve color |\n| `line_width` | 1.5 | Curve thickness |\n| `name` | auto | Legend entry |\n| `opacity` | 1.0 | Trace opacity |\n\nSee also: `ax_draw2d`, `ax_vector_field`",
       "search_keywords": "streamline phase portrait trajectory ode flow integral curve"
+    },
+    "ax_contour3d": {
+      "signatures": [
+        "ax_contour3d(expr, xvar, xlo, xhi, yvar, ylo, yhi)"
+      ],
+      "description": "3D surface z = f(x,y) with projected contour lines. Use inside ax_draw3d. Renders a Plotly surface trace with contour.z projection enabled. Supports colorscale and ncontours options.",
+      "category": "Plotting",
+      "see_also": [
+        "ax_draw3d",
+        "ax_contour",
+        "explicit"
+      ],
+      "examples": [
+        {
+          "input": "ax_draw3d(ax_contour3d(x^2 - y^2, x, -2, 2, y, -2, 2))$",
+          "description": "Saddle with contours"
+        },
+        {
+          "input": "ax_draw3d(ax_contour3d(sin(x)*cos(y), x, -%pi, %pi, y, -%pi, %pi), colorscale=\"Viridis\")$",
+          "description": null
+        }
+      ],
+      "docs": "## ax_contour3d\n\n`ax_contour3d(expr, xvar, xlo, xhi, yvar, ylo, yhi)`\n\n3D surface z = f(x,y) with projected contour lines. Use inside `ax_draw3d`. Like `explicit()` but with contour lines drawn on and projected below the surface.\n\n### Examples\n\n```maxima\n/* Saddle surface with contour lines */\nax_draw3d(\n  ax_contour3d(x^2 - y^2, x, -2, 2, y, -2, 2),\n  title=\"Saddle\"\n)$\n\n/* With colorscale */\nax_draw3d(\n  ax_contour3d(sin(x)*cos(y), x, -%pi, %pi, y, -%pi, %pi),\n  colorscale=\"Viridis\"\n)$\n```\n\n### Relevant Options\n\n| Option | Default | Description |\n|--------|---------|-------------|\n| `colorscale` | auto | Surface color scale |\n| `ncontours` | auto | Number of contour levels |\n| `nticks` | 50 | Grid resolution |\n| `name` | auto | Legend entry |\n| `opacity` | 1.0 | Surface opacity |\n\nSee also: `ax_draw3d`, `ax_contour`, `explicit`",
+      "search_keywords": "contour 3d surface level curve projection"
+    },
+    "ax_vector_field3d": {
+      "signatures": [
+        "ax_vector_field3d(Fx, Fy, Fz, xvar, xlo, xhi, yvar, ylo, yhi, zvar, zlo, zhi)"
+      ],
+      "description": "3D vector field rendered as cones. Use inside ax_draw3d. Samples F = (Fx, Fy, Fz) on a 3D grid and renders using Plotly cone traces. Supports ngrid, colorscale, and normalize options.",
+      "category": "Plotting",
+      "see_also": [
+        "ax_draw3d",
+        "ax_vector_field"
+      ],
+      "examples": [
+        {
+          "input": "ax_draw3d(ax_vector_field3d(-y, x, 0, x, -2, 2, y, -2, 2, z, -1, 1))$",
+          "description": "Rotation field"
+        },
+        {
+          "input": "ax_draw3d(ax_vector_field3d(x, y, z, x, -1, 1, y, -1, 1, z, -1, 1), colorscale=\"Hot\")$",
+          "description": "Radial field"
+        }
+      ],
+      "docs": "## ax_vector_field3d\n\n`ax_vector_field3d(Fx, Fy, Fz, xvar, xlo, xhi, yvar, ylo, yhi, zvar, zlo, zhi)`\n\n3D vector field rendered as cones. Use inside `ax_draw3d`. Given F = (Fx(x,y,z), Fy(x,y,z), Fz(x,y,z)), samples on a 3D grid and renders cones showing field direction and magnitude.\n\n### Examples\n\n```maxima\n/* Rotation field */\nax_draw3d(\n  ax_vector_field3d(-y, x, 0, x, -2, 2, y, -2, 2, z, -1, 1)\n)$\n\n/* Radial field with colorscale */\nax_draw3d(\n  ax_vector_field3d(x, y, z, x, -1, 1, y, -1, 1, z, -1, 1),\n  colorscale=\"Hot\", title=\"Radial Field\"\n)$\n\n/* Direction only (normalized) */\nax_draw3d(\n  ax_vector_field3d(-y, x, z, x, -2, 2, y, -2, 2, z, -2, 2),\n  normalize=true, ngrid=6\n)$\n```\n\n### Relevant Options\n\n| Option | Default | Description |\n|--------|---------|-------------|\n| `ngrid` | 8 | Grid resolution (ngrid^3 cones) |\n| `colorscale` | auto | Cone color scale |\n| `normalize` | false | Equal-size cones (direction only) |\n| `name` | auto | Legend entry |\n| `opacity` | 1.0 | Trace opacity |\n\nSee also: `ax_draw3d`, `ax_vector_field`",
+      "search_keywords": "vector field 3d cone arrows direction gradient flow"
+    },
+    "ax_box": {
+      "signatures": [
+        "ax_box(data)",
+        "ax_box(data, category)"
+      ],
+      "description": "Box plot (box-and-whisker). Use inside ax_draw2d. Shows median, quartiles, and outliers. Pass a category string as the second argument for grouped box plots. Supports boxpoints, boxmean, and color options.",
+      "category": "Plotting",
+      "see_also": [
+        "ax_draw2d",
+        "ax_violin",
+        "ax_histogram"
+      ],
+      "examples": [
+        {
+          "input": "ax_draw2d(ax_box(makelist(random(100)/10.0, i, 1, 50)))$",
+          "description": null
+        },
+        {
+          "input": "ax_draw2d(ax_box(data1, \"Control\"), ax_box(data2, \"Treatment\"))$",
+          "description": "Grouped box plots"
+        },
+        {
+          "input": "ax_draw2d(boxpoints=\"all\", boxmean=\"sd\", ax_box(data))$",
+          "description": "Show all points and mean±SD"
+        }
+      ],
+      "docs": "## ax_box\n\n`ax_box(data)`\n`ax_box(data, category)`\n\nBox plot (box-and-whisker). Use inside `ax_draw2d`. Shows the distribution of numeric data via median, quartiles, and outliers.\n\n### Examples\n\n```maxima\n/* Basic box plot */\ndata: makelist(random(100)/10.0, i, 1, 50)$\nax_draw2d(ax_box(data), title=\"Box Plot\")$\n\n/* Grouped box plots */\nax_draw2d(\n  ax_box(data1, \"Control\"),\n  ax_box(data2, \"Treatment\"),\n  title=\"Comparison\"\n)$\n\n/* Show all data points and mean±SD */\nax_draw2d(\n  boxpoints=\"all\", boxmean=\"sd\",\n  ax_box(data)\n)$\n```\n\n### Relevant Options\n\n| Option | Default | Description |\n|--------|---------|-------------|\n| `boxpoints` | auto | `\"all\"` (show every point), `\"outliers\"` (outliers only), `false` (none) |\n| `boxmean` | false | `true` (show mean), `\"sd\"` (mean ± standard deviation) |\n| `color` | auto | Box fill color |\n| `name` | auto | Legend entry |\n| `opacity` | 1.0 | Trace opacity |\n\nSee also: `ax_draw2d`, `ax_violin`, `ax_histogram`",
+      "search_keywords": "box plot boxplot whisker quartile median outlier statistics"
+    },
+    "ax_violin": {
+      "signatures": [
+        "ax_violin(data)",
+        "ax_violin(data, category)"
+      ],
+      "description": "Violin plot showing distribution shape via kernel density estimate, with embedded box plot and mean line. Use inside ax_draw2d. Pass a category string for grouped plots. Supports boxpoints and color options.",
+      "category": "Plotting",
+      "see_also": [
+        "ax_draw2d",
+        "ax_box",
+        "ax_histogram"
+      ],
+      "examples": [
+        {
+          "input": "ax_draw2d(ax_violin(makelist(random(100)/10.0, i, 1, 100)))$",
+          "description": null
+        },
+        {
+          "input": "ax_draw2d(ax_violin(data1, \"Before\"), ax_violin(data2, \"After\"))$",
+          "description": "Grouped violin plots"
+        }
+      ],
+      "docs": "## ax_violin\n\n`ax_violin(data)`\n`ax_violin(data, category)`\n\nViolin plot. Use inside `ax_draw2d`. Shows the full distribution shape as a kernel density estimate, with an embedded box plot and mean line.\n\n### Examples\n\n```maxima\n/* Basic violin plot */\ndata: makelist(random(100)/10.0, i, 1, 100)$\nax_draw2d(ax_violin(data), title=\"Violin Plot\")$\n\n/* Grouped violin plots */\nax_draw2d(\n  color=\"mediumpurple\", ax_violin(data1, \"Before\"),\n  color=\"mediumseagreen\", ax_violin(data2, \"After\"),\n  title=\"Before vs After\"\n)$\n```\n\n### Relevant Options\n\n| Option | Default | Description |\n|--------|---------|-------------|\n| `boxpoints` | auto | `\"all\"` (show every point), `\"outliers\"`, `false` |\n| `color` | auto | Violin fill color |\n| `name` | auto | Legend entry |\n| `opacity` | 1.0 | Trace opacity |\n\nSee also: `ax_draw2d`, `ax_box`, `ax_histogram`",
+      "search_keywords": "violin plot distribution density kernel statistics kde"
+    },
+    "ax_pie": {
+      "signatures": [
+        "ax_pie(values)",
+        "ax_pie(values, labels)"
+      ],
+      "description": "Pie chart (or donut chart with hole option). Use inside ax_draw2d. Pass numeric values and optional string labels. Use hole=0.4 for a donut chart.",
+      "category": "Plotting",
+      "see_also": [
+        "ax_draw2d",
+        "ax_bar"
+      ],
+      "examples": [
+        {
+          "input": "ax_draw2d(ax_pie([40, 30, 20, 10], [\"A\", \"B\", \"C\", \"D\"]))$",
+          "description": null
+        },
+        {
+          "input": "ax_draw2d(hole=0.4, ax_pie([35, 25, 20, 15, 5], [\"Rent\", \"Food\", \"Transport\", \"Utilities\", \"Other\"]))$",
+          "description": "Donut chart"
+        }
+      ],
+      "docs": "## ax_pie\n\n`ax_pie(values)`\n`ax_pie(values, labels)`\n\nPie chart. Use inside `ax_draw2d`. Pass numeric values and optional string labels for each slice.\n\n### Examples\n\n```maxima\n/* Basic pie chart */\nax_draw2d(\n  ax_pie([40, 30, 20, 10], [\"A\", \"B\", \"C\", \"D\"]),\n  title=\"Market Share\"\n)$\n\n/* Donut chart */\nax_draw2d(\n  hole=0.4,\n  ax_pie([35, 25, 20, 15, 5], [\"Rent\", \"Food\", \"Transport\", \"Utilities\", \"Other\"]),\n  title=\"Monthly Budget\"\n)$\n```\n\n### Relevant Options\n\n| Option | Default | Description |\n|--------|---------|-------------|\n| `hole` | 0 | Donut hole size (0–1), e.g. `0.4` |\n| `name` | auto | Legend entry |\n| `opacity` | 1.0 | Trace opacity |\n\nSee also: `ax_draw2d`, `ax_bar`",
+      "search_keywords": "pie chart donut proportion percentage share"
+    },
+    "ax_error_bar": {
+      "signatures": [
+        "ax_error_bar(xs, ys, y_errors)",
+        "ax_error_bar(xs, ys, y_errors, x_errors)"
+      ],
+      "description": "Scatter plot with error bars. Use inside ax_draw2d. Pass x values, y values, and y error magnitudes. Optionally pass x error magnitudes as a fourth argument for horizontal error bars.",
+      "category": "Plotting",
+      "see_also": [
+        "ax_draw2d",
+        "points"
+      ],
+      "examples": [
+        {
+          "input": "ax_draw2d(ax_error_bar([1,2,3,4], [2.1,3.9,6.2,7.8], [0.3,0.5,0.2,0.4]))$",
+          "description": null
+        },
+        {
+          "input": "ax_draw2d(ax_error_bar([1,2,3], [2,4,6], [0.3,0.5,0.2], [0.1,0.15,0.1]))$",
+          "description": "Both X and Y error bars"
+        }
+      ],
+      "docs": "## ax_error_bar\n\n`ax_error_bar(xs, ys, y_errors)`\n`ax_error_bar(xs, ys, y_errors, x_errors)`\n\nScatter plot with error bars. Use inside `ax_draw2d`. Pass x values, y values, and y error magnitudes. Optionally pass x error magnitudes for horizontal error bars.\n\n### Examples\n\n```maxima\n/* Vertical error bars */\nax_draw2d(\n  ax_error_bar([1,2,3,4,5], [2.1,3.9,6.2,7.8,10.1], [0.3,0.5,0.2,0.4,0.6]),\n  title=\"Measurements\"\n)$\n\n/* Both X and Y error bars */\nax_draw2d(\n  ax_error_bar([1,2,3,4,5], [2,4,6,8,10], [0.4,0.3,0.5,0.2,0.4], [0.1,0.15,0.1,0.2,0.1]),\n  title=\"X and Y Error Bars\"\n)$\n```\n\n### Relevant Options\n\n| Option | Default | Description |\n|--------|---------|-------------|\n| `color` | auto | Marker color |\n| `marker_size` | 6 | Marker size |\n| `marker_symbol` | `\"circle\"` | Marker shape |\n| `name` | auto | Legend entry |\n| `opacity` | 1.0 | Trace opacity |\n\nSee also: `ax_draw2d`, `points`",
+      "search_keywords": "error bar errorbar uncertainty measurement scatter"
     }
   },
   "draw_objects": {
@@ -446,6 +623,45 @@
           "yhi"
         ],
         "boost": 1
+      },
+      {
+        "name": "ax_box",
+        "detail": "ax_box(data) or ax_box(data, category)",
+        "info": "Box plot (quartiles, outliers)",
+        "snippet_params": [
+          "data"
+        ],
+        "boost": 0
+      },
+      {
+        "name": "ax_violin",
+        "detail": "ax_violin(data) or ax_violin(data, category)",
+        "info": "Violin plot (distribution shape)",
+        "snippet_params": [
+          "data"
+        ],
+        "boost": 0
+      },
+      {
+        "name": "ax_pie",
+        "detail": "ax_pie(values, labels)",
+        "info": "Pie / donut chart",
+        "snippet_params": [
+          "values",
+          "labels"
+        ],
+        "boost": 0
+      },
+      {
+        "name": "ax_error_bar",
+        "detail": "ax_error_bar(xs, ys, y_errors)",
+        "info": "Scatter with error bars",
+        "snippet_params": [
+          "xs",
+          "ys",
+          "y_errors"
+        ],
+        "boost": 0
       }
     ],
     "3d": [
@@ -465,13 +681,97 @@
         "boost": 10
       },
       {
+        "name": "parametric",
+        "detail": "parametric(x(t), y(t), z(t), t, tlo, thi)",
+        "info": "A 3D parametric curve",
+        "snippet_params": [
+          "xexpr",
+          "yexpr",
+          "zexpr",
+          "t",
+          "tlo",
+          "thi"
+        ],
+        "boost": 9
+      },
+      {
         "name": "points",
         "detail": "points(data)",
         "info": "3D scatter points [[x1,y1,z1],...]",
         "snippet_params": [
           "data"
         ],
-        "boost": 9
+        "boost": 8
+      },
+      {
+        "name": "parametric_surface",
+        "detail": "parametric_surface(x(u,v), y(u,v), z(u,v), u, ulo, uhi, v, vlo, vhi)",
+        "info": "A parametric surface (spheres, tori, etc.)",
+        "snippet_params": [
+          "xexpr",
+          "yexpr",
+          "zexpr",
+          "u",
+          "ulo",
+          "uhi",
+          "v",
+          "vlo",
+          "vhi"
+        ],
+        "boost": 7
+      },
+      {
+        "name": "implicit",
+        "detail": "implicit(eqn, x, xlo, xhi, y, ylo, yhi, z, zlo, zhi)",
+        "info": "An implicit surface f(x,y,z) = 0",
+        "snippet_params": [
+          "eqn",
+          "x",
+          "xlo",
+          "xhi",
+          "y",
+          "ylo",
+          "yhi",
+          "z",
+          "zlo",
+          "zhi"
+        ],
+        "boost": 6
+      },
+      {
+        "name": "ax_contour3d",
+        "detail": "ax_contour3d(expr, xvar, xlo, xhi, yvar, ylo, yhi)",
+        "info": "Surface z = f(x,y) with projected contour lines",
+        "snippet_params": [
+          "expr",
+          "x",
+          "xlo",
+          "xhi",
+          "y",
+          "ylo",
+          "yhi"
+        ],
+        "boost": 5
+      },
+      {
+        "name": "ax_vector_field3d",
+        "detail": "ax_vector_field3d(Fx, Fy, Fz, x, xlo, xhi, y, ylo, yhi, z, zlo, zhi)",
+        "info": "3D vector field rendered as cones",
+        "snippet_params": [
+          "Fx",
+          "Fy",
+          "Fz",
+          "x",
+          "xlo",
+          "xhi",
+          "y",
+          "ylo",
+          "yhi",
+          "z",
+          "zlo",
+          "zhi"
+        ],
+        "boost": 4
       }
     ]
   },
@@ -569,6 +869,18 @@
     {
       "name": "dt",
       "detail": "RK4 step size"
+    },
+    {
+      "name": "boxpoints",
+      "detail": "\"all\", \"outliers\", or false"
+    },
+    {
+      "name": "boxmean",
+      "detail": "true, \"sd\", or false"
+    },
+    {
+      "name": "hole",
+      "detail": "Donut hole fraction (0–1)"
     }
   ],
   "layout_options": {

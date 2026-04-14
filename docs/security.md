@@ -6,7 +6,7 @@ Aximar is a desktop application that opens user-provided notebook files and exec
 
 ### 1. Malicious notebook files
 
-The primary threat is a user opening an `.axm` notebook file from an untrusted source. Notebook files are JSON containing cell inputs and metadata. Opening a notebook **does not** automatically execute any cells — the user must explicitly run them. This is the most important mitigation and must be preserved.
+The primary threat is a user opening an `.macnb` notebook file from an untrusted source. Notebook files are JSON containing cell inputs and metadata. Opening a notebook **does not** automatically execute any cells — the user must explicitly run them. This is the most important mitigation and must be preserved.
 
 However, social engineering ("run all cells to see the result") can still lead to exploitation once cells are executed.
 

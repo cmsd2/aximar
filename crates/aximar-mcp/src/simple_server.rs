@@ -238,6 +238,10 @@ impl rmcp::handler::server::ServerHandler for SimpleMcpServer {
                  their result, statements ending with `$` are silent. The last \
                  statement's result is rendered as LaTeX when it ends with `;`. End \
                  the last statement with `$` to suppress all output.\n\n\
+                 Symbolic vs numeric gotcha: Maxima keeps expressions like \
+                 `cos(2*%pi*0.73)` symbolic because `%pi` is a symbolic constant. \
+                 Wrap in `float()` to force numeric evaluation when building numeric \
+                 lists or doing statistical computations.\n\n\
                  Multiple sessions are supported. Use `create_session` to create an \
                  isolated session, `list_sessions` to see all open sessions, and pass \
                  `session_id` to target a specific session. When omitted, tools target \

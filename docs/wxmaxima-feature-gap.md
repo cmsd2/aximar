@@ -18,7 +18,7 @@ wxMaxima provides ~15 `wx`-prefixed plotting functions (`wxplot2d`, `wxplot3d`, 
 
 wxMaxima provides a structured document with code cells, text cells, headings, and collapsible sections.
 
-**Aximar status:** Covered. Aximar has its own cell-based notebook model with code and markdown cells, persisted in `.axm` format.
+**Aximar status:** Covered. Aximar has its own cell-based notebook model with code and markdown cells, persisted in `.macnb` format.
 
 ### Typeset Mathematical Output
 
