@@ -1,9 +1,11 @@
-use std::sync::Arc;
+use std::sync::{Arc, RwLock};
 
+use aximar_core::catalog::doc_index::{self, DocIndexStore};
 use aximar_core::catalog::docs::Docs;
 use aximar_core::catalog::packages::PackageCatalog;
 use aximar_core::catalog::search::Catalog;
 use dashmap::DashMap;
+use serde_json::Value;
 use tower_lsp::jsonrpc;
 use tower_lsp::lsp_types::*;
 use tower_lsp::{Client, LanguageServer};
@@ -22,6 +24,7 @@ pub struct MaximaLsp {
     client: Client,
     catalog: Arc<Catalog>,
     docs: Arc<Docs>,
+    doc_index: RwLock<Arc<DocIndexStore>>,
     packages: Arc<PackageCatalog>,
     documents: DashMap<Url, DocumentState>,
 }
@@ -30,15 +33,22 @@ impl MaximaLsp {
     pub fn new(client: Client) -> Self {
         let catalog = Arc::new(Catalog::load());
         let docs = Arc::new(Docs::load());
+        let doc_index = RwLock::new(Arc::new(DocIndexStore::load()));
         let packages = Arc::new(PackageCatalog::load());
         tracing::info!("Loaded function catalog, documentation, and packages");
         Self {
             client,
             catalog,
             docs,
+            doc_index,
             packages,
             documents: DashMap::new(),
         }
+    }
+
+    /// Snapshot the current doc index (cheap Arc clone).
+    fn doc_index(&self) -> Arc<DocIndexStore> {
+        self.doc_index.read().unwrap().clone()
     }
 
     async fn on_change(&self, uri: Url, content: String, version: i32) {
@@ -85,6 +95,13 @@ impl LanguageServer for MaximaLsp {
                 folding_range_provider: Some(FoldingRangeProviderCapability::Simple(
                     true,
                 )),
+                execute_command_provider: Some(ExecuteCommandOptions {
+                    commands: vec![
+                        "maxima.searchFunctions".into(),
+                        "maxima.getFunctionDocs".into(),
+                    ],
+                    ..Default::default()
+                }),
                 ..Default::default()
             },
             server_info: Some(ServerInfo {
@@ -96,6 +113,28 @@ impl LanguageServer for MaximaLsp {
 
     async fn initialized(&self, _params: InitializedParams) {
         tracing::info!("maxima-lsp initialized");
+
+        // Watch for mxpm doc-index changes so completions/hover update
+        // automatically when packages are installed or removed.
+        if let Some(userdir) = doc_index::maxima_userdir() {
+            let glob = format!("{}/*/doc/*-doc-index.json", userdir.display());
+            let registration = Registration {
+                id: "mxpm-doc-indexes".to_string(),
+                method: "workspace/didChangeWatchedFiles".to_string(),
+                register_options: Some(
+                    serde_json::to_value(DidChangeWatchedFilesRegistrationOptions {
+                        watchers: vec![FileSystemWatcher {
+                            glob_pattern: GlobPattern::String(glob),
+                            kind: Some(WatchKind::Create | WatchKind::Change | WatchKind::Delete),
+                        }],
+                    })
+                    .unwrap(),
+                ),
+            };
+            if let Err(e) = self.client.register_capability(vec![registration]).await {
+                tracing::warn!("Failed to register doc-index watcher: {e}");
+            }
+        }
     }
 
     async fn shutdown(&self) -> jsonrpc::Result<()> {
@@ -126,6 +165,18 @@ impl LanguageServer for MaximaLsp {
             .await;
     }
 
+    async fn did_change_watched_files(&self, _params: DidChangeWatchedFilesParams) {
+        tracing::info!("[doc-index] Reloading installed package docs...");
+        match tokio::task::spawn_blocking(DocIndexStore::load).await {
+            Ok(store) => {
+                *self.doc_index.write().unwrap() = Arc::new(store);
+            }
+            Err(e) => {
+                tracing::warn!("[doc-index] Reload failed: {e}");
+            }
+        }
+    }
+
     async fn completion(
         &self,
         params: CompletionParams,
@@ -145,9 +196,11 @@ impl LanguageServer for MaximaLsp {
             return Ok(None);
         }
 
+        let doc_index = self.doc_index();
         let items = completion::completions(
             &prefix,
             &self.catalog,
+            &doc_index,
             &self.packages,
             &self.documents,
             &uri,
@@ -174,10 +227,12 @@ impl LanguageServer for MaximaLsp {
             None => return Ok(None),
         };
 
+        let doc_index = self.doc_index();
         Ok(hover::hover_info(
             &word,
             &self.catalog,
             &self.docs,
+            &doc_index,
             &self.packages,
             &self.documents,
         ))
@@ -202,10 +257,12 @@ impl LanguageServer for MaximaLsp {
             None => return Ok(None),
         };
 
+        let doc_index = self.doc_index();
         Ok(signature::signature_help(
             &func_name,
             active_param,
             &self.catalog,
+            &doc_index,
             &self.packages,
             &self.documents,
         ))
@@ -329,6 +386,142 @@ impl LanguageServer for MaximaLsp {
             Ok(None)
         } else {
             Ok(Some(ranges))
+        }
+    }
+
+    async fn execute_command(
+        &self,
+        params: ExecuteCommandParams,
+    ) -> jsonrpc::Result<Option<Value>> {
+        match params.command.as_str() {
+            "maxima.searchFunctions" => {
+                let query = params
+                    .arguments
+                    .first()
+                    .and_then(|v| v.get("query"))
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("");
+
+                let mut results = Vec::new();
+
+                // Search the built-in catalog (BM25 ranked)
+                for sr in self.catalog.search(query) {
+                    let sig = sr.function.signatures.first().cloned().unwrap_or_default();
+                    results.push(serde_json::json!({
+                        "name": sr.function.name,
+                        "signature": sig,
+                        "description": sr.function.description,
+                        "category": sr.function.category,
+                        "score": sr.score,
+                        "package": null,
+                    }));
+                }
+
+                // Search package functions
+                for pfr in self.packages.search_functions(query) {
+                    results.push(serde_json::json!({
+                        "name": pfr.function_name,
+                        "signature": pfr.signature,
+                        "description": pfr.package_description,
+                        "category": null,
+                        "score": pfr.score,
+                        "package": pfr.package_name,
+                    }));
+                }
+
+                // Search installed package doc indexes (BM25 over names + summaries)
+                let doc_index = self.doc_index();
+                for dr in doc_index.search(query) {
+                    // Skip if already present from catalog or packages
+                    let name_lower = dr.name.to_lowercase();
+                    let already = results.iter().any(|r| {
+                        r.get("name")
+                            .and_then(|n| n.as_str())
+                            .is_some_and(|n| n.to_lowercase() == name_lower)
+                    });
+                    if already {
+                        continue;
+                    }
+                    results.push(serde_json::json!({
+                        "name": dr.name,
+                        "signature": dr.signature,
+                        "description": dr.summary,
+                        "category": null,
+                        "score": dr.score,
+                        "package": dr.package,
+                    }));
+                }
+
+                results.truncate(50);
+                Ok(Some(Value::Array(results)))
+            }
+
+            "maxima.getFunctionDocs" => {
+                let name = params
+                    .arguments
+                    .first()
+                    .and_then(|v| v.get("name"))
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("");
+
+                if name.is_empty() {
+                    return Err(jsonrpc::Error::invalid_params("missing 'name'"));
+                }
+
+                // Try full markdown docs first
+                let full_docs = self.docs.get(name).map(|s| s.to_string());
+
+                // Try catalog entry
+                let cat_entry = self.catalog.get(name);
+
+                // Try installed package doc index
+                let doc_index = self.doc_index();
+                let idx_entry = doc_index.get(name);
+
+                // Build the response, preferring catalog, falling back to doc index
+                let result = if let Some(func) = cat_entry {
+                    let package = self.packages.package_for_function(name).map(|s| s.to_string());
+                    serde_json::json!({
+                        "name": func.name,
+                        "signatures": func.signatures,
+                        "description": func.description,
+                        "category": func.category,
+                        "examples": func.examples,
+                        "see_also": func.see_also,
+                        "full_docs": full_docs,
+                        "package": package,
+                    })
+                } else if let Some((pkg, entry)) = idx_entry {
+                    serde_json::json!({
+                        "name": name,
+                        "signatures": [entry.signature],
+                        "description": entry.summary,
+                        "category": null,
+                        "examples": entry.examples,
+                        "see_also": entry.see_also,
+                        "full_docs": if entry.body_md.is_empty() { full_docs } else { Some(entry.body_md.clone()) },
+                        "package": pkg,
+                    })
+                } else if let Some(docs) = full_docs {
+                    // Only have raw markdown docs
+                    serde_json::json!({
+                        "name": name,
+                        "signatures": [],
+                        "description": "",
+                        "category": null,
+                        "examples": [],
+                        "see_also": [],
+                        "full_docs": docs,
+                        "package": null,
+                    })
+                } else {
+                    return Err(jsonrpc::Error::new(jsonrpc::ErrorCode::InvalidRequest));
+                };
+
+                Ok(Some(result))
+            }
+
+            _ => Err(jsonrpc::Error::method_not_found()),
         }
     }
 }

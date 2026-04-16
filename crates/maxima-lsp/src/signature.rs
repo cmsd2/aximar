@@ -1,3 +1,4 @@
+use aximar_core::catalog::doc_index::DocIndexStore;
 use aximar_core::catalog::packages::PackageCatalog;
 use aximar_core::catalog::search::Catalog;
 use dashmap::DashMap;
@@ -10,10 +11,11 @@ pub fn signature_help(
     func_name: &str,
     active_param: usize,
     catalog: &Catalog,
+    doc_index: &DocIndexStore,
     packages: &PackageCatalog,
     documents: &DashMap<Url, DocumentState>,
 ) -> Option<SignatureHelp> {
-    let signatures = build_signatures(func_name, catalog, packages, documents)?;
+    let signatures = build_signatures(func_name, catalog, doc_index, packages, documents)?;
     Some(SignatureHelp {
         signatures,
         active_signature: Some(0),
@@ -24,6 +26,7 @@ pub fn signature_help(
 fn build_signatures(
     func_name: &str,
     catalog: &Catalog,
+    doc_index: &DocIndexStore,
     packages: &PackageCatalog,
     documents: &DashMap<Url, DocumentState>,
 ) -> Option<Vec<SignatureInformation>> {
@@ -58,7 +61,28 @@ fn build_signatures(
         }
     }
 
-    // 2. Document symbols (user-defined functions)
+    // 2. Doc index signatures (installed packages)
+    if let Some((sig, params, summary)) = doc_index.signature_info(func_name) {
+        return Some(vec![SignatureInformation {
+            label: sig,
+            documentation: Some(Documentation::MarkupContent(MarkupContent {
+                kind: MarkupKind::Markdown,
+                value: summary,
+            })),
+            parameters: Some(
+                params
+                    .into_iter()
+                    .map(|p| ParameterInformation {
+                        label: ParameterLabel::Simple(p),
+                        documentation: None,
+                    })
+                    .collect(),
+            ),
+            active_parameter: None,
+        }]);
+    }
+
+    // 3. Document symbols (user-defined functions)
     for entry in documents.iter() {
         for item in &entry.value().parsed.items {
             match item {
@@ -90,7 +114,7 @@ fn build_signatures(
         }
     }
 
-    // 3. Package functions
+    // 4. Package functions
     if let Some(pkg_name) = packages.package_for_function(func_name) {
         if let Some(pkg) = packages.get(pkg_name) {
             if let Some(sig) = pkg.signatures.get(func_name) {

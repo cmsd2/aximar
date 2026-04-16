@@ -1,3 +1,4 @@
+use aximar_core::catalog::doc_index::DocIndexStore;
 use aximar_core::catalog::docs::Docs;
 use aximar_core::catalog::packages::PackageCatalog;
 use aximar_core::catalog::search::Catalog;
@@ -11,10 +12,11 @@ pub fn hover_info(
     word: &str,
     catalog: &Catalog,
     docs: &Docs,
+    doc_index: &DocIndexStore,
     packages: &PackageCatalog,
     documents: &DashMap<Url, DocumentState>,
 ) -> Option<Hover> {
-    let content = hover_markdown(word, catalog, docs, packages, documents)?;
+    let content = hover_markdown(word, catalog, docs, doc_index, packages, documents)?;
     Some(Hover {
         contents: HoverContents::Markup(MarkupContent {
             kind: MarkupKind::Markdown,
@@ -28,6 +30,7 @@ fn hover_markdown(
     word: &str,
     catalog: &Catalog,
     docs: &Docs,
+    doc_index: &DocIndexStore,
     packages: &PackageCatalog,
     documents: &DashMap<Url, DocumentState>,
 ) -> Option<String> {
@@ -61,7 +64,12 @@ fn hover_markdown(
         return Some(md);
     }
 
-    // 3. Document symbols (user-defined)
+    // 3. Doc index (installed packages)
+    if let Some(md) = doc_index.hover_markdown(word) {
+        return Some(md);
+    }
+
+    // 4. Document symbols (user-defined)
     for entry in documents.iter() {
         for item in &entry.value().parsed.items {
             match item {
@@ -84,7 +92,7 @@ fn hover_markdown(
         }
     }
 
-    // 4. Package info
+    // 5. Package info
     if let Some(pkg_name) = packages.package_for_function(word) {
         if let Some(pkg) = packages.get(pkg_name) {
             let sig = pkg

@@ -330,6 +330,7 @@ dependencies = [
 name = "aximar-core"
 version = "0.13.0"
 dependencies = [
+ "dirs",
  "libc",
  "nanoid",
  "probly-search",
