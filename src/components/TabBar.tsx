@@ -1,8 +1,8 @@
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useState, useRef } from "react";
 import { ask } from "@tauri-apps/plugin-dialog";
 import { useNotebookStore } from "../store/notebookStore";
 import type { NotebookTab } from "../store/notebookStore";
-import { nbCreate, nbClose, nbSetActive, nbGetState } from "../lib/notebook-commands";
+import { nbCreate, nbClose, nbSetActive, nbGetState, createWindow } from "../lib/notebook-commands";
 
 function statusDotClass(status: NotebookTab["sessionStatus"]): string {
   if (status === "Ready") return "tab-status-dot ready";
@@ -11,12 +11,20 @@ function statusDotClass(status: NotebookTab["sessionStatus"]): string {
   return "tab-status-dot error";
 }
 
+interface ContextMenuState {
+  x: number;
+  y: number;
+  tabId: string;
+}
+
 export function TabBar() {
   const notebooks = useNotebookStore((s) => s.notebooks);
   const activeNotebookId = useNotebookStore((s) => s.activeNotebookId);
   const addTab = useNotebookStore((s) => s.addTab);
   const removeTab = useNotebookStore((s) => s.removeTab);
   const setActiveTab = useNotebookStore((s) => s.setActiveTab);
+  const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
+  const contextMenuRef = useRef<HTMLDivElement>(null);
 
   const tabs = Object.values(notebooks);
 
@@ -65,6 +73,32 @@ export function TabBar() {
     setActiveTab(id);
     await nbSetActive(id);
   }, [setActiveTab]);
+
+  const handleMoveToNewWindow = useCallback(async (tabId: string) => {
+    setContextMenu(null);
+    if (tabs.length <= 1) return; // Don't move the last tab
+    await createWindow(tabId);
+    removeTab(tabId);
+  }, [tabs.length, removeTab]);
+
+  // Dismiss context menu on click outside or Escape
+  useEffect(() => {
+    if (!contextMenu) return;
+    const handleClick = (e: MouseEvent) => {
+      if (contextMenuRef.current && !contextMenuRef.current.contains(e.target as Node)) {
+        setContextMenu(null);
+      }
+    };
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setContextMenu(null);
+    };
+    document.addEventListener("mousedown", handleClick);
+    document.addEventListener("keydown", handleKey);
+    return () => {
+      document.removeEventListener("mousedown", handleClick);
+      document.removeEventListener("keydown", handleKey);
+    };
+  }, [contextMenu]);
 
   // Keyboard shortcuts: Cmd+T (new), Cmd+W (close), Cmd+Shift+[/] / Ctrl+Tab (switch)
   useEffect(() => {
@@ -124,6 +158,10 @@ export function TabBar() {
           key={tab.id}
           className={`tab ${tab.id === activeNotebookId ? "tab-active" : ""} ${tab.closePending ? "tab-close-pending" : ""}`}
           onClick={() => handleSwitchTab(tab.id)}
+          onContextMenu={(e) => {
+            e.preventDefault();
+            setContextMenu({ x: e.clientX, y: e.clientY, tabId: tab.id });
+          }}
         >
           <span className={statusDotClass(tab.sessionStatus)} />
           <span className="tab-title">
@@ -146,6 +184,31 @@ export function TabBar() {
       <button className="tab-new" onClick={handleNewTab} title="New notebook (Cmd+T)">
         +
       </button>
+      {contextMenu && (
+        <div
+          ref={contextMenuRef}
+          className="tab-context-menu"
+          style={{ left: contextMenu.x, top: contextMenu.y }}
+        >
+          <button
+            className="tab-context-menu-item"
+            disabled={tabs.length <= 1}
+            onClick={() => handleMoveToNewWindow(contextMenu.tabId)}
+          >
+            Move to New Window
+          </button>
+          <button
+            className="tab-context-menu-item"
+            disabled={tabs.length <= 1}
+            onClick={() => {
+              setContextMenu(null);
+              handleCloseTab(contextMenu.tabId);
+            }}
+          >
+            Close Tab
+          </button>
+        </div>
+      )}
     </div>
   );
 }

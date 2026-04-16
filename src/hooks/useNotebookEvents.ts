@@ -1,11 +1,17 @@
 import { useEffect } from "react";
 import { listen } from "@tauri-apps/api/event";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import { ask } from "@tauri-apps/plugin-dialog";
 import { useNotebookStore } from "../store/notebookStore";
-import { nbGetState, nbList, nbClose } from "../lib/notebook-commands";
+import { nbCreate, nbGetState, nbList, nbClose } from "../lib/notebook-commands";
 import { markDirty, cleanup } from "../lib/dirty-inputs";
 import type { CellOutput, CellStatus, CellType } from "../types/notebook";
 import type { SessionStatus } from "../types/maxima";
+
+/** Returns true when this window is the primary (first) window. */
+function isMainWindow(): boolean {
+  return getCurrentWindow().label === "main";
+}
 
 interface SyncCellOutput {
   text_output: string;
@@ -89,34 +95,75 @@ function mapSyncCells(syncCells: SyncCell[]) {
 export function useNotebookEvents() {
 
   // --- Initial tab setup: discover notebooks from backend ---
+  // Use ignore flag to handle React strict mode double-mounting — prevents
+  // creating duplicate notebooks when the effect fires twice.
   useEffect(() => {
-    nbList().then((notebooks) => {
-      const store = useNotebookStore.getState();
-      for (const nb of notebooks) {
-        if (!store.notebooks[nb.id]) {
-          store.addTab(nb.id, nb.title);
+    let ignore = false;
+
+    if (isMainWindow()) {
+      // Main window: discover all existing notebooks from the backend
+      nbList().then((notebooks) => {
+        if (ignore) return;
+        const store = useNotebookStore.getState();
+        for (const nb of notebooks) {
+          if (!store.notebooks[nb.id]) {
+            store.addTab(nb.id, nb.title);
+          }
         }
-      }
-      // Set active to the backend's active notebook
-      const active = notebooks.find((nb) => nb.is_active);
-      if (active) {
-        useNotebookStore.getState().setActiveTab(active.id);
-      }
-      // Fetch initial state for each notebook
-      for (const nb of notebooks) {
-        nbGetState(nb.id).then((state) => {
-          const { notebook_id, cells: syncCells, effect, cell_id, can_undo, can_redo } = state;
+        const active = notebooks.find((nb) => nb.is_active);
+        if (active) {
+          useNotebookStore.getState().setActiveTab(active.id);
+        }
+        for (const nb of notebooks) {
+          nbGetState(nb.id).then((state) => {
+            if (ignore) return;
+            const { notebook_id, cells: syncCells, effect, cell_id, can_undo, can_redo } = state;
+            useNotebookStore.getState().applyBackendState(
+              notebook_id,
+              mapSyncCells(syncCells),
+              effect,
+              cell_id ?? undefined,
+              can_undo,
+              can_redo
+            );
+          });
+        }
+      });
+    } else {
+      // Secondary window: check for a notebook ID in the URL, or create a fresh one
+      const params = new URLSearchParams(window.location.search);
+      const notebookParam = params.get("notebook");
+
+      const adoptNotebook = (id: string) => {
+        const store = useNotebookStore.getState();
+        if (!store.notebooks[id]) {
+          store.addTab(id);
+        }
+        store.setActiveTab(id);
+        nbGetState(id).then((state) => {
+          if (ignore) return;
           useNotebookStore.getState().applyBackendState(
-            notebook_id,
-            mapSyncCells(syncCells),
-            effect,
-            cell_id ?? undefined,
-            can_undo,
-            can_redo
+            state.notebook_id,
+            mapSyncCells(state.cells),
+            state.effect,
+            state.cell_id ?? undefined,
+            state.can_undo,
+            state.can_redo,
           );
         });
+      };
+
+      if (notebookParam) {
+        adoptNotebook(notebookParam);
+      } else {
+        nbCreate().then((result) => {
+          if (ignore) return;
+          adoptNotebook(result.notebook_id);
+        });
       }
-    });
+    }
+
+    return () => { ignore = true; };
   }, []);
 
   // --- Backend → Frontend: listen for state changes ---
@@ -127,10 +174,14 @@ export function useNotebookEvents() {
         const { notebook_id, cells: syncCells, effect, cell_id, can_undo, can_redo } =
           event.payload;
 
-        // Ensure tab exists (e.g. created by MCP)
+        // Ensure tab exists (e.g. created by MCP) — only auto-adopt in the main window
         const store = useNotebookStore.getState();
         if (!store.notebooks[notebook_id]) {
-          store.addTab(notebook_id);
+          if (isMainWindow()) {
+            store.addTab(notebook_id);
+          } else {
+            return; // Ignore events for notebooks not in this window
+          }
         }
 
         store.applyBackendState(
@@ -168,7 +219,8 @@ export function useNotebookEvents() {
         const store = useNotebookStore.getState();
 
         if (eventType === "created") {
-          if (!store.notebooks[notebook_id]) {
+          // Only auto-adopt MCP-created notebooks in the main window
+          if (!store.notebooks[notebook_id] && isMainWindow()) {
             store.addTab(notebook_id);
           }
         } else if (eventType === "closed") {

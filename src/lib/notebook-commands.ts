@@ -146,3 +146,9 @@ export async function nbList(): Promise<NotebookInfo[]> {
 export async function nbSetActive(notebookId: string): Promise<void> {
   return invoke<void>("nb_set_active", { notebookId });
 }
+
+// ── Window commands ──────────────────────────────────────────────────
+
+export async function createWindow(notebookId?: string): Promise<string> {
+  return invoke<string>("create_window", { notebookId: notebookId ?? null });
+}

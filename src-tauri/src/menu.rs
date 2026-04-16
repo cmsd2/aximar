@@ -1,7 +1,12 @@
 use tauri::{
     menu::{AboutMetadata, MenuBuilder, MenuItemBuilder, SubmenuBuilder},
-    Emitter, Manager,
+    webview::WebviewWindowBuilder,
+    Emitter, Manager, WebviewUrl,
 };
+
+use std::sync::atomic::{AtomicU32, Ordering};
+
+static WINDOW_COUNTER: AtomicU32 = AtomicU32::new(1);
 
 pub fn setup_menu(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     // --- Custom menu items ---
@@ -9,6 +14,11 @@ pub fn setup_menu(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>
     let new_item = MenuItemBuilder::new("New Notebook")
         .id("new")
         .accelerator("CmdOrCtrl+N")
+        .build(app)?;
+
+    let new_window_item = MenuItemBuilder::new("New Window")
+        .id("new_window")
+        .accelerator("CmdOrCtrl+Shift+N")
         .build(app)?;
 
     let open_item = MenuItemBuilder::new("Open...")
@@ -56,6 +66,7 @@ pub fn setup_menu(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>
 
     let file_submenu = SubmenuBuilder::new(app, "File")
         .item(&new_item)
+        .item(&new_window_item)
         .item(&open_item)
         .separator()
         .item(&save_item)
@@ -99,11 +110,38 @@ pub fn setup_menu(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>
     app.on_menu_event(move |app_handle, event| {
         let id = event.id().0.as_str();
         match id {
+            "new_window" => {
+                let app_handle = app_handle.clone();
+                tauri::async_runtime::spawn(async move {
+                    let n = WINDOW_COUNTER.fetch_add(1, Ordering::Relaxed);
+                    let label = format!("window-{n}");
+                    let _ = WebviewWindowBuilder::new(
+                        &app_handle,
+                        &label,
+                        WebviewUrl::App("index.html".into()),
+                    )
+                    .title("Aximar")
+                    .inner_size(1200.0, 800.0)
+                    .min_inner_size(800.0, 600.0)
+                    .build();
+                });
+            }
             "new" | "open" | "save" | "save_as" | "export_latex" => {
-                let _ = app_handle.emit("menu-event", id);
+                // Emit only to the focused window so actions don't leak across windows
+                let focused = app_handle
+                    .webview_windows()
+                    .into_values()
+                    .find(|w| w.is_focused().unwrap_or(false));
+                if let Some(window) = focused {
+                    let _ = window.emit("menu-event", id);
+                }
             }
             "print" => {
-                if let Some(window) = app_handle.get_webview_window("main") {
+                let focused = app_handle
+                    .webview_windows()
+                    .into_values()
+                    .find(|w| w.is_focused().unwrap_or(false));
+                if let Some(window) = focused {
                     let _ = window.print();
                 }
             }

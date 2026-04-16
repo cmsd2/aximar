@@ -7,3 +7,4 @@ pub mod plot;
 pub mod session;
 pub mod suggestions;
 pub mod variables;
+pub mod window;
