@@ -147,6 +147,13 @@ export async function nbSetActive(notebookId: string): Promise<void> {
   return invoke<void>("nb_set_active", { notebookId });
 }
 
+// ── Startup commands ─────────────────────────────────────────────────
+
+/** Get CLI file arguments from initial launch (take-once). */
+export async function getInitialFileArgs(): Promise<string[] | null> {
+  return invoke<string[] | null>("get_initial_file_args");
+}
+
 // ── Window commands ──────────────────────────────────────────────────
 
 export async function createWindow(notebookId?: string): Promise<string> {

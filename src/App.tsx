@@ -34,10 +34,12 @@ import {
   getTemplate,
   saveNotebook,
   saveNotebookAs,
-  openNotebook,
+  openFile,
+  savePlotFile,
 } from "./lib/notebooks-client";
 import { getConfig, markdownFontStack, applyPrintMargins } from "./lib/config-client";
-import { useNotebookStore, getActiveTabState } from "./store/notebookStore";
+import { useNotebookStore, useActiveAnyTab, getActiveTabState } from "./store/notebookStore";
+import { PlotViewer } from "./components/PlotViewer";
 import { useLogStore } from "./store/logStore";
 import { useFindStore } from "./store/findStore";
 import "./styles/global.css";
@@ -189,36 +191,62 @@ function App() {
   // --- File operations ---
 
   const handleSave = useCallback(async () => {
-    const { markClean, setFilePath } = useNotebookStore.getState();
-    const tab = getActiveTabState();
-    const savedPath = await saveNotebook(tab.cells, tab.filePath);
-    if (savedPath) {
-      setFilePath(savedPath);
-      markClean();
+    const state = useNotebookStore.getState();
+    const id = state.activeNotebookId;
+    if (!id) return;
+    const activeTab = state.notebooks[id];
+    if (!activeTab) return;
+
+    if (activeTab.type === "plot") {
+      await savePlotFile(activeTab.plotData, activeTab.filePath);
+    } else {
+      const savedPath = await saveNotebook(activeTab.cells, activeTab.filePath);
+      if (savedPath) {
+        state.setFilePath(savedPath);
+        state.markClean();
+      }
     }
   }, []);
 
   const handleSaveAs = useCallback(async () => {
-    const { markClean, setFilePath } = useNotebookStore.getState();
-    const tab = getActiveTabState();
-    const savedPath = await saveNotebookAs(tab.cells, tab.filePath);
-    if (savedPath) {
-      setFilePath(savedPath);
-      markClean();
+    const state = useNotebookStore.getState();
+    const id = state.activeNotebookId;
+    if (!id) return;
+    const activeTab = state.notebooks[id];
+    if (!activeTab) return;
+
+    if (activeTab.type === "plot") {
+      await savePlotFile(activeTab.plotData, null);
+    } else {
+      const savedPath = await saveNotebookAs(activeTab.cells, activeTab.filePath);
+      if (savedPath) {
+        state.setFilePath(savedPath);
+        state.markClean();
+      }
     }
   }, []);
 
+  const addPlotTab = useNotebookStore((s) => s.addPlotTab);
+
   const handleOpen = useCallback(async () => {
-    const tab = getActiveTabState();
-    if (tab.isDirty) {
-      const confirmed = await ask("You have unsaved changes. Discard them?", {
-        title: "Unsaved Changes",
-        kind: "warning",
-      });
-      if (!confirmed) return;
-    }
-    const result = await openNotebook();
-    if (result) {
+    const result = await openFile();
+    if (!result) return;
+
+    if (result.type === "plot") {
+      // Open Plotly JSON as a plot viewer tab
+      const title = result.path.split("/").pop()?.split("\\").pop() ?? "Plot";
+      const id = `plot-${crypto.randomUUID()}`;
+      addPlotTab(id, title, result.plotData, result.path);
+    } else {
+      // Open as notebook (existing flow)
+      const tab = getActiveTabState();
+      if (tab.isDirty) {
+        const confirmed = await ask("You have unsaved changes. Discard them?", {
+          title: "Unsaved Changes",
+          kind: "warning",
+        });
+        if (!confirmed) return;
+      }
       const cells = result.notebook.cells
         .filter((c) => c.cell_type !== "raw")
         .map((c) => ({
@@ -230,7 +258,7 @@ function App() {
       setFilePath(result.path);
       markClean();
     }
-  }, [setFilePath, markClean]);
+  }, [setFilePath, markClean, addPlotTab]);
 
   const addTab = useNotebookStore((s) => s.addTab);
   const setActiveTab = useNotebookStore((s) => s.setActiveTab);
@@ -373,30 +401,40 @@ function App() {
     return () => window.removeEventListener("keydown", handler);
   }, []);
 
+  const activeAnyTab = useActiveAnyTab();
+  const isNotebookTab = !activeAnyTab || activeAnyTab.type === "notebook";
+
   return (
     <div className="app">
       <TabBar />
-      <Toolbar
-        onOpenTemplates={() => setTemplateChooserOpen(true)}
-        onOpenSettings={() => setSettingsOpen(true)}
-        variablesOpen={variablesOpen}
-        onToggleVariables={() => setVariablesOpen((o) => !o)}
-        logOpen={windowOpen}
-        onToggleLog={toggleWindow}
-        logUnreadCount={logUnreadCount}
-        docsOpen={docsOpen}
-        onToggleDocs={() => setDocsOpen((o) => !o)}
-      />
-      <FindBar />
-      <VariablePanel open={variablesOpen} />
-      <div className="main-content">
-        <Notebook onViewDocs={openDocsFor} />
-        <DocsPanel
-          open={docsOpen}
-          functionName={docsFunctionName}
-          requestId={docsRequestId}
-          onClose={() => setDocsOpen(false)}
+      {isNotebookTab && (
+        <Toolbar
+          onOpenTemplates={() => setTemplateChooserOpen(true)}
+          onOpenSettings={() => setSettingsOpen(true)}
+          variablesOpen={variablesOpen}
+          onToggleVariables={() => setVariablesOpen((o) => !o)}
+          logOpen={windowOpen}
+          onToggleLog={toggleWindow}
+          logUnreadCount={logUnreadCount}
+          docsOpen={docsOpen}
+          onToggleDocs={() => setDocsOpen((o) => !o)}
         />
+      )}
+      {isNotebookTab && <FindBar />}
+      {isNotebookTab && <VariablePanel open={variablesOpen} />}
+      <div className="main-content">
+        {isNotebookTab && <Notebook onViewDocs={openDocsFor} />}
+        {activeAnyTab?.type === "plot" && (
+          <PlotViewer plotData={activeAnyTab.plotData} />
+        )}
+        {isNotebookTab && (
+          <DocsPanel
+            open={docsOpen}
+            functionName={docsFunctionName}
+            requestId={docsRequestId}
+            onClose={() => setDocsOpen(false)}
+          />
+        )}
       </div>
       <LogWindow />
       <StatusBar />

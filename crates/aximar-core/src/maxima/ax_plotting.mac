@@ -1411,7 +1411,10 @@ ax__build_layout_polar(opts) := block(
   if angular_parts # [] then
     polar_parts: endcons(sconcat("\"angularaxis\":{", simplode(angular_parts, ","), "}"), polar_parts),
   /* Always include polar key so Plotly knows it's a polar subplot */
-  parts: endcons(sconcat("\"polar\":{", simplode(polar_parts, ","), "}"), parts),
+  if polar_parts = [] then
+    parts: endcons("\"polar\":{}", parts)
+  else
+    parts: endcons(sconcat("\"polar\":{", simplode(polar_parts, ","), "}"), parts),
   sconcat("{", simplode(parts, ","), "}"))$
 
 /* ax_polar: plot r(θ) in polar coordinates.

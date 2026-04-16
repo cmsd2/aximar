@@ -62,7 +62,10 @@ export function TabBar() {
       if (!confirmed) return;
     }
     try {
-      await nbClose(id);
+      // Only close the backend notebook for notebook tabs
+      if (!tab || tab.type === "notebook") {
+        await nbClose(id);
+      }
       removeTab(id);
     } catch (e) {
       console.warn("Failed to close tab:", e);
@@ -71,8 +74,12 @@ export function TabBar() {
 
   const handleSwitchTab = useCallback(async (id: string) => {
     setActiveTab(id);
-    await nbSetActive(id);
-  }, [setActiveTab]);
+    const tab = notebooks[id];
+    // Only notify backend for notebook tabs
+    if (tab?.type === "notebook") {
+      await nbSetActive(id);
+    }
+  }, [setActiveTab, notebooks]);
 
   const handleMoveToNewWindow = useCallback(async (tabId: string) => {
     setContextMenu(null);
@@ -163,7 +170,9 @@ export function TabBar() {
             setContextMenu({ x: e.clientX, y: e.clientY, tabId: tab.id });
           }}
         >
-          <span className={statusDotClass(tab.sessionStatus)} />
+          {tab.type === "notebook" && (
+            <span className={statusDotClass(tab.sessionStatus)} />
+          )}
           <span className="tab-title">
             {tab.isDirty ? `${tab.title} *` : tab.title}
           </span>

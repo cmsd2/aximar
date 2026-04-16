@@ -615,6 +615,22 @@
   height: auto;
 }
 
+/* Full-size plot viewer tab */
+.plot-viewer {
+  flex: 1;
+  display: flex;
+  padding: 16px;
+  overflow: hidden;
+}
+
+.plot-viewer .plotly-output {
+  max-width: none;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  margin: 0;
+}
+
 .plotly-output {
   max-width: 700px;
   min-height: 400px;

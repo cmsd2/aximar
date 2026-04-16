@@ -3,7 +3,8 @@ import { listen } from "@tauri-apps/api/event";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { ask } from "@tauri-apps/plugin-dialog";
 import { useNotebookStore } from "../store/notebookStore";
-import { nbCreate, nbGetState, nbList, nbClose } from "../lib/notebook-commands";
+import { nbCreate, nbGetState, nbList, nbClose, nbLoadCells, getInitialFileArgs } from "../lib/notebook-commands";
+import { openFilePath } from "../lib/notebooks-client";
 import { markDirty, cleanup } from "../lib/dirty-inputs";
 import type { CellOutput, CellStatus, CellType } from "../types/notebook";
 import type { SessionStatus } from "../types/maxima";
@@ -88,6 +89,50 @@ function mapSyncCells(syncCells: SyncCell[]) {
 }
 
 /**
+ * Open a file from a path into the appropriate tab type.
+ * For notebooks (.macnb/.ipynb), creates a backend notebook and loads cells.
+ * For JSON files, creates a frontend-only plot tab.
+ */
+async function openFileAsTab(path: string): Promise<void> {
+  const result = await openFilePath(path);
+  const store = useNotebookStore.getState();
+
+  if (result.type === "plot") {
+    const title = path.split("/").pop()?.split("\\").pop() ?? "Plot";
+    const id = `plot-${crypto.randomUUID()}`;
+    store.addPlotTab(id, title, result.plotData, result.path);
+  } else {
+    // Create a backend notebook and load cells into it
+    const { notebook_id } = await nbCreate();
+    const title = path.split("/").pop()?.split("\\").pop() ?? "Untitled";
+    store.addTab(notebook_id, title);
+    store.setActiveTab(notebook_id);
+
+    const cells = result.notebook.cells
+      .filter((c) => c.cell_type !== "raw")
+      .map((c) => ({
+        id: crypto.randomUUID(),
+        cell_type: c.cell_type === "markdown" ? "markdown" : "code",
+        input: typeof c.source === "string" ? c.source : (c.source as string[]).join(""),
+      }));
+    await nbLoadCells(cells, notebook_id);
+    // nbLoadCells triggers a backend event that updates the store via notebook-state-changed
+
+    // Set file path so Save works
+    const storeAfterLoad = useNotebookStore.getState();
+    const tab = storeAfterLoad.notebooks[notebook_id];
+    if (tab && tab.type === "notebook") {
+      useNotebookStore.setState({
+        notebooks: {
+          ...storeAfterLoad.notebooks,
+          [notebook_id]: { ...tab, filePath: path, title, isDirty: false },
+        },
+      });
+    }
+  }
+}
+
+/**
  * Hook that listens for `notebook-state-changed` events from the backend
  * and applies them to the frontend Zustand store. Also handles debounced
  * input sync from local edits to the backend.
@@ -101,8 +146,24 @@ export function useNotebookEvents() {
     let ignore = false;
 
     if (isMainWindow()) {
-      // Main window: discover all existing notebooks from the backend
-      nbList().then((notebooks) => {
+      // Main window: check for CLI file arguments first
+      getInitialFileArgs().then(async (fileArgs) => {
+        if (ignore) return;
+
+        if (fileArgs && fileArgs.length > 0) {
+          // Open files from CLI args — don't create a default notebook
+          for (const path of fileArgs) {
+            try {
+              await openFileAsTab(path);
+            } catch (e) {
+              console.warn("Failed to open file from CLI:", path, e);
+            }
+          }
+          return;
+        }
+
+        // No file args: discover all existing notebooks from the backend
+        const notebooks = await nbList();
         if (ignore) return;
         const store = useNotebookStore.getState();
         for (const nb of notebooks) {
@@ -282,6 +343,26 @@ export function useNotebookEvents() {
     };
   }, []);
 
+  // --- Backend → Frontend: open files from second-instance CLI args ---
+  useEffect(() => {
+    const unlisten = listen<string[]>(
+      "open-files",
+      async (event) => {
+        for (const path of event.payload) {
+          try {
+            await openFileAsTab(path);
+          } catch (e) {
+            console.warn("Failed to open file:", path, e);
+          }
+        }
+      }
+    );
+
+    return () => {
+      unlisten.then((fn) => fn());
+    };
+  }, []);
+
   // --- Frontend → Backend: debounced input sync ---
   useEffect(() => {
     const unsubscribe = useNotebookStore.subscribe((state, prevState) => {
@@ -290,10 +371,11 @@ export function useNotebookEvents() {
       const tab = state.notebooks[nbId];
       const prevTab = prevState.notebooks[nbId];
       if (!tab || !prevTab) return;
+      if (tab.type !== "notebook" || prevTab.type !== "notebook") return;
 
       // Find cells with changed input
       for (const cell of tab.cells) {
-        const prev = prevTab.cells.find((c) => c.id === cell.id);
+        const prev = prevTab.cells.find((c: { id: string }) => c.id === cell.id);
         if (prev && prev.input !== cell.input) {
           markDirty(cell.id, cell.input);
         }

@@ -10,17 +10,27 @@ mod state;
 pub use aximar_core::suggestions;
 mod tauri_output;
 
-use tauri::Manager;
+use tauri::{Emitter, Manager};
 use state::AppState;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
-        .plugin(tauri_plugin_single_instance::init(|app, _argv, _cwd| {
+        .plugin(tauri_plugin_single_instance::init(|app, argv, _cwd| {
             // Focus the main window when user tries to launch a second instance
             if let Some(window) = app.get_webview_window("main") {
                 let _ = window.unminimize();
                 let _ = window.set_focus();
+
+                // Forward file arguments from the second instance to the running app
+                let file_args: Vec<String> = argv.iter()
+                    .skip(1) // skip program name
+                    .filter(|a| !a.starts_with('-'))
+                    .cloned()
+                    .collect();
+                if !file_args.is_empty() {
+                    let _ = window.emit("open-files", file_args);
+                }
             }
         }))
         .plugin(tauri_plugin_opener::init())
@@ -30,8 +40,17 @@ pub fn run() {
             menu::setup_menu(app)?;
             let state = app.state::<AppState>();
             let handle = app.handle().clone();
+
+            // Capture CLI file arguments (skip program name and flags)
+            let file_args: Vec<String> = std::env::args()
+                .skip(1)
+                .filter(|a| !a.starts_with('-'))
+                .collect();
             tauri::async_runtime::block_on(async {
                 *state.app_handle.lock().await = Some(handle);
+                if !file_args.is_empty() {
+                    *state.initial_file_args.lock().await = Some(file_args);
+                }
             });
 
             // Read MCP config in a single pass (persists generated defaults
@@ -47,6 +66,7 @@ pub fn run() {
                     app_handle: state.app_handle.clone(),
                     mcp_controller: state.mcp_controller.clone(),
                     app_log: state.app_log.clone(),
+                    initial_file_args: state.initial_file_args.clone(),
                 };
                 let ct = tokio_util::sync::CancellationToken::new();
                 let controller = state.mcp_controller.clone();
@@ -81,6 +101,7 @@ pub fn run() {
             commands::notebooks::get_template,
             commands::notebooks::save_notebook,
             commands::notebooks::open_notebook,
+            commands::notebooks::read_text_file,
             commands::config::get_has_seen_welcome,
             commands::config::set_has_seen_welcome,
             commands::config::get_config,
@@ -119,6 +140,7 @@ pub fn run() {
             commands::notebook::nb_list,
             commands::notebook::nb_set_active,
             commands::window::create_window,
+            commands::window::get_initial_file_args,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -35,7 +35,7 @@ pub fn write_binary_file(path: String, data: Vec<u8>) -> Result<(), String> {
 
 #[tauri::command]
 pub fn write_text_file(path: String, content: String) -> Result<(), String> {
-    validate_path(Path::new(&path), &["tex", "txt", "latex"])?;
+    validate_path(Path::new(&path), &["tex", "txt", "latex", "json"])?;
     fs::write(&path, &content).map_err(|e| format!("Failed to save file: {e}"))
 }
 

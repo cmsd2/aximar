@@ -8,6 +8,7 @@ export type CellStyle = "card" | "bracket";
 export type AutocompleteMode = "hint" | "snippet" | "active-hint";
 
 export interface NotebookTab {
+  type: "notebook";
   id: string;
   title: string;
   cells: Cell[];
@@ -23,8 +24,21 @@ export interface NotebookTab {
   pendingCursorMove: { cellId: string; pos: number } | null;
 }
 
+export interface PlotTab {
+  type: "plot";
+  id: string;
+  title: string;
+  filePath: string | null;
+  plotData: string;
+  isDirty: false;
+  closePending: boolean;
+}
+
+export type Tab = NotebookTab | PlotTab;
+
 function createDefaultTab(id: string): NotebookTab {
   return {
+    type: "notebook",
     id,
     title: "Untitled",
     cells: [],
@@ -42,7 +56,7 @@ function createDefaultTab(id: string): NotebookTab {
 }
 
 interface NotebookState {
-  notebooks: Record<string, NotebookTab>;
+  notebooks: Record<string, Tab>;
   activeNotebookId: string | null;
 
   // Global settings (not per-notebook)
@@ -52,6 +66,7 @@ interface NotebookState {
 
   // --- Tab lifecycle ---
   addTab: (id: string, title?: string) => void;
+  addPlotTab: (id: string, title: string, plotData: string, filePath: string | null) => void;
   removeTab: (id: string) => void;
   setActiveTab: (id: string) => void;
 
@@ -89,15 +104,26 @@ interface NotebookState {
   ) => void;
 }
 
-/** Update a single notebook tab within the state, returning updated notebooks map. */
-function updateTab(
-  notebooks: Record<string, NotebookTab>,
+/** Update a notebook tab within the state. No-ops for non-notebook tabs. */
+function updateNotebookTab(
+  notebooks: Record<string, Tab>,
   id: string,
   updater: (tab: NotebookTab) => Partial<NotebookTab>
-): Record<string, NotebookTab> {
+): Record<string, Tab> {
+  const tab = notebooks[id];
+  if (!tab || tab.type !== "notebook") return notebooks;
+  return { ...notebooks, [id]: { ...tab, ...updater(tab) } };
+}
+
+/** Update any tab (shared fields like closePending). */
+function updateAnyTab(
+  notebooks: Record<string, Tab>,
+  id: string,
+  updater: (tab: Tab) => Partial<Tab>
+): Record<string, Tab> {
   const tab = notebooks[id];
   if (!tab) return notebooks;
-  return { ...notebooks, [id]: { ...tab, ...updater(tab) } };
+  return { ...notebooks, [id]: { ...tab, ...updater(tab) } as Tab };
 }
 
 export const useNotebookStore = create<NotebookState>((set) => ({
@@ -118,6 +144,23 @@ export const useNotebookStore = create<NotebookState>((set) => ({
       return {
         notebooks,
         activeNotebookId: state.activeNotebookId ?? id,
+      };
+    }),
+
+  addPlotTab: (id: string, title: string, plotData: string, filePath: string | null) =>
+    set((state) => {
+      const tab: PlotTab = {
+        type: "plot",
+        id,
+        title,
+        plotData,
+        filePath,
+        isDirty: false,
+        closePending: false,
+      };
+      return {
+        notebooks: { ...state.notebooks, [id]: tab },
+        activeNotebookId: id,
       };
     }),
 
@@ -142,7 +185,7 @@ export const useNotebookStore = create<NotebookState>((set) => ({
       const nbId = state.activeNotebookId;
       if (!nbId) return state;
       return {
-        notebooks: updateTab(state.notebooks, nbId, (tab) => ({
+        notebooks: updateNotebookTab(state.notebooks, nbId, (tab) => ({
           cells: tab.cells.map((c) =>
             c.id === cellId ? { ...c, input } : c
           ),
@@ -156,9 +199,9 @@ export const useNotebookStore = create<NotebookState>((set) => ({
       const nbId = state.activeNotebookId;
       if (!nbId) return state;
       const tab = state.notebooks[nbId];
-      if (!tab || !tab.activeCellId) return state;
+      if (!tab || tab.type !== "notebook" || !tab.activeCellId) return state;
       return {
-        notebooks: updateTab(state.notebooks, nbId, (tab) => ({
+        notebooks: updateNotebookTab(state.notebooks, nbId, (tab) => ({
           cells: tab.cells.map((c) =>
             c.id === tab.activeCellId ? { ...c, input: c.input + text } : c
           ),
@@ -172,7 +215,7 @@ export const useNotebookStore = create<NotebookState>((set) => ({
       const nbId = state.activeNotebookId;
       if (!nbId) return state;
       return {
-        notebooks: updateTab(state.notebooks, nbId, () => ({
+        notebooks: updateNotebookTab(state.notebooks, nbId, () => ({
           sessionStatus: status,
         })),
       };
@@ -180,7 +223,7 @@ export const useNotebookStore = create<NotebookState>((set) => ({
 
   setSessionStatusForNotebook: (notebookId: string, status: SessionStatus) =>
     set((state) => ({
-      notebooks: updateTab(state.notebooks, notebookId, () => ({
+      notebooks: updateNotebookTab(state.notebooks, notebookId, () => ({
         sessionStatus: status,
       })),
     })),
@@ -195,7 +238,7 @@ export const useNotebookStore = create<NotebookState>((set) => ({
       const nbId = state.activeNotebookId;
       if (!nbId) return state;
       return {
-        notebooks: updateTab(state.notebooks, nbId, () => ({
+        notebooks: updateNotebookTab(state.notebooks, nbId, () => ({
           activeCellId: id,
         })),
       };
@@ -206,7 +249,7 @@ export const useNotebookStore = create<NotebookState>((set) => ({
       const nbId = state.activeNotebookId;
       if (!nbId) return state;
       return {
-        notebooks: updateTab(state.notebooks, nbId, () => ({
+        notebooks: updateNotebookTab(state.notebooks, nbId, () => ({
           selectedCellIds: ids,
         })),
       };
@@ -217,7 +260,7 @@ export const useNotebookStore = create<NotebookState>((set) => ({
       const nbId = state.activeNotebookId;
       if (!nbId) return state;
       return {
-        notebooks: updateTab(state.notebooks, nbId, () => ({
+        notebooks: updateNotebookTab(state.notebooks, nbId, () => ({
           selectedCellIds: [],
         })),
       };
@@ -228,7 +271,7 @@ export const useNotebookStore = create<NotebookState>((set) => ({
       const nbId = state.activeNotebookId;
       if (!nbId) return state;
       const tab = state.notebooks[nbId];
-      if (!tab) return state;
+      if (!tab || tab.type !== "notebook") return state;
 
       let newSelected: string[];
       if (range && tab.selectedCellIds.length > 0) {
@@ -245,7 +288,7 @@ export const useNotebookStore = create<NotebookState>((set) => ({
       }
 
       return {
-        notebooks: updateTab(state.notebooks, nbId, () => ({
+        notebooks: updateNotebookTab(state.notebooks, nbId, () => ({
           selectedCellIds: newSelected,
         })),
       };
@@ -259,7 +302,7 @@ export const useNotebookStore = create<NotebookState>((set) => ({
         ? (path.split("/").pop()?.split("\\").pop() ?? "Untitled")
         : "Untitled";
       return {
-        notebooks: updateTab(state.notebooks, nbId, () => ({
+        notebooks: updateNotebookTab(state.notebooks, nbId, () => ({
           filePath: path,
           title,
         })),
@@ -268,7 +311,7 @@ export const useNotebookStore = create<NotebookState>((set) => ({
 
   setClosePending: (notebookId: string, pending: boolean) =>
     set((state) => ({
-      notebooks: updateTab(state.notebooks, notebookId, () => ({
+      notebooks: updateAnyTab(state.notebooks, notebookId, () => ({
         closePending: pending,
       })),
     })),
@@ -278,7 +321,7 @@ export const useNotebookStore = create<NotebookState>((set) => ({
       const nbId = state.activeNotebookId;
       if (!nbId) return state;
       return {
-        notebooks: updateTab(state.notebooks, nbId, () => ({
+        notebooks: updateNotebookTab(state.notebooks, nbId, () => ({
           isDirty: false,
         })),
       };
@@ -289,7 +332,7 @@ export const useNotebookStore = create<NotebookState>((set) => ({
       const nbId = state.activeNotebookId;
       if (!nbId) return state;
       return {
-        notebooks: updateTab(state.notebooks, nbId, () => ({
+        notebooks: updateNotebookTab(state.notebooks, nbId, () => ({
           pendingCursorMove: move,
         })),
       };
@@ -300,7 +343,7 @@ export const useNotebookStore = create<NotebookState>((set) => ({
       const nbId = state.activeNotebookId;
       if (!nbId) return state;
       return {
-        notebooks: updateTab(state.notebooks, nbId, () => ({
+        notebooks: updateNotebookTab(state.notebooks, nbId, () => ({
           pendingCursorMove: null,
         })),
       };
@@ -316,7 +359,7 @@ export const useNotebookStore = create<NotebookState>((set) => ({
   ) =>
     set((state) => {
       const tab = state.notebooks[notebookId];
-      if (!tab) return state;
+      if (!tab || tab.type !== "notebook") return state;
 
       // Merge backend cells with local state, preserving local input edits.
       // For cell_input_updated events (echoes of frontend debounced syncs),
@@ -377,12 +420,23 @@ export const useNotebookStore = create<NotebookState>((set) => ({
 /** Stable fallback so selectors don't create new objects on every call. */
 const EMPTY_TAB: NotebookTab = Object.freeze(createDefaultTab("")) as NotebookTab;
 
-/** Return the active notebook tab, or a stable empty tab. */
+/** Return the active tab (any type), or null. */
+export function useActiveAnyTab(): Tab | null {
+  return useNotebookStore((s) => {
+    const id = s.activeNotebookId;
+    if (!id) return null;
+    return s.notebooks[id] ?? null;
+  });
+}
+
+/** Return the active notebook tab, or a stable empty tab. Non-notebook tabs return EMPTY_TAB. */
 export function useActiveTab(): NotebookTab {
   return useNotebookStore((s) => {
     const id = s.activeNotebookId;
     if (!id) return EMPTY_TAB;
-    return s.notebooks[id] ?? EMPTY_TAB;
+    const tab = s.notebooks[id];
+    if (!tab || tab.type !== "notebook") return EMPTY_TAB;
+    return tab;
   });
 }
 
@@ -401,5 +455,7 @@ export function getActiveTabState(): NotebookTab {
   const state = useNotebookStore.getState();
   const id = state.activeNotebookId;
   if (!id) return createDefaultTab("");
-  return state.notebooks[id] ?? createDefaultTab("");
+  const tab = state.notebooks[id];
+  if (!tab || tab.type !== "notebook") return createDefaultTab("");
+  return tab;
 }

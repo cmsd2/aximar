@@ -19,6 +19,8 @@ pub struct AppState {
     pub mcp_controller: Arc<McpController>,
     /// Buffered app-level log entries for frontend replay
     pub app_log: Arc<AppLog>,
+    /// File paths passed as CLI arguments on initial launch (taken once by frontend)
+    pub initial_file_args: Arc<Mutex<Option<Vec<String>>>>,
 }
 
 impl AppState {
@@ -31,6 +33,7 @@ impl AppState {
             app_handle: Arc::new(Mutex::new(None)),
             mcp_controller: Arc::new(McpController::new()),
             app_log: Arc::new(AppLog::new()),
+            initial_file_args: Arc::new(Mutex::new(None)),
         }
     }
 }
