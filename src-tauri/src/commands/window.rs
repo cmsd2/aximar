@@ -28,11 +28,12 @@ pub async fn create_window(
     Ok(label)
 }
 
-/// Return and consume the file paths passed as CLI arguments on initial launch.
-/// Returns `None` on all subsequent calls (take-once semantics).
+/// Return the file paths passed as CLI arguments on initial launch.
+/// Returns a clone each time — the React strict mode double-mount pattern
+/// requires the value to survive across mount/cleanup/remount cycles.
 #[tauri::command]
 pub async fn get_initial_file_args(
     state: tauri::State<'_, AppState>,
 ) -> Result<Option<Vec<String>>, String> {
-    Ok(state.initial_file_args.lock().await.take())
+    Ok(state.initial_file_args.lock().await.clone())
 }

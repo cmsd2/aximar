@@ -619,14 +619,22 @@
 .plot-viewer {
   flex: 1;
   display: flex;
+  flex-direction: column;
   padding: 16px;
   overflow: hidden;
+}
+
+.plot-viewer-toolbar {
+  display: flex;
+  gap: 8px;
+  padding-bottom: 12px;
+  flex-shrink: 0;
 }
 
 .plot-viewer .plotly-output {
   max-width: none;
   width: 100%;
-  height: 100%;
+  flex: 1;
   min-height: 0;
   margin: 0;
 }

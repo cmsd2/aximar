@@ -64,6 +64,13 @@ pub fn suggestions_for_output_with_packages(
             action: Some("save_plotly_png".into()),
             position: None,
         });
+        suggestions.push(Suggestion {
+            label: "Save JSON".into(),
+            template: String::new(),
+            description: "Save plot as Plotly JSON file".into(),
+            action: Some("save_plotly_json".into()),
+            position: None,
+        });
         return suggestions;
     }
 

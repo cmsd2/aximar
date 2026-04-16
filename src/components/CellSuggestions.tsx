@@ -5,6 +5,7 @@ import Plotly from "plotly.js-dist-min";
 import { useActiveTab, useNotebookStore } from "../store/notebookStore";
 import { useMaxima } from "../hooks/useMaxima";
 import { getSuggestions } from "../lib/suggestions-client";
+import { savePlotFile } from "../lib/notebooks-client";
 import { nbAddCell } from "../lib/notebook-commands";
 import type { Suggestion } from "../types/suggestions";
 import type { Cell } from "../types/notebook";
@@ -33,6 +34,8 @@ export function CellSuggestions({ cell }: CellSuggestionsProps) {
         if (path) {
           await invoke("write_plot_svg", { path, content: cell.output.plotSvg });
         }
+      } else if (action === "save_plotly_json" && cell.output?.plotData) {
+        await savePlotFile(cell.output.plotData, null);
       } else if (
         (action === "save_plotly_svg" || action === "save_plotly_png") &&
         cell.output?.plotData

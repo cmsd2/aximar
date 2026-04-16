@@ -5,7 +5,6 @@ import { RichTextOutput } from "./RichTextOutput";
 import { EnhancedErrorOutput } from "./EnhancedErrorOutput";
 import { sanitizeSvg } from "../lib/sanitize-svg";
 import { PlotlyChart } from "./PlotlyChart";
-import { savePlotFile } from "../lib/notebooks-client";
 
 interface CellOutputProps {
   output: CellOutputType;
@@ -61,7 +60,7 @@ export function CellOutput({ output, cellId }: CellOutputProps) {
 
   return (
     <div className="cell-output">
-      {(hasLatex || hasText || hasPlot || hasPlotData) && (
+      {(hasLatex || hasText || hasPlot) && (
         <div className="copy-actions">
           {hasLatex && (
             <button
@@ -79,15 +78,6 @@ export function CellOutput({ output, cellId }: CellOutputProps) {
               title="Copy Maxima expression"
             >
               {copiedBtn === "text" ? "Copied!" : "Copy"}
-            </button>
-          )}
-          {hasPlotData && (
-            <button
-              className="copy-btn"
-              onClick={() => savePlotFile(output.plotData!, null)}
-              title="Save plot as Plotly JSON"
-            >
-              Save JSON
             </button>
           )}
         </div>
