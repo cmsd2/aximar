@@ -5,6 +5,15 @@ All notable changes to the standalone Maxima language tools are documented here.
 This changelog covers releases tagged `tools-v*`. For the Aximar desktop app,
 see the `v*` releases on GitHub.
 
+## [0.3.1] — 2026-04-17
+
+### aximar-core
+
+- **Fixed doc-index loading**: When both a full and slim doc-index exist for
+  the same package (e.g. `maxima-core-docs`), the full version is now preferred.
+  Previously, non-deterministic directory iteration order could cause the slim
+  variant to overwrite the full docs.
+
 ## [0.3.0] — 2026-04-17
 
 ### maxima-lsp
@@ -121,6 +130,7 @@ Initial standalone release of the Maxima language tools.
 - Dangerous function safety gates
 - Structured JSON startup output for VS Code integration
 
+[0.3.1]: https://github.com/cmsd2/aximar/releases/tag/tools-v0.3.1
 [0.3.0]: https://github.com/cmsd2/aximar/releases/tag/tools-v0.3.0
 [0.2.2]: https://github.com/cmsd2/aximar/releases/tag/tools-v0.2.2
 [0.2.1]: https://github.com/cmsd2/aximar/releases/tag/tools-v0.2.1
