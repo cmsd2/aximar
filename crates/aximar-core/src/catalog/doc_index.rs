@@ -193,7 +193,16 @@ impl DocIndexStore {
             return;
         }
 
-        let mut file_count = 0u32;
+        use std::collections::HashMap as StdHashMap;
+
+        // Collect doc-index files, pairing slim variants with their full
+        // counterparts. For each base stem we load the full file if present,
+        // falling back to the slim variant.
+        //
+        // Stem is derived by stripping `-slim-doc-index.json` or
+        // `-doc-index.json` from the filename.
+        let mut by_stem: StdHashMap<String, (Option<std::path::PathBuf>, Option<std::path::PathBuf>)> =
+            StdHashMap::new();
 
         let entries = match std::fs::read_dir(&userdir) {
             Ok(e) => e,
@@ -218,24 +227,39 @@ impl DocIndexStore {
 
             for file_entry in doc_entries.flatten() {
                 let file_name = file_entry.file_name();
-                let name = file_name.to_string_lossy();
+                let name = file_name.to_string_lossy().to_string();
                 if !name.ends_with("-doc-index.json") {
                     continue;
                 }
 
                 let path = file_entry.path();
-                match load_doc_index(&path) {
-                    Ok(index) => {
-                        self.ingest_index(index);
-                        file_count += 1;
-                    }
-                    Err(e) => {
-                        eprintln!(
-                            "[doc-index] Failed to load {}: {}",
-                            path.display(),
-                            e
-                        );
-                    }
+                if let Some(stem) = name.strip_suffix("-slim-doc-index.json") {
+                    by_stem.entry(stem.to_string()).or_default().0 = Some(path);
+                } else if let Some(stem) = name.strip_suffix("-doc-index.json") {
+                    by_stem.entry(stem.to_string()).or_default().1 = Some(path);
+                }
+            }
+        }
+
+        let mut file_count = 0u32;
+        for (_stem, (slim, full)) in &by_stem {
+            // Prefer full doc-index; fall back to slim
+            let path = full.as_ref().or(slim.as_ref());
+            let path = match path {
+                Some(p) => p,
+                None => continue,
+            };
+            match load_doc_index(path) {
+                Ok(index) => {
+                    self.ingest_index(index);
+                    file_count += 1;
+                }
+                Err(e) => {
+                    eprintln!(
+                        "[doc-index] Failed to load {}: {}",
+                        path.display(),
+                        e
+                    );
                 }
             }
         }
