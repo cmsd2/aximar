@@ -5,6 +5,26 @@ All notable changes to the standalone Maxima language tools are documented here.
 This changelog covers releases tagged `tools-v*`. For the Aximar desktop app,
 see the `v*` releases on GitHub.
 
+## [0.3.0] — 2026-04-17
+
+### maxima-lsp
+
+- **Doc-index support**: Load `doc-index.json` from installed packages
+  (`~/.maxima/*/doc/`) for hover docs, completions, and signature help.
+- **Auto-reload**: File watcher detects when packages are installed or removed
+  and reloads doc-index data automatically.
+
+### aximar-core
+
+- **Fixed polar plot JSON**: `simplode([], ",")` returns `false` in Maxima;
+  empty `polar_parts` now correctly produces `"polar":{}`.
+- **Added `save_plotly_json` suggestion**: Plotly plot outputs now offer a
+  "Save JSON" suggestion chip.
+
+### aximar-mcp
+
+- Inherits aximar-core fixes above.
+
 ## [0.2.2] — 2026-04-14
 
 ### aximar-core
@@ -101,6 +121,7 @@ Initial standalone release of the Maxima language tools.
 - Dangerous function safety gates
 - Structured JSON startup output for VS Code integration
 
+[0.3.0]: https://github.com/cmsd2/aximar/releases/tag/tools-v0.3.0
 [0.2.2]: https://github.com/cmsd2/aximar/releases/tag/tools-v0.2.2
 [0.2.1]: https://github.com/cmsd2/aximar/releases/tag/tools-v0.2.1
 [0.2.0]: https://github.com/cmsd2/aximar/releases/tag/tools-v0.2.0
