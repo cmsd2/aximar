@@ -34,6 +34,7 @@ pub fn parse_xml(xml: &str, log_unmapped: bool, min_description: usize) -> Vec<M
 /// Parse a Maxima Texinfo XML document and extract full Markdown documentation per function.
 ///
 /// Returns a map of function name → Markdown string.
+#[allow(dead_code)]
 pub fn parse_xml_docs(xml: &str) -> HashMap<String, String> {
     let xml = replace_texinfo_entities(xml);
     let opts = ParsingOptions {
@@ -48,6 +49,7 @@ pub fn parse_xml_docs(xml: &str) -> HashMap<String, String> {
     docs
 }
 
+#[allow(dead_code)]
 fn collect_docs(node: Node, docs: &mut HashMap<String, String>) {
     for child in node.children() {
         if child.is_element() {

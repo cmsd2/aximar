@@ -16,7 +16,6 @@ use clap::{Parser, Subcommand};
 const MAXIMA_GIT_URL: &str = "https://git.code.sf.net/p/maxima/code";
 const MAXIMA_TEXI_REL: &str = "doc/info/maxima.texi";
 const CATALOG_REL: &str = "crates/aximar-core/src/catalog/catalog.json";
-const DOCS_REL: &str = "crates/aximar-core/src/catalog/docs.json";
 const PACKAGES_REL: &str = "crates/aximar-core/src/catalog/packages.json";
 const FIGURES_REL: &str = "public/figures";
 const SECCOMP_REL: &str = "docker/seccomp.json";
@@ -52,10 +51,6 @@ enum Commands {
         /// Output path for catalog.json [default: <workspace>/src-tauri/src/catalog/catalog.json]
         #[arg(short, long)]
         output: Option<PathBuf>,
-
-        /// Output path for docs.json [default: <workspace>/src-tauri/src/catalog/docs.json]
-        #[arg(long)]
-        docs_output: Option<PathBuf>,
 
         /// Merge with an existing catalog (hand-written entries take priority).
         /// Uses the output path as the merge source.
@@ -144,10 +139,6 @@ enum Commands {
         #[arg(short, long)]
         output: Option<PathBuf>,
 
-        /// Output path for docs.json [default: <workspace>/src-tauri/src/catalog/docs.json]
-        #[arg(long)]
-        docs_output: Option<PathBuf>,
-
         /// Merge with an existing catalog (hand-written entries take priority).
         /// Uses the output path as the merge source.
         #[arg(long)]
@@ -171,13 +162,11 @@ fn main() {
             maxima_src,
             git_ref,
             output,
-            docs_output,
             merge,
             quiet,
             min_description,
         } => {
             let output = resolve_output(output, CATALOG_REL);
-            let docs_output = resolve_output(docs_output, DOCS_REL);
             let log_unmapped = !quiet;
             let merge_path = if merge { Some(output.clone()) } else { None };
 
@@ -203,10 +192,6 @@ fn main() {
             let xml = read_file(&xml_path);
             let functions = parse_and_merge(&xml, merge_path.as_deref(), log_unmapped, min_description);
             write_catalog(&functions, &output);
-
-            // Generate docs.json
-            let docs = parser::parse_xml_docs(&xml);
-            write_docs(&docs, &docs_output);
 
             // Copy figures
             let figures_src = src_dir.join("doc/info/figures");
@@ -254,14 +239,9 @@ fn main() {
                 let shown = results.len().min(limit);
                 println!("Top {} results for \"{}\":\n", shown, query);
                 for r in results.iter().take(limit) {
-                    let sig = r.function.signatures.first().map(|s| s.as_str()).unwrap_or(&r.function.name);
-                    println!("  {} (score: {:.0}, category: {})", sig, r.score, r.function.category.label());
-                    // Show search keywords if present
-                    if !r.function.search_keywords.is_empty() {
-                        println!("    keywords: {}", r.function.search_keywords);
-                    }
+                    println!("  {} (score: {:.0})", r.signature, r.score);
                     // Truncate long descriptions
-                    let desc = &r.function.description;
+                    let desc = &r.summary;
                     if desc.len() > 120 {
                         println!("    {}...\n", &desc[..120]);
                     } else {
@@ -392,23 +372,17 @@ fn main() {
         Commands::FromXml {
             input,
             output,
-            docs_output,
             merge,
             quiet,
             min_description,
         } => {
             let output = resolve_output(output, CATALOG_REL);
-            let docs_output = resolve_output(docs_output, DOCS_REL);
             let log_unmapped = !quiet;
             let merge_path = if merge { Some(output.clone()) } else { None };
 
             let xml = read_file(&input);
             let functions = parse_and_merge(&xml, merge_path.as_deref(), log_unmapped, min_description);
             write_catalog(&functions, &output);
-
-            // Generate docs.json
-            let docs = parser::parse_xml_docs(&xml);
-            write_docs(&docs, &docs_output);
         }
     }
 }
@@ -711,19 +685,6 @@ fn write_catalog(functions: &[MaximaFunction], output: &Path) {
         fatal(&format!("Error writing {}: {e}", output.display()));
     });
     eprintln!("Wrote {} functions to {}", functions.len(), output.display());
-}
-
-fn write_docs(docs: &HashMap<String, String>, output: &Path) {
-    // Sort keys for stable output
-    let mut sorted: std::collections::BTreeMap<&str, &str> = std::collections::BTreeMap::new();
-    for (k, v) in docs {
-        sorted.insert(k.as_str(), v.as_str());
-    }
-    let json = serde_json::to_string_pretty(&sorted).expect("failed to serialize docs");
-    fs::write(output, &json).unwrap_or_else(|e| {
-        fatal(&format!("Error writing {}: {e}", output.display()));
-    });
-    eprintln!("Wrote {} doc entries to {}", docs.len(), output.display());
 }
 
 fn copy_figures(src: &Path, dest: &Path) {

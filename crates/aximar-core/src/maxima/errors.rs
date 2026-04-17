@@ -116,8 +116,8 @@ fn check_arg_count(raw: &str, catalog: &Catalog) -> Option<ErrorInfo> {
     let func_name = caps.get(2)?.as_str();
 
     let correct_signatures = catalog
-        .get(func_name)
-        .map(|f| f.signatures.clone())
+        .signature_info(func_name)
+        .map(|sigs| sigs.into_iter().map(|(sig, _, _)| sig).collect::<Vec<_>>())
         .unwrap_or_default();
 
     let explanation = format!(
@@ -163,8 +163,6 @@ fn check_undefined_function(
     catalog: &Catalog,
     packages: Option<&PackageCatalog>,
 ) -> Option<ErrorInfo> {
-    // Maxima says things like "funcall: no such function: intgrate" or
-    // "The function intgrate is not known to Maxima"
     let patterns = [&*UNDEFINED_FUNC_RE_1, &*UNDEFINED_FUNC_RE_2];
 
     for re in patterns {

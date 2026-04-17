@@ -1,6 +1,5 @@
 use std::collections::HashSet;
 
-use aximar_core::catalog::doc_index::DocIndexStore;
 use aximar_core::catalog::packages::PackageCatalog;
 use aximar_core::catalog::search::Catalog;
 use dashmap::DashMap;
@@ -12,7 +11,6 @@ use crate::document::DocumentState;
 pub fn completions(
     prefix: &str,
     catalog: &Catalog,
-    doc_index: &DocIndexStore,
     packages: &PackageCatalog,
     documents: &DashMap<Url, DocumentState>,
     _current_uri: &Url,
@@ -20,13 +18,18 @@ pub fn completions(
     let mut items = Vec::new();
     let mut seen = HashSet::new();
 
-    // 1. Catalog completions (built-in functions)
+    // 1. Catalog completions (includes core + installed packages via doc-index)
     for cr in catalog.complete(prefix) {
         if seen.insert(cr.name.clone()) {
+            let detail = if let Some(pkg) = &cr.package {
+                format!("{} ({})", cr.signature, pkg)
+            } else {
+                cr.signature.clone()
+            };
             items.push(CompletionItem {
                 label: cr.name.clone(),
                 kind: Some(CompletionItemKind::FUNCTION),
-                detail: Some(cr.signature.clone()),
+                detail: Some(detail),
                 documentation: if cr.description.is_empty() {
                     None
                 } else {
@@ -41,7 +44,7 @@ pub fn completions(
         }
     }
 
-    // 2. Package function completions
+    // 2. Package function completions (deduped)
     for cr in packages.complete_functions(prefix) {
         if seen.insert(cr.name.clone()) {
             let detail = if let Some(pkg) = &cr.package {
@@ -67,33 +70,7 @@ pub fn completions(
         }
     }
 
-    // 3. Doc index completions (installed packages)
-    for cr in doc_index.complete(prefix) {
-        if seen.insert(cr.name.clone()) {
-            let detail = if let Some(pkg) = &cr.package {
-                format!("{} ({})", cr.signature, pkg)
-            } else {
-                cr.signature.clone()
-            };
-            items.push(CompletionItem {
-                label: cr.name.clone(),
-                kind: Some(CompletionItemKind::FUNCTION),
-                detail: Some(detail),
-                documentation: if cr.description.is_empty() {
-                    None
-                } else {
-                    Some(Documentation::MarkupContent(MarkupContent {
-                        kind: MarkupKind::Markdown,
-                        value: cr.description.clone(),
-                    }))
-                },
-                insert_text: Some(cr.insert_text.clone()),
-                ..Default::default()
-            });
-        }
-    }
-
-    // 4. Document symbol completions (user-defined functions/variables)
+    // 3. Document symbol completions (user-defined functions/variables)
     for entry in documents.iter() {
         for item in &entry.value().parsed.items {
             let (name, kind) = match item {

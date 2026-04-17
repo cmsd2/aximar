@@ -295,9 +295,9 @@ fn extract_description(mac_path: &Path, name: &str, catalog: &Catalog) -> String
     if let Some(first) = results.first() {
         // Only use if the catalog entry name doesn't exactly match (which would be a built-in)
         // OR if the description mentions "package" or "library"
-        let desc_lower = first.function.description.to_lowercase();
+        let desc_lower = first.summary.to_lowercase();
         if desc_lower.contains("package") || desc_lower.contains("library") {
-            return first_sentence(&first.function.description);
+            return first_sentence(&first.summary);
         }
     }
 

@@ -61,7 +61,6 @@ pub fn run() {
                 let mcp_state = AppState {
                     registry: state.registry.clone(),
                     catalog: state.catalog.clone(),
-                    docs: state.docs.clone(),
                     packages: state.packages.clone(),
                     app_handle: state.app_handle.clone(),
                     mcp_controller: state.mcp_controller.clone(),

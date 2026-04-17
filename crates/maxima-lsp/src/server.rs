@@ -1,7 +1,7 @@
+use std::path::Path;
 use std::sync::{Arc, RwLock};
 
-use aximar_core::catalog::doc_index::{self, DocIndexStore};
-use aximar_core::catalog::docs::Docs;
+use aximar_core::catalog::doc_index;
 use aximar_core::catalog::packages::PackageCatalog;
 use aximar_core::catalog::search::Catalog;
 use dashmap::DashMap;
@@ -22,33 +22,27 @@ use crate::symbols;
 
 pub struct MaximaLsp {
     client: Client,
-    catalog: Arc<Catalog>,
-    docs: Arc<Docs>,
-    doc_index: RwLock<Arc<DocIndexStore>>,
+    catalog: RwLock<Arc<Catalog>>,
     packages: Arc<PackageCatalog>,
     documents: DashMap<Url, DocumentState>,
 }
 
 impl MaximaLsp {
     pub fn new(client: Client) -> Self {
-        let catalog = Arc::new(Catalog::load());
-        let docs = Arc::new(Docs::load());
-        let doc_index = RwLock::new(Arc::new(DocIndexStore::load()));
+        let catalog = RwLock::new(Arc::new(Catalog::load()));
         let packages = Arc::new(PackageCatalog::load());
-        tracing::info!("Loaded function catalog, documentation, and packages");
+        tracing::info!("Loaded function catalog and packages");
         Self {
             client,
             catalog,
-            docs,
-            doc_index,
             packages,
             documents: DashMap::new(),
         }
     }
 
-    /// Snapshot the current doc index (cheap Arc clone).
-    fn doc_index(&self) -> Arc<DocIndexStore> {
-        self.doc_index.read().unwrap().clone()
+    /// Snapshot the current catalog (cheap Arc clone).
+    fn catalog(&self) -> Arc<Catalog> {
+        self.catalog.read().unwrap().clone()
     }
 
     async fn on_change(&self, uri: Url, content: String, version: i32) {
@@ -166,10 +160,10 @@ impl LanguageServer for MaximaLsp {
     }
 
     async fn did_change_watched_files(&self, _params: DidChangeWatchedFilesParams) {
-        tracing::info!("[doc-index] Reloading installed package docs...");
-        match tokio::task::spawn_blocking(DocIndexStore::load).await {
-            Ok(store) => {
-                *self.doc_index.write().unwrap() = Arc::new(store);
+        tracing::info!("[doc-index] Reloading catalog (re-ingests runtime doc-indexes)...");
+        match tokio::task::spawn_blocking(Catalog::load).await {
+            Ok(catalog) => {
+                *self.catalog.write().unwrap() = Arc::new(catalog);
             }
             Err(e) => {
                 tracing::warn!("[doc-index] Reload failed: {e}");
@@ -196,11 +190,10 @@ impl LanguageServer for MaximaLsp {
             return Ok(None);
         }
 
-        let doc_index = self.doc_index();
+        let catalog = self.catalog();
         let items = completion::completions(
             &prefix,
-            &self.catalog,
-            &doc_index,
+            &catalog,
             &self.packages,
             &self.documents,
             &uri,
@@ -227,12 +220,10 @@ impl LanguageServer for MaximaLsp {
             None => return Ok(None),
         };
 
-        let doc_index = self.doc_index();
+        let catalog = self.catalog();
         Ok(hover::hover_info(
             &word,
-            &self.catalog,
-            &self.docs,
-            &doc_index,
+            &catalog,
             &self.packages,
             &self.documents,
         ))
@@ -257,12 +248,11 @@ impl LanguageServer for MaximaLsp {
             None => return Ok(None),
         };
 
-        let doc_index = self.doc_index();
+        let catalog = self.catalog();
         Ok(signature::signature_help(
             &func_name,
             active_param,
-            &self.catalog,
-            &doc_index,
+            &catalog,
             &self.packages,
             &self.documents,
         ))
@@ -402,46 +392,11 @@ impl LanguageServer for MaximaLsp {
                     .and_then(|v| v.as_str())
                     .unwrap_or("");
 
+                let catalog = self.catalog();
                 let mut results = Vec::new();
 
-                // Search the built-in catalog (BM25 ranked)
-                for sr in self.catalog.search(query) {
-                    let sig = sr.function.signatures.first().cloned().unwrap_or_default();
-                    results.push(serde_json::json!({
-                        "name": sr.function.name,
-                        "signature": sig,
-                        "description": sr.function.description,
-                        "category": sr.function.category,
-                        "score": sr.score,
-                        "package": null,
-                    }));
-                }
-
-                // Search package functions
-                for pfr in self.packages.search_functions(query) {
-                    results.push(serde_json::json!({
-                        "name": pfr.function_name,
-                        "signature": pfr.signature,
-                        "description": pfr.package_description,
-                        "category": null,
-                        "score": pfr.score,
-                        "package": pfr.package_name,
-                    }));
-                }
-
-                // Search installed package doc indexes (BM25 over names + summaries)
-                let doc_index = self.doc_index();
-                for dr in doc_index.search(query) {
-                    // Skip if already present from catalog or packages
-                    let name_lower = dr.name.to_lowercase();
-                    let already = results.iter().any(|r| {
-                        r.get("name")
-                            .and_then(|n| n.as_str())
-                            .is_some_and(|n| n.to_lowercase() == name_lower)
-                    });
-                    if already {
-                        continue;
-                    }
+                // Search catalog (wraps doc-index: includes core + installed packages)
+                for dr in catalog.search(query) {
                     results.push(serde_json::json!({
                         "name": dr.name,
                         "signature": dr.signature,
@@ -450,6 +405,23 @@ impl LanguageServer for MaximaLsp {
                         "score": dr.score,
                         "package": dr.package,
                     }));
+                }
+
+                // Search package functions (deduped)
+                let existing: std::collections::HashSet<String> =
+                    results.iter().filter_map(|r| r.get("name")?.as_str().map(|n| n.to_lowercase())).collect();
+                for pfr in self.packages.search_functions(query) {
+                    let name_lower = pfr.function_name.to_lowercase();
+                    if !existing.contains(&name_lower) {
+                        results.push(serde_json::json!({
+                            "name": pfr.function_name,
+                            "signature": pfr.signature,
+                            "description": pfr.package_description,
+                            "category": null,
+                            "score": pfr.score,
+                            "package": pfr.package_name,
+                        }));
+                    }
                 }
 
                 results.truncate(50);
@@ -468,60 +440,86 @@ impl LanguageServer for MaximaLsp {
                     return Err(jsonrpc::Error::invalid_params("missing 'name'"));
                 }
 
-                // Try full markdown docs first
-                let full_docs = self.docs.get(name).map(|s| s.to_string());
+                let catalog = self.catalog();
 
-                // Try catalog entry
-                let cat_entry = self.catalog.get(name);
-
-                // Try installed package doc index
-                let doc_index = self.doc_index();
-                let idx_entry = doc_index.get(name);
-
-                // Build the response, preferring catalog, falling back to doc index
-                let result = if let Some(func) = cat_entry {
-                    let package = self.packages.package_for_function(name).map(|s| s.to_string());
-                    serde_json::json!({
-                        "name": func.name,
-                        "signatures": func.signatures,
-                        "description": func.description,
-                        "category": func.category,
-                        "examples": func.examples,
-                        "see_also": func.see_also,
-                        "full_docs": full_docs,
-                        "package": package,
-                    })
-                } else if let Some((pkg, entry)) = idx_entry {
-                    serde_json::json!({
+                if let Some((pkg, entry)) = catalog.get(name) {
+                    let mut all_sigs = vec![entry.signature.clone()];
+                    for alt in &entry.signatures {
+                        if !all_sigs.contains(alt) {
+                            all_sigs.push(alt.clone());
+                        }
+                    }
+                    let full_docs = if entry.body_md.is_empty() {
+                        None
+                    } else {
+                        let md = entry.body_md.clone();
+                        // Inline relative image references as base64 data URIs
+                        let doc_dir = doc_index::maxima_userdir()
+                            .map(|d| d.join(pkg).join("doc"));
+                        Some(inline_images(&md, doc_dir.as_deref()))
+                    };
+                    return Ok(Some(serde_json::json!({
                         "name": name,
-                        "signatures": [entry.signature],
+                        "signatures": all_sigs,
                         "description": entry.summary,
-                        "category": null,
+                        "category": entry.category,
                         "examples": entry.examples,
                         "see_also": entry.see_also,
-                        "full_docs": if entry.body_md.is_empty() { full_docs } else { Some(entry.body_md.clone()) },
+                        "full_docs": full_docs,
                         "package": pkg,
-                    })
-                } else if let Some(docs) = full_docs {
-                    // Only have raw markdown docs
-                    serde_json::json!({
-                        "name": name,
-                        "signatures": [],
-                        "description": "",
-                        "category": null,
-                        "examples": [],
-                        "see_also": [],
-                        "full_docs": docs,
-                        "package": null,
-                    })
-                } else {
-                    return Err(jsonrpc::Error::new(jsonrpc::ErrorCode::InvalidRequest));
-                };
+                    })));
+                }
 
-                Ok(Some(result))
+                Err(jsonrpc::Error::new(jsonrpc::ErrorCode::InvalidRequest))
             }
 
             _ => Err(jsonrpc::Error::method_not_found()),
         }
     }
+}
+
+/// Replace relative markdown image references with inline base64 data URIs.
+///
+/// Matches `![alt](path)` where path is a relative path, reads the file from
+/// `doc_dir/path`, and replaces it with `![alt](data:image/<ext>;base64,...)`.
+fn inline_images(md: &str, doc_dir: Option<&Path>) -> String {
+    use base64::Engine;
+
+    let doc_dir = match doc_dir {
+        Some(d) if d.is_dir() => d,
+        _ => return md.to_string(),
+    };
+
+    let re = regex::Regex::new(r"!\[([^\]]*)\]\(([^)]+)\)").unwrap();
+    re.replace_all(md, |caps: &regex::Captures| {
+        let alt = &caps[1];
+        let src = &caps[2];
+
+        // Skip absolute URLs and data URIs
+        if src.starts_with("http://") || src.starts_with("https://") || src.starts_with("data:") {
+            return caps[0].to_string();
+        }
+
+        let file_path = doc_dir.join(src);
+        match std::fs::read(&file_path) {
+            Ok(bytes) => {
+                let ext = file_path
+                    .extension()
+                    .and_then(|e| e.to_str())
+                    .unwrap_or("png");
+                let mime = match ext {
+                    "png" => "image/png",
+                    "jpg" | "jpeg" => "image/jpeg",
+                    "gif" => "image/gif",
+                    "svg" => "image/svg+xml",
+                    "webp" => "image/webp",
+                    _ => "image/png",
+                };
+                let b64 = base64::engine::general_purpose::STANDARD.encode(&bytes);
+                format!("![{alt}](data:{mime};base64,{b64})")
+            }
+            Err(_) => caps[0].to_string(),
+        }
+    })
+    .to_string()
 }

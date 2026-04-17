@@ -6,7 +6,6 @@ use tokio::sync::Mutex;
 use rmcp::handler::server::ServerHandler;
 use rmcp::ServiceExt;
 
-use aximar_core::catalog::docs::Docs;
 use aximar_core::catalog::packages::PackageCatalog;
 use aximar_core::catalog::search::Catalog;
 use aximar_core::registry::NotebookRegistry;
@@ -56,11 +55,10 @@ async fn main() -> anyhow::Result<()> {
         tracing::warn!("--allow-dangerous: dangerous functions (system, batch, etc.) will be allowed without approval");
     }
 
-    // Load catalog, docs, and packages
+    // Load catalog (wraps doc-index) and packages
     let catalog = Arc::new(Catalog::load());
-    let docs = Arc::new(Docs::load());
     let packages = Arc::new(PackageCatalog::load());
-    tracing::info!("Loaded function catalog, documentation, and packages");
+    tracing::info!("Loaded function catalog and packages");
 
     // Read configuration from environment
     let backend = config::backend_from_env();
@@ -74,7 +72,6 @@ async fn main() -> anyhow::Result<()> {
     let core = ServerCore::new(
         registry,
         catalog,
-        docs,
         packages,
         backend,
         maxima_path,

@@ -97,7 +97,6 @@ pub async fn start_mcp_server(state: AppState, listen_address: String, token: St
     let server = AximarMcpServer::new_connected(
         state.registry.clone(),
         state.catalog.clone(),
-        state.docs.clone(),
         state.packages.clone(),
         backend,
         maxima_path,

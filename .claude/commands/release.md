@@ -24,6 +24,7 @@ Releases the standalone language tools (`maxima-lsp`, `maxima-dap`, `aximar-mcp`
 2. Verify working tree is clean.
 3. Read current versions from `crates/maxima-lsp/Cargo.toml` and `crates/maxima-dap/Cargo.toml` (these two always share a version) and `crates/aximar-mcp/Cargo.toml` (may differ).
 4. Confirm the tag `tools-v<version>` does not already exist.
+5. Check that `Cargo.toml` does **not** contain a `[patch.crates-io]` section. If it does, abort with a message telling the user to remove the local path overrides and switch to versioned crates.io dependencies before releasing.
 
 ### Steps
 
@@ -75,6 +76,7 @@ Releases the Aximar desktop app (Tauri). CI builds are triggered by `v*` tags vi
 2. Verify working tree is clean.
 3. Read current version from `package.json`.
 4. Confirm the tag `v<version>` does not already exist.
+5. Check that `Cargo.toml` does **not** contain a `[patch.crates-io]` section. If it does, abort with a message telling the user to remove the local path overrides and switch to versioned crates.io dependencies before releasing.
 
 ### Steps
 

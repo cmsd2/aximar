@@ -3,7 +3,6 @@ use std::sync::Arc;
 use rmcp::handler::server::wrapper::Parameters;
 use tokio::sync::Mutex;
 
-use aximar_core::catalog::docs::Docs;
 use aximar_core::catalog::packages::PackageCatalog;
 use aximar_core::catalog::search::Catalog;
 use aximar_core::maxima::backend::Backend;
@@ -16,7 +15,6 @@ fn build_server() -> AximarMcpServer {
     AximarMcpServer::new(
         Arc::new(Mutex::new(NotebookRegistry::new())),
         Arc::new(Catalog::load()),
-        Arc::new(Docs::load()),
         Arc::new(PackageCatalog::load()),
         Backend::Local,
         None,
@@ -29,7 +27,6 @@ fn build_server_allow_dangerous() -> AximarMcpServer {
     AximarMcpServer::new(
         Arc::new(Mutex::new(NotebookRegistry::new())),
         Arc::new(Catalog::load()),
-        Arc::new(Docs::load()),
         Arc::new(PackageCatalog::load()),
         Backend::Local,
         None,

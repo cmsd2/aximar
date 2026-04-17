@@ -2557,8 +2557,10 @@ name = "maxima-lsp"
 version = "0.2.2"
 dependencies = [
  "aximar-core",
+ "base64 0.22.1",
  "dashmap 6.1.0",
  "maxima-mac-parser",
+ "regex",
  "serde",
  "serde_json",
  "tokio",
