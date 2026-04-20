@@ -21,8 +21,12 @@ pub async fn evaluate(
 ) -> Result<EvalResult, AppError> {
     let start = Instant::now();
 
-    // Ensure the expression is properly terminated for Maxima
-    let expr = expression.trim();
+    // Strip trailing comments that follow the last terminator, then ensure
+    // the expression ends with `;` or `$`.
+    let expr = strip_trailing_comments(expression.trim());
+    if expr.is_empty() {
+        return Err(AppError::EmptyInput);
+    }
     let expr = if expr.ends_with(';') || expr.ends_with('$') {
         expr.to_string()
     } else {
@@ -75,7 +79,10 @@ pub async fn evaluate_with_packages(
 ) -> Result<EvalResult, AppError> {
     let start = Instant::now();
 
-    let expr = expression.trim();
+    let expr = strip_trailing_comments(expression.trim());
+    if expr.is_empty() {
+        return Err(AppError::EmptyInput);
+    }
     let expr = if expr.ends_with(';') || expr.ends_with('$') {
         expr.to_string()
     } else {
@@ -244,6 +251,27 @@ fn is_internal_variable(name: &str) -> bool {
     INTERNAL_VARS.contains(&name) || name.starts_with("ax__")
 }
 
+/// Strip trailing block comments and whitespace that appear after the last
+/// statement terminator. Without this, `det_H : determinant(H); /* comment */`
+/// would cause a Maxima parse error because the comment is sent as unterminated
+/// input.
+fn strip_trailing_comments(expr: &str) -> &str {
+    let mut s = expr.trim_end();
+    loop {
+        if s.ends_with("*/") {
+            // Find matching /*
+            if let Some(start) = s[..s.len() - 2].rfind("/*") {
+                s = s[..start].trim_end();
+            } else {
+                break; // Unmatched */ — leave as-is
+            }
+        } else {
+            break;
+        }
+    }
+    s
+}
+
 /// Find positions of statement terminators (`;` and `$`) in a Maxima expression,
 /// skipping those inside string literals and block comments.
 fn find_terminators(expr: &str) -> Vec<usize> {
@@ -391,6 +419,49 @@ mod tests {
         assert_eq!(
             suppress_display("a:5; b:10$"),
             ("a:5; b:10$".into(), false)
+        );
+    }
+
+    #[test]
+    fn strip_trailing_comment_after_semi() {
+        assert_eq!(
+            strip_trailing_comments("det_H : determinant(H);\n/* saddle point */"),
+            "det_H : determinant(H);"
+        );
+    }
+
+    #[test]
+    fn strip_trailing_comment_after_dollar() {
+        assert_eq!(
+            strip_trailing_comments("x : 5$ /* done */"),
+            "x : 5$"
+        );
+    }
+
+    #[test]
+    fn strip_multiple_trailing_comments() {
+        assert_eq!(
+            strip_trailing_comments("x; /* a */ /* b */"),
+            "x;"
+        );
+    }
+
+    #[test]
+    fn no_trailing_comment() {
+        assert_eq!(strip_trailing_comments("x + 1;"), "x + 1;");
+    }
+
+    #[test]
+    fn comment_only_cell() {
+        // A cell with only a comment — nothing to strip, leave as-is
+        assert_eq!(strip_trailing_comments("/* just a comment */"), "");
+    }
+
+    #[test]
+    fn inline_comment_preserved() {
+        assert_eq!(
+            strip_trailing_comments("/* setup */ x : 5;"),
+            "/* setup */ x : 5;"
         );
     }
 }
