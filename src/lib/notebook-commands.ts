@@ -95,7 +95,7 @@ export async function nbNewNotebook(): Promise<void> {
 }
 
 export async function nbLoadCells(
-  cells: { id: string; cell_type: string; input: string; output?: { text_output: string; latex: string | null; execution_count: number | null } | null }[],
+  cells: { id: string; cell_type: string; input: string; output?: { text_output: string; latex: string | null; plot_data: string | null; plot_svg: string | null; execution_count: number | null } | null }[],
   notebookId?: string,
 ): Promise<void> {
   return invoke<void>("nb_load_cells", { notebookId: notebookId ?? activeId(), cells });

@@ -248,6 +248,8 @@ pub async fn nb_new_notebook(
 pub struct LoadCellOutput {
     pub text_output: String,
     pub latex: Option<String>,
+    pub plot_data: Option<String>,
+    pub plot_svg: Option<String>,
     pub execution_count: Option<u32>,
 }
 
@@ -279,8 +281,8 @@ pub async fn nb_load_cells(
                 text_output: o.text_output,
                 latex: o.latex,
                 execution_count: o.execution_count,
-                plot_svg: None,
-                plot_data: None,
+                plot_svg: o.plot_svg,
+                plot_data: o.plot_data,
                 error: None,
                 is_error: false,
                 duration_ms: 0,

@@ -38,6 +38,21 @@ pub(crate) fn notebook_to_ipynb(nb: &Notebook) -> notebook_types::Notebook {
                         "execution_count": execution_count,
                     }));
                 }
+                // Plot data as display_data with custom MIME types
+                if let Some(ref plot_data) = o.plot_data {
+                    entries.push(serde_json::json!({
+                        "output_type": "display_data",
+                        "data": { "application/x-maxima-plotly": [plot_data] },
+                        "metadata": {},
+                    }));
+                }
+                if let Some(ref plot_svg) = o.plot_svg {
+                    entries.push(serde_json::json!({
+                        "output_type": "display_data",
+                        "data": { "image/svg+xml": [plot_svg] },
+                        "metadata": {},
+                    }));
+                }
                 entries
             });
 
@@ -114,6 +129,8 @@ fn parse_nbformat_outputs(cell: &notebook_types::NotebookCell) -> Option<CellOut
 
     let mut text_output = String::new();
     let mut latex: Option<String> = None;
+    let mut plot_data: Option<String> = None;
+    let mut plot_svg: Option<String> = None;
     let mut execution_count = cell.execution_count.map(|c| c as u32);
 
     for raw in outputs {
@@ -121,6 +138,12 @@ fn parse_nbformat_outputs(cell: &notebook_types::NotebookCell) -> Option<CellOut
         match output_type {
             "execute_result" | "display_data" => {
                 if let Some(data) = raw.get("data") {
+                    if let Some(plotly) = data.get("application/x-maxima-plotly") {
+                        plot_data = Some(join_string_or_array(plotly));
+                    }
+                    if let Some(svg) = data.get("image/svg+xml") {
+                        plot_svg = Some(join_string_or_array(svg));
+                    }
                     if let Some(tex) = data.get("text/latex") {
                         // Prefer LaTeX; text/plain is just a fallback for the same value
                         latex = Some(join_string_or_array(tex));
@@ -144,15 +167,15 @@ fn parse_nbformat_outputs(cell: &notebook_types::NotebookCell) -> Option<CellOut
         }
     }
 
-    if text_output.is_empty() && latex.is_none() {
+    if text_output.is_empty() && latex.is_none() && plot_data.is_none() && plot_svg.is_none() {
         return None;
     }
 
     Some(CellOutput {
         text_output,
         latex,
-        plot_svg: None,
-        plot_data: None,
+        plot_svg,
+        plot_data,
         error: None,
         is_error: false,
         duration_ms: 0,

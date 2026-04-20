@@ -64,6 +64,22 @@ function cellOutputToNbformat(cell: Cell): unknown[] {
     // No text, no latex — nothing to save
   }
 
+  // Plot data as display_data with custom MIME types
+  if (cell.output.plotData) {
+    outputs.push({
+      output_type: "display_data",
+      data: { "application/x-maxima-plotly": [cell.output.plotData] },
+      metadata: {},
+    });
+  }
+  if (cell.output.plotSvg) {
+    outputs.push({
+      output_type: "display_data",
+      data: { "image/svg+xml": [cell.output.plotSvg] },
+      metadata: {},
+    });
+  }
+
   return outputs;
 }
 
@@ -89,11 +105,13 @@ function cellsToNotebookCells(cells: Cell[]): NotebookCell[] {
  * (print output, intermediate results) and always go to text_output.
  */
 export function parseNbformatOutputs(cell: NotebookCell): {
-  text_output: string; latex: string | null; execution_count: number | null;
+  text_output: string; latex: string | null; plot_data: string | null; plot_svg: string | null; execution_count: number | null;
 } | null {
   if (!cell.outputs?.length) return null;
   let textOutput = "";
   let latex: string | null = null;
+  let plotData: string | null = null;
+  let plotSvg: string | null = null;
   let executionCount: number | null = cell.execution_count ?? null;
 
   for (const raw of cell.outputs) {
@@ -102,6 +120,10 @@ export function parseNbformatOutputs(cell: NotebookCell): {
     if (type === "execute_result" || type === "display_data") {
       const data = out.data as Record<string, unknown> | undefined;
       if (data) {
+        const plotly = data["application/x-maxima-plotly"];
+        if (plotly) plotData = Array.isArray(plotly) ? (plotly as string[]).join("") : String(plotly);
+        const svg = data["image/svg+xml"];
+        if (svg) plotSvg = Array.isArray(svg) ? (svg as string[]).join("") : String(svg);
         const tex = data["text/latex"];
         if (tex) {
           // Prefer LaTeX; text/plain is just a fallback for the same value
@@ -121,8 +143,8 @@ export function parseNbformatOutputs(cell: NotebookCell): {
     }
   }
 
-  if (!textOutput && !latex) return null;
-  return { text_output: textOutput, latex, execution_count: executionCount };
+  if (!textOutput && !latex && !plotData && !plotSvg) return null;
+  return { text_output: textOutput, latex, plot_data: plotData, plot_svg: plotSvg, execution_count: executionCount };
 }
 
 function buildNotebook(cells: Cell[]): Notebook {

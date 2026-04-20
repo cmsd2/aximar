@@ -1,5 +1,3 @@
-mod config;
-
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
@@ -24,10 +22,15 @@ async fn main() -> anyhow::Result<()> {
         .with_writer(std::io::stderr)
         .init();
 
-    tracing::info!("Starting aximar-mcp server v{}", env!("CARGO_PKG_VERSION"));
+    tracing::info!("Starting aximar-mcp v{}", env!("CARGO_PKG_VERSION"));
 
     // Parse CLI flags
     let args: Vec<String> = std::env::args().collect();
+
+    // Subcommand: `run` for batch execution
+    if args.get(1).map(|s| s.as_str()) == Some("run") {
+        return aximar_mcp::batch::run(args).await;
+    }
 
     let use_http = args.iter().any(|a| a == "--http");
     let no_auth = args.iter().any(|a| a == "--no-auth");
@@ -61,9 +64,9 @@ async fn main() -> anyhow::Result<()> {
     tracing::info!("Loaded function catalog and packages");
 
     // Read configuration from environment
-    let backend = config::backend_from_env();
-    let maxima_path = config::maxima_path_from_env();
-    let eval_timeout = config::eval_timeout_from_env();
+    let backend = aximar_mcp::config::backend_from_env();
+    let maxima_path = aximar_mcp::config::maxima_path_from_env();
+    let eval_timeout = aximar_mcp::config::eval_timeout_from_env();
 
     // Create registry with one default notebook/session
     let registry = Arc::new(Mutex::new(NotebookRegistry::new()));
