@@ -1,6 +1,7 @@
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
+use clap::{Parser, Subcommand};
 use rmcp::handler::server::ServerHandler;
 use rmcp::ServiceExt;
 
@@ -10,6 +11,59 @@ use aximar_core::registry::NotebookRegistry;
 
 use aximar_mcp::server::{AximarMcpServer, ServerCore};
 use aximar_mcp::simple_server::SimpleMcpServer;
+
+/// Maxima CAS MCP server and notebook runner.
+#[derive(Parser)]
+#[command(name = "aximar-mcp", version, about)]
+struct Cli {
+    #[command(subcommand)]
+    command: Option<Command>,
+
+    /// Use HTTP transport instead of stdio.
+    #[arg(long)]
+    http: bool,
+
+    /// Notebook mode (full tool set).
+    #[arg(long)]
+    notebook: bool,
+
+    /// HTTP port.
+    #[arg(long, default_value_t = 19542)]
+    port: u16,
+
+    /// HTTP bind address.
+    #[arg(long, default_value = "127.0.0.1")]
+    address: String,
+
+    /// Auth token for HTTP (auto-generated if omitted).
+    #[arg(long)]
+    token: Option<String>,
+
+    /// Disable HTTP authentication.
+    #[arg(long)]
+    no_auth: bool,
+
+    /// Allow dangerous functions (system, batch, etc.) without approval.
+    #[arg(long)]
+    allow_dangerous: bool,
+}
+
+#[derive(Subcommand)]
+enum Command {
+    /// Execute all cells in a notebook and save with outputs.
+    Run {
+        /// Input notebook file (.macnb or .ipynb).
+        path: String,
+
+        /// Output path [default: overwrite input].
+        #[arg(short)]
+        o: Option<String>,
+
+        /// Allow dangerous functions (system, batch, etc.).
+        #[arg(long)]
+        allow_dangerous: bool,
+    },
+}
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -22,39 +76,16 @@ async fn main() -> anyhow::Result<()> {
         .with_writer(std::io::stderr)
         .init();
 
+    let cli = Cli::parse();
+
     tracing::info!("Starting aximar-mcp v{}", env!("CARGO_PKG_VERSION"));
 
-    // Parse CLI flags
-    let args: Vec<String> = std::env::args().collect();
-
     // Subcommand: `run` for batch execution
-    if args.get(1).map(|s| s.as_str()) == Some("run") {
-        return aximar_mcp::batch::run(args).await;
+    if let Some(Command::Run { path, o, allow_dangerous }) = cli.command {
+        return aximar_mcp::batch::run(&path, o.as_deref(), allow_dangerous).await;
     }
 
-    let use_http = args.iter().any(|a| a == "--http");
-    let no_auth = args.iter().any(|a| a == "--no-auth");
-    let allow_dangerous = args.iter().any(|a| a == "--allow-dangerous");
-    let notebook_mode = args.iter().any(|a| a == "--notebook");
-
-    let port: u16 = args
-        .windows(2)
-        .find(|w| w[0] == "--port")
-        .and_then(|w| w[1].parse().ok())
-        .unwrap_or(19542);
-
-    let address = args
-        .windows(2)
-        .find(|w| w[0] == "--address")
-        .map(|w| w[1].clone())
-        .unwrap_or_else(|| "127.0.0.1".to_string());
-
-    let token = args
-        .windows(2)
-        .find(|w| w[0] == "--token")
-        .map(|w| w[1].clone());
-
-    if allow_dangerous {
+    if cli.allow_dangerous {
         tracing::warn!("--allow-dangerous: dangerous functions (system, batch, etc.) will be allowed without approval");
     }
 
@@ -79,22 +110,22 @@ async fn main() -> anyhow::Result<()> {
         backend,
         maxima_path,
         eval_timeout,
-        allow_dangerous,
+        cli.allow_dangerous,
     );
 
-    if notebook_mode {
+    if cli.notebook {
         tracing::info!("Running in notebook mode (full tool set)");
         let server = AximarMcpServer::from_core(core);
-        if use_http {
-            serve_http(server, &address, port, token, no_auth).await
+        if cli.http {
+            serve_http(server, &cli.address, cli.port, cli.token, cli.no_auth).await
         } else {
             serve_stdio(server).await
         }
     } else {
         tracing::info!("Running in simple mode (session-oriented tools)");
         let server = SimpleMcpServer::new(core);
-        if use_http {
-            serve_http(server, &address, port, token, no_auth).await
+        if cli.http {
+            serve_http(server, &cli.address, cli.port, cli.token, cli.no_auth).await
         } else {
             serve_stdio(server).await
         }

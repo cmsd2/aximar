@@ -16,36 +16,12 @@ use crate::convert::{ipynb_to_cell_tuples, notebook_to_ipynb};
 use crate::server::ServerCore;
 
 /// Run a notebook from the command line: load, execute all cells, save with outputs.
-pub async fn run(args: Vec<String>) -> anyhow::Result<()> {
-    // Parse args: run <path> [-o <output>] [--allow-dangerous]
-    let mut input_path: Option<String> = None;
-    let mut output_path: Option<String> = None;
-    let mut allow_dangerous = false;
-
-    let mut i = 2; // skip binary name and "run"
-    while i < args.len() {
-        match args[i].as_str() {
-            "-o" => {
-                i += 1;
-                output_path = args.get(i).cloned();
-            }
-            "--allow-dangerous" => {
-                allow_dangerous = true;
-            }
-            arg if !arg.starts_with('-') && input_path.is_none() => {
-                input_path = Some(arg.to_string());
-            }
-            other => {
-                anyhow::bail!("Unknown argument: {other}");
-            }
-        }
-        i += 1;
-    }
-
-    let input_path = input_path.ok_or_else(|| {
-        anyhow::anyhow!("Usage: aximar-mcp run <path> [-o <output>] [--allow-dangerous]")
-    })?;
-    let output_path = output_path.unwrap_or_else(|| input_path.clone());
+pub async fn run(
+    input_path: &str,
+    output_path: Option<&str>,
+    allow_dangerous: bool,
+) -> anyhow::Result<()> {
+    let output_path = output_path.unwrap_or(input_path);
 
     if allow_dangerous {
         eprintln!("Warning: --allow-dangerous enabled");
@@ -61,7 +37,7 @@ pub async fn run(args: Vec<String>) -> anyhow::Result<()> {
     let eval_timeout = crate::config::eval_timeout_from_env();
 
     // Read notebook
-    let notebook = notebook_io::read_notebook(&input_path)
+    let notebook = notebook_io::read_notebook(input_path)
         .map_err(|e| anyhow::anyhow!("{e}"))?;
     let cell_tuples = ipynb_to_cell_tuples(&notebook);
     let total_code_cells = cell_tuples
@@ -170,7 +146,7 @@ pub async fn run(args: Vec<String>) -> anyhow::Result<()> {
         let nb = ctx.notebook.lock().await;
         notebook_to_ipynb(&nb)
     };
-    notebook_io::write_notebook(&output_path, &ipynb)
+    notebook_io::write_notebook(output_path, &ipynb)
         .map_err(|e| anyhow::anyhow!("{e}"))?;
 
     eprintln!("Saved to {}", output_path);
