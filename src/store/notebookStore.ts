@@ -22,6 +22,10 @@ export interface NotebookTab {
   canRedo: boolean;
   closePending: boolean;
   pendingCursorMove: { cellId: string; pos: number } | null;
+  /** Whether the notebook is trusted for dangerous function execution. */
+  trusted: boolean;
+  /** Dangerous functions detected when the notebook needs trust. Drives the trust banner. */
+  pendingTrustFunctions: string[] | null;
 }
 
 export interface PlotTab {
@@ -52,6 +56,8 @@ function createDefaultTab(id: string): NotebookTab {
     canRedo: false,
     closePending: false,
     pendingCursorMove: null,
+    trusted: true,
+    pendingTrustFunctions: null,
   };
 }
 
@@ -89,6 +95,7 @@ interface NotebookState {
   toggleCellSelected: (cellId: string, range?: boolean) => void;
   setFilePath: (path: string | null) => void;
   setClosePending: (notebookId: string, pending: boolean) => void;
+  setPendingTrustFunctions: (functions: string[] | null) => void;
   markClean: () => void;
   setPendingCursorMove: (move: { cellId: string; pos: number }) => void;
   clearPendingCursorMove: () => void;
@@ -100,7 +107,8 @@ interface NotebookState {
     effect: string,
     cellId?: string,
     canUndo?: boolean,
-    canRedo?: boolean
+    canRedo?: boolean,
+    trusted?: boolean
   ) => void;
 }
 
@@ -316,6 +324,17 @@ export const useNotebookStore = create<NotebookState>((set) => ({
       })),
     })),
 
+  setPendingTrustFunctions: (functions: string[] | null) =>
+    set((state) => {
+      const nbId = state.activeNotebookId;
+      if (!nbId) return state;
+      return {
+        notebooks: updateNotebookTab(state.notebooks, nbId, () => ({
+          pendingTrustFunctions: functions,
+        })),
+      };
+    }),
+
   markClean: () =>
     set((state) => {
       const nbId = state.activeNotebookId;
@@ -355,7 +374,8 @@ export const useNotebookStore = create<NotebookState>((set) => ({
     effect: string,
     cellId?: string,
     canUndo?: boolean,
-    canRedo?: boolean
+    canRedo?: boolean,
+    trusted?: boolean
   ) =>
     set((state) => {
       const tab = state.notebooks[notebookId];
@@ -403,6 +423,9 @@ export const useNotebookStore = create<NotebookState>((set) => ({
         isDirty: isReplace ? false : true,
         canUndo: canUndo ?? tab.canUndo,
         canRedo: canRedo ?? tab.canRedo,
+        trusted: trusted ?? tab.trusted,
+        // Clear pending trust prompt when notebook becomes trusted
+        pendingTrustFunctions: (trusted ?? tab.trusted) ? null : tab.pendingTrustFunctions,
         // Clear filePath on new notebook (not on load)
         ...(effect === "notebook_replaced" && !cellId
           ? { filePath: null, title: "Untitled" }
@@ -449,6 +472,7 @@ export const useFilePath = () => useActiveTab().filePath;
 export const useIsDirty = () => useActiveTab().isDirty;
 export const useCanUndo = () => useActiveTab().canUndo;
 export const useCanRedo = () => useActiveTab().canRedo;
+export const useTrusted = () => useActiveTab().trusted;
 
 /** Get active tab state from outside React (callbacks, event handlers). */
 export function getActiveTabState(): NotebookTab {

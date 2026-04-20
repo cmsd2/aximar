@@ -4,7 +4,7 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 import { ask } from "@tauri-apps/plugin-dialog";
 import { useNotebookStore } from "../store/notebookStore";
 import { nbCreate, nbGetState, nbList, nbClose, nbLoadCells, getInitialFileArgs } from "../lib/notebook-commands";
-import { openFilePath } from "../lib/notebooks-client";
+import { openFilePath, parseNbformatOutputs } from "../lib/notebooks-client";
 import { markDirty, cleanup } from "../lib/dirty-inputs";
 import type { CellOutput, CellStatus, CellType } from "../types/notebook";
 import type { SessionStatus } from "../types/maxima";
@@ -32,8 +32,6 @@ interface SyncCell {
   input: string;
   output?: SyncCellOutput | null;
   status?: string | null;
-  dangerous_functions?: string[] | null;
-  trusted?: boolean | null;
 }
 
 interface NotebookStateEvent {
@@ -43,6 +41,7 @@ interface NotebookStateEvent {
   cells: SyncCell[];
   can_undo: boolean;
   can_redo: boolean;
+  trusted: boolean;
 }
 
 /**
@@ -82,8 +81,6 @@ function mapSyncCells(syncCells: SyncCell[]) {
       input: sc.input,
       output,
       status: (sc.status as CellStatus) ?? "idle",
-      dangerousFunctions: sc.dangerous_functions ?? undefined,
-      trusted: sc.trusted ?? undefined,
     };
   });
 }
@@ -110,11 +107,15 @@ async function openFileAsTab(path: string): Promise<void> {
 
     const cells = result.notebook.cells
       .filter((c) => c.cell_type !== "raw")
-      .map((c) => ({
-        id: crypto.randomUUID(),
-        cell_type: c.cell_type === "markdown" ? "markdown" : "code",
-        input: typeof c.source === "string" ? c.source : (c.source as string[]).join(""),
-      }));
+      .map((c) => {
+        const parsed = c.cell_type === "code" ? parseNbformatOutputs(c) : null;
+        return {
+          id: crypto.randomUUID(),
+          cell_type: c.cell_type === "markdown" ? "markdown" : "code",
+          input: typeof c.source === "string" ? c.source : (c.source as string[]).join(""),
+          output: parsed ?? undefined,
+        };
+      });
     await nbLoadCells(cells, notebook_id);
     // nbLoadCells triggers a backend event that updates the store via notebook-state-changed
 
@@ -178,14 +179,15 @@ export function useNotebookEvents() {
         for (const nb of notebooks) {
           nbGetState(nb.id).then((state) => {
             if (ignore) return;
-            const { notebook_id, cells: syncCells, effect, cell_id, can_undo, can_redo } = state;
+            const { notebook_id, cells: syncCells, effect, cell_id, can_undo, can_redo, trusted } = state;
             useNotebookStore.getState().applyBackendState(
               notebook_id,
               mapSyncCells(syncCells),
               effect,
               cell_id ?? undefined,
               can_undo,
-              can_redo
+              can_redo,
+              trusted
             );
           });
         }
@@ -210,6 +212,7 @@ export function useNotebookEvents() {
             state.cell_id ?? undefined,
             state.can_undo,
             state.can_redo,
+            state.trusted,
           );
         });
       };
@@ -232,7 +235,7 @@ export function useNotebookEvents() {
     const unlisten = listen<NotebookStateEvent>(
       "notebook-state-changed",
       (event) => {
-        const { notebook_id, cells: syncCells, effect, cell_id, can_undo, can_redo } =
+        const { notebook_id, cells: syncCells, effect, cell_id, can_undo, can_redo, trusted } =
           event.payload;
 
         // Ensure tab exists (e.g. created by MCP) — only auto-adopt in the main window
@@ -251,7 +254,8 @@ export function useNotebookEvents() {
           effect,
           cell_id ?? undefined,
           can_undo,
-          can_redo
+          can_redo,
+          trusted
         );
 
         // Focus the newly added cell after React renders it,

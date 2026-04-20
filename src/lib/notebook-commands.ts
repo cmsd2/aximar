@@ -23,8 +23,6 @@ interface NbStateSyncCell {
     execution_count: number | null;
   } | null;
   status?: string | null;
-  dangerous_functions?: string[] | null;
-  trusted?: boolean | null;
 }
 
 interface NbStateResult {
@@ -34,6 +32,7 @@ interface NbStateResult {
   cells: NbStateSyncCell[];
   can_undo: boolean;
   can_redo: boolean;
+  trusted: boolean;
 }
 
 export async function nbGetState(notebookId?: string): Promise<NbStateResult> {
@@ -96,7 +95,7 @@ export async function nbNewNotebook(): Promise<void> {
 }
 
 export async function nbLoadCells(
-  cells: { id: string; cell_type: string; input: string }[],
+  cells: { id: string; cell_type: string; input: string; output?: { text_output: string; latex: string | null; execution_count: number | null } | null }[],
   notebookId?: string,
 ): Promise<void> {
   return invoke<void>("nb_load_cells", { notebookId: notebookId ?? activeId(), cells });
@@ -104,18 +103,14 @@ export async function nbLoadCells(
 
 export type RunCellResult =
   | { type: "evaluated" } & EvalResult
-  | { type: "pending_approval"; dangerous_functions: string[] };
+  | { type: "needs_notebook_trust"; dangerous_functions: string[] };
 
 export async function nbRunCell(cellId: string): Promise<RunCellResult> {
   return invoke<RunCellResult>("nb_run_cell", { notebookId: activeId(), cellId });
 }
 
-export async function nbApproveCell(cellId: string): Promise<EvalResult> {
-  return invoke<EvalResult>("nb_approve_cell", { notebookId: activeId(), cellId });
-}
-
-export async function nbAbortCell(cellId: string): Promise<void> {
-  return invoke<void>("nb_abort_cell", { notebookId: activeId(), cellId });
+export async function nbTrustNotebook(trusted: boolean): Promise<void> {
+  return invoke<void>("nb_trust_notebook", { notebookId: activeId(), trusted });
 }
 
 // ── Notebook lifecycle commands ──────────────────────────────────────

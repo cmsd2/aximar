@@ -2,6 +2,7 @@ import { useCallback, useEffect } from "react";
 import { useActiveTab, useNotebookStore } from "../store/notebookStore";
 import { Cell } from "./Cell";
 import { MarkdownCell } from "./MarkdownCell";
+import { TrustBanner } from "./TrustBanner";
 import { nbAddCell } from "../lib/notebook-commands";
 
 function InsertBar({ afterId, beforeId }: { afterId?: string; beforeId?: string }) {
@@ -71,6 +72,7 @@ export function Notebook({ onViewDocs }: NotebookProps) {
 
   return (
     <div className="notebook" onClick={handleNotebookClick}>
+      <TrustBanner />
       <InsertBar beforeId={cells[0]?.id} />
       {cells.map((cell) => {
         const isSelected = selectedCellIds.includes(cell.id);

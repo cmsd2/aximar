@@ -32,6 +32,41 @@ export async function setHasSeenWelcome(): Promise<void> {
   return invoke<void>("set_has_seen_welcome");
 }
 
+/** Convert a frontend CellOutput to nbformat outputs array.
+ *
+ * Uses two separate output entries so the round-trip is lossless:
+ * - Intermediate/print text → `stream` output (name: "stdout")
+ * - Final result LaTeX → `execute_result` with `text/latex`
+ * - Text-only result (no LaTeX) → `execute_result` with `text/plain`
+ */
+function cellOutputToNbformat(cell: Cell): unknown[] {
+  if (!cell.output || cell.cellType !== "code") return [];
+  const outputs: unknown[] = [];
+
+  // Intermediate/print text as a stream output
+  if (cell.output.textOutput) {
+    outputs.push({
+      output_type: "stream",
+      name: "stdout",
+      text: [cell.output.textOutput],
+    });
+  }
+
+  // Final result
+  if (cell.output.latex) {
+    outputs.push({
+      output_type: "execute_result",
+      data: { "text/latex": [cell.output.latex] },
+      metadata: {},
+      execution_count: cell.output.executionCount ?? null,
+    });
+  } else if (!cell.output.textOutput) {
+    // No text, no latex — nothing to save
+  }
+
+  return outputs;
+}
+
 /** Convert frontend Cell[] to Jupyter nbformat cells for saving. */
 function cellsToNotebookCells(cells: Cell[]): NotebookCell[] {
   return cells.map((cell) => ({
@@ -39,9 +74,55 @@ function cellsToNotebookCells(cells: Cell[]): NotebookCell[] {
     source: cell.input,
     metadata: {},
     ...(cell.cellType === "code"
-      ? { execution_count: null, outputs: [] }
+      ? { execution_count: cell.output?.executionCount ?? null, outputs: cellOutputToNbformat(cell) }
       : {}),
   }));
+}
+
+/** Parse nbformat cell outputs into a simplified output object for the backend.
+ *
+ * In nbformat, each output entry's `data` dict holds alternative MIME
+ * representations of the *same* value — text/plain is a fallback for
+ * text/latex, not additional content. So within a single execute_result or
+ * display_data entry, we prefer text/latex and only fall back to text/plain
+ * when no text/latex exists. Stream outputs are genuinely separate content
+ * (print output, intermediate results) and always go to text_output.
+ */
+export function parseNbformatOutputs(cell: NotebookCell): {
+  text_output: string; latex: string | null; execution_count: number | null;
+} | null {
+  if (!cell.outputs?.length) return null;
+  let textOutput = "";
+  let latex: string | null = null;
+  let executionCount: number | null = cell.execution_count ?? null;
+
+  for (const raw of cell.outputs) {
+    const out = raw as Record<string, unknown>;
+    const type = out.output_type as string;
+    if (type === "execute_result" || type === "display_data") {
+      const data = out.data as Record<string, unknown> | undefined;
+      if (data) {
+        const tex = data["text/latex"];
+        if (tex) {
+          // Prefer LaTeX; text/plain is just a fallback for the same value
+          latex = Array.isArray(tex) ? (tex as string[]).join("") : String(tex);
+        } else {
+          // No LaTeX — use text/plain as text output
+          const plain = data["text/plain"];
+          if (plain) textOutput += Array.isArray(plain) ? (plain as string[]).join("") : String(plain);
+        }
+      }
+      if (type === "execute_result" && out.execution_count != null) {
+        executionCount = out.execution_count as number;
+      }
+    } else if (type === "stream") {
+      const text = out.text;
+      textOutput += Array.isArray(text) ? (text as string[]).join("") : String(text ?? "");
+    }
+  }
+
+  if (!textOutput && !latex) return null;
+  return { text_output: textOutput, latex, execution_count: executionCount };
 }
 
 function buildNotebook(cells: Cell[]): Notebook {

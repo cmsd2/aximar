@@ -1,3 +1,4 @@
+use aximar_core::notebook::CellOutput;
 use aximar_core::notebooks::types as notebook_types;
 
 use crate::notebook::{CellType, Notebook};
@@ -19,14 +20,25 @@ pub(crate) fn notebook_to_ipynb(nb: &Notebook) -> notebook_types::Notebook {
                 .map(|c| c as u64);
 
             let outputs = cell.output.as_ref().map(|o| {
-                let mut out = serde_json::json!({
-                    "output_type": "execute_result",
-                    "text/plain": o.text_output,
-                });
-                if let Some(ref latex) = o.latex {
-                    out["text/latex"] = serde_json::json!(latex);
+                let mut entries = Vec::new();
+                // Intermediate/print text as a stream output
+                if !o.text_output.is_empty() {
+                    entries.push(serde_json::json!({
+                        "output_type": "stream",
+                        "name": "stdout",
+                        "text": [&o.text_output],
+                    }));
                 }
-                vec![out]
+                // Final result as execute_result with text/latex
+                if let Some(ref latex) = o.latex {
+                    entries.push(serde_json::json!({
+                        "output_type": "execute_result",
+                        "data": { "text/latex": [latex] },
+                        "metadata": {},
+                        "execution_count": execution_count,
+                    }));
+                }
+                entries
             });
 
             notebook_types::NotebookCell {
@@ -58,11 +70,11 @@ pub(crate) fn notebook_to_ipynb(nb: &Notebook) -> notebook_types::Notebook {
     }
 }
 
-/// Convert an ipynb Notebook into a list of (id, cell_type, input) tuples
+/// Convert an ipynb Notebook into a list of (id, cell_type, input, output) tuples
 /// suitable for the LoadCells command.
 pub(crate) fn ipynb_to_cell_tuples(
     notebook: &notebook_types::Notebook,
-) -> Vec<(String, CellType, String)> {
+) -> Vec<(String, CellType, String, Option<CellOutput>)> {
     use std::sync::atomic::{AtomicU64, Ordering};
     static LOAD_COUNTER: AtomicU64 = AtomicU64::new(1);
 
@@ -80,7 +92,84 @@ pub(crate) fn ipynb_to_cell_tuples(
                 notebook_types::CellSource::Lines(lines) => lines.join(""),
             };
             let id = format!("load-{}", LOAD_COUNTER.fetch_add(1, Ordering::Relaxed));
-            Some((id, cell_type, input))
+            let output = parse_nbformat_outputs(cell);
+            Some((id, cell_type, input, output))
         })
         .collect()
+}
+
+/// Parse nbformat cell outputs into a CellOutput.
+///
+/// In nbformat, each output entry's `data` dict holds alternative MIME
+/// representations of the *same* value — text/plain is a fallback for
+/// text/latex, not additional content. So within a single execute_result or
+/// display_data entry, we prefer text/latex and only fall back to text/plain
+/// when no text/latex exists. Stream outputs are genuinely separate content
+/// (print output, intermediate results) and always go to text_output.
+fn parse_nbformat_outputs(cell: &notebook_types::NotebookCell) -> Option<CellOutput> {
+    let outputs = cell.outputs.as_ref()?;
+    if outputs.is_empty() {
+        return None;
+    }
+
+    let mut text_output = String::new();
+    let mut latex: Option<String> = None;
+    let mut execution_count = cell.execution_count.map(|c| c as u32);
+
+    for raw in outputs {
+        let output_type = raw.get("output_type").and_then(|v| v.as_str()).unwrap_or("");
+        match output_type {
+            "execute_result" | "display_data" => {
+                if let Some(data) = raw.get("data") {
+                    if let Some(tex) = data.get("text/latex") {
+                        // Prefer LaTeX; text/plain is just a fallback for the same value
+                        latex = Some(join_string_or_array(tex));
+                    } else if let Some(plain) = data.get("text/plain") {
+                        // No LaTeX — use text/plain as text output
+                        text_output.push_str(&join_string_or_array(plain));
+                    }
+                }
+                if output_type == "execute_result" {
+                    if let Some(ec) = raw.get("execution_count").and_then(|v| v.as_u64()) {
+                        execution_count = Some(ec as u32);
+                    }
+                }
+            }
+            "stream" => {
+                if let Some(text) = raw.get("text") {
+                    text_output.push_str(&join_string_or_array(text));
+                }
+            }
+            _ => {}
+        }
+    }
+
+    if text_output.is_empty() && latex.is_none() {
+        return None;
+    }
+
+    Some(CellOutput {
+        text_output,
+        latex,
+        plot_svg: None,
+        plot_data: None,
+        error: None,
+        is_error: false,
+        duration_ms: 0,
+        output_label: None,
+        execution_count,
+    })
+}
+
+/// Join a JSON value that is either a string or an array of strings.
+fn join_string_or_array(value: &serde_json::Value) -> String {
+    match value {
+        serde_json::Value::String(s) => s.clone(),
+        serde_json::Value::Array(arr) => arr
+            .iter()
+            .filter_map(|v| v.as_str())
+            .collect::<Vec<_>>()
+            .join(""),
+        _ => String::new(),
+    }
 }

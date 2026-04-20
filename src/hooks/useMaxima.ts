@@ -75,8 +75,9 @@ export function useMaxima() {
         // nb_run_cell handles: set status → evaluate → set output → emit events
         // The frontend receives status/output updates via notebook-state-changed events
         const result = await nbRunCell(cellId);
-        if (result.type === "pending_approval") {
-          addLog("warning", `Cell needs approval: ${result.dangerous_functions.join(", ")}`, "eval");
+        if (result.type === "needs_notebook_trust") {
+          addLog("warning", `Notebook trust required: ${result.dangerous_functions.join(", ")}`, "eval");
+          useNotebookStore.getState().setPendingTrustFunctions(result.dangerous_functions);
           return false;
         }
         if (result.is_error) {

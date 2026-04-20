@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { listTemplates, getTemplate } from "../lib/notebooks-client";
+import { listTemplates, getTemplate, parseNbformatOutputs } from "../lib/notebooks-client";
 import { nbCreate, nbSetActive, nbLoadCells } from "../lib/notebook-commands";
 import { useNotebookStore } from "../store/notebookStore";
 import type { TemplateSummary } from "../types/notebooks";
@@ -23,11 +23,15 @@ export function TemplateChooser({ onClose }: TemplateChooserProps) {
       if (template) {
         const cells = template.cells
           .filter((c) => c.cell_type !== "raw")
-          .map((c) => ({
-            id: crypto.randomUUID(),
-            cell_type: c.cell_type === "markdown" ? "markdown" : "code",
-            input: typeof c.source === "string" ? c.source : (c.source as string[]).join(""),
-          }));
+          .map((c) => {
+            const parsed = c.cell_type === "code" ? parseNbformatOutputs(c) : null;
+            return {
+              id: crypto.randomUUID(),
+              cell_type: c.cell_type === "markdown" ? "markdown" : "code",
+              input: typeof c.source === "string" ? c.source : (c.source as string[]).join(""),
+              output: parsed ?? undefined,
+            };
+          });
         // Create a new notebook and load the template into it
         const result = await nbCreate();
         const nbId = result.notebook_id;

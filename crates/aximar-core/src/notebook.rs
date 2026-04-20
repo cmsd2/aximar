@@ -20,7 +20,6 @@ pub enum CellStatus {
     Running,
     Success,
     Error,
-    PendingApproval,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -60,13 +59,6 @@ pub struct Cell {
     pub output: Option<CellOutput>,
     pub status: CellStatus,
     pub raw_output: Vec<OutputEvent>,
-    /// Whether the user has seen/approved this cell's content.
-    /// Not serialized — always false on load.
-    #[serde(skip)]
-    pub trusted: bool,
-    /// Dangerous functions detected when cell is in PendingApproval status.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub dangerous_functions: Option<Vec<String>>,
 }
 
 const MAX_UNDO: usize = 50;
@@ -85,6 +77,9 @@ pub struct Notebook {
     label_map: HashMap<u32, String>,
     undo_past: Vec<NotebookSnapshot>,
     undo_future: Vec<NotebookSnapshot>,
+    /// Whether the notebook is trusted for execution of dangerous functions.
+    /// Session-only — not persisted. `true` for new notebooks, `false` when loaded from disk.
+    trusted: bool,
 }
 
 impl Notebook {
@@ -96,8 +91,6 @@ impl Notebook {
             output: None,
             status: CellStatus::Idle,
             raw_output: Vec::new(),
-            trusted: false,
-            dangerous_functions: None,
         };
         Notebook {
             cells: vec![initial_cell],
@@ -105,6 +98,7 @@ impl Notebook {
             label_map: HashMap::new(),
             undo_past: Vec::new(),
             undo_future: Vec::new(),
+            trusted: true,
         }
     }
 
@@ -118,6 +112,14 @@ impl Notebook {
 
     pub fn get_cell_mut(&mut self, id: &str) -> Option<&mut Cell> {
         self.cells.iter_mut().find(|c| c.id == id)
+    }
+
+    pub fn trusted(&self) -> bool {
+        self.trusted
+    }
+
+    pub fn set_trusted(&mut self, trusted: bool) {
+        self.trusted = trusted;
     }
 
     pub fn add_cell(&mut self, cell_type: CellType, input: String, after_cell_id: Option<&str>, before_cell_id: Option<&str>) -> String {
@@ -141,8 +143,6 @@ impl Notebook {
             output: None,
             status: CellStatus::Idle,
             raw_output: Vec::new(),
-            trusted: false,
-            dangerous_functions: None,
         };
 
         if let Some(before_id) = before_cell_id {
@@ -246,8 +246,6 @@ impl Notebook {
             output: None,
             status: CellStatus::Idle,
             raw_output: Vec::new(),
-            trusted: false,
-            dangerous_functions: None,
         });
     }
 
@@ -320,7 +318,7 @@ impl Notebook {
                 Ok(CommandEffect::CellTypeToggled { cell_id })
             }
 
-            NotebookCommand::UpdateCellInput { cell_id, input, trusted } => {
+            NotebookCommand::UpdateCellInput { cell_id, input } => {
                 let unchanged = self
                     .get_cell(&cell_id)
                     .ok_or_else(|| format!("Cell '{}' not found", cell_id))
@@ -333,7 +331,6 @@ impl Notebook {
                 self.push_undo_snapshot();
                 let cell = self.get_cell_mut(&cell_id).unwrap();
                 cell.input = input;
-                cell.trusted = trusted;
                 Ok(CommandEffect::CellInputUpdated { cell_id })
             }
 
@@ -365,11 +362,17 @@ impl Notebook {
                 Ok(CommandEffect::CellOutputUpdated { cell_id })
             }
 
+            NotebookCommand::TrustNotebook { trusted } => {
+                self.trusted = trusted;
+                Ok(CommandEffect::NotebookTrusted)
+            }
+
             NotebookCommand::NewNotebook => {
                 self.push_undo_snapshot();
                 self.cells.clear();
                 self.execution_counter = 0;
                 self.label_map.clear();
+                self.trusted = true;
                 self.cells.push(Cell {
                     id: new_cell_id(),
                     cell_type: CellType::Code,
@@ -377,8 +380,6 @@ impl Notebook {
                     output: None,
                     status: CellStatus::Idle,
                     raw_output: Vec::new(),
-                    trusted: false,
-                    dangerous_functions: None,
                 });
                 Ok(CommandEffect::NotebookReplaced)
             }
@@ -387,37 +388,6 @@ impl Notebook {
                 self.push_undo_snapshot();
                 self.load_cells_from_list(cells);
                 Ok(CommandEffect::NotebookReplaced)
-            }
-
-            NotebookCommand::SetCellPendingApproval {
-                cell_id,
-                dangerous_functions,
-            } => {
-                let cell = self
-                    .get_cell_mut(&cell_id)
-                    .ok_or_else(|| format!("Cell '{}' not found", cell_id))?;
-                cell.status = CellStatus::PendingApproval;
-                cell.dangerous_functions = Some(dangerous_functions);
-                Ok(CommandEffect::CellPendingApproval { cell_id })
-            }
-
-            NotebookCommand::ApproveCellExecution { cell_id } => {
-                let cell = self
-                    .get_cell_mut(&cell_id)
-                    .ok_or_else(|| format!("Cell '{}' not found", cell_id))?;
-                cell.status = CellStatus::Idle;
-                cell.trusted = true;
-                cell.dangerous_functions = None;
-                Ok(CommandEffect::CellApprovalCleared { cell_id })
-            }
-
-            NotebookCommand::AbortCellExecution { cell_id } => {
-                let cell = self
-                    .get_cell_mut(&cell_id)
-                    .ok_or_else(|| format!("Cell '{}' not found", cell_id))?;
-                cell.status = CellStatus::Idle;
-                cell.dangerous_functions = None;
-                Ok(CommandEffect::CellApprovalCleared { cell_id })
             }
 
             NotebookCommand::Undo => {
@@ -468,22 +438,30 @@ impl Notebook {
         self.undo_future.clear();
     }
 
-    /// Replace cells from a list of (id, cell_type, input) tuples.
+    /// Replace cells from a list of (id, cell_type, input, output) tuples.
     /// Used by LoadCells command.
-    fn load_cells_from_list(&mut self, incoming: Vec<(String, CellType, String)>) {
+    fn load_cells_from_list(&mut self, incoming: Vec<(String, CellType, String, Option<CellOutput>)>) {
         self.cells.clear();
         self.execution_counter = 0;
         self.label_map.clear();
-        for (id, cell_type, input) in incoming {
+        self.trusted = false;
+        for (id, cell_type, input, output) in incoming {
+            // Track the highest execution count from loaded outputs
+            if let Some(ref out) = output {
+                if let Some(ec) = out.execution_count {
+                    if ec > self.execution_counter {
+                        self.execution_counter = ec;
+                    }
+                }
+            }
+            let status = if output.is_some() { CellStatus::Success } else { CellStatus::Idle };
             self.cells.push(Cell {
                 id,
                 cell_type,
                 input,
-                output: None,
-                status: CellStatus::Idle,
+                output,
+                status,
                 raw_output: Vec::new(),
-                trusted: false,
-                dangerous_functions: None,
             });
         }
         if self.cells.is_empty() {
@@ -494,8 +472,6 @@ impl Notebook {
                 output: None,
                 status: CellStatus::Idle,
                 raw_output: Vec::new(),
-                trusted: false,
-                dangerous_functions: None,
             });
         }
     }
@@ -654,7 +630,7 @@ mod tests {
         let effect = n.apply(NotebookCommand::UpdateCellInput {
             cell_id: id.clone(),
             input: "y: 10;".into(),
-            trusted: true,
+
         }).unwrap();
         assert!(matches!(effect, CommandEffect::CellInputUpdated { .. }));
         assert_eq!(n.cells()[0].input, "y: 10;");
@@ -667,7 +643,7 @@ mod tests {
         let effect = n.apply(NotebookCommand::UpdateCellInput {
             cell_id: id,
             input: "".into(),
-            trusted: true,
+
         }).unwrap();
         assert!(matches!(effect, CommandEffect::NoOp { .. }));
     }
@@ -705,8 +681,8 @@ mod tests {
     fn load_cells() {
         let mut n = nb();
         let cells = vec![
-            ("a".into(), CellType::Markdown, "# Hello".into()),
-            ("b".into(), CellType::Code, "x: 1;".into()),
+            ("a".into(), CellType::Markdown, "# Hello".into(), None),
+            ("b".into(), CellType::Code, "x: 1;".into(), None),
         ];
         n.apply(NotebookCommand::LoadCells { cells }).unwrap();
         assert_eq!(n.cells().len(), 2);
@@ -786,7 +762,7 @@ mod tests {
             n.apply(NotebookCommand::UpdateCellInput {
                 cell_id: first_cell_id(&n),
                 input: format!("v{}", i),
-                trusted: true,
+    
             }).unwrap();
         }
         // Should cap at MAX_UNDO

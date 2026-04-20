@@ -814,7 +814,6 @@ Best practice: run each cell immediately after updating it (using run_cell) to v
             last_effect = Some(nb.apply(NotebookCommand::UpdateCellInput {
                 cell_id: params.cell_id.clone(),
                 input,
-                trusted: false,
             })?);
         }
         // Apply cell type toggle if the requested type differs
@@ -897,38 +896,35 @@ Best practice: run each cell immediately after creating it before moving on to t
         let ctx = self.core.resolve_context(params.notebook_id.as_deref()).await?;
 
         // Safety check for dangerous functions
-        {
+        // - allow_dangerous: skip all checks
+        // - Connected mode (GUI): use notebook-level trust flag
+        // - Headless mode: always scan (MCP clients are programmatic)
+        if !self.core.allow_dangerous {
             let nb = ctx.notebook.lock().await;
             let cell = nb.get_cell(&params.cell_id)
                 .ok_or_else(|| format!("Cell '{}' not found", params.cell_id))?;
-            let trusted = cell.trusted;
             let input = cell.input.clone();
+            let notebook_trusted = nb.trusted();
+            let is_connected = self.core.on_notebook_change.is_some();
             drop(nb);
 
-            if !trusted {
+            // In connected mode, skip check if notebook is trusted (user approved in GUI).
+            // In headless mode, always scan.
+            let should_check = if is_connected { !notebook_trusted } else { true };
+
+            if should_check {
                 let dangerous = safety::detect_dangerous_calls(&input, Some(&self.core.packages));
                 if !dangerous.is_empty() {
                     let func_names: Vec<String> = dangerous.iter().map(|d| d.function_name.clone()).collect();
 
-                    if self.core.allow_dangerous {
-                        // Headless + --allow-dangerous: proceed
-                    } else if self.core.on_notebook_change.is_some() {
-                        // Connected mode: set pending approval and notify GUI
-                        let mut nb = ctx.notebook.lock().await;
-                        let effect = nb.apply(NotebookCommand::SetCellPendingApproval {
-                            cell_id: params.cell_id.clone(),
-                            dangerous_functions: func_names.clone(),
-                        })?;
-                        drop(nb);
-                        self.core.notify_notebook_change(&ctx.id, effect);
+                    if is_connected {
                         return success_json(&serde_json::json!({
                             "cell_id": params.cell_id,
-                            "pending_approval": true,
+                            "needs_notebook_trust": true,
                             "dangerous_functions": func_names,
-                            "message": "Cell contains dangerous functions. Approve in the GUI to execute.",
+                            "message": "Notebook is untrusted. Trust the notebook in the GUI to execute dangerous functions.",
                         }));
                     } else {
-                        // Headless without --allow-dangerous: block
                         return error_result(format!(
                             "Dangerous function(s) blocked: {}. Use --allow-dangerous to allow.",
                             func_names.join(", ")

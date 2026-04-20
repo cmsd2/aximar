@@ -7,7 +7,8 @@ use aximar_core::maxima::types::EvalResult;
 use aximar_core::safety;
 
 use aximar_core::commands::{CommandEffect, NotebookCommand};
-use aximar_core::notebook::{CellType, Notebook};
+use aximar_core::notebook::CellType;
+use aximar_core::notebook::Notebook;
 use aximar_core::registry::{NotebookContextRef, NotebookInfo};
 
 use crate::mcp::sync::{notebook_state_payload, SyncCell};
@@ -27,6 +28,7 @@ pub struct NotebookStateEvent {
     pub cells: Vec<SyncCell>,
     pub can_undo: bool,
     pub can_redo: bool,
+    pub trusted: bool,
 }
 
 /// Emit a `notebook-state-changed` event with the current notebook state.
@@ -44,6 +46,7 @@ pub fn emit_notebook_state(
         cells: payload.cells,
         can_undo: nb.can_undo(),
         can_redo: nb.can_redo(),
+        trusted: nb.trusted(),
     };
     let _ = app_handle.emit("notebook-state-changed", event);
 }
@@ -79,6 +82,7 @@ pub async fn nb_get_state(
         cells: payload.cells,
         can_undo: nb.can_undo(),
         can_redo: nb.can_redo(),
+        trusted: nb.trusted(),
     })
 }
 
@@ -182,7 +186,7 @@ pub async fn nb_update_cell_input(
     let ctx = resolve_context(&state, notebook_id).await?;
     let mut nb = ctx.notebook.lock().await;
     let effect = nb
-        .apply(NotebookCommand::UpdateCellInput { cell_id, input, trusted: true })
+        .apply(NotebookCommand::UpdateCellInput { cell_id, input })
         .map_err(|e| AppError::CommunicationError(e))?;
     // Only emit if something actually changed
     if !matches!(effect, CommandEffect::NoOp { .. }) {
@@ -241,10 +245,19 @@ pub async fn nb_new_notebook(
 }
 
 #[derive(Debug, serde::Deserialize)]
+pub struct LoadCellOutput {
+    pub text_output: String,
+    pub latex: Option<String>,
+    pub execution_count: Option<u32>,
+}
+
+#[derive(Debug, serde::Deserialize)]
 pub struct LoadCell {
     pub id: String,
     pub cell_type: String,
     pub input: String,
+    #[serde(default)]
+    pub output: Option<LoadCellOutput>,
 }
 
 #[tauri::command]
@@ -255,14 +268,25 @@ pub async fn nb_load_cells(
     cells: Vec<LoadCell>,
 ) -> Result<(), AppError> {
     let ctx = resolve_context(&state, notebook_id).await?;
-    let cell_tuples: Vec<(String, CellType, String)> = cells
+    let cell_tuples: Vec<(String, CellType, String, Option<aximar_core::notebook::CellOutput>)> = cells
         .into_iter()
         .map(|c| {
             let ct = match c.cell_type.as_str() {
                 "markdown" => CellType::Markdown,
                 _ => CellType::Code,
             };
-            (c.id, ct, c.input)
+            let output = c.output.map(|o| aximar_core::notebook::CellOutput {
+                text_output: o.text_output,
+                latex: o.latex,
+                execution_count: o.execution_count,
+                plot_svg: None,
+                plot_data: None,
+                error: None,
+                is_error: false,
+                duration_ms: 0,
+                output_label: None,
+            });
+            (c.id, ct, c.input, output)
         })
         .collect();
     let mut nb = ctx.notebook.lock().await;
@@ -275,16 +299,16 @@ pub async fn nb_load_cells(
     Ok(())
 }
 
-/// Result of running a cell — either evaluated or pending user approval.
+/// Result of running a cell — either evaluated or needs notebook trust.
 #[derive(Debug, Serialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum RunCellResult {
     Evaluated(EvalResult),
-    PendingApproval { dangerous_functions: Vec<String> },
+    NeedsNotebookTrust { dangerous_functions: Vec<String> },
 }
 
 /// Run a cell: checks for dangerous functions, sets status to Running, evaluates, sets output.
-/// If dangerous functions are detected on an untrusted cell, returns PendingApproval instead.
+/// If the notebook is untrusted and the cell contains dangerous functions, returns NeedsNotebookTrust.
 #[tauri::command]
 pub async fn nb_run_cell(
     app: AppHandle,
@@ -294,26 +318,20 @@ pub async fn nb_run_cell(
 ) -> Result<RunCellResult, AppError> {
     let ctx = resolve_context(&state, notebook_id).await?;
 
-    // Read cell input + trusted flag
-    let (input, trusted) = {
+    // Read cell input + notebook trust flag
+    let (input, notebook_trusted) = {
         let nb = ctx.notebook.lock().await;
         let cell = nb.get_cell(&cell_id)
             .ok_or_else(|| AppError::CellNotFound(cell_id.clone()))?;
-        (cell.input.clone(), cell.trusted)
+        (cell.input.clone(), nb.trusted())
     };
 
-    // Safety check: skip if cell is trusted
-    if !trusted {
+    // Safety check: skip if notebook is trusted
+    if !notebook_trusted {
         let dangerous = safety::detect_dangerous_calls(&input, Some(&state.packages));
         if !dangerous.is_empty() {
             let func_names: Vec<String> = dangerous.iter().map(|d| d.function_name.clone()).collect();
-            let mut nb = ctx.notebook.lock().await;
-            let effect = nb.apply(NotebookCommand::SetCellPendingApproval {
-                cell_id: cell_id.clone(),
-                dangerous_functions: func_names.clone(),
-            }).map_err(|e| AppError::CommunicationError(e))?;
-            emit_notebook_state(&app, &ctx.id, &nb, &effect);
-            return Ok(RunCellResult::PendingApproval { dangerous_functions: func_names });
+            return Ok(RunCellResult::NeedsNotebookTrust { dangerous_functions: func_names });
         }
     }
 
@@ -333,54 +351,18 @@ pub async fn nb_run_cell(
     Ok(RunCellResult::Evaluated(result.eval_result))
 }
 
-/// Approve a dangerous cell: sets trusted, clears approval, then evaluates.
+/// Set the notebook-level trust flag.
 #[tauri::command]
-pub async fn nb_approve_cell(
+pub async fn nb_trust_notebook(
     app: AppHandle,
     state: State<'_, AppState>,
     notebook_id: Option<String>,
-    cell_id: String,
-) -> Result<EvalResult, AppError> {
-    let ctx = resolve_context(&state, notebook_id).await?;
-
-    // Apply approval (sets trusted=true, clears approval)
-    {
-        let mut nb = ctx.notebook.lock().await;
-        let effect = nb.apply(NotebookCommand::ApproveCellExecution {
-            cell_id: cell_id.clone(),
-        }).map_err(|e| AppError::CommunicationError(e))?;
-        emit_notebook_state(&app, &ctx.id, &nb, &effect);
-    }
-
-    // Now evaluate (no safety check — user approved)
-    let eval_timeout = read_eval_timeout(&app);
-    let backend = read_backend(&app);
-    let maxima_path = read_maxima_path(&app);
-    ensure_session(&state, &ctx, backend, maxima_path, eval_timeout).await?;
-
-    let result = evaluate_cell(&ctx, &cell_id, &state.catalog, &state.packages, eval_timeout).await?;
-
-    let nb = ctx.notebook.lock().await;
-    for effect in &result.effects {
-        emit_notebook_state(&app, &ctx.id, &nb, effect);
-    }
-
-    Ok(result.eval_result)
-}
-
-/// Abort a dangerous cell: clears approval state without evaluating.
-#[tauri::command]
-pub async fn nb_abort_cell(
-    app: AppHandle,
-    state: State<'_, AppState>,
-    notebook_id: Option<String>,
-    cell_id: String,
+    trusted: bool,
 ) -> Result<(), AppError> {
     let ctx = resolve_context(&state, notebook_id).await?;
     let mut nb = ctx.notebook.lock().await;
-    let effect = nb.apply(NotebookCommand::AbortCellExecution {
-        cell_id,
-    }).map_err(|e| AppError::CommunicationError(e))?;
+    let effect = nb.apply(NotebookCommand::TrustNotebook { trusted })
+        .map_err(|e| AppError::CommunicationError(e))?;
     emit_notebook_state(&app, &ctx.id, &nb, &effect);
     Ok(())
 }

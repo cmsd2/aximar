@@ -18,11 +18,11 @@ Maxima is a full programming environment with access to the host system. The `sy
 
 **Current mitigation:** A safety gate detects dangerous function calls (`system`, `batch`, `batchload`, `writefile`, `appendfile`, `closefile`, `stringout`, `with_stdout`, `save`, `store`, and unknown `load()` targets) before execution. The behaviour depends on context:
 
-- **GUI:** Untrusted cells containing dangerous functions show an inline approve/abort bar. Trusted cells (previously user-edited or approved) execute without prompting. "Run All" stops at cells needing approval.
-- **MCP connected mode:** Untrusted cells return a `pending_approval` status so the GUI user can approve them. `evaluate_expression` (no cell) always blocks dangerous calls.
-- **MCP headless mode:** Dangerous calls are blocked by default. The `--allow-dangerous` CLI flag opts in.
+- **GUI:** Notebooks loaded from disk start untrusted. When a cell with dangerous functions is executed, a notebook-level trust banner appears. The user can trust the entire notebook with one click, after which all cells execute freely. New notebooks created in the GUI are trusted by default.
+- **MCP connected mode:** Untrusted notebooks return a `needs_notebook_trust` status so the GUI user can trust the notebook. `evaluate_expression` (no cell) always blocks dangerous calls.
+- **MCP headless mode:** Dangerous calls are always blocked regardless of notebook trust. The `--allow-dangerous` CLI flag opts in.
 - **Smart `load()` detection:** `load("distrib")` is allowed when the argument matches a known Maxima package; unknown targets are flagged.
-- **Trust model:** Cells start untrusted. User editing in the GUI makes them trusted. MCP editing or loading from disk resets trust.
+- **Trust model:** Notebooks start untrusted when loaded from disk. New notebooks created by the user are trusted. Trust is session-only — not persisted to the file.
 
 The Docker backend provides additional sandboxing:
 - `--network none`: no network access from the container
@@ -111,7 +111,7 @@ These are low-severity for a desktop application since the user can kill the pro
 
 | Surface | Trigger | Impact | Status | Mitigation |
 |---------|---------|--------|--------|------------|
-| `system()` in Maxima | User runs cell | RCE | Mitigated | Safety gate detects dangerous functions; untrusted cells require approval. MCP headless blocks by default. |
+| `system()` in Maxima | User runs cell | RCE | Mitigated | Safety gate detects dangerous functions; untrusted notebooks require one-click trust. MCP headless blocks by default. |
 | SVG rendering | User runs plot cell | XSS / IPC access | Mitigated | SVG sanitized via `sanitizeSvg()` then rendered as `<img src="blob:...">`. The `<img>` context natively blocks all script execution and event handlers. Sanitization is defence-in-depth. CSP blocks inline scripts as an additional layer. |
 | SVG file path reading | User runs plot cell | Arbitrary file read | Mitigated | Path canonicalized and validated: must have `.svg` extension and reside within the system temp directory. |
 | KaTeX trust mode | User runs cell producing LaTeX | XSS via `\href` | Mitigated | `trust` set to `false` in both `KatexOutput` and `MathText`. |

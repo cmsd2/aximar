@@ -36,6 +36,7 @@ import {
   saveNotebookAs,
   openFile,
   savePlotFile,
+  parseNbformatOutputs,
 } from "./lib/notebooks-client";
 import { getConfig, markdownFontStack, applyPrintMargins } from "./lib/config-client";
 import { useNotebookStore, useActiveAnyTab, getActiveTabState } from "./store/notebookStore";
@@ -59,8 +60,8 @@ function App() {
   const [docsOpen, setDocsOpen] = useState(false);
   const [docsFunctionName, setDocsFunctionName] = useState<string | undefined>(undefined);
   const [docsRequestId, setDocsRequestId] = useState(0);
-  const setFilePath = useNotebookStore((s) => s.setFilePath);
-  const markClean = useNotebookStore((s) => s.markClean);
+  const addTab = useNotebookStore((s) => s.addTab);
+  const setActiveTab = useNotebookStore((s) => s.setActiveTab);
   const windowOpen = useLogStore((s) => s.windowOpen);
   const toggleWindow = useLogStore((s) => s.toggleWindow);
   const logUnreadCount = useLogStore((s) => s.unreadCount);
@@ -169,11 +170,15 @@ function App() {
           if (welcome) {
             const cells = welcome.cells
               .filter((c) => c.cell_type !== "raw")
-              .map((c) => ({
-                id: crypto.randomUUID(),
-                cell_type: c.cell_type === "markdown" ? "markdown" : "code",
-                input: typeof c.source === "string" ? c.source : (c.source as string[]).join(""),
-              }));
+              .map((c) => {
+                const parsed = c.cell_type === "code" ? parseNbformatOutputs(c) : null;
+                return {
+                  id: crypto.randomUUID(),
+                  cell_type: c.cell_type === "markdown" ? "markdown" : "code",
+                  input: typeof c.source === "string" ? c.source : (c.source as string[]).join(""),
+                  output: parsed ?? undefined,
+                };
+              });
             await nbLoadCells(cells);
           }
           await setHasSeenWelcome();
@@ -238,30 +243,39 @@ function App() {
       const id = `plot-${crypto.randomUUID()}`;
       addPlotTab(id, title, result.plotData, result.path);
     } else {
-      // Open as notebook (existing flow)
-      const tab = getActiveTabState();
-      if (tab.isDirty) {
-        const confirmed = await ask("You have unsaved changes. Discard them?", {
-          title: "Unsaved Changes",
-          kind: "warning",
-        });
-        if (!confirmed) return;
-      }
+      // Open notebook in a new tab
+      const title = result.path.split("/").pop()?.split("\\").pop() ?? "Untitled";
+      const { notebook_id } = await nbCreate();
+      addTab(notebook_id, title);
+      setActiveTab(notebook_id);
+      await nbSetActive(notebook_id);
+
       const cells = result.notebook.cells
         .filter((c) => c.cell_type !== "raw")
-        .map((c) => ({
-          id: crypto.randomUUID(),
-          cell_type: c.cell_type === "markdown" ? "markdown" : "code",
-          input: typeof c.source === "string" ? c.source : (c.source as string[]).join(""),
-        }));
-      await nbLoadCells(cells);
-      setFilePath(result.path);
-      markClean();
-    }
-  }, [setFilePath, markClean, addPlotTab]);
+        .map((c) => {
+          const parsed = c.cell_type === "code" ? parseNbformatOutputs(c) : null;
+          return {
+            id: crypto.randomUUID(),
+            cell_type: c.cell_type === "markdown" ? "markdown" : "code",
+            input: typeof c.source === "string" ? c.source : (c.source as string[]).join(""),
+            output: parsed ?? undefined,
+          };
+        });
+      await nbLoadCells(cells, notebook_id);
 
-  const addTab = useNotebookStore((s) => s.addTab);
-  const setActiveTab = useNotebookStore((s) => s.setActiveTab);
+      // Set file path so Save works
+      const store = useNotebookStore.getState();
+      const tab = store.notebooks[notebook_id];
+      if (tab && tab.type === "notebook") {
+        useNotebookStore.setState({
+          notebooks: {
+            ...store.notebooks,
+            [notebook_id]: { ...tab, filePath: result.path, title, isDirty: false },
+          },
+        });
+      }
+    }
+  }, [addTab, setActiveTab, addPlotTab]);
 
   const handleNew = useCallback(async () => {
     const result = await nbCreate();

@@ -26,8 +26,6 @@ pub enum NotebookCommand {
     UpdateCellInput {
         cell_id: String,
         input: String,
-        /// true when the user edited directly (GUI), false when MCP/programmatic
-        trusted: bool,
     },
     /// Non-undoable: set cell execution status
     SetCellStatus {
@@ -40,18 +38,11 @@ pub enum NotebookCommand {
         output: CellOutput,
         raw_output: Vec<OutputEvent>,
     },
-    /// Non-undoable: cell needs user approval before execution
-    SetCellPendingApproval {
-        cell_id: String,
-        dangerous_functions: Vec<String>,
-    },
-    /// Non-undoable: user approved — set trusted + clear approval state
-    ApproveCellExecution { cell_id: String },
-    /// Non-undoable: user aborted — clear approval state
-    AbortCellExecution { cell_id: String },
+    /// Non-undoable: set notebook-level trust flag
+    TrustNotebook { trusted: bool },
     NewNotebook,
     LoadCells {
-        cells: Vec<(String, CellType, String)>,
+        cells: Vec<(String, CellType, String, Option<CellOutput>)>,
     },
     Undo,
     Redo,
@@ -68,8 +59,7 @@ pub enum CommandEffect {
     CellInputUpdated { cell_id: String },
     CellStatusUpdated { cell_id: String },
     CellOutputUpdated { cell_id: String },
-    CellPendingApproval { cell_id: String },
-    CellApprovalCleared { cell_id: String },
+    NotebookTrusted,
     NotebookReplaced,
     Undone,
     Redone,
@@ -86,9 +76,7 @@ impl CommandEffect {
             | CommandEffect::CellTypeToggled { cell_id }
             | CommandEffect::CellInputUpdated { cell_id }
             | CommandEffect::CellStatusUpdated { cell_id }
-            | CommandEffect::CellOutputUpdated { cell_id }
-            | CommandEffect::CellPendingApproval { cell_id }
-            | CommandEffect::CellApprovalCleared { cell_id } => Some(cell_id),
+            | CommandEffect::CellOutputUpdated { cell_id } => Some(cell_id),
             _ => None,
         }
     }
@@ -103,8 +91,7 @@ impl CommandEffect {
             CommandEffect::CellInputUpdated { .. } => "cell_input_updated",
             CommandEffect::CellStatusUpdated { .. } => "cell_status_updated",
             CommandEffect::CellOutputUpdated { .. } => "cell_output_updated",
-            CommandEffect::CellPendingApproval { .. } => "cell_pending_approval",
-            CommandEffect::CellApprovalCleared { .. } => "cell_approval_cleared",
+            CommandEffect::NotebookTrusted => "notebook_trusted",
             CommandEffect::NotebookReplaced => "notebook_replaced",
             CommandEffect::Undone => "undone",
             CommandEffect::Redone => "redone",
