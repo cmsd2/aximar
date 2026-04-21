@@ -53,6 +53,13 @@ pub(crate) fn notebook_to_ipynb(nb: &Notebook) -> notebook_types::Notebook {
                         "metadata": {},
                     }));
                 }
+                if let Some(ref image_png) = o.image_png {
+                    entries.push(serde_json::json!({
+                        "output_type": "display_data",
+                        "data": { "image/png": [image_png] },
+                        "metadata": {},
+                    }));
+                }
                 entries
             });
 
@@ -131,6 +138,7 @@ fn parse_nbformat_outputs(cell: &notebook_types::NotebookCell) -> Option<CellOut
     let mut latex: Option<String> = None;
     let mut plot_data: Option<String> = None;
     let mut plot_svg: Option<String> = None;
+    let mut image_png: Option<String> = None;
     let mut execution_count = cell.execution_count.map(|c| c as u32);
 
     for raw in outputs {
@@ -143,6 +151,9 @@ fn parse_nbformat_outputs(cell: &notebook_types::NotebookCell) -> Option<CellOut
                     }
                     if let Some(svg) = data.get("image/svg+xml") {
                         plot_svg = Some(join_string_or_array(svg));
+                    }
+                    if let Some(png) = data.get("image/png") {
+                        image_png = Some(join_string_or_array(png));
                     }
                     if let Some(tex) = data.get("text/latex") {
                         // Prefer LaTeX; text/plain is just a fallback for the same value
@@ -167,7 +178,12 @@ fn parse_nbformat_outputs(cell: &notebook_types::NotebookCell) -> Option<CellOut
         }
     }
 
-    if text_output.is_empty() && latex.is_none() && plot_data.is_none() && plot_svg.is_none() {
+    if text_output.is_empty()
+        && latex.is_none()
+        && plot_data.is_none()
+        && plot_svg.is_none()
+        && image_png.is_none()
+    {
         return None;
     }
 
@@ -176,6 +192,7 @@ fn parse_nbformat_outputs(cell: &notebook_types::NotebookCell) -> Option<CellOut
         latex,
         plot_svg,
         plot_data,
+        image_png,
         error: None,
         is_error: false,
         duration_ms: 0,

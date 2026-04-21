@@ -7,6 +7,8 @@ pub struct EvalResult {
     pub latex: Option<String>,
     pub plot_svg: Option<String>,
     pub plot_data: Option<String>,
+    /// Base64-encoded PNG image data (from np_imshow)
+    pub image_png: Option<String>,
     pub error: Option<String>,
     pub error_info: Option<ErrorInfo>,
     pub is_error: bool,

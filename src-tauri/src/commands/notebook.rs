@@ -250,6 +250,7 @@ pub struct LoadCellOutput {
     pub latex: Option<String>,
     pub plot_data: Option<String>,
     pub plot_svg: Option<String>,
+    pub image_png: Option<String>,
     pub execution_count: Option<u32>,
 }
 
@@ -283,6 +284,7 @@ pub async fn nb_load_cells(
                 execution_count: o.execution_count,
                 plot_svg: o.plot_svg,
                 plot_data: o.plot_data,
+                image_png: o.image_png,
                 error: None,
                 is_error: false,
                 duration_ms: 0,

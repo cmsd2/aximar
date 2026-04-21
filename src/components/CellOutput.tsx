@@ -30,6 +30,7 @@ export function CellOutput({ output, cellId }: CellOutputProps) {
   const hasText = !output.isError && output.textOutput !== "";
   const hasPlot = !output.isError && output.plotSvg !== null && output.plotSvg !== undefined && output.plotSvg !== "";
   const hasPlotData = !output.isError && output.plotData !== null && output.plotData !== undefined && output.plotData !== "";
+  const hasImage = !output.isError && output.imagePng !== null && output.imagePng !== undefined && output.imagePng !== "";
 
   const plotBlobUrl = useMemo(() => {
     if (!hasPlot) return "";
@@ -88,9 +89,14 @@ export function CellOutput({ output, cellId }: CellOutputProps) {
           <img src={plotBlobUrl} alt="Plot output" />
         </div>
       )}
+      {hasImage && (
+        <div className="plot-output">
+          <img src={`data:image/png;base64,${output.imagePng}`} alt="Image output" style={{ maxWidth: "100%" }} />
+        </div>
+      )}
       {hasText && <RichTextOutput text={output.textOutput} />}
       {hasLatex && <KatexOutput latex={output.latex!} />}
-      {!hasLatex && !hasText && !hasPlot && !hasPlotData && (
+      {!hasLatex && !hasText && !hasPlot && !hasPlotData && !hasImage && (
         <span className="text-output empty-output">(no output)</span>
       )}
     </div>

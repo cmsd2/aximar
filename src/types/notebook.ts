@@ -5,6 +5,7 @@ export interface CellOutput {
   latex: string | null;
   plotSvg: string | null;
   plotData: string | null;
+  imagePng: string | null;
   error: string | null;
   errorInfo: ErrorInfo | null;
   isError: boolean;

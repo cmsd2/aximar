@@ -13,6 +13,7 @@ export interface EvalResult {
   latex: string | null;
   plot_svg: string | null;
   plot_data: string | null;
+  image_png: string | null;
   error: string | null;
   error_info: ErrorInfo | null;
   is_error: boolean;

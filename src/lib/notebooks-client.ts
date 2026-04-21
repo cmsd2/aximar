@@ -79,6 +79,13 @@ function cellOutputToNbformat(cell: Cell): unknown[] {
       metadata: {},
     });
   }
+  if (cell.output.imagePng) {
+    outputs.push({
+      output_type: "display_data",
+      data: { "image/png": [cell.output.imagePng] },
+      metadata: {},
+    });
+  }
 
   return outputs;
 }
@@ -105,13 +112,14 @@ function cellsToNotebookCells(cells: Cell[]): NotebookCell[] {
  * (print output, intermediate results) and always go to text_output.
  */
 export function parseNbformatOutputs(cell: NotebookCell): {
-  text_output: string; latex: string | null; plot_data: string | null; plot_svg: string | null; execution_count: number | null;
+  text_output: string; latex: string | null; plot_data: string | null; plot_svg: string | null; image_png: string | null; execution_count: number | null;
 } | null {
   if (!cell.outputs?.length) return null;
   let textOutput = "";
   let latex: string | null = null;
   let plotData: string | null = null;
   let plotSvg: string | null = null;
+  let imagePng: string | null = null;
   let executionCount: number | null = cell.execution_count ?? null;
 
   for (const raw of cell.outputs) {
@@ -124,6 +132,8 @@ export function parseNbformatOutputs(cell: NotebookCell): {
         if (plotly) plotData = Array.isArray(plotly) ? (plotly as string[]).join("") : String(plotly);
         const svg = data["image/svg+xml"];
         if (svg) plotSvg = Array.isArray(svg) ? (svg as string[]).join("") : String(svg);
+        const png = data["image/png"];
+        if (png) imagePng = Array.isArray(png) ? (png as string[]).join("") : String(png);
         const tex = data["text/latex"];
         if (tex) {
           // Prefer LaTeX; text/plain is just a fallback for the same value
@@ -143,8 +153,8 @@ export function parseNbformatOutputs(cell: NotebookCell): {
     }
   }
 
-  if (!textOutput && !latex && !plotData && !plotSvg) return null;
-  return { text_output: textOutput, latex, plot_data: plotData, plot_svg: plotSvg, execution_count: executionCount };
+  if (!textOutput && !latex && !plotData && !plotSvg && !imagePng) return null;
+  return { text_output: textOutput, latex, plot_data: plotData, plot_svg: plotSvg, image_png: imagePng, execution_count: executionCount };
 }
 
 function buildNotebook(cells: Cell[]): Notebook {

@@ -27,6 +27,10 @@ static LATEX_SVG_PATH_RE: LazyLock<Regex> =
 static PLOTLY_PATH_RE: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r#""?([^"\s]+\.plotly\.json)"?"#).unwrap());
 
+/// Matches a .png or .jpg/.jpeg file path in output (from np_imshow).
+static IMAGE_PATH_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r#""?([^"\s]+\.(png|jpe?g))"?"#).unwrap());
+
 /// LaTeX values that indicate tex(%) had no real result (e.g. after an error)
 const JUNK_LATEX: &[&str] = &[
     "\\mathbf{false}",
@@ -99,6 +103,47 @@ fn is_safe_plotly_path(path_str: &str, backend: &Backend) -> bool {
 
     // Must end with .plotly.json
     if !path_str.ends_with(".plotly.json") {
+        return false;
+    }
+
+    // Canonicalize to resolve symlinks and ..
+    let canonical = match fs::canonicalize(path) {
+        Ok(p) => p,
+        Err(_) => return false,
+    };
+
+    let temp_dir = std::env::temp_dir();
+    let canonical_temp = match fs::canonicalize(&temp_dir) {
+        Ok(p) => p,
+        Err(_) => temp_dir,
+    };
+
+    if canonical.starts_with(&canonical_temp) {
+        return true;
+    }
+
+    // For Docker, also allow the host temp dir used for volume mounts
+    if let Some(host_dir) = backend.host_temp_dir() {
+        if let Ok(canonical_host) = fs::canonicalize(&host_dir) {
+            if canonical.starts_with(&canonical_host) {
+                return true;
+            }
+        }
+    }
+
+    false
+}
+
+/// Check that an image path is safe to read: valid image extension, inside temp dir.
+fn is_safe_image_path(path_str: &str, backend: &Backend) -> bool {
+    let path = Path::new(path_str);
+
+    // Must have .png, .jpg, or .jpeg extension
+    let ext = match path.extension().and_then(|e| e.to_str()) {
+        Some(e) => e.to_lowercase(),
+        None => return false,
+    };
+    if !matches!(ext.as_str(), "png" | "jpg" | "jpeg") {
         return false;
     }
 
@@ -450,6 +495,44 @@ fn parse_output_inner(
         text_output
     };
 
+    // Detect image file paths (from np_imshow) and read as base64-encoded PNG.
+    let image_re = &*IMAGE_PATH_RE;
+    let mut image_png: Option<String> = None;
+    let text_output = if !has_error {
+        if let Some(caps) = image_re.captures(&text_output) {
+            let raw_path = caps[1].to_string();
+            let image_path = backend
+                .translate_container_path(&raw_path)
+                .unwrap_or(raw_path.clone());
+            if is_safe_image_path(&image_path, backend) {
+                match fs::read(&image_path) {
+                    Ok(bytes) => {
+                        use base64::Engine;
+                        image_png =
+                            Some(base64::engine::general_purpose::STANDARD.encode(&bytes));
+                    }
+                    Err(e) => {
+                        eprintln!("[parser] Failed to read image {}: {}", image_path, e);
+                    }
+                }
+            }
+            // Strip the image path line from text output
+            let cleaned: Vec<&str> = text_output
+                .lines()
+                .filter(|line| {
+                    !line.contains(".png")
+                        && !line.contains(".jpg")
+                        && !line.contains(".jpeg")
+                })
+                .collect();
+            cleaned.join("\n")
+        } else {
+            text_output
+        }
+    } else {
+        text_output
+    };
+
     let error_info = error
         .as_ref()
         .and_then(|e| errors::enhance_error_with_packages(e, catalog, packages));
@@ -463,6 +546,7 @@ fn parse_output_inner(
         latex,
         plot_svg,
         plot_data,
+        image_png,
         error: error.clone(),
         error_info,
         is_error: has_error,
