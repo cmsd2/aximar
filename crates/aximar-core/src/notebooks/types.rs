@@ -40,6 +40,7 @@ pub struct AximarMetadata {
 pub struct NotebookCell {
     pub cell_type: CellType,
     pub source: CellSource,
+    #[serde(default)]
     pub metadata: Value,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub execution_count: Option<u64>,

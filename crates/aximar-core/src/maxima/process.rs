@@ -1,7 +1,8 @@
 use std::env;
 use std::path::PathBuf;
-use std::sync::Arc;
+use std::sync::{Arc, LazyLock};
 use std::time::{SystemTime, UNIX_EPOCH};
+use regex::Regex;
 use tokio::io::{AsyncBufReadExt, AsyncReadExt, AsyncWriteExt, BufReader};
 use tokio::process::{Child, Command};
 
@@ -10,6 +11,26 @@ use crate::maxima::backend::Backend;
 use crate::maxima::debugger::{self, PromptKind};
 use crate::maxima::noconsole::hide_console_window;
 use crate::maxima::output::{OutputEvent, OutputSink};
+
+/// Detects interactive assumption questions from Maxima (e.g. "Is x positive,
+/// negative or zero?") that would block the process waiting for user input.
+static ASSUMPTION_QUESTION_RE: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"Is\s+.+\s+(?:positive|negative|zero|an integer|even|odd)").unwrap()
+});
+
+/// Return a valid answer for a Maxima assumption question so the process
+/// unblocks. The result of the computation is discarded anyway — this just
+/// prevents the process from hanging.
+fn assumption_answer(question: &str) -> &'static str {
+    if question.contains("an integer") {
+        "no;\n"
+    } else if question.contains("even") || question.contains("odd") {
+        "even;\n"
+    } else {
+        // "positive, negative or zero?" — the most common form
+        "positive;\n"
+    }
+}
 
 const READY_SENTINEL: &str = "__AXIMAR_READY__";
 
@@ -349,6 +370,19 @@ impl MaximaProcess {
                         ).await;
                         return Ok(lines);
                     }
+                    // Detect assumption questions that block waiting for input.
+                    // Answer the question to unblock Maxima (the result is
+                    // discarded anyway), then drain until the sentinel arrives.
+                    // The original sentinel in stdin gets consumed by asksign
+                    // as an invalid answer, so we re-send it after our answer.
+                    if ASSUMPTION_QUESTION_RE.is_match(&trimmed) {
+                        lines.push(trimmed.clone());
+                        let answer = assumption_answer(&trimmed);
+                        let recovery = format!("{}print(\"{}\");\n", answer, sentinel);
+                        let _ = self.write_stdin(&recovery).await;
+                        self.drain_answering_questions(sentinel).await;
+                        return Err(AppError::AssumptionRequired(trimmed));
+                    }
                     lines.push(trimmed);
                 }
                 result = self.stderr_reader.read_line(&mut stderr_line) => {
@@ -430,6 +464,38 @@ impl MaximaProcess {
                 GenerateConsoleCtrlEvent(CTRL_BREAK_EVENT, pid);
             }
         }
+    }
+
+    /// Drain stdout until the sentinel arrives, answering any further
+    /// assumption questions along the way. Used after detecting the first
+    /// assumption question to let the computation complete (its result is
+    /// discarded) so Maxima returns to a clean prompt.
+    async fn drain_answering_questions(&mut self, sentinel: &str) {
+        let _ = tokio::time::timeout(std::time::Duration::from_secs(10), async {
+            let mut line = String::new();
+            loop {
+                line.clear();
+                match self.stdout_reader.read_line(&mut line).await {
+                    Ok(0) => break,
+                    Ok(_) => {
+                        let trimmed = line.trim();
+                        if trimmed.contains(sentinel) {
+                            break;
+                        }
+                        // Answer any further assumption questions,
+                        // re-sending the sentinel each time (the previous
+                        // one may have been consumed as an invalid answer).
+                        if ASSUMPTION_QUESTION_RE.is_match(trimmed) {
+                            let answer = assumption_answer(trimmed);
+                            let recovery = format!("{}print(\"{}\");\n", answer, sentinel);
+                            let _ = self.write_stdin(&recovery).await;
+                        }
+                    }
+                    Err(_) => break,
+                }
+            }
+        })
+        .await;
     }
 
     /// Interrupt a running Maxima computation and drain output to
@@ -520,6 +586,18 @@ impl MaximaProcess {
                                 self.drain_stderr(&mut lines).await;
                                 return Ok((lines, PromptKind::Normal));
                             }
+                        }
+
+                        // Detect assumption questions that block waiting for input
+                        if ASSUMPTION_QUESTION_RE.is_match(&line) {
+                            lines.push(line.clone());
+                            let answer = assumption_answer(&line);
+                            if let Some(s) = sentinel {
+                                let recovery = format!("{}print(\"{}\");\n", answer, s);
+                                let _ = self.write_stdin(&recovery).await;
+                                self.drain_answering_questions(s).await;
+                            }
+                            return Err(AppError::AssumptionRequired(line));
                         }
 
                         // Detect Maxima error markers.  Don't return yet —

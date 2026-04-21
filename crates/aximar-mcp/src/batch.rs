@@ -47,10 +47,13 @@ pub async fn run(
 
     eprintln!("Loaded {} cells ({} code) from {}", cell_tuples.len(), total_code_cells, input_path);
 
-    // Create registry with one notebook, load cells
+    // Create registry with one notebook, set path so Maxima CWD is the notebook dir
+    let notebook_path = std::path::Path::new(input_path).canonicalize()?;
     let registry = Arc::new(Mutex::new(NotebookRegistry::new()));
     let ctx = {
-        let reg = registry.lock().await;
+        let mut reg = registry.lock().await;
+        let id = reg.active_id().to_string();
+        reg.set_path(&id, Some(notebook_path)).map_err(|e| anyhow::anyhow!("{e}"))?;
         reg.resolve(None).map_err(|e| anyhow::anyhow!("{e}"))?
     };
     {
