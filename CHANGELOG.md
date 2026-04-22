@@ -5,6 +5,14 @@ All notable changes to the standalone Maxima language tools are documented here.
 This changelog covers releases tagged `tools-v*`. For the Aximar desktop app,
 see the `v*` releases on GitHub.
 
+## [0.4.1] — 2026-04-22
+
+### aximar-mcp
+
+- **Fixed missing output fields**: `image_png` and `plot_data` fields
+  are now included in `evaluate_expression` and cell suggestion
+  tool responses.
+
 ## [0.4.0] — 2026-04-22
 
 ### aximar-core
@@ -161,6 +169,7 @@ Initial standalone release of the Maxima language tools.
 - Dangerous function safety gates
 - Structured JSON startup output for VS Code integration
 
+[0.4.1]: https://github.com/cmsd2/aximar/releases/tag/tools-v0.4.1
 [0.4.0]: https://github.com/cmsd2/aximar/releases/tag/tools-v0.4.0
 [0.3.1]: https://github.com/cmsd2/aximar/releases/tag/tools-v0.3.1
 [0.3.0]: https://github.com/cmsd2/aximar/releases/tag/tools-v0.3.0
