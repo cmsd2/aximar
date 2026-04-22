@@ -5,6 +5,37 @@ All notable changes to the standalone Maxima language tools are documented here.
 This changelog covers releases tagged `tools-v*`. For the Aximar desktop app,
 see the `v*` releases on GitHub.
 
+## [Unreleased]
+
+### aximar-core
+
+- **Save/load cell outputs**: Notebook files now persist text, LaTeX, plot, and
+  image outputs so they render when reopened without re-running cells.
+- **Plot persistence**: Plotly JSON (`application/x-maxima-plotly`) and SVG
+  (`image/svg+xml`) outputs are saved/loaded via nbformat `display_data` entries.
+- **Image output support**: Base64-encoded `image/png` and `image/jpeg` outputs
+  are saved and rendered in notebooks.
+- **Notebook-level trust**: Dangerous function approval is now per-notebook
+  instead of per-cell, unblocking run-all-cells workflows.
+- **Trailing comment stripping**: Block comments after the last statement
+  terminator (e.g. `x:1; /* note */`) are stripped before sending to Maxima,
+  preventing parse errors.
+- **Comment-only cell handling**: Cells containing only comments are detected
+  as empty after stripping and skipped gracefully.
+- **Assumption question detection**: Maxima assumption prompts (e.g. "Is x
+  positive?") are now detected and returned as errors instead of hanging.
+- **SBCL compiler warning filtering**: Spurious SBCL compiler notes in Maxima
+  output are now stripped from results.
+
+### aximar-mcp
+
+- **CLI batch runner**: `aximar-mcp run <path> [-o output] [--allow-dangerous]`
+  executes all cells in a notebook and saves with outputs, enabling scripted
+  notebook execution for CI and batch processing.
+- **Clap CLI**: Replaced manual argument parsing with clap derive macros.
+  Adds `--help`, `--version`, and subcommand help.
+- Inherits all aximar-core changes above.
+
 ## [0.3.1] — 2026-04-17
 
 ### aximar-core
