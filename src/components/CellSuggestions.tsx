@@ -91,6 +91,7 @@ export function CellSuggestions({ cell }: CellSuggestionsProps) {
       latex: cell.output.latex,
       plot_svg: cell.output.plotSvg,
       plot_data: cell.output.plotData,
+      image_png: cell.output.imagePng ?? null,
       error: cell.output.error,
       error_info: cell.output.errorInfo,
       is_error: cell.output.isError,
