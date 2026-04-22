@@ -325,7 +325,11 @@ fn parse_output_inner(
 
         // Check if this line starts or continues an error
         // Use the original line (not trimmed) because some patterns have leading spaces
-        let is_error_line = error_patterns.iter().any(|p| line.contains(p));
+        // Skip SBCL compiler diagnostics (lines starting with ";") — these are
+        // compile-time warnings (e.g. "caught WARNING: undefined variable"), not
+        // Maxima-level errors.
+        let is_error_line = !trimmed.starts_with(';')
+            && error_patterns.iter().any(|p| line.contains(p));
 
         if is_error_line {
             // Pull any preceding text lines into the error (they're context)
@@ -790,6 +794,34 @@ mod tests {
         assert!(err.contains("error context"));
         // Text after the empty line is not in the error
         assert!(!err.contains("normal text after"));
+    }
+
+    #[test]
+    fn test_sbcl_compiler_warning_not_error() {
+        // SBCL compiler warnings (lines starting with ";") should not be
+        // treated as errors, even when they contain error-pattern substrings
+        // like "undefined variable".
+        let lines = vec![
+            "; file: /path/to/maxima-lbfgs.lisp".to_string(),
+            "; in: DEFMFUN $LBFGS".to_string(),
+            ";     (MAXIMA::XTOL MAXIMA::FLONUM-EPSILON)".to_string(),
+            "; ".to_string(),
+            "; caught WARNING:".to_string(),
+            ";   undefined variable: MAXIMA::FLONUM-EPSILON".to_string(),
+            "; ".to_string(),
+            "; compilation unit finished".to_string(),
+            ";   Undefined variable:".to_string(),
+            ";     FLONUM-EPSILON".to_string(),
+            ";   caught 1 WARNING condition".to_string(),
+            "actual output".to_string(),
+            "__AXIMAR_EVAL_END__".to_string(),
+        ];
+        let result = parse_output("cell-1", &lines, 100, &catalog(), &Backend::Local);
+        assert!(!result.is_error, "SBCL warnings should not be treated as errors");
+        assert!(
+            result.text_output.contains("actual output"),
+            "regular output should still be captured"
+        );
     }
 
     // --- Label edge cases ---
