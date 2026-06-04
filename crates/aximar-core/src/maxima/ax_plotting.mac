@@ -112,7 +112,9 @@ ax__style_set(style, key, val) := block([result],
 
 /* Layout option names */
 ax__layout_option_names : [title, xrange, yrange, zrange, grid, xaxis, yaxis,
-  xlabel, ylabel, zlabel, showlegend, aspect_ratio, width, height, bar_mode]$
+  xlabel, ylabel, zlabel, showlegend, aspect_ratio, width, height, bar_mode,
+  /* animation playback options (siblings of title/xrange/...) */
+  fps, transition_duration, loop, slider_label]$
 
 /* Trace/style option names */
 ax__trace_option_names : [color, fill_color, opacity, line_width, dash,
@@ -121,12 +123,15 @@ ax__trace_option_names : [color, fill_color, opacity, line_width, dash,
   ngrid, arrow_scale, normalize, initial_points, t_range, dt,
   boxpoints, boxmean, hole]$
 
-/* Draw object names we recognize */
+/* Draw object names we recognize.  `animate` is a wrapper that
+   takes any other draw object and an [param, lo, hi[, n]] spec;
+   it is unwrapped during the scan-pass of ax_draw2d / ax_draw3d. */
 ax__draw_object_names : [explicit, parametric, points, implicit,
   ax_contour, ax_heatmap, ax_bar, ax_histogram,
   ax_vector_field, ax_streamline,
   parametric_surface, ax_contour3d, ax_vector_field3d,
-  ax_box, ax_violin, ax_pie, ax_error_bar]$
+  ax_box, ax_violin, ax_pie, ax_error_bar,
+  animate]$
 
 /* Check if an argument is a layout option (e.g. title="Foo") */
 ax__is_layout_option(item) :=
@@ -1296,19 +1301,232 @@ ax__emit_plotly(traces, layout) := block(
   print(path))$
 
 /* ========================================================================
+ * animate(obj, [param, lo, hi[, n]]) — paradigm-2 precomputed frames
+ *
+ * `animate` is a draw-object wrapper.  ax_draw2d / ax_draw3d detect it
+ * during their arg scan, sample the wrapped obj at n parameter values,
+ * and emit Plotly `frames` plus a slider + play/pause control.  See
+ * doc/design/animate.md in the ax-plots repo.
+ * ======================================================================== */
+
+ax__is_animate(obj) :=
+  not atom(obj) and op(obj) = 'animate$
+
+ax__animate_spec(obj) := block(
+  [a, inner, spec, n],
+  a: args(obj),
+  if length(a) # 2 then
+    error("animate expects (object, [param, lo, hi[, n]]); got args:", a),
+  inner: a[1],
+  spec: a[2],
+  if not listp(spec) or length(spec) < 3 then
+    error("animate: spec must be [param, lo, hi] or [param, lo, hi, n]; got:", spec),
+  if not symbolp(spec[1]) then
+    error("animate: param must be an unbound symbol; got:", spec[1]),
+  n: if length(spec) >= 4 then spec[4] else 60,
+  if not integerp(n) or n < 2 then
+    error("animate: n must be an integer >= 2; got:", n),
+  [inner, spec[1], spec[2], spec[3], n])$
+
+ax__animate_param_values(lo, hi, n) := block([lof, hif, h],
+  lof: float(lo), hif: float(hi),
+  h: (hif - lof) / (n - 1),
+  makelist(lof + i * h, i, 0, n - 1))$
+
+ax__layout_opt_value(opts, key, default) := block([found: false, v: default],
+  for o in opts do (
+    if not found and lhs(o) = key then (
+      v: rhs(o),
+      found: true
+    )
+  ),
+  v)$
+
+ax__format_animate_value(v) := block([fv: float(v)],
+  if fv = 0 then "0"
+  else if abs(fv) < 0.001 or abs(fv) >= 10000 then
+    printf(false, "~,3e", fv)
+  else
+    printf(false, "~,3f", fv))$
+
+ax__build_frame_json(name, trace_jsons, indices) :=
+  ax__json_obj([
+    ["name",   ax__json_string(name)],
+    ["data",   ax__json_list(trace_jsons)],
+    ["traces", sconcat("[", simplode(map(string, indices), ","), "]")]
+  ])$
+
+ax__build_frames_2d(animate_specs, param, param_values) := block(
+  [frames, n_frames, i, p, all_traces, all_indices,
+   spec, inner, style, start_idx, count, raw, traces_list, idx, frame],
+  frames: [],
+  n_frames: length(param_values),
+  for i: 0 thru n_frames - 1 do (
+    p: param_values[i + 1],
+    all_traces: [],
+    all_indices: [],
+    for spec in animate_specs do (
+      inner: spec[1],
+      style: spec[2],
+      start_idx: spec[3],
+      count: spec[4],
+      raw: ax__build_trace_2d(subst(p, param, inner), style),
+      traces_list: if listp(raw) then raw else [raw],
+      if length(traces_list) # count then
+        error("animate: frame", i, "produced", length(traces_list),
+              "traces but frame 0 produced", count),
+      for idx: 0 thru count - 1 do (
+        all_traces: endcons(traces_list[idx + 1], all_traces),
+        all_indices: endcons(start_idx + idx, all_indices)
+      )
+    ),
+    frame: ax__build_frame_json(string(i), all_traces, all_indices),
+    frames: endcons(frame, frames)
+  ),
+  frames)$
+
+ax__build_frames_3d(animate_specs, param, param_values) := block(
+  [frames, n_frames, i, p, all_traces, all_indices,
+   spec, inner, style, start_idx, count, raw, traces_list, idx, frame],
+  frames: [],
+  n_frames: length(param_values),
+  for i: 0 thru n_frames - 1 do (
+    p: param_values[i + 1],
+    all_traces: [],
+    all_indices: [],
+    for spec in animate_specs do (
+      inner: spec[1],
+      style: spec[2],
+      start_idx: spec[3],
+      count: spec[4],
+      raw: ax__build_trace_3d(subst(p, param, inner), style),
+      traces_list: if listp(raw) then raw else [raw],
+      if length(traces_list) # count then
+        error("animate: frame", i, "produced", length(traces_list),
+              "traces but frame 0 produced", count),
+      for idx: 0 thru count - 1 do (
+        all_traces: endcons(traces_list[idx + 1], all_traces),
+        all_indices: endcons(start_idx + idx, all_indices)
+      )
+    ),
+    frame: ax__build_frame_json(string(i), all_traces, all_indices),
+    frames: endcons(frame, frames)
+  ),
+  frames)$
+
+ax__build_slider_json(param_values, param, layout_opts) := block(
+  [prefix_text, steps, i, p, label, step_json],
+  prefix_text: sconcat(
+    ax__layout_opt_value(layout_opts, slider_label, string(param)),
+    " = "),
+  steps: [],
+  for i: 0 thru length(param_values) - 1 do (
+    p: param_values[i + 1],
+    label: ax__format_animate_value(p),
+    step_json: ax__json_obj([
+      ["label",  ax__json_string(label)],
+      ["method", ax__json_string("animate")],
+      ["args",   sconcat("[[", ax__json_string(string(i)), "],",
+                          "{\"mode\":\"immediate\",",
+                          "\"frame\":{\"duration\":0,\"redraw\":true},",
+                          "\"transition\":{\"duration\":0}}]")]
+    ]),
+    steps: endcons(step_json, steps)
+  ),
+  ax__json_obj([
+    ["active",       "0"],
+    ["currentvalue", ax__json_obj([["prefix", ax__json_string(prefix_text)]])],
+    ["steps",        ax__json_list(steps)]
+  ]))$
+
+ax__build_updatemenus_json(layout_opts) := block(
+  [fps_val, frame_dur, transition_dur, play_btn, pause_btn],
+  fps_val:        ax__layout_opt_value(layout_opts, fps, 12),
+  frame_dur:      round(1000.0 / fps_val),
+  transition_dur: ax__layout_opt_value(layout_opts, transition_duration, frame_dur),
+  play_btn: ax__json_obj([
+    ["label",  ax__json_string("▶")],
+    ["method", ax__json_string("animate")],
+    ["args",   sconcat("[null,{\"frame\":{\"duration\":", string(frame_dur),
+                        ",\"redraw\":true},\"fromcurrent\":true,",
+                        "\"transition\":{\"duration\":", string(transition_dur),
+                        ",\"easing\":\"linear\"}}]")]
+  ]),
+  pause_btn: ax__json_obj([
+    ["label",  ax__json_string("❚❚")],
+    ["method", ax__json_string("animate")],
+    ["args",
+      "[[null],{\"mode\":\"immediate\",\"frame\":{\"duration\":0,\"redraw\":false},\"transition\":{\"duration\":0}}]"]
+  ]),
+  ax__json_obj([
+    ["type",       ax__json_string("buttons")],
+    ["showactive", "false"],
+    ["buttons",    ax__json_list([play_btn, pause_btn])]
+  ]))$
+
+ax__layout_add_animation(layout_json, slider_json, updatemenus_json) := block(
+  [body],
+  body: substring(layout_json, 1, slength(layout_json)),
+  sconcat(body,
+          ",\"sliders\":[",     slider_json,      "],",
+           "\"updatemenus\":[", updatemenus_json, "]}"))$
+
+ax__emit_plotly_animated(traces, layout, frames_jsons) := block(
+  [json, path, stream],
+  json: sconcat(
+    "{\"data\":[",   simplode(traces, ","), "],",
+    "\"layout\":",   layout, ",",
+    "\"frames\":",   ax__json_list(frames_jsons), "}"),
+  path: ax__mktemp(),
+  stream: openw(path),
+  printf(stream, "~a", json),
+  close(stream),
+  print(path))$
+
+/* ========================================================================
  * Public API: ax_draw2d, ax_draw3d, ax_plot2d
  * ======================================================================== */
 
 ax_draw2d([ax__args]) := block(
-  [traces, layout_opts, style],
+  [traces, layout_opts, style,
+   animate_specs, anim_param, anim_lo, anim_hi, anim_n, has_anim,
+   param_values, frames_jsons, layout_json, slider_json, updatemenus_json],
   traces: [],
   layout_opts: [],
   style: ax__default_style(),
+  animate_specs: [],
+  has_anim: false,
+  anim_param: false, anim_lo: false, anim_hi: false, anim_n: false,
   for item in ax__args do (
     if ax__is_layout_option(item) then
       layout_opts: endcons(item, layout_opts)
     else if ax__is_trace_option(item) then
       style: ax__apply_option(style, item)
+    else if ax__is_animate(item) then
+      block([spec, inner, p_lo, raw0, traces0, start_idx, count],
+        spec: ax__animate_spec(item),
+        if not has_anim then (
+          anim_param: spec[2],
+          anim_lo:    spec[3],
+          anim_hi:    spec[4],
+          anim_n:     spec[5],
+          has_anim:   true
+        ) else (
+          if spec[2] # anim_param then
+            error("ax_draw2d: all animate(...) wrappers must share the same param; got",
+                  anim_param, "and", spec[2]),
+          if spec[3] # anim_lo or spec[4] # anim_hi or spec[5] # anim_n then
+            error("ax_draw2d: all animate(...) wrappers must share the same [lo, hi, n]")
+        ),
+        inner: spec[1],
+        p_lo:    float(anim_lo),
+        raw0:    ax__build_trace_2d(subst(p_lo, anim_param, inner), style),
+        traces0: if listp(raw0) then raw0 else [raw0],
+        start_idx: length(traces),
+        count:     length(traces0),
+        animate_specs: endcons([inner, style, start_idx, count], animate_specs),
+        traces: append(traces, traces0)
+      )
     else if ax__is_draw_object(item) then
       block([result: ax__build_trace_2d(item, style)],
         if listp(result) then
@@ -1317,20 +1535,60 @@ ax_draw2d([ax__args]) := block(
           traces: endcons(result, traces))
     else error("ax_draw2d: unrecognized argument:", item)
   ),
-  ax__emit_plotly(traces, ax__build_layout_2d(layout_opts)),
+  layout_json: ax__build_layout_2d(layout_opts),
+  if not has_anim then
+    ax__emit_plotly(traces, layout_json)
+  else (
+    param_values:     ax__animate_param_values(anim_lo, anim_hi, anim_n),
+    frames_jsons:     ax__build_frames_2d(animate_specs, anim_param, param_values),
+    slider_json:      ax__build_slider_json(param_values, anim_param, layout_opts),
+    updatemenus_json: ax__build_updatemenus_json(layout_opts),
+    layout_json:      ax__layout_add_animation(layout_json, slider_json, updatemenus_json),
+    ax__emit_plotly_animated(traces, layout_json, frames_jsons)
+  ),
   'done
 )$
 
 ax_draw3d([ax__args]) := block(
-  [traces, layout_opts, style],
+  [traces, layout_opts, style,
+   animate_specs, anim_param, anim_lo, anim_hi, anim_n, has_anim,
+   param_values, frames_jsons, layout_json, slider_json, updatemenus_json],
   traces: [],
   layout_opts: [],
   style: ax__default_style(),
+  animate_specs: [],
+  has_anim: false,
+  anim_param: false, anim_lo: false, anim_hi: false, anim_n: false,
   for item in ax__args do (
     if ax__is_layout_option(item) then
       layout_opts: endcons(item, layout_opts)
     else if ax__is_trace_option(item) then
       style: ax__apply_option(style, item)
+    else if ax__is_animate(item) then
+      block([spec, inner, p_lo, raw0, traces0, start_idx, count],
+        spec: ax__animate_spec(item),
+        if not has_anim then (
+          anim_param: spec[2],
+          anim_lo:    spec[3],
+          anim_hi:    spec[4],
+          anim_n:     spec[5],
+          has_anim:   true
+        ) else (
+          if spec[2] # anim_param then
+            error("ax_draw3d: all animate(...) wrappers must share the same param; got",
+                  anim_param, "and", spec[2]),
+          if spec[3] # anim_lo or spec[4] # anim_hi or spec[5] # anim_n then
+            error("ax_draw3d: all animate(...) wrappers must share the same [lo, hi, n]")
+        ),
+        inner: spec[1],
+        p_lo:    float(anim_lo),
+        raw0:    ax__build_trace_3d(subst(p_lo, anim_param, inner), style),
+        traces0: if listp(raw0) then raw0 else [raw0],
+        start_idx: length(traces),
+        count:     length(traces0),
+        animate_specs: endcons([inner, style, start_idx, count], animate_specs),
+        traces: append(traces, traces0)
+      )
     else if ax__is_draw_object(item) then
       block([result: ax__build_trace_3d(item, style)],
         if listp(result) then
@@ -1339,7 +1597,17 @@ ax_draw3d([ax__args]) := block(
           traces: endcons(result, traces))
     else error("ax_draw3d: unrecognized argument:", item)
   ),
-  ax__emit_plotly(traces, ax__build_layout_3d(layout_opts)),
+  layout_json: ax__build_layout_3d(layout_opts),
+  if not has_anim then
+    ax__emit_plotly(traces, layout_json)
+  else (
+    param_values:     ax__animate_param_values(anim_lo, anim_hi, anim_n),
+    frames_jsons:     ax__build_frames_3d(animate_specs, anim_param, param_values),
+    slider_json:      ax__build_slider_json(param_values, anim_param, layout_opts),
+    updatemenus_json: ax__build_updatemenus_json(layout_opts),
+    layout_json:      ax__layout_add_animation(layout_json, slider_json, updatemenus_json),
+    ax__emit_plotly_animated(traces, layout_json, frames_jsons)
+  ),
   'done
 )$
 
