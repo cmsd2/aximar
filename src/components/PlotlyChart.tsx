@@ -10,7 +10,11 @@ export function PlotlyChart({ plotData }: PlotlyChartProps) {
 
   const spec = useMemo(() => {
     try {
-      return JSON.parse(plotData) as { data: Plotly.Data[]; layout?: Partial<Plotly.Layout> };
+      return JSON.parse(plotData) as {
+        data: Plotly.Data[];
+        layout?: Partial<Plotly.Layout>;
+        frames?: Partial<Plotly.Frame>[];
+      };
     } catch {
       console.warn("[PlotlyChart] Failed to parse plot data");
       return null;
@@ -54,7 +58,15 @@ export function PlotlyChart({ plotData }: PlotlyChartProps) {
       modeBarButtonsToRemove: ["sendDataToCloud", "toImage", "lasso2d", "select2d"],
     };
 
-    Plotly.newPlot(containerRef.current, spec.data, layout, config);
+    Plotly.newPlot(containerRef.current, spec.data, layout, config).then(() => {
+      // Animated figures (ax-plots `animate(...)`) carry a top-level
+      // `frames` array plus layout.sliders / layout.updatemenus.  The
+      // slider steps reference frames by name; addFrames registers them
+      // so the play button and slider scrub actually animate.
+      if (containerRef.current && spec.frames && spec.frames.length > 0) {
+        Plotly.addFrames(containerRef.current, spec.frames);
+      }
+    });
 
     // Resize Plotly charts for print: the print CSS changes the container
     // dimensions, so we need to tell Plotly to re-fit.
