@@ -705,6 +705,34 @@
   accent-color: var(--accent-color, #4a9eff);
 }
 
+.reactive-control-checkbox label,
+.reactive-control-dropdown label,
+.reactive-control-number label {
+  display: grid;
+  grid-template-columns: 90px 1fr;
+  align-items: center;
+  gap: 10px;
+}
+
+.reactive-control-checkbox label {
+  grid-template-columns: 18px 1fr;
+}
+
+.reactive-control-dropdown select,
+.reactive-control-number input[type="number"] {
+  background: var(--bg-primary, transparent);
+  color: var(--text-primary, #e0e0e0);
+  border: 1px solid var(--border-color, #333);
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-family: var(--font-mono, monospace);
+  font-size: 13px;
+}
+
+.reactive-control-checkbox input[type="checkbox"] {
+  accent-color: var(--accent-color, #4a9eff);
+}
+
 .empty-output {
   color: var(--text-placeholder);
   font-style: italic;

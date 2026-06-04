@@ -11,7 +11,9 @@ export interface ReactiveSignalMeta {
   lo: number;
   hi: number;
   value: number;
-  kind: string;
+  kind: "slider" | "number" | "checkbox" | "dropdown" | string;
+  /** Present only when kind === "dropdown". */
+  choices?: number[];
 }
 
 export interface ReactiveBlock {

@@ -1517,21 +1517,27 @@ ax__clear_views() := (
 
 /* Build the _reactive JSON metadata block for a view.  SIGNAL_NAMES
    is a Maxima list of name strings; each name is looked up via
-   signal_meta to fill in lo/hi/current/kind. */
+   signal_meta to fill in lo/hi/current/kind/choices.  Dropdown signals
+   carry their choices list as an extra JSON field; other widget kinds
+   omit it. */
 ax__build_reactive_json(view_id, signal_names) := block(
-  [parts: [], meta, kind_str],
+  [parts: [], meta, kind_str, fields, choices_json],
   for n in signal_names do (
     meta: signal_meta(n),
     kind_str: string(fifth(meta)),
-    parts: endcons(
-      ax__json_obj([
-        ["name",  ax__json_string(first(meta))],
-        ["lo",    ax__float_to_json(second(meta))],
-        ["hi",    ax__float_to_json(third(meta))],
-        ["value", ax__float_to_json(fourth(meta))],
-        ["kind",  ax__json_string(kind_str)]
-      ]),
-      parts)
+    fields: [
+      ["name",  ax__json_string(first(meta))],
+      ["lo",    ax__float_to_json(second(meta))],
+      ["hi",    ax__float_to_json(third(meta))],
+      ["value", ax__float_to_json(fourth(meta))],
+      ["kind",  ax__json_string(kind_str)]
+    ],
+    if kind_str = "dropdown" then (
+      choices_json: ax__json_list(
+        map(lambda([c], ax__float_to_json(c)), sixth(meta))),
+      fields: endcons(["choices", choices_json], fields)
+    ),
+    parts: endcons(ax__json_obj(fields), parts)
   ),
   ax__json_obj([
     ["view_id", ax__json_string(view_id)],

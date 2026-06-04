@@ -199,39 +199,111 @@ function ReactiveControls({ containerRef, reactive }: ReactiveControlsProps) {
   );
 
   const onChange = useCallback(
-    (sig: ReactiveSignalMeta, raw: string) => {
-      const v = Number(raw);
-      if (!Number.isFinite(v)) return;
-      setValues((prev) => ({ ...prev, [sig.name]: v }));
-      dispatch(sig.name, v);
+    (sig: ReactiveSignalMeta, value: number) => {
+      if (!Number.isFinite(value)) return;
+      setValues((prev) => ({ ...prev, [sig.name]: value }));
+      dispatch(sig.name, value);
     },
     [dispatch],
   );
 
   return (
     <div className="reactive-controls">
-      {reactive.signals.map((sig) => {
-        const value = values[sig.name] ?? sig.value;
-        const step = (sig.hi - sig.lo) / 200 || 0.01;
-        return (
-          <div key={sig.name} className="reactive-control">
-            <label>
-              <span className="reactive-control-name">{sig.name}</span>
-              <input
-                type="range"
-                min={sig.lo}
-                max={sig.hi}
-                step={step}
-                value={value}
-                onChange={(e) => onChange(sig, e.target.value)}
-              />
-              <span className="reactive-control-value">{formatValue(value)}</span>
-            </label>
-          </div>
-        );
-      })}
+      {reactive.signals.map((sig) => (
+        <SignalControl
+          key={sig.name}
+          sig={sig}
+          value={values[sig.name] ?? sig.value}
+          onChange={onChange}
+        />
+      ))}
     </div>
   );
+}
+
+interface SignalControlProps {
+  sig: ReactiveSignalMeta;
+  value: number;
+  onChange: (sig: ReactiveSignalMeta, value: number) => void;
+}
+
+function SignalControl({ sig, value, onChange }: SignalControlProps) {
+  const label = <span className="reactive-control-name">{sig.name}</span>;
+
+  switch (sig.kind) {
+    case "checkbox": {
+      const checked = value >= 0.5;
+      return (
+        <div className="reactive-control reactive-control-checkbox">
+          <label>
+            <input
+              type="checkbox"
+              checked={checked}
+              onChange={(e) => onChange(sig, e.target.checked ? 1 : 0)}
+            />
+            {label}
+          </label>
+        </div>
+      );
+    }
+    case "dropdown": {
+      const choices = sig.choices ?? [];
+      return (
+        <div className="reactive-control reactive-control-dropdown">
+          <label>
+            {label}
+            <select
+              value={String(value)}
+              onChange={(e) => onChange(sig, Number(e.target.value))}
+            >
+              {choices.map((c) => (
+                <option key={c} value={String(c)}>
+                  {formatValue(c)}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+      );
+    }
+    case "number": {
+      return (
+        <div className="reactive-control reactive-control-number">
+          <label>
+            {label}
+            <input
+              type="number"
+              min={sig.lo}
+              max={sig.hi}
+              step={(sig.hi - sig.lo) / 200 || 0.01}
+              value={value}
+              onChange={(e) => onChange(sig, Number(e.target.value))}
+            />
+          </label>
+        </div>
+      );
+    }
+    default: {
+      // slider (and any unknown kind falls back to a range track)
+      const step = (sig.hi - sig.lo) / 200 || 0.01;
+      return (
+        <div className="reactive-control">
+          <label>
+            {label}
+            <input
+              type="range"
+              min={sig.lo}
+              max={sig.hi}
+              step={step}
+              value={value}
+              onChange={(e) => onChange(sig, Number(e.target.value))}
+            />
+            <span className="reactive-control-value">{formatValue(value)}</span>
+          </label>
+        </div>
+      );
+    }
+  }
 }
 
 function formatValue(v: number): string {
