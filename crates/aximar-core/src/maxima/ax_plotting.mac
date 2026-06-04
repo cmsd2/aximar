@@ -8,6 +8,11 @@
  * printed to stdout, where the Aximar parser detects and reads it.
  */
 
+/* NOTE: aximar bundles this file and pushes it through session init
+   (see crates/aximar-core/src/maxima/plotting.rs).  The companion
+   Lisp helpers are shipped via :lisp stdin, and the package index
+   is unused in this context, so the corresponding load(...) lines
+   from upstream ax-plots/ax-plots.mac are intentionally omitted. */
 load("stringproc")$
 
 /* ========================================================================
@@ -42,6 +47,17 @@ ax__json_obj(pairs) := block([parts],
 /* Build a JSON array from a list of already-serialized JSON strings */
 ax__json_list(items) :=
   sconcat("[", simplode(items, ","), "]")$
+
+/* ========================================================================
+ * Optional ndarray support (numerics package)
+ *
+ * If the numerics package is loaded, ndarray objects are transparently
+ * converted to Maxima lists/matrices before plotting. If not loaded,
+ * these are identity functions. Load order does not matter.
+ * ======================================================================== */
+
+ax__maybe_list(x) := if ax__ndarray_p(x) then ax__ndarray_to_list(x) else x $
+ax__maybe_matrix(x) := if ax__ndarray_p(x) then ax__ndarray_to_matrix(x) else x $
 
 /* ========================================================================
  * Color mapping
@@ -113,6 +129,7 @@ ax__style_set(style, key, val) := block([result],
 /* Layout option names */
 ax__layout_option_names : [title, xrange, yrange, zrange, grid, xaxis, yaxis,
   xlabel, ylabel, zlabel, showlegend, aspect_ratio, width, height, bar_mode,
+  plot_bgcolor, paper_bgcolor, logx, logy, logz,
   /* animation playback options (siblings of title/xrange/...) */
   fps, transition_duration, loop, slider_label]$
 
@@ -126,7 +143,7 @@ ax__trace_option_names : [color, fill_color, opacity, line_width, dash,
 /* Draw object names we recognize.  `animate` is a wrapper that
    takes any other draw object and an [param, lo, hi[, n]] spec;
    it is unwrapped during the scan-pass of ax_draw2d / ax_draw3d. */
-ax__draw_object_names : [explicit, parametric, points, implicit,
+ax__draw_object_names : [explicit, parametric, points, lines, implicit,
   ax_contour, ax_heatmap, ax_bar, ax_histogram,
   ax_vector_field, ax_streamline,
   parametric_surface, ax_contour3d, ax_vector_field3d,
@@ -488,17 +505,23 @@ ax__trace_parametric_2d(obj, style) := block(
   sconcat("{", simplode(parts, ","), "}"))$
 
 /* 2D points trace: points(data) → scatter markers
-   data can be [[x1,y1],[x2,y2],...] or [y1,y2,...] */
+   data can be [[x1,y1],[x2,y2],...] or [y1,y2,...]
+   Also supports points(xs, ys) with separate x and y lists/ndarrays */
 ax__trace_points_2d(obj, style) := block(
   [a, data, xs, ys, parts],
   a: args(obj),
-  data: a[1],
-  if listp(first(data)) then (
-    xs: map(first, data),
-    ys: map(second, data)
+  if length(a) = 2 then (
+    xs: ax__maybe_list(a[1]),
+    ys: ax__maybe_list(a[2])
   ) else (
-    xs: makelist(i, i, 1, length(data)),
-    ys: data
+    data: ax__maybe_list(a[1]),
+    if listp(first(data)) then (
+      xs: map(first, data),
+      ys: map(second, data)
+    ) else (
+      xs: makelist(i, i, 1, length(data)),
+      ys: data
+    )
   ),
   parts: [
     sconcat("\"x\":", ax__float_list_to_json(xs)),
@@ -508,6 +531,62 @@ ax__trace_points_2d(obj, style) := block(
     sconcat("\"marker\":", ax__build_marker_style(style))
   ],
   parts: append(parts, ax__build_trace_style(style, "points")),
+  sconcat("{", simplode(parts, ","), "}"))$
+
+/* 2D lines trace: lines(data) → scatter lines
+   data can be [[x1,y1],[x2,y2],...] or [y1,y2,...]
+   Also supports lines(xs, ys) with separate x and y lists/ndarrays */
+ax__trace_lines_2d(obj, style) := block(
+  [a, data, xs, ys, parts],
+  a: args(obj),
+  if length(a) = 2 then (
+    xs: ax__maybe_list(a[1]),
+    ys: ax__maybe_list(a[2])
+  ) else (
+    data: ax__maybe_list(a[1]),
+    if listp(first(data)) then (
+      xs: map(first, data),
+      ys: map(second, data)
+    ) else (
+      xs: makelist(i, i, 1, length(data)),
+      ys: data
+    )
+  ),
+  parts: [
+    sconcat("\"x\":", ax__float_list_to_json(xs)),
+    sconcat("\"y\":", ax__float_list_to_json(ys)),
+    "\"type\":\"scatter\"",
+    "\"mode\":\"lines\"",
+    sconcat("\"line\":", ax__build_line_style(style))
+  ],
+  parts: append(parts, ax__build_trace_style(style, "lines")),
+  sconcat("{", simplode(parts, ","), "}"))$
+
+/* 3D lines trace: lines(data) → scatter3d lines
+   data is [[x1,y1,z1],[x2,y2,z2],...]
+   Also supports lines(xs, ys, zs) with separate lists/ndarrays */
+ax__trace_lines_3d(obj, style) := block(
+  [a, data, xs, ys, zs, parts],
+  a: args(obj),
+  if length(a) = 3 then (
+    xs: ax__maybe_list(a[1]),
+    ys: ax__maybe_list(a[2]),
+    zs: ax__maybe_list(a[3])
+  ) else (
+    data: ax__maybe_list(a[1]),
+    xs: map(first, data),
+    ys: map(second, data),
+    zs: map(third, data)
+  ),
+  parts: [
+    sconcat("\"x\":", ax__float_list_to_json(xs)),
+    sconcat("\"y\":", ax__float_list_to_json(ys)),
+    sconcat("\"z\":", ax__float_list_to_json(zs)),
+    "\"type\":\"scatter3d\"",
+    "\"mode\":\"lines\"",
+    sconcat("\"line\":", ax__build_line_style(style))
+  ],
+  parts: append(parts, ax__build_trace_style(style, "lines")),
   sconcat("{", simplode(parts, ","), "}"))$
 
 /* 2D implicit trace: implicit(eqn, xvar, xlo, xhi, yvar, ylo, yhi) → contour at 0 */
@@ -558,14 +637,21 @@ ax__trace_explicit_3d(obj, style) := block(
   sconcat("{", simplode(parts, ","), "}"))$
 
 /* 3D points trace: points(data) → scatter3d markers
-   data is [[x1,y1,z1],[x2,y2,z2],...] */
+   data is [[x1,y1,z1],[x2,y2,z2],...]
+   Also supports points(xs, ys, zs) with separate lists/ndarrays */
 ax__trace_points_3d(obj, style) := block(
   [a, data, xs, ys, zs, parts],
   a: args(obj),
-  data: a[1],
-  xs: map(first, data),
-  ys: map(second, data),
-  zs: map(third, data),
+  if length(a) = 3 then (
+    xs: ax__maybe_list(a[1]),
+    ys: ax__maybe_list(a[2]),
+    zs: ax__maybe_list(a[3])
+  ) else (
+    data: ax__maybe_list(a[1]),
+    xs: map(first, data),
+    ys: map(second, data),
+    zs: map(third, data)
+  ),
   parts: [
     sconcat("\"x\":", ax__float_list_to_json(xs)),
     sconcat("\"y\":", ax__float_list_to_json(ys)),
@@ -776,7 +862,7 @@ ax__trace_heatmap_2d(obj, style) := block(
     ]
   ) else if nargs = 3 then (
     /* Matrix with labels: ax_heatmap(z_matrix, x_labels, y_labels) */
-    zmat: args(a[1]),  /* matrix → list of rows */
+    zmat: args(ax__maybe_matrix(a[1])),  /* matrix or ndarray → list of rows */
     xs: a[2], ys: a[3],
     parts: [
       sconcat("\"x\":", ax__string_list_to_json(xs)),
@@ -786,7 +872,7 @@ ax__trace_heatmap_2d(obj, style) := block(
     ]
   ) else if nargs = 1 then (
     /* Matrix only: ax_heatmap(z_matrix) */
-    zmat: args(a[1]),  /* matrix → list of rows */
+    zmat: args(ax__maybe_matrix(a[1])),  /* matrix or ndarray → list of rows */
     parts: [
       sconcat("\"z\":", ax__float_matrix_to_json(zmat)),
       "\"type\":\"heatmap\""
@@ -810,9 +896,9 @@ ax__trace_bar_2d(obj, style) := block(
   a: args(obj),
   nargs: length(a),
   if nargs = 2 then (
-    cats: a[1], vals: a[2]
+    cats: ax__maybe_list(a[1]), vals: ax__maybe_list(a[2])
   ) else if nargs = 1 then (
-    vals: a[1],
+    vals: ax__maybe_list(a[1]),
     cats: makelist(i, i, 1, length(vals))
   ) else
     error("ax_bar: expected 1 or 2 arguments"),
@@ -839,7 +925,7 @@ ax__trace_histogram_2d(obj, style) := block(
   a: args(obj),
   if length(a) # 1 then
     error("ax_histogram: expected 1 argument (data list)"),
-  data: a[1],
+  data: ax__maybe_list(a[1]),
   c: ax__style_get(style, color),
   nb: ax__style_get(style, nbins),
   parts: [
@@ -859,7 +945,7 @@ ax__trace_box_2d(obj, style) := block(
   a: args(obj),
   if length(a) < 1 or length(a) > 2 then
     error("ax_box: expected 1 or 2 arguments: ax_box(data) or ax_box(data, category)"),
-  data: a[1],
+  data: ax__maybe_list(a[1]),
   c: ax__style_get(style, color),
   bp: ax__style_get(style, boxpoints),
   bm: ax__style_get(style, boxmean),
@@ -899,7 +985,7 @@ ax__trace_violin_2d(obj, style) := block(
   a: args(obj),
   if length(a) < 1 or length(a) > 2 then
     error("ax_violin: expected 1 or 2 arguments: ax_violin(data) or ax_violin(data, category)"),
-  data: a[1],
+  data: ax__maybe_list(a[1]),
   c: ax__style_get(style, color),
   bp: ax__style_get(style, boxpoints),
   parts: [
@@ -932,7 +1018,7 @@ ax__trace_pie_2d(obj, style) := block(
   a: args(obj),
   if length(a) < 1 or length(a) > 2 then
     error("ax_pie: expected 1 or 2 arguments: ax_pie(values) or ax_pie(values, labels)"),
-  vals: a[1],
+  vals: ax__maybe_list(a[1]),
   parts: [
     sconcat("\"values\":", ax__float_list_to_json(vals)),
     "\"type\":\"pie\""
@@ -953,7 +1039,7 @@ ax__trace_error_bar_2d(obj, style) := block(
   a: args(obj),
   if length(a) < 3 or length(a) > 4 then
     error("ax_error_bar: expected 3 or 4 arguments: ax_error_bar(xs, ys, y_errors) or ax_error_bar(xs, ys, y_errors, x_errors)"),
-  xs: a[1], ys: a[2],
+  xs: ax__maybe_list(a[1]), ys: ax__maybe_list(a[2]),
   c: ax__style_get(style, color),
   parts: [
     sconcat("\"x\":", ax__float_list_to_json(xs)),
@@ -961,10 +1047,10 @@ ax__trace_error_bar_2d(obj, style) := block(
     "\"type\":\"scatter\"",
     "\"mode\":\"markers\"",
     sconcat("\"marker\":", ax__build_marker_style(style)),
-    sconcat("\"error_y\":{\"type\":\"data\",\"array\":", ax__float_list_to_json(a[3]), ",\"visible\":true}")
+    sconcat("\"error_y\":{\"type\":\"data\",\"array\":", ax__float_list_to_json(ax__maybe_list(a[3])), ",\"visible\":true}")
   ],
   if length(a) = 4 then
-    parts: endcons(sconcat("\"error_x\":{\"type\":\"data\",\"array\":", ax__float_list_to_json(a[4]), ",\"visible\":true}"), parts),
+    parts: endcons(sconcat("\"error_x\":{\"type\":\"data\",\"array\":", ax__float_list_to_json(ax__maybe_list(a[4])), ",\"visible\":true}"), parts),
   parts: append(parts, ax__build_trace_style(style, "error bars")),
   sconcat("{", simplode(parts, ","), "}"))$
 
@@ -985,7 +1071,7 @@ ax__trace_vector_field_2d(obj, style) := block(
   yvar: a[6], ylo: a[7], yhi: a[8],
 
   ng: ax__style_get(style, ngrid),
-  if ng = false then ng: 20,
+  if ng = false then ng: 12,
   sc: ax__style_get(style, arrow_scale),
   if sc = false then sc: 1.0,
   norm: ax__style_get(style, normalize),
@@ -1155,6 +1241,7 @@ ax__build_trace_2d(obj, style) := block([objop],
   if objop = explicit then ax__trace_explicit_2d(obj, style)
   else if objop = parametric then ax__trace_parametric_2d(obj, style)
   else if objop = points then ax__trace_points_2d(obj, style)
+  else if objop = lines then ax__trace_lines_2d(obj, style)
   else if objop = implicit then ax__trace_implicit_2d(obj, style)
   else if objop = ax_contour then ax__trace_contour_2d(obj, style)
   else if objop = ax_heatmap then ax__trace_heatmap_2d(obj, style)
@@ -1173,6 +1260,7 @@ ax__build_trace_3d(obj, style) := block([objop],
   objop: op(obj),
   if objop = explicit then ax__trace_explicit_3d(obj, style)
   else if objop = points then ax__trace_points_3d(obj, style)
+  else if objop = lines then ax__trace_lines_3d(obj, style)
   else if objop = parametric then ax__trace_parametric_3d(obj, style)
   else if objop = parametric_surface then ax__trace_parametric_surface_3d(obj, style)
   else if objop = implicit then ax__trace_implicit_3d(obj, style)
@@ -1225,16 +1313,40 @@ ax__build_layout_2d(opts) := block(
     )
     else if key = bar_mode then
       parts: endcons(sconcat("\"barmode\":", ax__json_string(val)), parts)
+    else if key = plot_bgcolor then
+      parts: endcons(sconcat("\"plot_bgcolor\":", ax__json_string(val)), parts)
+    else if key = paper_bgcolor then
+      parts: endcons(sconcat("\"paper_bgcolor\":", ax__json_string(val)), parts)
+    else if key = logx then (
+      if val then
+        xaxis_parts: endcons("\"type\":\"log\"", xaxis_parts)
+    )
+    else if key = logy then (
+      if val then
+        yaxis_parts: endcons("\"type\":\"log\"", yaxis_parts)
+    )
   ),
-  /* Default dimensions if not explicitly provided; auto skips the default */
+  /* Default dimensions if not explicitly provided; auto skips the default.
+     When aspect_ratio=true and no explicit height, use square dimensions
+     so the plot area doesn't get squished by scaleanchor. */
   if not member(width, map(lhs, opts)) then
     parts: endcons("\"width\":700", parts),
-  if not member(height, map(lhs, opts)) then
-    parts: endcons("\"height\":450", parts),
-  if xaxis_parts # [] then
-    parts: endcons(sconcat("\"xaxis\":{", simplode(xaxis_parts, ","), "}"), parts),
-  if yaxis_parts # [] then
-    parts: endcons(sconcat("\"yaxis\":{", simplode(yaxis_parts, ","), "}"), parts),
+  if not member(height, map(lhs, opts)) then (
+    if member(aspect_ratio, map(lhs, opts)) then
+      parts: endcons("\"height\":700", parts)
+    else
+      parts: endcons("\"height\":450", parts)
+  ),
+  /* White background by default (Plotly's default is light blue #E5ECF6) */
+  if not member(plot_bgcolor, map(lhs, opts)) then
+    parts: endcons("\"plot_bgcolor\":\"white\"", parts),
+  if not member(paper_bgcolor, map(lhs, opts)) then
+    parts: endcons("\"paper_bgcolor\":\"white\"", parts),
+  /* Axis line and grid colors for white background */
+  xaxis_parts: endcons("\"gridcolor\":\"#ddd\",\"linecolor\":\"#ddd\",\"linewidth\":1,\"zerolinecolor\":\"black\",\"zerolinewidth\":1", xaxis_parts),
+  yaxis_parts: endcons("\"gridcolor\":\"#ddd\",\"linecolor\":\"#ddd\",\"linewidth\":1,\"zerolinecolor\":\"black\",\"zerolinewidth\":1", yaxis_parts),
+  parts: endcons(sconcat("\"xaxis\":{", simplode(xaxis_parts, ","), "}"), parts),
+  parts: endcons(sconcat("\"yaxis\":{", simplode(yaxis_parts, ","), "}"), parts),
   sconcat("{", simplode(parts, ","), "}"))$
 
 ax__build_layout_3d(opts) := block(
@@ -1270,29 +1382,59 @@ ax__build_layout_3d(opts) := block(
       if val # 'auto then
         parts: endcons(sconcat("\"height\":", string(val)), parts)
     )
+    else if key = paper_bgcolor then
+      parts: endcons(sconcat("\"paper_bgcolor\":", ax__json_string(val)), parts)
+    else if key = plot_bgcolor then
+      /* Plotly 3D uses scene.bgcolor as the plot-area background */
+      scene_parts: endcons(sconcat("\"bgcolor\":", ax__json_string(val)), scene_parts)
+    else if key = logx then (
+      if val then
+        xaxis_parts: endcons("\"type\":\"log\"", xaxis_parts)
+    )
+    else if key = logy then (
+      if val then
+        yaxis_parts: endcons("\"type\":\"log\"", yaxis_parts)
+    )
+    else if key = logz then (
+      if val then
+        zaxis_parts: endcons("\"type\":\"log\"", zaxis_parts)
+    )
   ),
   /* Default dimensions if not explicitly provided; auto skips the default */
   if not member(width, map(lhs, opts)) then
     parts: endcons("\"width\":700", parts),
   if not member(height, map(lhs, opts)) then
     parts: endcons("\"height\":450", parts),
-  if xaxis_parts # [] then
-    scene_parts: endcons(sconcat("\"xaxis\":{", simplode(xaxis_parts, ","), "}"), scene_parts),
-  if yaxis_parts # [] then
-    scene_parts: endcons(sconcat("\"yaxis\":{", simplode(yaxis_parts, ","), "}"), scene_parts),
-  if zaxis_parts # [] then
-    scene_parts: endcons(sconcat("\"zaxis\":{", simplode(zaxis_parts, ","), "}"), scene_parts),
-  if scene_parts # [] then
-    parts: endcons(sconcat("\"scene\":{", simplode(scene_parts, ","), "}"), parts),
+  if not member(paper_bgcolor, map(lhs, opts)) then
+    parts: endcons("\"paper_bgcolor\":\"white\"", parts),
+  if not member(plot_bgcolor, map(lhs, opts)) then
+    scene_parts: endcons("\"bgcolor\":\"white\"", scene_parts),
+  /* Axis line and grid colors for white background */
+  xaxis_parts: endcons("\"gridcolor\":\"#ddd\",\"linecolor\":\"#ddd\",\"linewidth\":1,\"zerolinecolor\":\"black\",\"zerolinewidth\":1", xaxis_parts),
+  yaxis_parts: endcons("\"gridcolor\":\"#ddd\",\"linecolor\":\"#ddd\",\"linewidth\":1,\"zerolinecolor\":\"black\",\"zerolinewidth\":1", yaxis_parts),
+  zaxis_parts: endcons("\"gridcolor\":\"#ddd\",\"linecolor\":\"#ddd\",\"linewidth\":1,\"zerolinecolor\":\"black\",\"zerolinewidth\":1", zaxis_parts),
+  scene_parts: endcons(sconcat("\"xaxis\":{", simplode(xaxis_parts, ","), "}"), scene_parts),
+  scene_parts: endcons(sconcat("\"yaxis\":{", simplode(yaxis_parts, ","), "}"), scene_parts),
+  scene_parts: endcons(sconcat("\"zaxis\":{", simplode(zaxis_parts, ","), "}"), scene_parts),
+  parts: endcons(sconcat("\"scene\":{", simplode(scene_parts, ","), "}"), parts),
   sconcat("{", simplode(parts, ","), "}"))$
 
 /* ========================================================================
  * Output: write Plotly JSON to temp file
  * ======================================================================== */
 
-ax__emit_plotly(traces, layout) := block(
-  [json, path, stream],
-  json: sconcat("{\"data\":[", simplode(traces, ","), "],\"layout\":", layout, "}"),
+ax__emit_plotly(traces, layout) :=
+  ax__emit_plotly_with_meta(traces, layout, false)$
+
+/* Same as ax__emit_plotly but with an optional pre-built reactive
+   metadata block (JSON string like "{\"view_id\":...,\"signals\":[...]}")
+   spliced in as a top-level "_reactive" key.  Pass `false' to omit. */
+ax__emit_plotly_with_meta(traces, layout, reactive_json) := block(
+  [body, json, path, stream],
+  body: sconcat("\"data\":[", simplode(traces, ","), "],\"layout\":", layout),
+  if reactive_json # false then
+    body: sconcat(body, ",\"_reactive\":", reactive_json),
+  json: sconcat("{", body, "}"),
   path: ax__mktemp(),
   stream: openw(path),
   printf(stream, "~a", json),
@@ -1301,17 +1443,116 @@ ax__emit_plotly(traces, layout) := block(
   print(path))$
 
 /* ========================================================================
+ * Reactive views: detect signals, resolve them for sampling, emit
+ * the metadata the renderer needs to drive sliders, and remember
+ * the original args so we can re-render on signal change.
+ *
+ * Status: v0 — depends on the `reactive' package being loaded for
+ * signal detection.  When reactive isn't loaded the predicate
+ * always returns no signals and ax_draw2d behaves exactly as before.
+ *
+ * Lookup is a simple Maxima alist; n is expected to be small
+ * (one view per cell, low single-digit count of cells).  Upgrade
+ * to a hash table when that stops being true.
+ * ======================================================================== */
+
+ax__view_registry: []$       /* list of [view_id, args, kind] entries */
+ax__view_counter:  0$
+
+/* Check whether `collect_signals' from the reactive package is
+   defined.  Note: Maxima-level `:='-defined functions don't show up
+   under ?fboundp (that's Lisp-side only).  Inspecting `properties'
+   for the `function' tag is the reliable way to detect a Maxima
+   function definition. */
+ax__reactive_loaded_p() :=
+  member('function, properties(collect_signals))$
+
+/* All unique signal names referenced by any draw-object argument.
+   Returns [] when the reactive package is not loaded. */
+ax__collect_signals_in_args(args_list) := block(
+  [all_signals: []],
+  if not ax__reactive_loaded_p() then return([]),
+  for item in args_list do
+    if not atom(item) and ax__is_draw_object(item) then
+      for sig in collect_signals(item) do
+        if not member(sig, all_signals) then
+          all_signals: endcons(sig, all_signals),
+  all_signals)$
+
+/* Apply resolve_signals to every draw-object in ARGS_LIST; leave
+   layout / trace options untouched.  Returns a fresh list.
+   Each iteration uses a temp variable rather than an inline
+   if/then/else so the trailing `,' isn't swallowed by the else
+   branch (Maxima parser quirk shared with several other sites). */
+ax__resolve_signals_in_args(args_list) := block([out, slot],
+  out: [],
+  if not ax__reactive_loaded_p() then return(args_list),
+  for item in args_list do (
+    slot: item,
+    if not atom(item) and ax__is_draw_object(item) then
+      slot: resolve_signals(item),
+    out: endcons(slot, out)
+  ),
+  out)$
+
+/* Allocate a fresh view id and store the args so we can re-eval. */
+ax__register_view(args_list, kind) := block([view_id],
+  ax__view_counter: ax__view_counter + 1,
+  view_id: sconcat("v_", string(ax__view_counter)),
+  ax__view_registry: cons([view_id, args_list, kind], ax__view_registry),
+  view_id)$
+
+/* Look up the stored entry [args, kind] for a view_id; false on miss. */
+ax__lookup_view(view_id) := block([found: false],
+  for entry in ax__view_registry do
+    if found = false and entry[1] = view_id then
+      found: [entry[2], entry[3]],
+  found)$
+
+/* Drop every registered view.  Used by tests / cell re-runs. */
+ax__clear_views() := (
+  ax__view_registry: [],
+  ax__view_counter: 0,
+  'done)$
+
+/* Build the _reactive JSON metadata block for a view.  SIGNAL_NAMES
+   is a Maxima list of name strings; each name is looked up via
+   signal_meta to fill in lo/hi/current/kind. */
+ax__build_reactive_json(view_id, signal_names) := block(
+  [parts: [], meta, kind_str],
+  for n in signal_names do (
+    meta: signal_meta(n),
+    kind_str: string(fifth(meta)),
+    parts: endcons(
+      ax__json_obj([
+        ["name",  ax__json_string(first(meta))],
+        ["lo",    ax__float_to_json(second(meta))],
+        ["hi",    ax__float_to_json(third(meta))],
+        ["value", ax__float_to_json(fourth(meta))],
+        ["kind",  ax__json_string(kind_str)]
+      ]),
+      parts)
+  ),
+  ax__json_obj([
+    ["view_id", ax__json_string(view_id)],
+    ["signals", ax__json_list(parts)]
+  ]))$
+
+/* ========================================================================
  * animate(obj, [param, lo, hi[, n]]) — paradigm-2 precomputed frames
  *
  * `animate` is a draw-object wrapper.  ax_draw2d / ax_draw3d detect it
  * during their arg scan, sample the wrapped obj at n parameter values,
- * and emit Plotly `frames` plus a slider + play/pause control.  See
- * doc/design/animate.md in the ax-plots repo.
+ * and emit Plotly `frames` plus a slider + play/pause control.  No
+ * new mime type — the existing application/x-maxima-plotly schema
+ * gains optional `frames` + layout extras (sliders, updatemenus).
+ * See doc/design/animate.md.
  * ======================================================================== */
 
 ax__is_animate(obj) :=
   not atom(obj) and op(obj) = 'animate$
 
+/* Unpack animate(inner, [param, lo, hi[, n]]) into [inner, param, lo, hi, n]. */
 ax__animate_spec(obj) := block(
   [a, inner, spec, n],
   a: args(obj),
@@ -1328,11 +1569,13 @@ ax__animate_spec(obj) := block(
     error("animate: n must be an integer >= 2; got:", n),
   [inner, spec[1], spec[2], spec[3], n])$
 
+/* n evenly-spaced floats from lo to hi, inclusive at both ends. */
 ax__animate_param_values(lo, hi, n) := block([lof, hif, h],
   lof: float(lo), hif: float(hi),
   h: (hif - lof) / (n - 1),
   makelist(lof + i * h, i, 0, n - 1))$
 
+/* Look up a single layout option value; default if not set. */
 ax__layout_opt_value(opts, key, default) := block([found: false, v: default],
   for o in opts do (
     if not found and lhs(o) = key then (
@@ -1342,6 +1585,7 @@ ax__layout_opt_value(opts, key, default) := block([found: false, v: default],
   ),
   v)$
 
+/* Format a parameter value for slider step labels: ~3 sig figs. */
 ax__format_animate_value(v) := block([fv: float(v)],
   if fv = 0 then "0"
   else if abs(fv) < 0.001 or abs(fv) >= 10000 then
@@ -1349,6 +1593,9 @@ ax__format_animate_value(v) := block([fv: float(v)],
   else
     printf(false, "~,3f", fv))$
 
+/* Build the JSON for one Plotly frame.
+   TRACE_JSONS is a list of already-serialised trace strings.
+   INDICES is the parallel list of base-trace indices each updates. */
 ax__build_frame_json(name, trace_jsons, indices) :=
   ax__json_obj([
     ["name",   ax__json_string(name)],
@@ -1356,28 +1603,125 @@ ax__build_frame_json(name, trace_jsons, indices) :=
     ["traces", sconcat("[", simplode(map(string, indices), ","), "]")]
   ])$
 
+/* True if a spec [inner, style, _, _] is eligible for the fast
+   path: inner is an explicit(...) wrapper with numeric x-range,
+   and compile_grid is available (numerics loaded).  Uses Maxima's
+   Lisp escape — Maxima's own `fboundp' is just a noun form. */
+ax__can_fast_sample_2d(spec) := block(
+  [inner: spec[1], a, var, lo, hi],
+  if not (not atom(inner) and op(inner) = 'explicit) then return(false),
+  a: args(inner),
+  if length(a) # 4 then return(false),
+  var: a[2], lo: a[3], hi: a[4],
+  if not symbolp(var) then return(false),
+  if not numberp(float(lo)) or not numberp(float(hi)) then return(false),
+  not (?fboundp(compile_grid) = false))$
+
+/* Bulk-sample all frames of an explicit(...) spec via compile_grid.
+   Returns [rows, xs_json] where rows[i+1] is the list of y-values
+   for frame i and xs_json is the pre-built x-axis JSON string
+   (same for every frame; building it once saves N JSON builds
+   per animation). */
+ax__bulk_sample_explicit_2d(spec, param, param_values) := block(
+  [inner: spec[1], style: spec[2], expr, var, lo, hi, n, n_frames,
+   grid_data, mat, rows, xs, xs_json],
+  expr: args(inner)[1], var: args(inner)[2],
+  lo:   float(args(inner)[3]), hi: float(args(inner)[4]),
+  n: ax__style_get(style, nticks), if n = false then n: 500,
+  n_frames: length(param_values),
+  grid_data: compile_grid(expr,
+                          [[param, param_values[1],
+                            param_values[n_frames], n_frames],
+                           [var, lo, hi, n]]),
+  mat:  np_to_matrix(grid_data),
+  rows: args(mat),
+  xs:   makelist(lo + i * (hi - lo) / (n - 1), i, 0, n - 1),
+  xs_json: ax__float_list_to_json_fast(xs),
+  [rows, xs_json])$
+
+/* Fast list-to-JSON for arrays known to contain only Maxima
+   floats (i.e. compile_grid's output).  Skips the per-element
+   numberp/NaN-check overhead that ax__float_to_json does for
+   defensive reasons in the general path.  ~3x faster on 500-pt
+   lists in microbench; visible end-to-end on long animations. */
+ax__float_list_to_json_fast(lst) :=
+  sconcat("[", simplode(map(string, lst), ","), "]")$
+
+/* Build the trace JSON for an explicit(...) wrapper from a
+   pre-built x-axis JSON string (constant across all frames) and a
+   y-values list (the row sampled for this frame).  Mirrors
+   ax__trace_explicit_2d's output minus the sampling step. */
+ax__explicit_trace_json_from_samples(xs_json, ys, style, label) := block(
+  [parts],
+  parts: [
+    sconcat("\"x\":", xs_json),
+    sconcat("\"y\":", ax__float_list_to_json_fast(ys)),
+    "\"type\":\"scatter\"",
+    "\"mode\":\"lines\"",
+    sconcat("\"line\":", ax__build_line_style(style))
+  ],
+  parts: append(parts, ax__build_trace_style(style, label)),
+  sconcat("{", simplode(parts, ","), "}"))$
+
+/* Build all frames for a 2D figure.
+   ANIMATE_SPECS is a list of [inner, style, start_idx, count] tuples
+   captured during the scan pass.  Each entry's COUNT must match the
+   number of traces the trace-builder produces for the substituted obj
+   at every parameter value (Plotly requires consistent trace shape).
+
+   For specs where inner is `explicit(...)` and the numerics package
+   is loaded, the per-frame sampling is replaced by one bulk
+   compile_grid call covering the whole (frames × x-samples) grid —
+   typically 3-7x faster on common expressions, scaling better with
+   grid size.  All other shapes (parametric, contour, vector field,
+   …) keep the per-frame subst path. */
 ax__build_frames_2d(animate_specs, param, param_values) := block(
-  [frames, n_frames, i, p, all_traces, all_indices,
-   spec, inner, style, start_idx, count, raw, traces_list, idx, frame],
+  [sample_caches, frames, n_frames, i, p, all_traces, all_indices,
+   spec_idx, spec, inner, style, start_idx, count,
+   raw, traces_list, idx, frame, cache, label],
+  /* Pre-compute the bulk samples for fast-path specs.  Split the
+     conditional into separate statements; `c: if ... then ... else
+     ..., next-stmt' parses ambiguously in Maxima's `,'-separated
+     block syntax. */
+  sample_caches: [],
+  for spec_idx: 1 thru length(animate_specs) do block(
+    [s: animate_specs[spec_idx], c: false],
+    if ax__can_fast_sample_2d(s) then
+      c: ax__bulk_sample_explicit_2d(s, param, param_values),
+    sample_caches: endcons(c, sample_caches)),
   frames: [],
   n_frames: length(param_values),
   for i: 0 thru n_frames - 1 do (
     p: param_values[i + 1],
     all_traces: [],
     all_indices: [],
-    for spec in animate_specs do (
+    for spec_idx: 1 thru length(animate_specs) do block(
+      [],
+      spec: animate_specs[spec_idx],
       inner: spec[1],
       style: spec[2],
       start_idx: spec[3],
       count: spec[4],
-      raw: ax__build_trace_2d(subst(p, param, inner), style),
-      traces_list: if listp(raw) then raw else [raw],
-      if length(traces_list) # count then
-        error("animate: frame", i, "produced", length(traces_list),
-              "traces but frame 0 produced", count),
-      for idx: 0 thru count - 1 do (
-        all_traces: endcons(traces_list[idx + 1], all_traces),
-        all_indices: endcons(start_idx + idx, all_indices)
+      cache: sample_caches[spec_idx],
+      if cache # false then (
+        /* Fast path: bulk-sampled.  cache = [rows, xs]. */
+        label: string(subst(p, param, args(inner)[1])),
+        all_traces: endcons(
+          ax__explicit_trace_json_from_samples(
+            cache[2], cache[1][i + 1], style, label),
+          all_traces),
+        all_indices: endcons(start_idx, all_indices)
+      ) else (
+        /* Slow path: subst + per-frame trace build. */
+        raw: ax__build_trace_2d(subst(p, param, inner), style),
+        traces_list: if listp(raw) then raw else [raw],
+        if length(traces_list) # count then
+          error("animate: frame", i, "produced", length(traces_list),
+                "traces but frame 0 produced", count),
+        for idx: 0 thru count - 1 do (
+          all_traces: endcons(traces_list[idx + 1], all_traces),
+          all_indices: endcons(start_idx + idx, all_indices)
+        )
       )
     ),
     frame: ax__build_frame_json(string(i), all_traces, all_indices),
@@ -1385,6 +1729,7 @@ ax__build_frames_2d(animate_specs, param, param_values) := block(
   ),
   frames)$
 
+/* Same as ax__build_frames_2d but for 3D objects. */
 ax__build_frames_3d(animate_specs, param, param_values) := block(
   [frames, n_frames, i, p, all_traces, all_indices,
    spec, inner, style, start_idx, count, raw, traces_list, idx, frame],
@@ -1414,6 +1759,7 @@ ax__build_frames_3d(animate_specs, param, param_values) := block(
   ),
   frames)$
 
+/* Slider JSON for animated figures. */
 ax__build_slider_json(param_values, param, layout_opts) := block(
   [prefix_text, steps, i, p, label, step_json],
   prefix_text: sconcat(
@@ -1439,6 +1785,7 @@ ax__build_slider_json(param_values, param, layout_opts) := block(
     ["steps",        ax__json_list(steps)]
   ]))$
 
+/* Play / pause updatemenu JSON. */
 ax__build_updatemenus_json(layout_opts) := block(
   [fps_val, frame_dur, transition_dur, play_btn, pause_btn],
   fps_val:        ax__layout_opt_value(layout_opts, fps, 12),
@@ -1464,13 +1811,18 @@ ax__build_updatemenus_json(layout_opts) := block(
     ["buttons",    ax__json_list([play_btn, pause_btn])]
   ]))$
 
+/* Splice sliders + updatemenus into an existing layout JSON object.
+   Assumes LAYOUT_JSON has at least one field (always true since
+   ax__build_layout_2d/3d unconditionally set width + height). */
 ax__layout_add_animation(layout_json, slider_json, updatemenus_json) := block(
   [body],
+  /* Trim the trailing "}" */
   body: substring(layout_json, 1, slength(layout_json)),
   sconcat(body,
           ",\"sliders\":[",     slider_json,      "],",
            "\"updatemenus\":[", updatemenus_json, "]}"))$
 
+/* Emit with animation: data + extended layout + frames at top level. */
 ax__emit_plotly_animated(traces, layout, frames_jsons) := block(
   [json, path, stream],
   json: sconcat(
@@ -1487,10 +1839,33 @@ ax__emit_plotly_animated(traces, layout, frames_jsons) := block(
  * Public API: ax_draw2d, ax_draw3d, ax_plot2d
  * ======================================================================== */
 
-ax_draw2d([ax__args]) := block(
-  [traces, layout_opts, style,
+ax_draw2d([ax__args]) := ax__draw2d_impl(ax__args, false)$
+
+/* The shared body of ax_draw2d, also called by ax__replot_2d for
+   the reactive re-render path.  When REUSE_VIEW_ID is false a fresh
+   view_id is allocated; otherwise the supplied id is used and no
+   new registry entry is made (re-renders keep the original entry). */
+ax__draw2d_impl(ax__args_in, reuse_view_id) := block(
+  [ax__args, signal_names, has_signals, view_id, reactive_json,
+   traces, layout_opts, style,
    animate_specs, anim_param, anim_lo, anim_hi, anim_n, has_anim,
    param_values, frames_jsons, layout_json, slider_json, updatemenus_json],
+  /* === Reactive: detect signals BEFORE resolving (so we know what
+     to put in the _reactive block), then resolve so the sampler
+     never sees signal noun forms. === */
+  signal_names: ax__collect_signals_in_args(ax__args_in),
+  has_signals:  signal_names # [],
+  if has_signals then (
+    view_id: if reuse_view_id = false
+               then ax__register_view(ax__args_in, "2d")
+               else reuse_view_id,
+    reactive_json: ax__build_reactive_json(view_id, signal_names),
+    ax__args: ax__resolve_signals_in_args(ax__args_in)
+  ) else (
+    view_id: false,
+    reactive_json: false,
+    ax__args: ax__args_in
+  ),
   traces: [],
   layout_opts: [],
   style: ax__default_style(),
@@ -1504,6 +1879,9 @@ ax_draw2d([ax__args]) := block(
       style: ax__apply_option(style, item)
     else if ax__is_animate(item) then
       block([spec, inner, p_lo, raw0, traces0, start_idx, count],
+        if has_signals then
+          error("ax_draw2d: animate(...) and signal(...) in the same call",
+                " is not supported in v0"),
         spec: ax__animate_spec(item),
         if not has_anim then (
           anim_param: spec[2],
@@ -1536,23 +1914,54 @@ ax_draw2d([ax__args]) := block(
     else error("ax_draw2d: unrecognized argument:", item)
   ),
   layout_json: ax__build_layout_2d(layout_opts),
-  if not has_anim then
-    ax__emit_plotly(traces, layout_json)
-  else (
+  if has_anim then (
     param_values:     ax__animate_param_values(anim_lo, anim_hi, anim_n),
     frames_jsons:     ax__build_frames_2d(animate_specs, anim_param, param_values),
     slider_json:      ax__build_slider_json(param_values, anim_param, layout_opts),
     updatemenus_json: ax__build_updatemenus_json(layout_opts),
     layout_json:      ax__layout_add_animation(layout_json, slider_json, updatemenus_json),
     ax__emit_plotly_animated(traces, layout_json, frames_jsons)
-  ),
-  'done
-)$
+  ) else
+    ax__emit_plotly_with_meta(traces, layout_json, reactive_json),
+  'done)$
 
-ax_draw3d([ax__args]) := block(
-  [traces, layout_opts, style,
+/* Re-render the figure for VIEW_ID using whatever the current
+   signal values are.  Returns 'done (the new figure JSON path is
+   printed by the underlying emit).  Errors if VIEW_ID isn't known. */
+ax__replot_2d(view_id) := block([entry],
+  entry: ax__lookup_view(view_id),
+  if entry = false then
+    error("ax__replot_2d: unknown view id: ", view_id),
+  if entry[2] # "2d" then
+    error("ax__replot_2d: view ", view_id, " was registered for ",
+          entry[2], ", not 2d"),
+  ax__draw2d_impl(entry[1], view_id))$
+
+ax_draw3d([ax__args]) := ax__draw3d_impl(ax__args, false)$
+
+/* The shared body of ax_draw3d, also called by ax__replot_3d for the
+   reactive re-render path.  Mirrors ax__draw2d_impl: a false reuse id
+   allocates a fresh registry entry; an explicit id keeps the original. */
+ax__draw3d_impl(ax__args_in, reuse_view_id) := block(
+  [ax__args, signal_names, has_signals, view_id, reactive_json,
+   traces, layout_opts, style,
    animate_specs, anim_param, anim_lo, anim_hi, anim_n, has_anim,
    param_values, frames_jsons, layout_json, slider_json, updatemenus_json],
+  /* === Reactive: detect signals BEFORE resolving, then resolve so
+     the sampler never sees signal noun forms. === */
+  signal_names: ax__collect_signals_in_args(ax__args_in),
+  has_signals:  signal_names # [],
+  if has_signals then (
+    view_id: if reuse_view_id = false
+               then ax__register_view(ax__args_in, "3d")
+               else reuse_view_id,
+    reactive_json: ax__build_reactive_json(view_id, signal_names),
+    ax__args: ax__resolve_signals_in_args(ax__args_in)
+  ) else (
+    view_id: false,
+    reactive_json: false,
+    ax__args: ax__args_in
+  ),
   traces: [],
   layout_opts: [],
   style: ax__default_style(),
@@ -1566,6 +1975,9 @@ ax_draw3d([ax__args]) := block(
       style: ax__apply_option(style, item)
     else if ax__is_animate(item) then
       block([spec, inner, p_lo, raw0, traces0, start_idx, count],
+        if has_signals then
+          error("ax_draw3d: animate(...) and signal(...) in the same call",
+                " is not supported in v0"),
         spec: ax__animate_spec(item),
         if not has_anim then (
           anim_param: spec[2],
@@ -1598,48 +2010,99 @@ ax_draw3d([ax__args]) := block(
     else error("ax_draw3d: unrecognized argument:", item)
   ),
   layout_json: ax__build_layout_3d(layout_opts),
-  if not has_anim then
-    ax__emit_plotly(traces, layout_json)
-  else (
+  if has_anim then (
     param_values:     ax__animate_param_values(anim_lo, anim_hi, anim_n),
     frames_jsons:     ax__build_frames_3d(animate_specs, anim_param, param_values),
     slider_json:      ax__build_slider_json(param_values, anim_param, layout_opts),
     updatemenus_json: ax__build_updatemenus_json(layout_opts),
     layout_json:      ax__layout_add_animation(layout_json, slider_json, updatemenus_json),
     ax__emit_plotly_animated(traces, layout_json, frames_jsons)
-  ),
+  ) else
+    ax__emit_plotly_with_meta(traces, layout_json, reactive_json),
   'done
 )$
 
-/* ax_plot2d: syntactic sugar for simple function plotting.
-   ax_plot2d(expr, [x, a, b], opts...)
-   ax_plot2d([e1, e2, ...], [x, a, b], opts...) */
+/* Re-render the figure for VIEW_ID (3d) with whatever the current
+   signal values are.  Errors if VIEW_ID isn't known or is 2d. */
+ax__replot_3d(view_id) := block([entry],
+  entry: ax__lookup_view(view_id),
+  if entry = false then
+    error("ax__replot_3d: unknown view id: ", view_id),
+  if entry[2] # "3d" then
+    error("ax__replot_3d: view ", view_id, " was registered for ",
+          entry[2], ", not 3d"),
+  ax__draw3d_impl(entry[1], view_id))$
+
+/* Dispatch to the right replot based on the view's registered kind.
+   This is the single entry point the renderer should call; it keeps
+   the host language from needing to know about 2d vs 3d view ids. */
+ax__replot(view_id) := block([entry],
+  entry: ax__lookup_view(view_id),
+  if entry = false then
+    error("ax__replot: unknown view id: ", view_id),
+  if entry[2] = "2d" then ax__draw2d_impl(entry[1], view_id)
+  else if entry[2] = "3d" then ax__draw3d_impl(entry[1], view_id)
+  else error("ax__replot: unknown view kind: ", entry[2]))$
+
+/* Test whether an argument is a range [var, lo, hi]: a list of 3 with a
+   non-numeric symbol as first element */
+ax__is_range(x) :=
+  listp(x) and length(x) = 3 and symbolp(x[1]) and not numberp(x[1])$
+
+/* Test whether an argument is data: an ndarray or a list of numbers/sublists */
+ax__is_data(x) :=
+  ax__ndarray_p(x) or (listp(x) and length(x) > 0 and not symbolp(first(x)))$
+
+/* ax_plot2d: plot expressions and/or data as line plots.
+   Arguments are consumed as (y, x) pairs followed by options:
+     ax_plot2d(y1, x1, y2, x2, ..., opts...)
+   Where:
+     y — an expression, list of expressions, ndarray, or list of numbers
+     x — a range [var, lo, hi] (for expressions) or ndarray/list (for data)
+   Examples:
+     ax_plot2d(sin(x), [x, -%pi, %pi])
+     ax_plot2d([sin(x), cos(x)], [x, -3, 3])
+     ax_plot2d(ys, xs)
+     ax_plot2d(sin(x), [x, -3, 3], ys, xs, title="Mixed") */
 ax_plot2d([ax__args]) := block(
-  [exprs, range, var, lo, hi, draw_args, opts],
-  if length(ax__args) < 2 then
-    error("ax_plot2d requires at least an expression and a range"),
-  /* First arg: expression or list of expressions */
-  if listp(ax__args[1]) and length(ax__args[1]) = 3
-     and atom(ax__args[1][1]) then (
-    /* First arg is the range [x, a, b] — error */
-    error("ax_plot2d: first argument must be an expression or list of expressions")
-  ),
-  if listp(ax__args[1]) then
-    exprs: ax__args[1]
-  else
-    exprs: [ax__args[1]],
-  /* Second arg: range [var, lo, hi] */
-  range: ax__args[2],
-  if not listp(range) or length(range) # 3 then
-    error("ax_plot2d: range must be [variable, min, max]"),
-  var: range[1], lo: range[2], hi: range[3],
-  /* Remaining args are options */
-  opts: rest(ax__args, 2),
-  /* Build ax_draw2d arguments: explicit objects + options */
+  [draw_args, i, y_arg, x_arg],
+  if length(ax__args) < 1 then
+    error("ax_plot2d requires at least one argument"),
   draw_args: [],
-  for e in exprs do
-    draw_args: endcons(explicit(e, var, lo, hi), draw_args),
-  draw_args: append(draw_args, opts),
+  i: 1,
+  while i <= length(ax__args) do (
+    if ax__is_layout_option(ax__args[i]) or ax__is_trace_option(ax__args[i]) then (
+      /* Collect option */
+      draw_args: endcons(ax__args[i], draw_args),
+      i: i + 1
+    ) else (
+      /* Consume a (y, x) pair */
+      y_arg: ax__args[i],
+      if i + 1 > length(ax__args) then
+        error("ax_plot2d: missing range or x-data after", y_arg),
+      i: i + 1,
+      x_arg: ax__args[i],
+      i: i + 1,
+      if ax__is_range(x_arg) then (
+        /* Expression mode: y is expression(s), x is [var, lo, hi] */
+        if listp(y_arg) then
+          for e in y_arg do
+            draw_args: endcons(explicit(e, x_arg[1], x_arg[2], x_arg[3]), draw_args)
+        else
+          draw_args: endcons(explicit(y_arg, x_arg[1], x_arg[2], x_arg[3]), draw_args)
+      ) else if ax__is_data(x_arg) then (
+        /* Data mode: y is data, x is data */
+        if listp(y_arg) and length(y_arg) > 0
+           and (listp(first(y_arg)) or ax__ndarray_p(first(y_arg))) then
+          /* List of y series sharing one x */
+          for ys in y_arg do
+            draw_args: endcons(lines(x_arg, ys), draw_args)
+        else
+          draw_args: endcons(lines(x_arg, y_arg), draw_args)
+      ) else
+        error("ax_plot2d: expected a range [var,lo,hi] or data after", y_arg)
+    )
+  ),
   apply(ax_draw2d, draw_args)
 )$
 
@@ -1668,21 +2131,26 @@ ax__build_layout_polar(opts) := block(
       if val # 'auto then
         parts: endcons(sconcat("\"height\":", string(val)), parts)
     )
+    else if key = plot_bgcolor then
+      parts: endcons(sconcat("\"plot_bgcolor\":", ax__json_string(val)), parts)
+    else if key = paper_bgcolor then
+      parts: endcons(sconcat("\"paper_bgcolor\":", ax__json_string(val)), parts)
   ),
   /* Default dimensions if not explicitly provided; auto skips the default */
   if not member(width, map(lhs, opts)) then
     parts: endcons("\"width\":700", parts),
   if not member(height, map(lhs, opts)) then
     parts: endcons("\"height\":450", parts),
-  if radial_parts # [] then
-    polar_parts: endcons(sconcat("\"radialaxis\":{", simplode(radial_parts, ","), "}"), polar_parts),
-  if angular_parts # [] then
-    polar_parts: endcons(sconcat("\"angularaxis\":{", simplode(angular_parts, ","), "}"), polar_parts),
-  /* Always include polar key so Plotly knows it's a polar subplot */
-  if polar_parts = [] then
-    parts: endcons("\"polar\":{}", parts)
-  else
-    parts: endcons(sconcat("\"polar\":{", simplode(polar_parts, ","), "}"), parts),
+  if not member(plot_bgcolor, map(lhs, opts)) then
+    parts: endcons("\"plot_bgcolor\":\"white\"", parts),
+  if not member(paper_bgcolor, map(lhs, opts)) then
+    parts: endcons("\"paper_bgcolor\":\"white\"", parts),
+  /* Axis line and grid colors for polar axes */
+  radial_parts: endcons("\"gridcolor\":\"#ddd\",\"linecolor\":\"#ddd\",\"linewidth\":1", radial_parts),
+  angular_parts: endcons("\"gridcolor\":\"#ddd\",\"linecolor\":\"#ddd\",\"linewidth\":1", angular_parts),
+  polar_parts: endcons(sconcat("\"radialaxis\":{", simplode(radial_parts, ","), "}"), polar_parts),
+  polar_parts: endcons(sconcat("\"angularaxis\":{", simplode(angular_parts, ","), "}"), polar_parts),
+  parts: endcons(sconcat("\"polar\":{", simplode(polar_parts, ","), "}"), parts),
   sconcat("{", simplode(parts, ","), "}"))$
 
 /* ax_polar: plot r(θ) in polar coordinates.

@@ -69,7 +69,7 @@ pub async fn set_signal_and_replot(
     ensure_session(&state, &ctx, backend, maxima_path, eval_timeout).await?;
 
     let expression = format!(
-        "signal_set(\"{name}\", {value})$\nax__replot_2d(\"{view_id}\");"
+        "signal_set(\"{name}\", {value})$\nax__replot(\"{view_id}\");"
     );
 
     let mut guard = ctx.session.lock().await;
