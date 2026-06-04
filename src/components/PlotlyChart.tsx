@@ -1,25 +1,35 @@
-import { useRef, useEffect, useMemo } from "react";
+import { useRef, useEffect, useMemo, useState, useCallback } from "react";
 import Plotly from "plotly.js-dist-min";
+import {
+  setSignalAndReplot,
+  type ReactiveBlock,
+  type ReactiveSignalMeta,
+} from "../lib/reactive-client";
 
 interface PlotlyChartProps {
   plotData: string;
 }
 
+interface PlotlySpec {
+  data: Plotly.Data[];
+  layout?: Partial<Plotly.Layout>;
+  frames?: Partial<Plotly.Frame>[];
+  _reactive?: ReactiveBlock;
+}
+
 export function PlotlyChart({ plotData }: PlotlyChartProps) {
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const spec = useMemo(() => {
+  const spec = useMemo<PlotlySpec | null>(() => {
     try {
-      return JSON.parse(plotData) as {
-        data: Plotly.Data[];
-        layout?: Partial<Plotly.Layout>;
-        frames?: Partial<Plotly.Frame>[];
-      };
+      return JSON.parse(plotData) as PlotlySpec;
     } catch {
       console.warn("[PlotlyChart] Failed to parse plot data");
       return null;
     }
   }, [plotData]);
+
+  const reactive = spec?._reactive;
 
   useEffect(() => {
     if (!containerRef.current || !spec) return;
@@ -107,5 +117,126 @@ export function PlotlyChart({ plotData }: PlotlyChartProps) {
     return <div className="plot-error">Failed to parse plot data</div>;
   }
 
-  return <div ref={containerRef} className="plotly-output" />;
+  return (
+    <div className="plotly-chart">
+      <div ref={containerRef} className="plotly-output" />
+      {reactive && reactive.signals.length > 0 && (
+        <ReactiveControls containerRef={containerRef} reactive={reactive} />
+      )}
+    </div>
+  );
+}
+
+interface ReactiveControlsProps {
+  containerRef: React.RefObject<HTMLDivElement | null>;
+  reactive: ReactiveBlock;
+}
+
+/**
+ * Live UI controls for signals embedded in a Plotly figure.  Each slider
+ * holds local state for instant visual feedback; updates are sent to the
+ * Maxima kernel with a "trailing latest" strategy — at most one invoke
+ * is in flight per view, and any newer drag value supersedes pending ones.
+ */
+function ReactiveControls({ containerRef, reactive }: ReactiveControlsProps) {
+  const [values, setValues] = useState<Record<string, number>>(() => {
+    const initial: Record<string, number> = {};
+    for (const sig of reactive.signals) initial[sig.name] = sig.value;
+    return initial;
+  });
+
+  // When the registered view changes (different cell re-run), reset state
+  // to the freshly-parsed signal metadata.
+  useEffect(() => {
+    const next: Record<string, number> = {};
+    for (const sig of reactive.signals) next[sig.name] = sig.value;
+    setValues(next);
+  }, [reactive.view_id, reactive.signals]);
+
+  const inflightRef = useRef(false);
+  const pendingRef = useRef<{ name: string; value: number } | null>(null);
+
+  const dispatch = useCallback(
+    async (name: string, value: number) => {
+      if (inflightRef.current) {
+        pendingRef.current = { name, value };
+        return;
+      }
+      inflightRef.current = true;
+      try {
+        for (;;) {
+          const result = await setSignalAndReplot(reactive.view_id, name, value);
+          if (result.plot_data && containerRef.current) {
+            try {
+              const next = JSON.parse(result.plot_data) as PlotlySpec;
+              const layoutPatch: Partial<Plotly.Layout> = next.layout ?? {};
+              await Plotly.react(
+                containerRef.current,
+                next.data,
+                {
+                  ...layoutPatch,
+                  paper_bgcolor: "transparent",
+                  plot_bgcolor: "transparent",
+                },
+              );
+            } catch {
+              console.warn("[PlotlyChart] Failed to parse replot response");
+            }
+          } else if (result.is_error) {
+            console.warn("[PlotlyChart] Replot error:", result.error);
+          }
+          const next = pendingRef.current;
+          pendingRef.current = null;
+          if (!next) break;
+          name = next.name;
+          value = next.value;
+        }
+      } finally {
+        inflightRef.current = false;
+      }
+    },
+    [reactive.view_id, containerRef],
+  );
+
+  const onChange = useCallback(
+    (sig: ReactiveSignalMeta, raw: string) => {
+      const v = Number(raw);
+      if (!Number.isFinite(v)) return;
+      setValues((prev) => ({ ...prev, [sig.name]: v }));
+      dispatch(sig.name, v);
+    },
+    [dispatch],
+  );
+
+  return (
+    <div className="reactive-controls">
+      {reactive.signals.map((sig) => {
+        const value = values[sig.name] ?? sig.value;
+        const step = (sig.hi - sig.lo) / 200 || 0.01;
+        return (
+          <div key={sig.name} className="reactive-control">
+            <label>
+              <span className="reactive-control-name">{sig.name}</span>
+              <input
+                type="range"
+                min={sig.lo}
+                max={sig.hi}
+                step={step}
+                value={value}
+                onChange={(e) => onChange(sig, e.target.value)}
+              />
+              <span className="reactive-control-value">{formatValue(value)}</span>
+            </label>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function formatValue(v: number): string {
+  if (Math.abs(v) >= 100 || (v !== 0 && Math.abs(v) < 0.01)) {
+    return v.toExponential(2);
+  }
+  return v.toFixed(3);
 }

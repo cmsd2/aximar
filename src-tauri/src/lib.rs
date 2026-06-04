@@ -112,6 +112,7 @@ pub fn run() {
             commands::plot::write_binary_file,
             commands::plot::write_text_file,
             commands::plot::ensure_directory,
+            commands::reactive::set_signal_and_replot,
             commands::config::list_wsl_distros,
             commands::config::check_wsl_maxima,
             commands::config::get_buffered_logs,

@@ -4,6 +4,7 @@ pub mod evaluate;
 pub mod notebook;
 pub mod notebooks;
 pub mod plot;
+pub mod reactive;
 pub mod session;
 pub mod suggestions;
 pub mod variables;

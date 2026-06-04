@@ -662,6 +662,49 @@
   font-size: 13px;
 }
 
+.plotly-chart {
+  display: flex;
+  flex-direction: column;
+}
+
+.reactive-controls {
+  max-width: 700px;
+  margin: 4px auto 8px;
+  padding: 8px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background: var(--bg-secondary, rgba(255, 255, 255, 0.03));
+  border-radius: 6px;
+  font-size: 13px;
+}
+
+.reactive-control label {
+  display: grid;
+  grid-template-columns: 90px 1fr 70px;
+  align-items: center;
+  gap: 10px;
+}
+
+.reactive-control-name {
+  font-family: var(--font-mono, monospace);
+  color: var(--text-secondary, #aaa);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.reactive-control-value {
+  font-family: var(--font-mono, monospace);
+  color: var(--text-primary, #e0e0e0);
+  text-align: right;
+}
+
+.reactive-control input[type="range"] {
+  width: 100%;
+  accent-color: var(--accent-color, #4a9eff);
+}
+
 .empty-output {
   color: var(--text-placeholder);
   font-style: italic;
