@@ -15,6 +15,7 @@
 use std::sync::Arc;
 
 use aximar_core::catalog::search::Catalog;
+use aximar_core::error::AppError;
 use aximar_core::maxima::backend::Backend;
 use aximar_core::maxima::output::{OutputEvent, OutputSink};
 use aximar_core::maxima::process::MaximaProcess;
@@ -138,4 +139,58 @@ async fn error_envelope_populates_eval_result() {
         result.output_label
     );
     drop(proc);
+}
+
+/// Phase B.1: when the kernel emits an `error` envelope with
+/// `kind: cancelled`, `protocol::evaluate` should return
+/// `AppError::EvalCancelled` rather than treating it as a normal
+/// evaluation failure.  Hosts surface cancellation through a distinct
+/// UI affordance ("evaluation was cancelled") instead of the generic
+/// error panel.
+///
+/// We can't yet drive a real cooperative cancel — that requires the
+/// fd-4 cancel transport (Phase D).  But we can inject an envelope
+/// from Maxima itself by calling `kernel-events:emit-error` directly,
+/// which exercises the envelope-handling logic end-to-end.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn cancelled_error_envelope_maps_to_eval_cancelled() {
+    if !live_tests_enabled() {
+        eprintln!("skipping: set AXIMAR_RUN_LIVE_TESTS=1 to enable");
+        return;
+    }
+    unsafe {
+        std::env::set_var("AXIMAR_KERNEL_EVENTS", "1");
+    }
+
+    let sink: Arc<dyn OutputSink> = Arc::new(DropSink);
+    let mut proc = MaximaProcess::spawn(Backend::Local, None, sink)
+        .await
+        .expect("spawn maxima");
+
+    let catalog = Catalog::load();
+    // Inject a cancelled-kind error envelope from within the
+    // evaluation, via the kernel-events Maxima entry point.
+    // emit_error doesn't abort the eval; it just fires the envelope.
+    // The post-eval overlay sees the envelope and short-circuits to
+    // EvalCancelled.
+    let result = protocol::evaluate(
+        &mut proc,
+        "cancel-cell",
+        "emit_error(\"cancelled\", \"unit-test cancel\");",
+        &catalog,
+        10,
+    )
+    .await;
+
+    drop(proc);
+
+    match result {
+        Err(AppError::EvalCancelled(msg)) => {
+            assert!(
+                msg.contains("unit-test cancel"),
+                "EvalCancelled payload should carry the envelope message; got {msg:?}"
+            );
+        }
+        other => panic!("expected EvalCancelled; got {other:?}"),
+    }
 }

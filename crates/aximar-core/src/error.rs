@@ -17,6 +17,9 @@ pub enum AppError {
     #[error("Evaluation timed out after {0} seconds")]
     Timeout(u64),
 
+    #[error("Evaluation was cancelled: {0}")]
+    EvalCancelled(String),
+
     #[error("Maxima needs more information: \"{0}\". Add assume() declarations before this computation, e.g. assume(x > 0);")]
     AssumptionRequired(String),
 

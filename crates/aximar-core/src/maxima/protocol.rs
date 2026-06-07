@@ -145,7 +145,7 @@ pub async fn evaluate(
     let duration_ms = start.elapsed().as_millis() as u64;
 
     let mut result = parser::parse_output(cell_id, &lines, duration_ms, catalog, process.backend());
-    apply_error_envelopes(&mut result, &envelopes, catalog, None);
+    apply_error_envelopes(&mut result, &envelopes, catalog, None)?;
     // If user suppressed output with $, clear the LaTeX (but plot detection
     // already happened in the parser using raw_latex).
     if !emit_latex {
@@ -174,29 +174,41 @@ fn log_envelope_summary(cell_id: &str, envelopes: &[Envelope]) {
 #[cfg(not(unix))]
 fn log_envelope_summary(_cell_id: &str, _envelopes: &[()]) {}
 
-/// Phase B: when an `error` envelope arrived during the eval, prefer
-/// it over the parser's regex-scraped error.  kernel-events captures
-/// the merror() message verbatim, including kind discrimination
-/// (maxima_error / lisp_error / parser_error / cancelled), which the
-/// stdout scrape can't reliably recover.
+/// Phase B / B.1: when an `error` envelope arrived during the eval,
+/// take the kernel-events view as authoritative.  kernel-events
+/// captures the merror() message verbatim and tags it with one of
+/// maxima_error / lisp_error / parser_error / timeout / cancelled —
+/// information the stdout scrape can't reliably recover (lisp errors
+/// in particular often lack the markers the regex keys on).
 ///
-/// Only fires when at least one error envelope is present; absent
-/// envelopes (kernel-events disabled / not installed) leave the
-/// parser's legacy detection authoritative.  When multiple error
-/// envelopes show up in one eval — rare, e.g. a batch() of failing
-/// statements — the first one wins; later phases may surface all.
+/// Returns `Err(AppError::EvalCancelled)` when the first error
+/// envelope has `kind: cancelled` so the caller surfaces it through
+/// a dedicated UI affordance rather than the generic error path.
+/// Other kinds are flattened into `EvalResult.error` and enhanced
+/// through the existing pattern-match suggestions pipeline.
+///
+/// No-op (returns `Ok`) when no error envelope is present, so the
+/// legacy parser scrape stays authoritative on builds where
+/// kernel-events is disabled.
 #[cfg(unix)]
 fn apply_error_envelopes(
     result: &mut EvalResult,
     envelopes: &[Envelope],
     catalog: &Catalog,
     packages: Option<&PackageCatalog>,
-) {
+) -> Result<(), AppError> {
     let first = envelopes.iter().find_map(|e| match e {
         Envelope::Error(err) => Some(err),
         _ => None,
     });
-    let Some(err) = first else { return };
+    let Some(err) = first else { return Ok(()) };
+
+    if matches!(err.kind, crate::maxima::events::ErrorKind::Cancelled) {
+        // Short-circuit: cancellation isn't an evaluation error
+        // proper — the user (or a host-side cancel transport) asked
+        // for it.  Caller maps to a distinct UI state.
+        return Err(AppError::EvalCancelled(err.message.clone()));
+    }
 
     result.error = Some(err.message.clone());
     result.is_error = true;
@@ -208,6 +220,7 @@ fn apply_error_envelopes(
     // Output label has no meaning when the eval errored — no %oN was
     // assigned.  The legacy parser also clears this in the same case.
     result.output_label = None;
+    Ok(())
 }
 
 #[cfg(not(unix))]
@@ -216,7 +229,9 @@ fn apply_error_envelopes(
     _envelopes: &[()],
     _catalog: &Catalog,
     _packages: Option<&PackageCatalog>,
-) {}
+) -> Result<(), AppError> {
+    Ok(())
+}
 
 pub async fn evaluate_with_packages(
     process: &mut MaximaProcess,
@@ -275,7 +290,7 @@ pub async fn evaluate_with_packages(
     let mut result = parser::parse_output_with_packages(
         cell_id, &lines, duration_ms, catalog, packages, process.backend(),
     );
-    apply_error_envelopes(&mut result, &envelopes, catalog, Some(packages));
+    apply_error_envelopes(&mut result, &envelopes, catalog, Some(packages))?;
     if !emit_latex {
         result.latex = None;
     }
