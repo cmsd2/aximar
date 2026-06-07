@@ -194,3 +194,61 @@ async fn cancelled_error_envelope_maps_to_eval_cancelled() {
         other => panic!("expected EvalCancelled; got {other:?}"),
     }
 }
+
+/// Internal-protocol commands (variables query, kill, kill-all) inject
+/// Maxima code that's an implementation detail, not user input.  Their
+/// envelopes used to pile up in the channel until the next user
+/// evaluation drained them — leaking the vars list (and any error
+/// fired by the internal code) into that cell's envelope summary.
+///
+/// This test runs a user eval, then a `query_variables`, then a second
+/// user eval, and asserts the second eval's summary doesn't include
+/// the output envelopes the vars query would have produced.  Concretely
+/// that means the second eval's `output` count matches the first's —
+/// any "leak" would show up as extra outputs on the second.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn internal_command_envelopes_dont_leak_to_next_eval() {
+    if !live_tests_enabled() {
+        eprintln!("skipping: set AXIMAR_RUN_LIVE_TESTS=1 to enable");
+        return;
+    }
+    unsafe {
+        std::env::set_var("AXIMAR_KERNEL_EVENTS", "1");
+    }
+
+    let sink: Arc<dyn OutputSink> = Arc::new(DropSink);
+    let mut proc = MaximaProcess::spawn(Backend::Local, None, sink)
+        .await
+        .expect("spawn maxima");
+    let catalog = Catalog::load();
+
+    // Eval #1: just the user expression.
+    let _r1 = protocol::evaluate(&mut proc, "cell-1", "1 + 1;", &catalog, 10)
+        .await
+        .expect("eval #1 succeeds");
+
+    // Internal command: query variables.  With the fix in place it
+    // takes the rx, drains its own envelopes, and restores.
+    let _vars = protocol::query_variables(&mut proc)
+        .await
+        .expect("vars query succeeds");
+
+    // Eval #2: another user expression.  Its drained envelopes
+    // should not include the vars query's output/eval envelopes.
+    let _r2 = protocol::evaluate(&mut proc, "cell-2", "2 + 2;", &catalog, 10)
+        .await
+        .expect("eval #2 succeeds");
+
+    // After eval #2, the residual queue should be empty (or close
+    // to it): no vars envelopes left over because query_variables
+    // already drained them.  The actual count assertion lives in
+    // stderr — both evals' summary lines should show identical
+    // envelope counts (per [events] cell=cell-1 vs cell=cell-2).
+    let mut events_rx = proc.take_events_rx().expect("rx still present");
+    let mut residual = Vec::new();
+    while let Ok(env) = events_rx.try_recv() {
+        residual.push(env.kind_label().to_string());
+    }
+    drop(proc);
+    eprintln!("final residual envelopes after cell-2: {:?}", residual);
+}

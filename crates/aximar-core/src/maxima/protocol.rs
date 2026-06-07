@@ -297,6 +297,70 @@ pub async fn evaluate_with_packages(
     Ok(result)
 }
 
+/// Read stdout until `sentinel` while concurrently draining the
+/// kernel-events channel — the same pattern as `protocol::evaluate`,
+/// but for internal-protocol commands (variables query, kill,
+/// kill-all) where the host injected the Maxima code itself rather
+/// than the user.  Envelopes that arrive during the internal command
+/// are pulled out of the channel so they don't pollute the *next*
+/// user evaluation's drain, and any `error` envelope is surfaced as
+/// an `AppError` so internal command failures aren't silently lost.
+async fn read_internal_until_sentinel(
+    process: &mut MaximaProcess,
+    sentinel: &str,
+    timeout_secs: u64,
+) -> Result<Vec<String>, AppError> {
+    let mut events_rx = process.take_events_rx();
+
+    let timeout_result = tokio::time::timeout(
+        std::time::Duration::from_secs(timeout_secs),
+        drive_with_envelope_drain(process.read_until_sentinel(sentinel), &mut events_rx),
+    )
+    .await;
+
+    let (read_result, envelopes) = match timeout_result {
+        Ok((read_result, envs)) => (read_result, envs),
+        Err(_) => {
+            process.restore_events_rx(events_rx);
+            process.interrupt_and_resync(sentinel).await;
+            return Err(AppError::Timeout(timeout_secs));
+        }
+    };
+
+    process.restore_events_rx(events_rx);
+    let (lines, _prompt) = read_result?;
+
+    check_internal_error_envelopes(&envelopes)?;
+    Ok(lines)
+}
+
+/// If an `error` envelope arrived during an internal-protocol
+/// command, lift it into an `AppError` so the caller can react.
+/// `cancelled` becomes `EvalCancelled` for symmetry with user evals;
+/// any other kind becomes `CommunicationError` since these are
+/// failures of aximar's own injected Maxima code, not of user input.
+#[cfg(unix)]
+fn check_internal_error_envelopes(envelopes: &[Envelope]) -> Result<(), AppError> {
+    use crate::maxima::events::ErrorKind;
+    for env in envelopes {
+        if let Envelope::Error(err) = env {
+            return Err(match err.kind {
+                ErrorKind::Cancelled => AppError::EvalCancelled(err.message.clone()),
+                _ => AppError::CommunicationError(format!(
+                    "internal protocol command failed: {}",
+                    err.message
+                )),
+            });
+        }
+    }
+    Ok(())
+}
+
+#[cfg(not(unix))]
+fn check_internal_error_envelopes(_envelopes: &[()]) -> Result<(), AppError> {
+    Ok(())
+}
+
 pub async fn query_variables(process: &mut MaximaProcess) -> Result<Vec<String>, AppError> {
     let input = format!(
         "print(\"{}\", values)$\nprint(\"{}\");\n",
@@ -305,18 +369,8 @@ pub async fn query_variables(process: &mut MaximaProcess) -> Result<Vec<String>,
 
     process.write_stdin(&input).await?;
 
-    let (lines, _prompt) = match tokio::time::timeout(
-        std::time::Duration::from_secs(VARS_TIMEOUT_SECS),
-        process.read_until_sentinel(VARS_SENTINEL),
-    )
-    .await
-    {
-        Ok(result) => result?,
-        Err(_) => {
-            process.interrupt_and_resync(VARS_SENTINEL).await;
-            return Err(AppError::Timeout(VARS_TIMEOUT_SECS));
-        }
-    };
+    let lines =
+        read_internal_until_sentinel(process, VARS_SENTINEL, VARS_TIMEOUT_SECS).await?;
 
     // Find __AXIMAR_VARS__ and parse the variable list.
     // Maxima may wrap long lists across multiple lines, so join them first.
@@ -357,20 +411,7 @@ pub async fn kill_variable(process: &mut MaximaProcess, name: &str) -> Result<()
     );
 
     process.write_stdin(&input).await?;
-
-    match tokio::time::timeout(
-        std::time::Duration::from_secs(VARS_TIMEOUT_SECS),
-        process.read_until_sentinel(VARS_SENTINEL),
-    )
-    .await
-    {
-        Ok(result) => { result?; }
-        Err(_) => {
-            process.interrupt_and_resync(VARS_SENTINEL).await;
-            return Err(AppError::Timeout(VARS_TIMEOUT_SECS));
-        }
-    }
-
+    read_internal_until_sentinel(process, VARS_SENTINEL, VARS_TIMEOUT_SECS).await?;
     Ok(())
 }
 
@@ -384,20 +425,7 @@ pub async fn kill_all_variables(process: &mut MaximaProcess) -> Result<(), AppEr
     );
 
     process.write_stdin(&input).await?;
-
-    match tokio::time::timeout(
-        std::time::Duration::from_secs(VARS_TIMEOUT_SECS),
-        process.read_until_sentinel(VARS_SENTINEL),
-    )
-    .await
-    {
-        Ok(result) => { result?; }
-        Err(_) => {
-            process.interrupt_and_resync(VARS_SENTINEL).await;
-            return Err(AppError::Timeout(VARS_TIMEOUT_SECS));
-        }
-    }
-
+    read_internal_until_sentinel(process, VARS_SENTINEL, VARS_TIMEOUT_SECS).await?;
     Ok(())
 }
 
