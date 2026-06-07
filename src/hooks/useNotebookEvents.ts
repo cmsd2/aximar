@@ -59,7 +59,7 @@ function focusCellEditor(cellId: string, retries = 3) {
   }
 }
 
-function mapSyncCells(syncCells: SyncCell[]) {
+export function mapSyncCells(syncCells: SyncCell[]) {
   return syncCells.map((sc) => {
     let output: CellOutput | null = null;
     if (sc.output) {

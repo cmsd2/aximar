@@ -40,6 +40,7 @@ import {
 } from "./lib/notebooks-client";
 import { getConfig, markdownFontStack, applyPrintMargins } from "./lib/config-client";
 import { useNotebookStore, useActiveAnyTab, getActiveTabState } from "./store/notebookStore";
+import { mapSyncCells } from "./hooks/useNotebookEvents";
 import { PlotViewer } from "./components/PlotViewer";
 import { useLogStore } from "./store/logStore";
 import { useFindStore } from "./store/findStore";
@@ -180,6 +181,30 @@ function App() {
                 };
               });
             await nbLoadCells(cells);
+            // Re-sync the frontend store with the post-load backend
+            // state.  useNotebookEvents runs nbList → addTab →
+            // nbGetState concurrently with this effect; if its
+            // applyBackendState lands before nbLoadCells, the store
+            // ends up with the pre-load nanoid empty cell instead of
+            // the welcome UUID cells.  Refetching here closes that
+            // race window.
+            const activeId = useNotebookStore.getState().activeNotebookId;
+            if (activeId) {
+              try {
+                const state = await nbGetState(activeId);
+                useNotebookStore.getState().applyBackendState(
+                  state.notebook_id,
+                  mapSyncCells(state.cells),
+                  state.effect,
+                  state.cell_id ?? undefined,
+                  state.can_undo,
+                  state.can_redo,
+                  state.trusted,
+                );
+              } catch (e) {
+                addLogEntry("error", `Failed to re-sync welcome notebook: ${e}`, "init");
+              }
+            }
           }
           await setHasSeenWelcome();
         }
