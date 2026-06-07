@@ -110,7 +110,13 @@ pub async fn evaluate(
     // Always run tex(%) so the parser can detect plot file paths from LaTeX
     // \mbox{} blocks, even when the user suppressed output with $.
     let input = format!(
-        "{}\ntex(%);\nprint(\"__AXIMAR_LABEL__\", linenum)$\nprint(\"{}\");\n",
+        // `$` not `;` on the sentinel print: `;` makes Maxima display
+        // the return value of print(), which is the printed string
+        // itself.  That left an orphaned `"__AXIMAR_EVAL_END__"` line
+        // in the BufReader after each eval, which could trigger the
+        // next read_until_sentinel to return prematurely on a substring
+        // match — leaking content between evaluations.
+        "{}\ntex(%);\nprint(\"__AXIMAR_LABEL__\", linenum)$\nprint(\"{}\")$\n",
         expr, EVAL_SENTINEL
     );
 
@@ -257,7 +263,13 @@ pub async fn evaluate_with_packages(
     // Always run tex(%) so the parser can detect plot file paths from LaTeX
     // \mbox{} blocks, even when the user suppressed output with $.
     let input = format!(
-        "{}\ntex(%);\nprint(\"__AXIMAR_LABEL__\", linenum)$\nprint(\"{}\");\n",
+        // `$` not `;` on the sentinel print: `;` makes Maxima display
+        // the return value of print(), which is the printed string
+        // itself.  That left an orphaned `"__AXIMAR_EVAL_END__"` line
+        // in the BufReader after each eval, which could trigger the
+        // next read_until_sentinel to return prematurely on a substring
+        // match — leaking content between evaluations.
+        "{}\ntex(%);\nprint(\"__AXIMAR_LABEL__\", linenum)$\nprint(\"{}\")$\n",
         expr, EVAL_SENTINEL
     );
 
@@ -363,7 +375,10 @@ fn check_internal_error_envelopes(_envelopes: &[()]) -> Result<(), AppError> {
 
 pub async fn query_variables(process: &mut MaximaProcess) -> Result<Vec<String>, AppError> {
     let input = format!(
-        "print(\"{}\", values)$\nprint(\"{}\");\n",
+        // `$` on the VARS_END print so its return value (the printed
+        // string itself) isn't displayed and left as an orphan
+        // sentinel-looking line for the next read to trip on.
+        "print(\"{}\", values)$\nprint(\"{}\")$\n",
         VARS_START, VARS_SENTINEL
     );
 
@@ -406,7 +421,9 @@ pub async fn kill_variable(process: &mut MaximaProcess, name: &str) -> Result<()
     }
 
     let input = format!(
-        "kill({})$\nprint(\"{}\");\n",
+        // `$` on the sentinel print — see suppress_display rationale
+        // in the VARS_START format above.
+        "kill({})$\nprint(\"{}\")$\n",
         name, VARS_SENTINEL
     );
 
@@ -420,7 +437,8 @@ pub async fn kill_all_variables(process: &mut MaximaProcess) -> Result<(), AppEr
     // Aximar's plotting functions (ax__layout_option_names, etc.).
     // Uses ssearch from stringproc (loaded during session init by ax_plotting.mac).
     let input = format!(
-        "block([ax__kill_list], ax__kill_list: sublist(values, lambda([v], not is(ssearch(\"ax__\", string(v)) = 1))), apply(kill, ax__kill_list))$\nprint(\"{}\");\n",
+        // `$` on the sentinel print — see VARS_START format above.
+        "block([ax__kill_list], ax__kill_list: sublist(values, lambda([v], not is(ssearch(\"ax__\", string(v)) = 1))), apply(kill, ax__kill_list))$\nprint(\"{}\")$\n",
         VARS_SENTINEL
     );
 
