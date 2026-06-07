@@ -403,7 +403,41 @@ impl MaximaProcess {
         // doesn't render the sentinel string
         self.write_stdin("0$\n").await?;
 
+        // Drain the kernel-events channel of any envelopes accumulated
+        // during init.  The bundled ax_plotting.mac alone fires ~100
+        // top-level evals (each a defun-equivalent), and without this
+        // the first user cell's envelope summary would attribute them
+        // to that cell.  Idle-timeout drain: poll until 30ms passes
+        // with no new envelope, then stop.  No-op when the channel
+        // isn't wired (kernel-events disabled / non-Unix backend).
+        #[cfg(unix)]
+        self.drain_init_envelopes().await;
+
         Ok(())
+    }
+
+    /// Pull every envelope currently queued in the kernel-events
+    /// channel and discard it.  Stops when the channel goes idle
+    /// (30ms with no new envelope) — a heuristic that avoids both
+    /// truncating an in-flight init burst and blocking forever waiting
+    /// for an envelope that never arrives.
+    #[cfg(unix)]
+    async fn drain_init_envelopes(&mut self) {
+        let rx = match self.events_rx.as_mut() {
+            Some(rx) => rx,
+            None => return,
+        };
+        let idle_timeout = std::time::Duration::from_millis(30);
+        let mut drained: usize = 0;
+        loop {
+            match tokio::time::timeout(idle_timeout, rx.recv()).await {
+                Ok(Some(_)) => drained += 1,
+                _ => break,
+            }
+        }
+        if drained > 0 {
+            eprintln!("[events] drained {drained} init-phase envelopes");
+        }
     }
 
     /// Build the session-init prelude that loads kernel-events and

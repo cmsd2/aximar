@@ -114,11 +114,6 @@ pub fn spawn_reader_task(read_end: OwnedFd, sender: mpsc::UnboundedSender<Envelo
                     }
                     match serde_json::from_str::<Envelope>(trimmed) {
                         Ok(env) => {
-                            // Best-effort log so we can observe the
-                            // stream during prototype work.  Will move
-                            // to tracing once the channel is consumed
-                            // by the protocol layer.
-                            eprintln!("[events] {}", env.kind_label());
                             if sender.send(env).is_err() {
                                 // Receiver dropped — protocol layer is
                                 // gone; nothing more to do.
@@ -126,7 +121,13 @@ pub fn spawn_reader_task(read_end: OwnedFd, sender: mpsc::UnboundedSender<Envelo
                             }
                         }
                         Err(e) => {
-                            eprintln!("[events] bad envelope: {} | line: {:?}", e, trimmed);
+                            // Bad-envelope diagnostics still go to
+                            // stderr — a malformed line is a real
+                            // protocol bug worth surfacing.
+                            eprintln!(
+                                "[events] bad envelope: {} | line: {:?}",
+                                e, trimmed
+                            );
                         }
                     }
                 }
