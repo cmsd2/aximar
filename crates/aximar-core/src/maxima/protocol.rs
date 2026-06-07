@@ -4,6 +4,8 @@ use crate::catalog::packages::PackageCatalog;
 use crate::catalog::search::Catalog;
 use crate::error::AppError;
 #[cfg(unix)]
+use crate::maxima::errors as error_enhance;
+#[cfg(unix)]
 use crate::maxima::events::Envelope;
 use crate::maxima::parser;
 use crate::maxima::process::MaximaProcess;
@@ -143,6 +145,7 @@ pub async fn evaluate(
     let duration_ms = start.elapsed().as_millis() as u64;
 
     let mut result = parser::parse_output(cell_id, &lines, duration_ms, catalog, process.backend());
+    apply_error_envelopes(&mut result, &envelopes, catalog, None);
     // If user suppressed output with $, clear the LaTeX (but plot detection
     // already happened in the parser using raw_latex).
     if !emit_latex {
@@ -170,6 +173,50 @@ fn log_envelope_summary(cell_id: &str, envelopes: &[Envelope]) {
 
 #[cfg(not(unix))]
 fn log_envelope_summary(_cell_id: &str, _envelopes: &[()]) {}
+
+/// Phase B: when an `error` envelope arrived during the eval, prefer
+/// it over the parser's regex-scraped error.  kernel-events captures
+/// the merror() message verbatim, including kind discrimination
+/// (maxima_error / lisp_error / parser_error / cancelled), which the
+/// stdout scrape can't reliably recover.
+///
+/// Only fires when at least one error envelope is present; absent
+/// envelopes (kernel-events disabled / not installed) leave the
+/// parser's legacy detection authoritative.  When multiple error
+/// envelopes show up in one eval — rare, e.g. a batch() of failing
+/// statements — the first one wins; later phases may surface all.
+#[cfg(unix)]
+fn apply_error_envelopes(
+    result: &mut EvalResult,
+    envelopes: &[Envelope],
+    catalog: &Catalog,
+    packages: Option<&PackageCatalog>,
+) {
+    let first = envelopes.iter().find_map(|e| match e {
+        Envelope::Error(err) => Some(err),
+        _ => None,
+    });
+    let Some(err) = first else { return };
+
+    result.error = Some(err.message.clone());
+    result.is_error = true;
+    result.error_info = error_enhance::enhance_error_with_packages(
+        &err.message,
+        catalog,
+        packages,
+    );
+    // Output label has no meaning when the eval errored — no %oN was
+    // assigned.  The legacy parser also clears this in the same case.
+    result.output_label = None;
+}
+
+#[cfg(not(unix))]
+fn apply_error_envelopes(
+    _result: &mut EvalResult,
+    _envelopes: &[()],
+    _catalog: &Catalog,
+    _packages: Option<&PackageCatalog>,
+) {}
 
 pub async fn evaluate_with_packages(
     process: &mut MaximaProcess,
@@ -228,6 +275,7 @@ pub async fn evaluate_with_packages(
     let mut result = parser::parse_output_with_packages(
         cell_id, &lines, duration_ms, catalog, packages, process.backend(),
     );
+    apply_error_envelopes(&mut result, &envelopes, catalog, Some(packages));
     if !emit_latex {
         result.latex = None;
     }

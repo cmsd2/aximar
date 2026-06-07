@@ -88,3 +88,54 @@ async fn evaluate_drains_envelopes_while_legacy_sentinel_terminates() {
     // line from protocol.rs prints the counts; here we just assert
     // the channel produced *something* eval-shaped.
 }
+
+/// Phase B: when a Maxima error fires, the resulting `error` envelope
+/// should populate EvalResult.error rather than the regex-scraped
+/// stdout line.  The envelope's message is the canonical merror()
+/// string; the parser scrape can be lossy or pick up surrounding
+/// context.  This test drives `error("phase b smoke")` and asserts
+/// the envelope's message text ends up in the result.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn error_envelope_populates_eval_result() {
+    if !live_tests_enabled() {
+        eprintln!("skipping: set AXIMAR_RUN_LIVE_TESTS=1 to enable");
+        return;
+    }
+    unsafe {
+        std::env::set_var("AXIMAR_KERNEL_EVENTS", "1");
+    }
+
+    let sink: Arc<dyn OutputSink> = Arc::new(DropSink);
+    let mut proc = MaximaProcess::spawn(Backend::Local, None, sink)
+        .await
+        .expect("spawn maxima");
+
+    let catalog = Catalog::load();
+    let result = protocol::evaluate(
+        &mut proc,
+        "err-cell",
+        "error(\"phase b smoke\");",
+        &catalog,
+        10,
+    )
+    .await
+    .expect("evaluate returns Ok even when the eval errored");
+
+    assert!(result.is_error, "expected is_error=true; got {result:?}");
+    let err_text = result
+        .error
+        .as_deref()
+        .expect("EvalResult.error must be populated");
+    // Maxima's error() upcases its string arg; substring match
+    // case-insensitively so we don't depend on that behaviour.
+    assert!(
+        err_text.to_lowercase().contains("phase b smoke"),
+        "expected error message to carry the merror string; got {err_text:?}"
+    );
+    assert!(
+        result.output_label.is_none(),
+        "errors should not carry an output label; got {:?}",
+        result.output_label
+    );
+    drop(proc);
+}
