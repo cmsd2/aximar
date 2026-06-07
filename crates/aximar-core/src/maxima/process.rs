@@ -337,13 +337,39 @@ impl MaximaProcess {
     /// handle, if one was wired at spawn.  Returns `None` if the
     /// channel wasn't enabled, if the backend doesn't support fd
     /// inheritance, or if the receiver has already been taken.
-    /// Phase-A consumer: a per-session task that just logs envelopes.
+    ///
+    /// The eval pipeline uses this in conjunction with
+    /// [`Self::restore_events_rx`] to borrow the receiver for the
+    /// duration of one evaluation (so the receiver can be polled
+    /// concurrently with `read_until_sentinel`, which itself takes
+    /// `&mut self`) without splitting the struct.
     #[cfg(unix)]
-    pub fn take_events_receiver(
+    pub fn take_events_rx(
         &mut self,
     ) -> Option<tokio::sync::mpsc::UnboundedReceiver<Envelope>> {
         self.events_rx.take()
     }
+
+    /// Put back a receiver previously removed with [`Self::take_events_rx`].
+    /// Pass-through; preserves any in-flight envelopes that arrived
+    /// while the receiver was outside the process handle.
+    #[cfg(unix)]
+    pub fn restore_events_rx(
+        &mut self,
+        rx: Option<tokio::sync::mpsc::UnboundedReceiver<Envelope>>,
+    ) {
+        self.events_rx = rx;
+    }
+
+    /// Non-unix builds expose stub no-ops so call sites can stay
+    /// platform-agnostic.  Returns and accepts None unconditionally.
+    #[cfg(not(unix))]
+    pub fn take_events_rx(&mut self) -> Option<()> {
+        None
+    }
+
+    #[cfg(not(unix))]
+    pub fn restore_events_rx(&mut self, _: Option<()>) {}
 
     async fn initialize(&mut self) -> Result<(), AppError> {
         // For Docker/WSL, set maxima_tempdir so gnuplot writes SVGs to a known location
@@ -399,12 +425,20 @@ impl MaximaProcess {
         // an output stream.  kernel-events is already SBCL-leaning
         // (its output-stream wrap is #+sbcl-only), so this scope is
         // consistent.  Uses only exported kernel-events symbols
-        // (register-sink, envelope-to-json) — fd-3 transport is the
-        // host's job per the package's sink-agnostic design.
+        // (register-sink, envelope-to-json, install-*) — fd-3
+        // transport is the host's job per the package's sink-
+        // agnostic design.
         //
         // Sink lambda: serialize envelope, write line, force flush so
         // each envelope reaches the parent reader promptly.
-        let lisp = r#"(handler-case (progn (maxima::$load "kernel-events") (let* ((fd (parse-integer (sb-ext:posix-getenv "MAXIMA_EVENTS_FD"))) (out (sb-sys:make-fd-stream fd :output t :external-format :utf-8 :buffering :line))) (funcall (find-symbol "REGISTER-SINK" "KERNEL-EVENTS") (lambda (env) (write-line (funcall (find-symbol "ENVELOPE-TO-JSON" "KERNEL-EVENTS") env) out) (force-output out)))) (maxima::$start_session)) (error (e) (format *error-output* "~&kernel-events init failed: ~a~%" e)))"#;
+        //
+        // Hooks: kernel-events ships with eval, debugger, output, and
+        // stdin hooks as separate install-* calls (it doesn't fire
+        // them on load so test embeddings can opt in selectively).
+        // Aximar wants all four so we install the full set up-front;
+        // a missing install function is tolerated (a future package
+        // might split or rename).
+        let lisp = r#"(handler-case (progn (maxima::$load "kernel-events") (let* ((fd (parse-integer (sb-ext:posix-getenv "MAXIMA_EVENTS_FD"))) (out (sb-sys:make-fd-stream fd :output t :external-format :utf-8 :buffering :line))) (funcall (find-symbol "REGISTER-SINK" "KERNEL-EVENTS") (lambda (env) (write-line (funcall (find-symbol "ENVELOPE-TO-JSON" "KERNEL-EVENTS") env) out) (force-output out)))) (dolist (sym '("INSTALL-EVAL-HOOKS" "INSTALL-DEBUGGER-HOOKS" "INSTALL-OUTPUT-WRAPPING" "INSTALL-STDIN-HOOKS")) (let ((fn (find-symbol sym "KERNEL-EVENTS"))) (when (and fn (fboundp fn)) (funcall fn)))) (maxima::$start_session)) (error (e) (format *error-output* "~&kernel-events init failed: ~a~%" e)))"#;
         format!(":lisp {}\n", lisp)
     }
 

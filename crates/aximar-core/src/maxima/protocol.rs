@@ -3,9 +3,78 @@ use std::time::Instant;
 use crate::catalog::packages::PackageCatalog;
 use crate::catalog::search::Catalog;
 use crate::error::AppError;
+#[cfg(unix)]
+use crate::maxima::events::Envelope;
 use crate::maxima::parser;
 use crate::maxima::process::MaximaProcess;
 use crate::maxima::types::EvalResult;
+
+/// Wait on `main` while concurrently draining any envelopes that
+/// arrive on `events_rx`.  Returns the future's output and the
+/// vector of envelopes collected during its lifetime.
+///
+/// Phase-A.1: we still terminate the eval on the legacy
+/// `__AXIMAR_EVAL_END__` sentinel — envelopes are observed alongside,
+/// not used as the terminator.  Phase B will start consuming them
+/// to fill in EvalResult fields (errors first), at which point this
+/// helper's caller will route the collected envelopes into the
+/// parser.
+#[cfg(unix)]
+async fn drive_with_envelope_drain<F, T>(
+    main: F,
+    events_rx: &mut Option<tokio::sync::mpsc::UnboundedReceiver<Envelope>>,
+) -> (T, Vec<Envelope>)
+where
+    F: std::future::Future<Output = T>,
+{
+    let mut envs = Vec::new();
+    tokio::pin!(main);
+    let output = loop {
+        // `biased` so we prefer draining queued envelopes when both
+        // arms are ready — keeps the channel from backing up while
+        // the read future is still running.
+        tokio::select! {
+            biased;
+            env = recv_maybe(events_rx) => {
+                if let Some(e) = env {
+                    envs.push(e);
+                }
+                // Receiver closed: stop polling the events arm but
+                // keep waiting for the main future to finish.
+            }
+            out = &mut main => break out,
+        }
+    };
+    // Final non-blocking drain: anything that arrived after the
+    // main future resolved but before we stopped polling.
+    if let Some(rx) = events_rx.as_mut() {
+        while let Ok(e) = rx.try_recv() {
+            envs.push(e);
+        }
+    }
+    (output, envs)
+}
+
+/// Helper for `tokio::select!`: when the receiver is None (kernel-
+/// events disabled or already taken), return a never-resolving future
+/// so the other arm always wins.  When it's Some, defer to recv().
+#[cfg(unix)]
+async fn recv_maybe(
+    rx: &mut Option<tokio::sync::mpsc::UnboundedReceiver<Envelope>>,
+) -> Option<Envelope> {
+    match rx {
+        Some(r) => r.recv().await,
+        None => std::future::pending().await,
+    }
+}
+
+#[cfg(not(unix))]
+async fn drive_with_envelope_drain<F, T>(main: F, _events_rx: &mut Option<()>) -> (T, Vec<()>)
+where
+    F: std::future::Future<Output = T>,
+{
+    (main.await, Vec::new())
+}
 
 const EVAL_SENTINEL: &str = "__AXIMAR_EVAL_END__";
 const VARS_SENTINEL: &str = "__AXIMAR_VARS_END__";
@@ -45,18 +114,31 @@ pub async fn evaluate(
 
     process.write_stdin(&input).await?;
 
-    let (lines, _prompt) = match tokio::time::timeout(
+    // Briefly remove the events receiver from the process so we can
+    // poll it concurrently with `read_until_sentinel` (both want
+    // `&mut process`).  Put it back when we're done; in-flight
+    // envelopes received during the eval are collected for later use.
+    let mut events_rx = process.take_events_rx();
+
+    let timeout_result = tokio::time::timeout(
         std::time::Duration::from_secs(eval_timeout_secs),
-        process.read_until_sentinel(EVAL_SENTINEL),
+        drive_with_envelope_drain(process.read_until_sentinel(EVAL_SENTINEL), &mut events_rx),
     )
-    .await
-    {
-        Ok(result) => result?,
+    .await;
+
+    let (read_result, envelopes) = match timeout_result {
+        Ok((read_result, envs)) => (read_result, envs),
         Err(_) => {
+            process.restore_events_rx(events_rx);
             process.interrupt_and_resync(EVAL_SENTINEL).await;
             return Err(AppError::Timeout(eval_timeout_secs));
         }
     };
+
+    process.restore_events_rx(events_rx);
+    let (lines, _prompt) = read_result?;
+
+    log_envelope_summary(cell_id, &envelopes);
 
     let duration_ms = start.elapsed().as_millis() as u64;
 
@@ -68,6 +150,26 @@ pub async fn evaluate(
     }
     Ok(result)
 }
+
+/// Phase-A.1: log what came in on the events channel during an eval
+/// so we can validate the drain end-to-end before any envelope type
+/// starts feeding into EvalResult.  Off when no envelopes arrived
+/// (kernel-events not enabled / not installed) to keep stderr quiet.
+#[cfg(unix)]
+fn log_envelope_summary(cell_id: &str, envelopes: &[Envelope]) {
+    if envelopes.is_empty() {
+        return;
+    }
+    let mut kinds: std::collections::BTreeMap<&'static str, usize> =
+        std::collections::BTreeMap::new();
+    for env in envelopes {
+        *kinds.entry(env.kind_label()).or_insert(0) += 1;
+    }
+    eprintln!("[events] cell={} envelopes={:?}", cell_id, kinds);
+}
+
+#[cfg(not(unix))]
+fn log_envelope_summary(_cell_id: &str, _envelopes: &[()]) {}
 
 pub async fn evaluate_with_packages(
     process: &mut MaximaProcess,
@@ -99,18 +201,27 @@ pub async fn evaluate_with_packages(
 
     process.write_stdin(&input).await?;
 
-    let (lines, _prompt) = match tokio::time::timeout(
+    let mut events_rx = process.take_events_rx();
+
+    let timeout_result = tokio::time::timeout(
         std::time::Duration::from_secs(eval_timeout_secs),
-        process.read_until_sentinel(EVAL_SENTINEL),
+        drive_with_envelope_drain(process.read_until_sentinel(EVAL_SENTINEL), &mut events_rx),
     )
-    .await
-    {
-        Ok(result) => result?,
+    .await;
+
+    let (read_result, envelopes) = match timeout_result {
+        Ok((read_result, envs)) => (read_result, envs),
         Err(_) => {
+            process.restore_events_rx(events_rx);
             process.interrupt_and_resync(EVAL_SENTINEL).await;
             return Err(AppError::Timeout(eval_timeout_secs));
         }
     };
+
+    process.restore_events_rx(events_rx);
+    let (lines, _prompt) = read_result?;
+
+    log_envelope_summary(cell_id, &envelopes);
 
     let duration_ms = start.elapsed().as_millis() as u64;
 
