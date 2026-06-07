@@ -41,7 +41,14 @@ const JUNK_LATEX: &[&str] = &[
     "\\it \\%",
     "\\mathit{done}",
     "\\mathbf{done}",
-    "0",
+    // NOTE: "0" used to be here as well, intended to swallow tex(%)
+    // results when the user's expression didn't change % (so % was
+    // still the harmless 0 from session init).  But aximar's
+    // suppress_display always rewrites the user's last ; to $, which
+    // makes % equal to the user's actual result by the time tex(%)
+    // runs — so the original "% stuck at init 0" scenario doesn't
+    // happen.  Keeping "0" in the list silently dropped legitimate
+    // user results of 0 (e.g. evaluating `1 - 1;`).
 ];
 
 fn is_junk_latex(inner: &str) -> bool {
@@ -722,10 +729,15 @@ mod tests {
     }
 
     #[test]
-    fn test_junk_latex_zero() {
+    fn test_latex_zero_is_kept() {
+        // A user expression that evaluates to 0 — e.g. `1 - 1;` —
+        // produces $$0$$ as its only representation (suppress_display
+        // turns the trailing ; into $, so the result reaches us only
+        // through tex(%)).  0 is a legitimate value and must surface
+        // as latex.
         let lines = vec!["$$0$$".to_string()];
         let result = parse_output("cell-1", &lines, 100, &catalog(), &Backend::Local);
-        assert!(result.latex.is_none());
+        assert_eq!(result.latex.as_deref(), Some("0"));
     }
 
     #[test]
@@ -957,9 +969,13 @@ mod tests {
 
     #[test]
     fn test_intermediate_tex_zero_preserved() {
-        // User tex(0) produces $$0$$ which is in JUNK_LATEX, but intermediate
-        // LaTeX from user tex() calls should be preserved — only the final
-        // tex(%) result is junk-filtered.
+        // Sanity-check that intermediate LaTeX blocks (from user tex()
+        // calls earlier in the cell) are preserved in text_output even
+        // when the final tex(%) result is junk-filtered.  $$0$$ used
+        // to be junk-filtered too, but that filter was removed because
+        // it ate legitimate user results of 0; this test still
+        // exercises the intermediate-vs-final split via $$4$$ and the
+        // final $$\\mathbf{done}$$.
         let lines = vec![
             "Step 1".to_string(),
             "$$0$$".to_string(),               // user tex(0) — should be kept
