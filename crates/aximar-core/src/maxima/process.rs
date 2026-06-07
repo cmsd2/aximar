@@ -9,6 +9,12 @@ use tokio::process::{Child, Command};
 use crate::error::AppError;
 use crate::maxima::backend::Backend;
 use crate::maxima::debugger::{self, PromptKind};
+#[cfg(unix)]
+use std::os::fd::AsRawFd;
+#[cfg(unix)]
+use crate::maxima::events::Envelope;
+#[cfg(unix)]
+use crate::maxima::events_pipe::{pre_exec_dup_to_fd3, spawn_reader_task, EventsPipe};
 use crate::maxima::noconsole::hide_console_window;
 use crate::maxima::output::{OutputEvent, OutputSink};
 
@@ -46,6 +52,24 @@ pub struct MaximaProcess {
     /// also detects debugger prompts (`dbm:N>`). When false, uses
     /// simpler line-based reading (sentinel only).
     debug_mode: bool,
+    /// kernel-events envelope stream from the child process's fd 3.
+    /// `None` for backends where fd inheritance isn't wired (Docker,
+    /// WSL, SSH) and for platforms / configurations where the channel
+    /// isn't enabled (`AXIMAR_KERNEL_EVENTS` env var unset/false).
+    /// Phase-A: read but not yet consumed by the eval pipeline.
+    #[cfg(unix)]
+    events_rx: Option<tokio::sync::mpsc::UnboundedReceiver<Envelope>>,
+}
+
+/// Opt-in env var: when set to a truthy value, the spawn path tries to
+/// open the fd-3 events pipe and load kernel-events at session init.
+/// Off by default during Phase-A so the legacy pipeline keeps owning
+/// behaviour until the envelope path is consuming envelopes for real.
+#[cfg(unix)]
+fn kernel_events_enabled() -> bool {
+    std::env::var("AXIMAR_KERNEL_EVENTS")
+        .map(|v| matches!(v.as_str(), "1" | "true" | "yes" | "on"))
+        .unwrap_or(false)
 }
 
 impl MaximaProcess {
@@ -55,6 +79,14 @@ impl MaximaProcess {
 
     pub async fn spawn_with_cwd(backend: Backend, custom_path: Option<String>, output_sink: Arc<dyn OutputSink>, cwd: Option<&std::path::Path>) -> Result<Self, AppError> {
         Self::preflight_check(&backend).await?;
+
+        // Per-spawn reader-task handle for the kernel-events pipe.
+        // Lives in this scope so it survives cmd.spawn() and can be
+        // moved into the MaximaProcess struct after the match.  None
+        // when the channel isn't enabled or when this backend doesn't
+        // wire fd inheritance (Docker/WSL/SSH).
+        #[cfg(unix)]
+        let mut events_rx_slot: Option<tokio::sync::mpsc::UnboundedReceiver<Envelope>> = None;
 
         let (mut child, container_name) = match &backend {
             Backend::Local => {
@@ -75,6 +107,48 @@ impl MaximaProcess {
                 {
                     cmd.creation_flags(0x00000200); // CREATE_NEW_PROCESS_GROUP
                 }
+                // Optionally wire an inheritable pipe for kernel-events
+                // envelopes (fd 3 in the child).  The write end's raw
+                // fd is captured by the pre_exec closure; the OwnedFd
+                // stays alive in the parent across spawn() and is
+                // dropped here so the parent doesn't keep the pipe
+                // open after the child exits (which would prevent the
+                // reader task from seeing EOF).
+                // OwnedFd of the parent's write-end copy.  Kept alive
+                // across cmd.spawn() (so fork inherits a valid fd to
+                // dup) and dropped immediately after spawn so the
+                // parent doesn't keep the pipe open after the child
+                // exits — without that drop the reader task would
+                // never see EOF.
+                #[cfg(unix)]
+                let parent_write_end: Option<std::os::fd::OwnedFd> = if kernel_events_enabled() {
+                    match EventsPipe::new() {
+                        Ok(pipe) => {
+                            let raw_write = pipe.write_end.as_raw_fd();
+                            let (tx, rx) =
+                                tokio::sync::mpsc::unbounded_channel::<Envelope>();
+                            spawn_reader_task(pipe.read_end, tx);
+                            events_rx_slot = Some(rx);
+                            cmd.env("MAXIMA_EVENTS_FD", "3");
+                            // SAFETY: pre_exec_dup_to_fd3 only calls
+                            // async-signal-safe libc functions
+                            // (dup2/fcntl) on a valid fd.
+                            unsafe {
+                                cmd.pre_exec(pre_exec_dup_to_fd3(raw_write));
+                            }
+                            Some(pipe.write_end)
+                        }
+                        Err(e) => {
+                            eprintln!(
+                                "[events] failed to open pipe, falling back to legacy: {}",
+                                e
+                            );
+                            None
+                        }
+                    }
+                } else {
+                    None
+                };
                 // Detach from the controlling terminal so SBCL cannot
                 // open /dev/tty.  Without this, *debug-io* on Linux
                 // writes to /dev/tty (bypassing our piped stdout/stderr)
@@ -96,6 +170,13 @@ impl MaximaProcess {
                 hide_console_window(&mut cmd);
                 let child = cmd.spawn()
                     .map_err(|e| AppError::ProcessStartFailed(format!("{}: {}", maxima_path, e)))?;
+
+                // Parent no longer needs the write end now that the
+                // child has its own copy as fd 3; dropping it closes
+                // the parent's reference so the reader task gets EOF
+                // when the child exits.
+                #[cfg(unix)]
+                drop(parent_write_end);
 
                 (child, None)
             }
@@ -244,10 +325,24 @@ impl MaximaProcess {
             container_name,
             output_sink,
             debug_mode: false,
+            #[cfg(unix)]
+            events_rx: events_rx_slot,
         };
 
         proc.initialize().await?;
         Ok(proc)
+    }
+
+    /// Take the kernel-events envelope receiver out of the process
+    /// handle, if one was wired at spawn.  Returns `None` if the
+    /// channel wasn't enabled, if the backend doesn't support fd
+    /// inheritance, or if the receiver has already been taken.
+    /// Phase-A consumer: a per-session task that just logs envelopes.
+    #[cfg(unix)]
+    pub fn take_events_receiver(
+        &mut self,
+    ) -> Option<tokio::sync::mpsc::UnboundedReceiver<Envelope>> {
+        self.events_rx.take()
     }
 
     async fn initialize(&mut self) -> Result<(), AppError> {
@@ -259,9 +354,19 @@ impl MaximaProcess {
             _ => String::new(),
         };
 
+        // When the events channel is wired (fd 3 is live and
+        // MAXIMA_EVENTS_FD points at it), load kernel-events and
+        // register a fd-3 sink before any user code runs.  The
+        // errcatch wrapper makes the snippet a no-op when the
+        // package isn't installed, so the session still comes up.
+        // The `:lisp` escape is needed because we're writing to a
+        // raw fd from Lisp, which has no Maxima-level binding.
+        let events_init = self.events_init_snippet();
+
         let init_commands = format!(
-            "{}display2d:false$\nset_plot_option([run_viewer, false])$\nset_plot_option([gnuplot_term, svg])$\nset_plot_option([gnuplot_preamble, \"set encoding utf8\"])$\nprint(\"{}\")$\n",
+            "{}{}display2d:false$\nset_plot_option([run_viewer, false])$\nset_plot_option([gnuplot_term, svg])$\nset_plot_option([gnuplot_preamble, \"set encoding utf8\"])$\nprint(\"{}\")$\n",
             tempdir_cmd,
+            events_init,
             READY_SENTINEL
         );
 
@@ -273,6 +378,40 @@ impl MaximaProcess {
         self.write_stdin("0$\n").await?;
 
         Ok(())
+    }
+
+    /// Build the session-init prelude that loads kernel-events and
+    /// registers an fd-3 sink, or returns an empty string if the
+    /// channel isn't wired for this process.
+    ///
+    /// Uses a `:lisp` line (the same escape `plotting.rs` uses to push
+    /// helper defuns) because the body opens a raw fd, an operation
+    /// that has no Maxima surface.  Wrapped in `handler-case` so a
+    /// missing kernel-events package or an SBCL incantation failure
+    /// logs to stderr but leaves the session usable through the
+    /// legacy stdout-parsing pipeline.
+    #[cfg(unix)]
+    fn events_init_snippet(&self) -> String {
+        if self.events_rx.is_none() {
+            return String::new();
+        }
+        // SBCL-specific: sb-sys:make-fd-stream wraps a numeric fd as
+        // an output stream.  kernel-events is already SBCL-leaning
+        // (its output-stream wrap is #+sbcl-only), so this scope is
+        // consistent.  Uses only exported kernel-events symbols
+        // (register-sink, envelope-to-json) — fd-3 transport is the
+        // host's job per the package's sink-agnostic design.
+        //
+        // Sink lambda: serialize envelope, write line, force flush so
+        // each envelope reaches the parent reader promptly.
+        let lisp = r#"(handler-case (progn (maxima::$load "kernel-events") (let* ((fd (parse-integer (sb-ext:posix-getenv "MAXIMA_EVENTS_FD"))) (out (sb-sys:make-fd-stream fd :output t :external-format :utf-8 :buffering :line))) (funcall (find-symbol "REGISTER-SINK" "KERNEL-EVENTS") (lambda (env) (write-line (funcall (find-symbol "ENVELOPE-TO-JSON" "KERNEL-EVENTS") env) out) (force-output out)))) (maxima::$start_session)) (error (e) (format *error-output* "~&kernel-events init failed: ~a~%" e)))"#;
+        format!(":lisp {}\n", lisp)
+    }
+
+    /// Non-unix stub: kernel-events fd-3 path is unix-only.
+    #[cfg(not(unix))]
+    fn events_init_snippet(&self) -> String {
+        String::new()
     }
 
     /// Enable debug mode. In debug mode, `read_until_sentinel` uses

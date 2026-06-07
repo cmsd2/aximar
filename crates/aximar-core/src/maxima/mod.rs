@@ -1,6 +1,9 @@
 pub mod backend;
 pub mod debugger;
 pub mod errors;
+pub mod events;
+#[cfg(unix)]
+pub mod events_pipe;
 pub mod labels;
 pub mod noconsole;
 pub mod output;
