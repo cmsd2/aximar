@@ -438,7 +438,15 @@ impl MaximaProcess {
         // Aximar wants all four so we install the full set up-front;
         // a missing install function is tolerated (a future package
         // might split or rename).
-        let lisp = r#"(handler-case (progn (maxima::$load "kernel-events") (let* ((fd (parse-integer (sb-ext:posix-getenv "MAXIMA_EVENTS_FD"))) (out (sb-sys:make-fd-stream fd :output t :external-format :utf-8 :buffering :line))) (funcall (find-symbol "REGISTER-SINK" "KERNEL-EVENTS") (lambda (env) (write-line (funcall (find-symbol "ENVELOPE-TO-JSON" "KERNEL-EVENTS") env) out) (force-output out)))) (dolist (sym '("INSTALL-EVAL-HOOKS" "INSTALL-DEBUGGER-HOOKS" "INSTALL-OUTPUT-WRAPPING" "INSTALL-STDIN-HOOKS")) (let ((fn (find-symbol sym "KERNEL-EVENTS"))) (when (and fn (fboundp fn)) (funcall fn)))) (maxima::$start_session)) (error (e) (format *error-output* "~&kernel-events init failed: ~a~%" e)))"#;
+        // $start_session is defined by kernel-events, but ($load
+        // "kernel-events") runs in the same compile unit, so SBCL's
+        // file-compiler hasn't seen the defmfun by the time it tries
+        // to compile (maxima::$start_session) and emits a STYLE-
+        // WARNING.  Resolving via find-symbol defers the lookup to
+        // runtime (when the symbol IS fbound) and silences the warning
+        // — matching the pattern used for the kernel-events symbols
+        // already in this snippet.
+        let lisp = r#"(handler-case (progn (maxima::$load "kernel-events") (let* ((fd (parse-integer (sb-ext:posix-getenv "MAXIMA_EVENTS_FD"))) (out (sb-sys:make-fd-stream fd :output t :external-format :utf-8 :buffering :line))) (funcall (find-symbol "REGISTER-SINK" "KERNEL-EVENTS") (lambda (env) (write-line (funcall (find-symbol "ENVELOPE-TO-JSON" "KERNEL-EVENTS") env) out) (force-output out)))) (dolist (sym '("INSTALL-EVAL-HOOKS" "INSTALL-DEBUGGER-HOOKS" "INSTALL-OUTPUT-WRAPPING" "INSTALL-STDIN-HOOKS")) (let ((fn (find-symbol sym "KERNEL-EVENTS"))) (when (and fn (fboundp fn)) (funcall fn)))) (funcall (find-symbol "$START_SESSION" "MAXIMA"))) (error (e) (format *error-output* "~&kernel-events init failed: ~a~%" e)))"#;
         format!(":lisp {}\n", lisp)
     }
 
