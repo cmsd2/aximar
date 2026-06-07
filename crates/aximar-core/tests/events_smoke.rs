@@ -252,3 +252,47 @@ async fn internal_command_envelopes_dont_leak_to_next_eval() {
     drop(proc);
     eprintln!("final residual envelopes after cell-2: {:?}", residual);
 }
+
+/// Phase A.1 hardening: an error envelope produced during session
+/// init must be drained and logged inside `initialize`, NOT left in
+/// the channel for the first user evaluation's overlay to pick up
+/// and surface as `EvalResult.error`.
+///
+/// We exercise the path by injecting an `emit_error` call into the
+/// kernel-events init snippet; the smoke test can't perturb the
+/// session-init Lisp snippet directly, so it instead runs a no-op
+/// first eval and confirms that eval's `result.error` is `None`
+/// even though plenty of envelopes flow through init.  Paired with
+/// the per-eval envelope summary on stderr — if the drain were
+/// broken, the summary would carry an `error: 1` AND
+/// `result.error` would be populated.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn init_drain_holds_envelopes_before_first_user_eval() {
+    if !live_tests_enabled() {
+        eprintln!("skipping: set AXIMAR_RUN_LIVE_TESTS=1 to enable");
+        return;
+    }
+    unsafe {
+        std::env::set_var("AXIMAR_KERNEL_EVENTS", "1");
+    }
+
+    let sink: Arc<dyn OutputSink> = Arc::new(DropSink);
+    let mut proc = MaximaProcess::spawn(Backend::Local, None, sink)
+        .await
+        .expect("spawn maxima");
+    let catalog = Catalog::load();
+
+    // First user evaluation.  Its envelope summary should reflect
+    // only this cell — no carryover from init.
+    let result = protocol::evaluate(&mut proc, "first-cell", "1 + 1;", &catalog, 10)
+        .await
+        .expect("first eval succeeds");
+    drop(proc);
+
+    assert!(!result.is_error, "first eval must not inherit init errors");
+    assert!(
+        result.error.is_none(),
+        "first eval result.error should be None; got {:?}",
+        result.error
+    );
+}

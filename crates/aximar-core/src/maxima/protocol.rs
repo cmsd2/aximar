@@ -22,7 +22,7 @@ use crate::maxima::types::EvalResult;
 /// helper's caller will route the collected envelopes into the
 /// parser.
 #[cfg(unix)]
-async fn drive_with_envelope_drain<F, T>(
+pub(crate) async fn drive_with_envelope_drain<F, T>(
     main: F,
     events_rx: &mut Option<tokio::sync::mpsc::UnboundedReceiver<Envelope>>,
 ) -> (T, Vec<Envelope>)
@@ -71,7 +71,7 @@ async fn recv_maybe(
 }
 
 #[cfg(not(unix))]
-async fn drive_with_envelope_drain<F, T>(main: F, _events_rx: &mut Option<()>) -> (T, Vec<()>)
+pub(crate) async fn drive_with_envelope_drain<F, T>(main: F, _events_rx: &mut Option<()>) -> (T, Vec<()>)
 where
     F: std::future::Future<Output = T>,
 {

@@ -39,6 +39,7 @@ fn assumption_answer(question: &str) -> &'static str {
 }
 
 const READY_SENTINEL: &str = "__AXIMAR_READY__";
+const INIT_DONE_SENTINEL: &str = "__AXIMAR_INIT_DONE__";
 
 pub struct MaximaProcess {
     child: Child,
@@ -403,41 +404,61 @@ impl MaximaProcess {
         // doesn't render the sentinel string
         self.write_stdin("0$\n").await?;
 
-        // Drain the kernel-events channel of any envelopes accumulated
-        // during init.  The bundled ax_plotting.mac alone fires ~100
-        // top-level evals (each a defun-equivalent), and without this
-        // the first user cell's envelope summary would attribute them
-        // to that cell.  Idle-timeout drain: poll until 30ms passes
-        // with no new envelope, then stop.  No-op when the channel
-        // isn't wired (kernel-events disabled / non-Unix backend).
+        // Marker write — gives the init drain something deterministic
+        // to wait for instead of relying on a wall-clock idle timeout.
+        // The marker's eval_end envelope is the unambiguous "init is
+        // fully settled" signal.  `$` so the printed string isn't
+        // displayed as an orphan line.
+        self.write_stdin(&format!("print(\"{}\")$\n", INIT_DONE_SENTINEL))
+            .await?;
+
+        // Drain the kernel-events channel of every envelope accumulated
+        // during init — the bundled ax_plotting.mac alone fires 100+
+        // top-level evals (each a defun-equivalent).  Without the
+        // drain, the first user cell's envelope summary would
+        // attribute them to that cell, and worse, an error envelope
+        // from init would overlay onto the user cell as
+        // EvalResult.error.  No-op when the channel isn't wired
+        // (kernel-events disabled / non-Unix backend).
         #[cfg(unix)]
         self.drain_init_envelopes().await;
 
         Ok(())
     }
 
-    /// Pull every envelope currently queued in the kernel-events
-    /// channel and discard it.  Stops when the channel goes idle
-    /// (30ms with no new envelope) — a heuristic that avoids both
-    /// truncating an in-flight init burst and blocking forever waiting
-    /// for an envelope that never arrives.
+    /// Drain every envelope from the kernel-events channel that was
+    /// produced during session init, logging any error envelopes (so
+    /// init-time failures are visible) but discarding all of them
+    /// instead of letting them spill into the first user evaluation's
+    /// envelope vector.
+    ///
+    /// Robust drain pass: stdout-driven read until the init-done
+    /// marker, with concurrent envelope collection — the marker
+    /// guarantees we've waited for *every* init eval to complete on
+    /// the Maxima side.  A short idle-timeout follow-up catches the
+    /// trailing eval_end envelope for the marker print itself, which
+    /// arrives slightly after its stdout text reaches our reader.
     #[cfg(unix)]
     async fn drain_init_envelopes(&mut self) {
-        let rx = match self.events_rx.as_mut() {
-            Some(rx) => rx,
-            None => return,
-        };
-        let idle_timeout = std::time::Duration::from_millis(30);
-        let mut drained: usize = 0;
-        loop {
-            match tokio::time::timeout(idle_timeout, rx.recv()).await {
-                Ok(Some(_)) => drained += 1,
-                _ => break,
+        let mut events_rx = self.events_rx.take();
+
+        let read_fut = self.read_until_sentinel(INIT_DONE_SENTINEL);
+        let (_read_result, mut envelopes) =
+            crate::maxima::protocol::drive_with_envelope_drain(read_fut, &mut events_rx).await;
+
+        if let Some(rx) = events_rx.as_mut() {
+            let idle = std::time::Duration::from_millis(50);
+            loop {
+                match tokio::time::timeout(idle, rx.recv()).await {
+                    Ok(Some(e)) => envelopes.push(e),
+                    _ => break,
+                }
             }
         }
-        if drained > 0 {
-            eprintln!("[events] drained {drained} init-phase envelopes");
-        }
+
+        self.events_rx = events_rx;
+
+        log_init_envelope_diagnostics(&envelopes);
     }
 
     /// Build the session-init prelude that loads kernel-events and
@@ -1103,4 +1124,45 @@ pub fn find_maxima_binary() -> String {
     }
 
     "maxima".to_string()
+}
+
+/// Log a summary of envelopes drained during session init.  Error
+/// envelopes get their own per-line entries so init-time failures are
+/// visible to anyone watching the log, but they are NOT propagated to
+/// the next user evaluation's `EvalResult` — leaking an init error
+/// into a cell that didn't cause it is worse than logging it once.
+#[cfg(unix)]
+fn log_init_envelope_diagnostics(envelopes: &[crate::maxima::events::Envelope]) {
+    use crate::maxima::events::{Envelope, ErrorKind};
+
+    if envelopes.is_empty() {
+        return;
+    }
+
+    let mut errors: Vec<(&'static str, &str)> = Vec::new();
+    for env in envelopes {
+        if let Envelope::Error(err) = env {
+            let kind_label = match err.kind {
+                ErrorKind::MaximaError => "maxima_error",
+                ErrorKind::LispError => "lisp_error",
+                ErrorKind::ParserError => "parser_error",
+                ErrorKind::Timeout => "timeout",
+                ErrorKind::Cancelled => "cancelled",
+            };
+            errors.push((kind_label, err.message.as_str()));
+        }
+    }
+
+    if errors.is_empty() {
+        eprintln!("[events] drained {} init-phase envelopes", envelopes.len());
+    } else {
+        eprintln!(
+            "[events] drained {} init-phase envelopes — {} error(s) during init (logged, NOT propagated to user cells):",
+            envelopes.len(),
+            errors.len(),
+        );
+        for (kind, message) in &errors {
+            eprintln!("    init {}: {}", kind, message);
+        }
+    }
 }
