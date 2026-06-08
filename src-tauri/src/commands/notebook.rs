@@ -7,7 +7,7 @@ use aximar_core::maxima::types::EvalResult;
 use aximar_core::safety;
 
 use aximar_core::commands::{CommandEffect, NotebookCommand};
-use aximar_core::notebook::CellType;
+use aximar_core::notebook::{CellStatus, CellType};
 use aximar_core::notebook::Notebook;
 use aximar_core::registry::{NotebookContextRef, NotebookInfo};
 
@@ -343,6 +343,24 @@ pub async fn nb_run_cell(
     let backend = read_backend(&app);
     let maxima_path = read_maxima_path(&app);
     ensure_session(&state, &ctx, backend, maxima_path, eval_timeout).await?;
+
+    // Set Running and emit the transition NOW, before evaluate_cell
+    // starts the (potentially long-running) Maxima eval.  Without this
+    // early emit, the Running transition and the Success/Error
+    // transition would be returned together at the end of
+    // evaluate_cell and the frontend would never observe the Running
+    // state — the stop button would never appear for any cell.
+    // evaluate_cell's own SetCellStatus(Running) inside its first
+    // lock is now a redundant no-op transition.
+    {
+        let mut nb = ctx.notebook.lock().await;
+        if let Ok(effect) = nb.apply(NotebookCommand::SetCellStatus {
+            cell_id: cell_id.clone(),
+            status: CellStatus::Running,
+        }) {
+            emit_notebook_state(&app, &ctx.id, &nb, &effect);
+        }
+    }
 
     let result = evaluate_cell(&ctx, &cell_id, &state.catalog, &state.packages, eval_timeout).await?;
 
