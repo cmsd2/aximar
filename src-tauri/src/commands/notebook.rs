@@ -362,7 +362,26 @@ pub async fn nb_run_cell(
         }
     }
 
-    let result = evaluate_cell(&ctx, &cell_id, &state.catalog, &state.packages, eval_timeout).await?;
+    let result = match evaluate_cell(&ctx, &cell_id, &state.catalog, &state.packages, eval_timeout).await {
+        Ok(r) => r,
+        Err(e) => {
+            // evaluate_cell applies SetCellStatus(Error) inside its
+            // error path but discards the effect (it has no AppHandle
+            // to emit through), so without this the frontend never
+            // sees the Running → Error transition and the cell is
+            // stuck showing the stop button.  Re-apply here and emit
+            // — the re-apply is harmless since the status is already
+            // Error (the second apply is just a no-op transition).
+            let mut nb = ctx.notebook.lock().await;
+            if let Ok(effect) = nb.apply(NotebookCommand::SetCellStatus {
+                cell_id: cell_id.clone(),
+                status: CellStatus::Error,
+            }) {
+                emit_notebook_state(&app, &ctx.id, &nb, &effect);
+            }
+            return Err(e);
+        }
+    };
 
     // Emit transport-specific notifications for all effects
     let nb = ctx.notebook.lock().await;
