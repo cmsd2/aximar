@@ -126,16 +126,13 @@ pub fn apply_display_envelopes(_result: &mut EvalResult, _envelopes: &[()]) {}
 /// Same goes for `output_label` — the envelope carries it directly
 /// instead of having to parse the `__AXIMAR_LABEL__ <n>` print line.
 ///
-/// kernel-events fires one `eval_result` per top-level Maxima eval.
-/// Aximar's input appends exactly three housekeeping statements
-/// after the user's expression (`tex(%); print(__AXIMAR_LABEL__)$
-/// print(__AXIMAR_EVAL_END__)$`), each producing an eval_result.
-/// The user's last statement's eval_result is therefore the
-/// fourth-from-last in the envelope vec — that's the position-based
-/// identifier the overlay uses.  Anything fewer than 4 means
-/// something went wrong (eval errored before the housekeeping
-/// statements ran, or kernel-events isn't actually emitting) — the
-/// overlay no-ops and the legacy parser's view stays authoritative.
+/// On the wired path aximar drops all housekeeping prints (`tex(%);`,
+/// the LABEL print, the sentinel print), so the user's last
+/// statement's eval_result is simply the LAST `eval_result` envelope
+/// in the vec.  An empty eval_result list means the eval errored
+/// before producing any result envelopes (eval_end with status:error
+/// has no preceding eval_result per the schema) — the overlay no-ops
+/// and the error envelope path handles it.
 ///
 /// When `emit_latex` is false (user terminated with `$` so they
 /// didn't want display), the latex is not lifted into the result —
@@ -157,11 +154,9 @@ pub fn apply_eval_result_envelopes(
         })
         .collect();
 
-    // Need at least 1 user eval + 3 housekeeping evals.
-    if eval_results.len() < 4 {
+    let Some(user_last) = eval_results.last() else {
         return;
-    }
-    let user_last = eval_results[eval_results.len() - 4];
+    };
 
     if emit_latex {
         if let Some(latex) = user_last

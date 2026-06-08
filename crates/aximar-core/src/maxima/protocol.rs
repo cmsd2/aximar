@@ -5,6 +5,33 @@ use crate::catalog::packages::PackageCatalog;
 use crate::catalog::search::Catalog;
 use crate::error::AppError;
 
+/// Build the stdin write for one cell evaluation.
+///
+/// On the kernel-events-wired path the input is just the user's
+/// expression: latex, output_label, and plot-path detection all come
+/// from envelopes (eval_result mime_bundle and display envelopes),
+/// termination comes from eval_end envelope count, and the host
+/// never reads stdout for content.  No housekeeping prints needed.
+///
+/// On the legacy stdout-parsing path the input adds three statements
+/// the parser depends on:
+///   - `tex(%);` so it can extract LaTeX from $$..$$ blocks and
+///     plot file paths from \mbox{} blocks;
+///   - `print("__AXIMAR_LABEL__", linenum)$` so it can correlate
+///     the cell with Maxima's %oN output label;
+///   - `print("<sentinel>")$` as the read terminator (per-eval
+///     unique so user content can't accidentally trigger it).
+fn build_eval_input(expr: &str, sentinel: &str, wired: bool) -> String {
+    if wired {
+        format!("{}\n", expr)
+    } else {
+        format!(
+            "{}\ntex(%);\nprint(\"__AXIMAR_LABEL__\", linenum)$\nprint(\"{}\")$\n",
+            expr, sentinel
+        )
+    }
+}
+
 /// Per-eval unique-sentinel counter.  Each call to `next_eval_sentinel`
 /// returns a fresh string that cannot collide with a user's earlier
 /// or current cell output — eliminates the substring-match leak that
@@ -54,15 +81,15 @@ pub async fn evaluate(
     // If the user ended with `$`, they don't want any result shown.
     let (expr, emit_latex) = suppress_display(&expr);
 
-    // Always run tex(%) so the parser can detect plot file paths from LaTeX
-    // \mbox{} blocks, even when the user suppressed output with $.  The
-    // sentinel is per-eval unique so the substring-match termination
-    // can't collide with a user's own print of the same string.
+    // Build the per-cell stdin.  On the wired (envelope) path, the
+    // user's expression is the entire input — eval_result envelopes
+    // carry latex and output_label, eval_end envelopes drive
+    // termination, plot-path detection rides on
+    // eval_result.text/plain.  On the legacy stdout path the
+    // housekeeping prints stay because the parser needs the tex(%)
+    // latex, the LABEL stdout line, and the EVAL_END sentinel.
     let sentinel = next_eval_sentinel();
-    let input = format!(
-        "{}\ntex(%);\nprint(\"__AXIMAR_LABEL__\", linenum)$\nprint(\"{}\")$\n",
-        expr, sentinel
-    );
+    let input = build_eval_input(&expr, &sentinel, process.has_events_channel());
 
     process.write_stdin(&input).await?;
 
@@ -106,15 +133,8 @@ pub async fn evaluate_with_packages(
     };
     let (expr, emit_latex) = suppress_display(&expr);
 
-    // Always run tex(%) so the parser can detect plot file paths from LaTeX
-    // \mbox{} blocks, even when the user suppressed output with $.  The
-    // sentinel is per-eval unique so the substring-match termination
-    // can't collide with a user's own print of the same string.
     let sentinel = next_eval_sentinel();
-    let input = format!(
-        "{}\ntex(%);\nprint(\"__AXIMAR_LABEL__\", linenum)$\nprint(\"{}\")$\n",
-        expr, sentinel
-    );
+    let input = build_eval_input(&expr, &sentinel, process.has_events_channel());
 
     process.write_stdin(&input).await?;
 
