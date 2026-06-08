@@ -355,3 +355,53 @@ async fn display_envelope_populates_plot_data() {
         plot
     );
 }
+
+/// Regression: ax_heatmap on a Maxima matrix used to crash because
+/// the bundled Lisp prelude only defined `$ax__mktemp`, missing
+/// `$ax__ndarray_p` and the to-list / to-matrix helpers.  Without
+/// those, `ax__maybe_matrix` returned an unsimplified if-form,
+/// args() of which fed bogus content into `ax__float_matrix_to_json`
+/// and crashed with "map: improper argument: true".
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn heatmap_matrix_does_not_crash_when_numerics_absent() {
+    if !live_tests_enabled() {
+        eprintln!("skipping: set AXIMAR_RUN_LIVE_TESTS=1 to enable");
+        return;
+    }
+    unsafe {
+        std::env::set_var("AXIMAR_KERNEL_EVENTS", "1");
+    }
+
+    let sink: Arc<dyn OutputSink> = Arc::new(DropSink);
+    let mut proc = MaximaProcess::spawn(Backend::Local, None, sink)
+        .await
+        .expect("spawn maxima");
+
+    let catalog = Catalog::load();
+    proc.write_stdin(plotting_lisp_stdin())
+        .await
+        .expect("lisp init");
+    let _ = protocol::evaluate(&mut proc, "__init__", plotting_init_code(), &catalog, 30).await;
+
+    let result = protocol::evaluate(
+        &mut proc,
+        "heatmap-cell",
+        "ax_draw2d(ax_heatmap(matrix([1,2,3,4],[5,6,7,8],[9,10,11,12])));",
+        &catalog,
+        15,
+    )
+    .await
+    .expect("heatmap eval succeeds");
+    drop(proc);
+
+    assert!(
+        !result.is_error,
+        "heatmap should not error; got {:?}",
+        result.error
+    );
+    let plot = result
+        .plot_data
+        .as_deref()
+        .expect("heatmap should populate plot_data");
+    assert!(plot.contains("\"heatmap\""), "result should be a heatmap trace");
+}
