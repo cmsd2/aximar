@@ -12,6 +12,8 @@ use crate::maxima::debugger::{self, PromptKind};
 #[cfg(unix)]
 use std::os::fd::AsRawFd;
 #[cfg(unix)]
+use crate::maxima::cancel_pipe::{pre_exec_dup_to_fd4, CancelHandle, CancelPipe};
+#[cfg(unix)]
 use crate::maxima::events::Envelope;
 #[cfg(unix)]
 use crate::maxima::events_pipe::{pre_exec_dup_to_fd3, spawn_reader_task, EventsPipe};
@@ -60,6 +62,16 @@ pub struct MaximaProcess {
     /// Phase-A: read but not yet consumed by the eval pipeline.
     #[cfg(unix)]
     events_rx: Option<tokio::sync::mpsc::UnboundedReceiver<Envelope>>,
+
+    /// Write end of the cancel pipe (parent side of fd 4 in the
+    /// child).  `None` when the events channel isn't enabled or the
+    /// backend doesn't support fd inheritance.  Extracted at session
+    /// start via [`Self::take_cancel_handle`] so the host can fire a
+    /// cancel signal without acquiring the session lock — otherwise
+    /// the cancel couldn't fire until the very eval it's meant to
+    /// abort released the lock.
+    #[cfg(unix)]
+    cancel_write: Option<std::os::fd::OwnedFd>,
 }
 
 /// Opt-in env var: when set to a truthy value, the spawn path tries to
@@ -88,6 +100,12 @@ impl MaximaProcess {
         // wire fd inheritance (Docker/WSL/SSH).
         #[cfg(unix)]
         let mut events_rx_slot: Option<tokio::sync::mpsc::UnboundedReceiver<Envelope>> = None;
+
+        // Per-spawn parent-side write end of the cancel pipe.  Same
+        // lifetime shape as events_rx_slot.  None when the cancel
+        // transport isn't wired.
+        #[cfg(unix)]
+        let mut cancel_write_slot: Option<std::os::fd::OwnedFd> = None;
 
         let (mut child, container_name) = match &backend {
             Backend::Local => {
@@ -150,6 +168,39 @@ impl MaximaProcess {
                 } else {
                     None
                 };
+
+                // Cancel pipe: only wire when the events channel is
+                // wired too (kernel-events handles the kernel-side
+                // watcher; without it the host has no consumer for the
+                // cancel signal).  Parent retains the write end so the
+                // host can fire `request_cancel`; child reads from fd 4.
+                #[cfg(unix)]
+                let parent_cancel_read: Option<std::os::fd::OwnedFd> = if kernel_events_enabled()
+                    && parent_write_end.is_some()
+                {
+                    match CancelPipe::new() {
+                        Ok(pipe) => {
+                            let raw_read = pipe.read_end.as_raw_fd();
+                            cancel_write_slot = Some(pipe.write_end);
+                            cmd.env("MAXIMA_CANCEL_FD", "4");
+                            // SAFETY: pre_exec_dup_to_fd4 only calls
+                            // async-signal-safe libc functions.
+                            unsafe {
+                                cmd.pre_exec(pre_exec_dup_to_fd4(raw_read));
+                            }
+                            Some(pipe.read_end)
+                        }
+                        Err(e) => {
+                            eprintln!(
+                                "[events] failed to open cancel pipe, cancel disabled: {}",
+                                e
+                            );
+                            None
+                        }
+                    }
+                } else {
+                    None
+                };
                 // Detach from the controlling terminal so SBCL cannot
                 // open /dev/tty.  Without this, *debug-io* on Linux
                 // writes to /dev/tty (bypassing our piped stdout/stderr)
@@ -178,6 +229,17 @@ impl MaximaProcess {
                 // when the child exits.
                 #[cfg(unix)]
                 drop(parent_write_end);
+
+                // Same dance for the cancel pipe's read end — child
+                // has its own copy as fd 4, parent's read end can be
+                // closed.  Without this, the in-kernel watcher's
+                // blocking read would block forever once the parent
+                // never closes the pipe (the child's fd 4 also stays
+                // open as long as the process is alive — but it's the
+                // *parent's* extra reference that would prevent EOF
+                // signalling on shutdown of the watcher).
+                #[cfg(unix)]
+                drop(parent_cancel_read);
 
                 (child, None)
             }
@@ -328,6 +390,8 @@ impl MaximaProcess {
             debug_mode: false,
             #[cfg(unix)]
             events_rx: events_rx_slot,
+            #[cfg(unix)]
+            cancel_write: cancel_write_slot,
         };
 
         proc.initialize().await?;
@@ -371,6 +435,27 @@ impl MaximaProcess {
 
     #[cfg(not(unix))]
     pub fn restore_events_rx(&mut self, _: Option<()>) {}
+
+    /// Take the cancel-pipe handle out of the process so it can be
+    /// stored in the host's session registry separately from the
+    /// session lock.  Calling `CancelHandle::request_cancel` then
+    /// works concurrently with an in-flight `protocol::evaluate` —
+    /// which is the whole point of the cancel transport (firing
+    /// cancel from a thread that doesn't hold the session mutex).
+    ///
+    /// Returns `None` if the cancel channel wasn't wired
+    /// (`AXIMAR_KERNEL_EVENTS` off, non-Local backend, non-unix
+    /// platform) or if the handle has already been taken.
+    #[cfg(unix)]
+    pub fn take_cancel_handle(&mut self) -> Option<CancelHandle> {
+        self.cancel_write.take().map(CancelHandle::from)
+    }
+
+    /// Non-unix stub: cancel transport requires fd inheritance.
+    #[cfg(not(unix))]
+    pub fn take_cancel_handle(&mut self) -> Option<()> {
+        None
+    }
 
     async fn initialize(&mut self) -> Result<(), AppError> {
         // For Docker/WSL, set maxima_tempdir so gnuplot writes SVGs to a known location
@@ -493,6 +578,17 @@ impl MaximaProcess {
         // Aximar wants all four so we install the full set up-front;
         // a missing install function is tolerated (a future package
         // might split or rename).
+        //
+        // Cancel transport (Phase D): when MAXIMA_CANCEL_FD is set in
+        // the env, open it as an input byte-stream and start the
+        // kernel-events cancel watcher with a read-fn that blocks on
+        // read-byte.  Each byte received sets *cancel-flag*; the next
+        // (kernel-events:check-cancel) in user code raises the
+        // cancellation-requested condition, which the eval-hooks turn
+        // into a `cancelled` error envelope.  A small $check_cancel
+        // wrapper is also installed so Maxima user code can write
+        // `check_cancel()` without resorting to the `?` Lisp escape.
+        //
         // $start_session is defined by kernel-events, but ($load
         // "kernel-events") runs in the same compile unit, so SBCL's
         // file-compiler hasn't seen the defmfun by the time it tries
@@ -501,7 +597,7 @@ impl MaximaProcess {
         // runtime (when the symbol IS fbound) and silences the warning
         // — matching the pattern used for the kernel-events symbols
         // already in this snippet.
-        let lisp = r#"(handler-case (progn (maxima::$load "kernel-events") (let* ((fd (parse-integer (sb-ext:posix-getenv "MAXIMA_EVENTS_FD"))) (out (sb-sys:make-fd-stream fd :output t :external-format :utf-8 :buffering :line))) (funcall (find-symbol "REGISTER-SINK" "KERNEL-EVENTS") (lambda (env) (write-line (funcall (find-symbol "ENVELOPE-TO-JSON" "KERNEL-EVENTS") env) out) (force-output out)))) (dolist (sym '("INSTALL-EVAL-HOOKS" "INSTALL-DEBUGGER-HOOKS" "INSTALL-OUTPUT-WRAPPING" "INSTALL-STDIN-HOOKS")) (let ((fn (find-symbol sym "KERNEL-EVENTS"))) (when (and fn (fboundp fn)) (funcall fn)))) (funcall (find-symbol "$START_SESSION" "MAXIMA"))) (error (e) (format *error-output* "~&kernel-events init failed: ~a~%" e)))"#;
+        let lisp = r#"(handler-case (progn (maxima::$load "kernel-events") (let* ((fd (parse-integer (sb-ext:posix-getenv "MAXIMA_EVENTS_FD"))) (out (sb-sys:make-fd-stream fd :output t :external-format :utf-8 :buffering :line))) (funcall (find-symbol "REGISTER-SINK" "KERNEL-EVENTS") (lambda (env) (write-line (funcall (find-symbol "ENVELOPE-TO-JSON" "KERNEL-EVENTS") env) out) (force-output out)))) (dolist (sym '("INSTALL-EVAL-HOOKS" "INSTALL-DEBUGGER-HOOKS" "INSTALL-OUTPUT-WRAPPING" "INSTALL-STDIN-HOOKS")) (let ((fn (find-symbol sym "KERNEL-EVENTS"))) (when (and fn (fboundp fn)) (funcall fn)))) (let ((cancel-fd-str (sb-ext:posix-getenv "MAXIMA_CANCEL_FD"))) (when cancel-fd-str (let* ((cancel-fd (parse-integer cancel-fd-str)) (cancel-in (sb-sys:make-fd-stream cancel-fd :input t :element-type '(unsigned-byte 8) :buffering :none))) (funcall (find-symbol "START-CANCEL-WATCHER" "KERNEL-EVENTS") (lambda () (handler-case (let ((b (read-byte cancel-in nil :eof))) (cond ((eq b :eof) :stop) ((null b) :stop) (t t))) (error () :stop))))))) (let ((check-cancel-fn (find-symbol "CHECK-CANCEL" "KERNEL-EVENTS"))) (when check-cancel-fn (setf (symbol-function (intern "$CHECK_CANCEL" :maxima)) (lambda () (funcall check-cancel-fn) nil)))) (funcall (find-symbol "$START_SESSION" "MAXIMA"))) (error (e) (format *error-output* "~&kernel-events init failed: ~a~%" e)))"#;
         format!(":lisp {}\n", lisp)
     }
 

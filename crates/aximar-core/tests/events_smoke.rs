@@ -405,3 +405,62 @@ async fn heatmap_matrix_does_not_crash_when_numerics_absent() {
         .expect("heatmap should populate plot_data");
     assert!(plot.contains("\"heatmap\""), "result should be a heatmap trace");
 }
+
+/// Phase D: cooperative cancellation via fd 4.  A long-running Maxima
+/// loop that calls check_cancel() each iteration aborts when the host
+/// writes one byte to the cancel pipe; the eval returns
+/// AppError::EvalCancelled (the same path Phase B.1 wired up for
+/// kernel-emitted cancel envelopes).
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn cancel_pipe_aborts_long_running_eval() {
+    if !live_tests_enabled() {
+        eprintln!("skipping: set AXIMAR_RUN_LIVE_TESTS=1 to enable");
+        return;
+    }
+    unsafe {
+        std::env::set_var("AXIMAR_KERNEL_EVENTS", "1");
+    }
+
+    let sink: Arc<dyn OutputSink> = Arc::new(DropSink);
+    let mut proc = MaximaProcess::spawn(Backend::Local, None, sink)
+        .await
+        .expect("spawn maxima");
+    let cancel = proc
+        .take_cancel_handle()
+        .expect("cancel handle should be present when kernel-events is enabled");
+
+    let catalog = Catalog::load();
+
+    // Schedule the cancel signal 200ms into the eval.  The eval is a
+    // tight loop that consults check_cancel() each iteration, so the
+    // watcher's signal trips on the very next check after the byte
+    // arrives.
+    let cancel_task = tokio::spawn(async move {
+        tokio::time::sleep(std::time::Duration::from_millis(200)).await;
+        cancel.request_cancel().expect("write cancel byte");
+    });
+
+    let result = protocol::evaluate(
+        &mut proc,
+        "cancel-pipe-cell",
+        // 100M iterations would take many seconds without cancel; with
+        // cancel firing at ~200ms we expect to abort well inside it.
+        // The body does just enough Maxima work (an assignment and a
+        // check_cancel call) to keep the cooperative-cancel loop alive
+        // without thrashing.
+        "for i:1 thru 100000000 do (check_cancel(), x: i);",
+        &catalog,
+        30,
+    )
+    .await;
+
+    cancel_task.await.expect("cancel task");
+    drop(proc);
+
+    match result {
+        Err(AppError::EvalCancelled(msg)) => {
+            eprintln!("got EvalCancelled: {msg}");
+        }
+        other => panic!("expected EvalCancelled; got {other:?}"),
+    }
+}
