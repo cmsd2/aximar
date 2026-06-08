@@ -4,7 +4,7 @@ use std::sync::Mutex as StdMutex;
 use tokio::sync::{Mutex, MutexGuard};
 
 #[cfg(unix)]
-use crate::maxima::cancel_pipe::CancelHandle;
+use crate::maxima::envelope::cancel_pipe::CancelHandle;
 use crate::error::AppError;
 use crate::maxima::process::MaximaProcess;
 use crate::maxima::types::SessionStatus;

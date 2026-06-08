@@ -19,7 +19,7 @@ use std::os::fd::{FromRawFd, OwnedFd, RawFd};
 use tokio::io::{AsyncBufReadExt, BufReader};
 use tokio::sync::mpsc;
 
-use crate::maxima::events::Envelope;
+use super::types::Envelope;
 
 /// The two ends of a freshly-created OS pipe used for kernel-events.
 ///

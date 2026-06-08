@@ -12,11 +12,11 @@ use crate::maxima::debugger::{self, PromptKind};
 #[cfg(unix)]
 use std::os::fd::AsRawFd;
 #[cfg(unix)]
-use crate::maxima::cancel_pipe::{pre_exec_dup_to_fd4, CancelHandle, CancelPipe};
+use crate::maxima::envelope::cancel_pipe::{pre_exec_dup_to_fd4, CancelHandle, CancelPipe};
 #[cfg(unix)]
-use crate::maxima::events::Envelope;
+use crate::maxima::envelope::events_pipe::{pre_exec_dup_to_fd3, spawn_reader_task, EventsPipe};
 #[cfg(unix)]
-use crate::maxima::events_pipe::{pre_exec_dup_to_fd3, spawn_reader_task, EventsPipe};
+use crate::maxima::envelope::types::Envelope;
 use crate::maxima::noconsole::hide_console_window;
 use crate::maxima::output::{OutputEvent, OutputSink};
 
@@ -529,7 +529,7 @@ impl MaximaProcess {
 
         let read_fut = self.read_until_sentinel(INIT_DONE_SENTINEL);
         let (_read_result, mut envelopes) =
-            crate::maxima::protocol::drive_with_envelope_drain(read_fut, &mut events_rx).await;
+            crate::maxima::envelope::drain::drive_with_envelope_drain(read_fut, &mut events_rx).await;
 
         if let Some(rx) = events_rx.as_mut() {
             let idle = std::time::Duration::from_millis(50);
@@ -1228,8 +1228,8 @@ pub fn find_maxima_binary() -> String {
 /// the next user evaluation's `EvalResult` — leaking an init error
 /// into a cell that didn't cause it is worse than logging it once.
 #[cfg(unix)]
-fn log_init_envelope_diagnostics(envelopes: &[crate::maxima::events::Envelope]) {
-    use crate::maxima::events::{Envelope, ErrorKind};
+fn log_init_envelope_diagnostics(envelopes: &[crate::maxima::envelope::types::Envelope]) {
+    use crate::maxima::envelope::types::{Envelope, ErrorKind};
 
     if envelopes.is_empty() {
         return;
