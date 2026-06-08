@@ -89,7 +89,7 @@ pub async fn evaluate(
     let mut result = parser::parse_output(cell_id, &lines, duration_ms, catalog, process.backend());
     apply_error_envelopes(&mut result, &envelopes, catalog, None)?;
     apply_display_envelopes(&mut result, &envelopes);
-    apply_eval_result_envelopes(&mut result, &envelopes, emit_latex);
+    apply_eval_result_envelopes(&mut result, &envelopes, emit_latex, process.backend());
     // If user suppressed output with $, clear the LaTeX (but plot detection
     // already happened in the parser using raw_latex).
     if !emit_latex {
@@ -163,7 +163,7 @@ pub async fn evaluate_with_packages(
     );
     apply_error_envelopes(&mut result, &envelopes, catalog, Some(packages))?;
     apply_display_envelopes(&mut result, &envelopes);
-    apply_eval_result_envelopes(&mut result, &envelopes, emit_latex);
+    apply_eval_result_envelopes(&mut result, &envelopes, emit_latex, process.backend());
     if !emit_latex {
         result.latex = None;
     }

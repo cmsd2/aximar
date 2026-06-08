@@ -546,3 +546,62 @@ async fn eval_result_envelope_populates_latex_and_label() {
         "expected %oN format; got {label:?}"
     );
 }
+
+/// SVG plot migration: when the user calls plot2d(...), the
+/// resulting eval_result envelope's text/plain carries the list of
+/// file paths `["/tmp/...gnuplot","/tmp/...svg"]`.  The overlay
+/// extracts the .svg path, validates it, reads the file, and lands
+/// the content in EvalResult.plot_svg — no stdout / latex scrape
+/// needed.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn plot2d_svg_arrives_via_eval_result_envelope() {
+    if !live_tests_enabled() {
+        eprintln!("skipping: set AXIMAR_RUN_LIVE_TESTS=1 to enable");
+        return;
+    }
+    unsafe {
+        std::env::set_var("AXIMAR_KERNEL_EVENTS", "1");
+    }
+
+    let sink: Arc<dyn OutputSink> = Arc::new(DropSink);
+    let mut proc = MaximaProcess::spawn(Backend::Local, None, sink)
+        .await
+        .expect("spawn maxima");
+
+    let catalog = Catalog::load();
+
+    // Configure gnuplot to write SVG.  These match aximar's session
+    // init but MaximaProcess::spawn doesn't run session_ops::
+    // start_session_for, so they're set here explicitly.
+    let _ = protocol::evaluate(
+        &mut proc,
+        "plot-init",
+        "set_plot_option([run_viewer, false])$\
+         set_plot_option([gnuplot_term, svg])$",
+        &catalog,
+        10,
+    )
+    .await
+    .expect("plot init");
+
+    let result = protocol::evaluate(
+        &mut proc,
+        "plot-cell",
+        "plot2d(sin(x), [x, 0, %pi])$",
+        &catalog,
+        15,
+    )
+    .await
+    .expect("plot2d eval");
+    drop(proc);
+
+    let svg = result
+        .plot_svg
+        .as_deref()
+        .expect("plot_svg should be populated from the eval_result envelope");
+    assert!(
+        svg.contains("<svg"),
+        "plot_svg should contain SVG content; got first 100: {:.100}",
+        svg
+    );
+}

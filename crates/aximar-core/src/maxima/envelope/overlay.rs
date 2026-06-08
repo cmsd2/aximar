@@ -15,9 +15,13 @@ use crate::catalog::packages::PackageCatalog;
 use crate::catalog::search::Catalog;
 use crate::error::AppError;
 #[cfg(unix)]
-use crate::maxima::errors as error_enhance;
+use crate::maxima::backend::Backend;
 #[cfg(unix)]
 use crate::maxima::envelope::types::{Envelope, ErrorKind};
+#[cfg(unix)]
+use crate::maxima::errors as error_enhance;
+#[cfg(unix)]
+use crate::maxima::legacy::parser as legacy_parser;
 use crate::maxima::types::EvalResult;
 
 /// Phase B / B.1: when an `error` envelope arrived during the eval,
@@ -141,6 +145,7 @@ pub fn apply_eval_result_envelopes(
     result: &mut EvalResult,
     envelopes: &[Envelope],
     emit_latex: bool,
+    backend: &Backend,
 ) {
     use crate::maxima::envelope::types::EvalResult as EvalResultEnv;
 
@@ -173,6 +178,31 @@ pub fn apply_eval_result_envelopes(
     if user_last.output_label.is_some() {
         result.output_label = user_last.output_label.clone();
     }
+
+    // SVG plots: when the user called plot2d / plot3d, the return
+    // value is the list of generated file paths, e.g.
+    //   ["/tmp/foo.gnuplot","/tmp/maxplot.svg"]
+    // rendered into mime_bundle["text/plain"] by mgrind.  Pull the
+    // .svg path out, validate it, read the file.  This is the
+    // envelope-driven counterpart of the legacy parser's stdout
+    // scrape, and it works regardless of whether the user terminated
+    // with `;` or `$` because the envelope always carries the value.
+    if let Some(text_plain) = user_last
+        .mime_bundle
+        .get("text/plain")
+        .and_then(|v| v.as_str())
+    {
+        if let Some(svg) = legacy_parser::extract_svg_from_text(text_plain, backend) {
+            result.plot_svg = Some(svg);
+            // Suppress the latex too — if the envelope-derived latex
+            // was just a \mbox{path}, don't show it as math content.
+            if let Some(ref l) = result.latex {
+                if l.contains(".svg") {
+                    result.latex = None;
+                }
+            }
+        }
+    }
 }
 
 #[cfg(not(unix))]
@@ -180,6 +210,7 @@ pub fn apply_eval_result_envelopes(
     _result: &mut EvalResult,
     _envelopes: &[()],
     _emit_latex: bool,
+    _backend: &crate::maxima::backend::Backend,
 ) {
 }
 

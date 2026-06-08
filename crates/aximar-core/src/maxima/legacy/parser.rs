@@ -67,6 +67,26 @@ fn is_junk_latex(inner: &str) -> bool {
 /// Check that an SVG path is safe to read: it must have a `.svg` extension and
 /// reside within the system temp directory (or the Docker/WSL host temp dir).
 /// This prevents crafted Maxima output from reading arbitrary files.
+/// Given a string that may contain a quoted `.svg` file path (typically
+/// from Maxima's `plot2d` / `plot3d` return value like
+/// `["/tmp/foo.gnuplot","/tmp/bar.svg"]`), find the path, validate it
+/// against the safety policy, read the SVG file, and return its
+/// contents.  Returns None if no path is present, the path fails
+/// safety checks, or the file can't be read.
+///
+/// Used by the legacy stdout-scrape parser AND by the envelope
+/// overlay (where `text` is `eval_result.mime_bundle["text/plain"]`).
+pub fn extract_svg_from_text(text: &str, backend: &Backend) -> Option<String> {
+    let raw_path = SVG_PATH_RE.captures(text)?[1].to_string();
+    let path = backend
+        .translate_container_path(&raw_path)
+        .unwrap_or(raw_path);
+    if !is_safe_svg_path(&path, backend) {
+        return None;
+    }
+    fs::read_to_string(&path).ok()
+}
+
 fn is_safe_svg_path(path_str: &str, backend: &Backend) -> bool {
     let path = Path::new(path_str);
 
