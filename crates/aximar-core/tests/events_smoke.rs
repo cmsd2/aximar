@@ -18,6 +18,7 @@ use aximar_core::catalog::search::Catalog;
 use aximar_core::error::AppError;
 use aximar_core::maxima::backend::Backend;
 use aximar_core::maxima::output::{OutputEvent, OutputSink};
+use aximar_core::maxima::plotting::{plotting_init_code, plotting_lisp_stdin};
 use aximar_core::maxima::process::MaximaProcess;
 use aximar_core::maxima::protocol;
 
@@ -294,5 +295,63 @@ async fn init_drain_holds_envelopes_before_first_user_eval() {
         result.error.is_none(),
         "first eval result.error should be None; got {:?}",
         result.error
+    );
+}
+
+/// Phase C: ax-plots emits a `display` envelope with the plotly JSON
+/// inline, and protocol::evaluate prefers it for EvalResult.plot_data
+/// over the legacy `.plotly.json` path scrape.  This test renders a
+/// trivial plot and asserts plot_data is populated and looks like a
+/// Plotly figure.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn display_envelope_populates_plot_data() {
+    if !live_tests_enabled() {
+        eprintln!("skipping: set AXIMAR_RUN_LIVE_TESTS=1 to enable");
+        return;
+    }
+    unsafe {
+        std::env::set_var("AXIMAR_KERNEL_EVENTS", "1");
+    }
+
+    let sink: Arc<dyn OutputSink> = Arc::new(DropSink);
+    let mut proc = MaximaProcess::spawn(Backend::Local, None, sink)
+        .await
+        .expect("spawn maxima");
+
+    let catalog = Catalog::load();
+
+    // Mirror session_ops::start_session_for: push the Lisp helpers
+    // and load the bundled ax_plotting.mac so ax_draw2d is defined.
+    // (MaximaProcess::spawn alone doesn't do this — it's the host's
+    // job to load whatever Maxima libraries the session needs.)
+    proc.write_stdin(plotting_lisp_stdin()).await.expect("lisp init");
+    let _ = protocol::evaluate(&mut proc, "__init__", plotting_init_code(), &catalog, 30).await;
+
+    let result = protocol::evaluate(
+        &mut proc,
+        "plot-cell",
+        "ax_draw2d(explicit(sin(x), x, -1, 1));",
+        &catalog,
+        15,
+    )
+    .await
+    .expect("plot eval succeeds");
+    drop(proc);
+
+    assert!(!result.is_error, "plot eval should not be an error");
+    let plot = result
+        .plot_data
+        .as_deref()
+        .expect("plot_data should be populated from display envelope or legacy path");
+    // Whichever path supplied it, the payload must look like a Plotly figure.
+    assert!(
+        plot.contains("\"data\":"),
+        "plot_data should be a Plotly JSON object with a data array; got first 100 chars: {:.100}",
+        plot
+    );
+    assert!(
+        plot.contains("\"layout\":"),
+        "plot_data should carry a layout; got first 100 chars: {:.100}",
+        plot
     );
 }

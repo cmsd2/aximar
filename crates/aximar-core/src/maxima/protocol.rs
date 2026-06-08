@@ -152,6 +152,7 @@ pub async fn evaluate(
 
     let mut result = parser::parse_output(cell_id, &lines, duration_ms, catalog, process.backend());
     apply_error_envelopes(&mut result, &envelopes, catalog, None)?;
+    apply_display_envelopes(&mut result, &envelopes);
     // If user suppressed output with $, clear the LaTeX (but plot detection
     // already happened in the parser using raw_latex).
     if !emit_latex {
@@ -239,6 +240,43 @@ fn apply_error_envelopes(
     Ok(())
 }
 
+/// Phase C: when a `display` envelope carrying a structured plot
+/// arrived during the eval, take its inline JSON as authoritative
+/// over the parser's `.plotly.json` path scrape.  The envelope path
+/// avoids two failure modes the legacy scrape is exposed to: 1) the
+/// path landing in a LaTeX `\mbox{}` block when display is suppressed
+/// (where it's easy to miss); 2) reading a stale file when temp-name
+/// collision happens.
+///
+/// Only fires when at least one display envelope carries the
+/// `application/x-maxima-plotly` mime; absent envelopes (kernel-events
+/// disabled, ax-plots predating Phase C, …) leave the parser's
+/// legacy path-read authoritative — a strict compatibility superset.
+///
+/// First display envelope wins.  Multiple plots in one cell stay
+/// represented through the legacy path-print + parser scrape until a
+/// future phase teaches EvalResult to carry an array.
+#[cfg(unix)]
+fn apply_display_envelopes(result: &mut EvalResult, envelopes: &[Envelope]) {
+    for env in envelopes {
+        if let Envelope::Display(d) = env {
+            if let Some(value) = d.mime_bundle.get("application/x-maxima-plotly") {
+                let json_str = match value {
+                    serde_json::Value::String(s) => s.clone(),
+                    other => other.to_string(),
+                };
+                if !json_str.is_empty() {
+                    result.plot_data = Some(json_str);
+                    return;
+                }
+            }
+        }
+    }
+}
+
+#[cfg(not(unix))]
+fn apply_display_envelopes(_result: &mut EvalResult, _envelopes: &[()]) {}
+
 pub async fn evaluate_with_packages(
     process: &mut MaximaProcess,
     cell_id: &str,
@@ -303,6 +341,7 @@ pub async fn evaluate_with_packages(
         cell_id, &lines, duration_ms, catalog, packages, process.backend(),
     );
     apply_error_envelopes(&mut result, &envelopes, catalog, Some(packages))?;
+    apply_display_envelopes(&mut result, &envelopes);
     if !emit_latex {
         result.latex = None;
     }

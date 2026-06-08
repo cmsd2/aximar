@@ -1420,8 +1420,30 @@ ax__build_layout_3d(opts) := block(
   sconcat("{", simplode(parts, ","), "}"))$
 
 /* ========================================================================
- * Output: write Plotly JSON to temp file
+ * Output: write Plotly JSON to temp file, and (when available) emit a
+ * structured display envelope through kernel-events.
+ *
+ * Two emission paths run in parallel for compatibility:
+ *
+ *  1. Always: write the JSON to a temp file and print the path on
+ *     stdout.  Hosts that scrape `.plotly.json` paths from output
+ *     (the original aximar pipeline, vscode-extension renderer, …)
+ *     keep working unchanged.
+ *
+ *  2. If kernel-events is loaded: also fire an `emit_display` event
+ *     carrying the JSON inline under the
+ *     `application/x-maxima-plotly` mime.  Hosts that consume the
+ *     fd-3 envelope stream (aximar with AXIMAR_KERNEL_EVENTS=1) pick
+ *     it up directly without touching stdout or the filesystem.
+ *
+ * Path 2 is additive; removing path 1 is a future migration that
+ * needs to wait until every host has structured-channel support.
  * ======================================================================== */
+
+/* True iff kernel-events is loaded.  Detected via errcatch on the
+   feature-detect function it exports; works whether the package was
+   loaded just now or at session init, and is harmless when absent. */
+ax__kernel_events_loaded_p() := errcatch(kernel_events_available()) = [true]$
 
 ax__emit_plotly(traces, layout) :=
   ax__emit_plotly_with_meta(traces, layout, false)$
@@ -1435,6 +1457,8 @@ ax__emit_plotly_with_meta(traces, layout, reactive_json) := block(
   if reactive_json # false then
     body: sconcat(body, ",\"_reactive\":", reactive_json),
   json: sconcat("{", body, "}"),
+  if ax__kernel_events_loaded_p() then
+    emit_display([["application/x-maxima-plotly", json]]),
   path: ax__mktemp(),
   stream: openw(path),
   printf(stream, "~a", json),
@@ -1828,13 +1852,17 @@ ax__layout_add_animation(layout_json, slider_json, updatemenus_json) := block(
           ",\"sliders\":[",     slider_json,      "],",
            "\"updatemenus\":[", updatemenus_json, "]}"))$
 
-/* Emit with animation: data + extended layout + frames at top level. */
+/* Emit with animation: data + extended layout + frames at top level.
+   Same dual-path emission as ax__emit_plotly_with_meta — see that
+   function's docstring for the rationale. */
 ax__emit_plotly_animated(traces, layout, frames_jsons) := block(
   [json, path, stream],
   json: sconcat(
     "{\"data\":[",   simplode(traces, ","), "],",
     "\"layout\":",   layout, ",",
     "\"frames\":",   ax__json_list(frames_jsons), "}"),
+  if ax__kernel_events_loaded_p() then
+    emit_display([["application/x-maxima-plotly", json]]),
   path: ax__mktemp(),
   stream: openw(path),
   printf(stream, "~a", json),
