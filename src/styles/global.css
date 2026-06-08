@@ -1941,11 +1941,15 @@
   border-top-color: var(--text-secondary);
 }
 
-[data-cell-style="bracket"] .cell.running > .bracket-toggle::before {
+/* Descendant selector (space, not `>`) because .bracket-toggle is a
+   child of .cell-input-area, not a direct child of .cell — the
+   direct-child form silently never matched, so the triangle stayed
+   the default gray on running / error cells. */
+[data-cell-style="bracket"] .cell.running .bracket-toggle::before {
   border-top-color: var(--running-color);
 }
 
-[data-cell-style="bracket"] .cell.error > .bracket-toggle::before {
+[data-cell-style="bracket"] .cell.error .bracket-toggle::before {
   border-top-color: var(--error-color);
 }
 
