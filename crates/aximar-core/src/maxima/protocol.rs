@@ -58,29 +58,8 @@ pub async fn evaluate(
 
     process.write_stdin(&input).await?;
 
-    // Briefly remove the events receiver from the process so we can
-    // poll it concurrently with `read_until_sentinel` (both want
-    // `&mut process`).  Put it back when we're done; in-flight
-    // envelopes received during the eval are collected for later use.
-    let mut events_rx = process.take_events_rx();
-
-    let timeout_result = tokio::time::timeout(
-        std::time::Duration::from_secs(eval_timeout_secs),
-        drive_with_envelope_drain(process.read_until_sentinel(EVAL_SENTINEL), &mut events_rx),
-    )
-    .await;
-
-    let (read_result, envelopes) = match timeout_result {
-        Ok((read_result, envs)) => (read_result, envs),
-        Err(_) => {
-            process.restore_events_rx(events_rx);
-            process.interrupt_and_resync(EVAL_SENTINEL).await;
-            return Err(AppError::Timeout(eval_timeout_secs));
-        }
-    };
-
-    process.restore_events_rx(events_rx);
-    let (lines, _prompt) = read_result?;
+    let (lines, envelopes) =
+        run_eval_read_with_envelope_drain(process, &input, eval_timeout_secs).await?;
 
     log_envelope_summary(cell_id, &envelopes);
 
@@ -134,25 +113,8 @@ pub async fn evaluate_with_packages(
 
     process.write_stdin(&input).await?;
 
-    let mut events_rx = process.take_events_rx();
-
-    let timeout_result = tokio::time::timeout(
-        std::time::Duration::from_secs(eval_timeout_secs),
-        drive_with_envelope_drain(process.read_until_sentinel(EVAL_SENTINEL), &mut events_rx),
-    )
-    .await;
-
-    let (read_result, envelopes) = match timeout_result {
-        Ok((read_result, envs)) => (read_result, envs),
-        Err(_) => {
-            process.restore_events_rx(events_rx);
-            process.interrupt_and_resync(EVAL_SENTINEL).await;
-            return Err(AppError::Timeout(eval_timeout_secs));
-        }
-    };
-
-    process.restore_events_rx(events_rx);
-    let (lines, _prompt) = read_result?;
+    let (lines, envelopes) =
+        run_eval_read_with_envelope_drain(process, &input, eval_timeout_secs).await?;
 
     log_envelope_summary(cell_id, &envelopes);
 
@@ -168,6 +130,67 @@ pub async fn evaluate_with_packages(
         result.latex = None;
     }
     Ok(result)
+}
+
+/// Phase A.2: read the eval's stdout while concurrently draining the
+/// envelope channel.  On envelope-wired sessions, termination is on
+/// the count of `eval_end` envelopes reaching the number of
+/// terminators in `input` — substring matching for
+/// `__AXIMAR_EVAL_END__` is gone.  On non-wired sessions, falls back
+/// to the legacy `read_until_sentinel` path so Docker / WSL / older
+/// hosts keep working.
+async fn run_eval_read_with_envelope_drain(
+    process: &mut MaximaProcess,
+    input: &str,
+    eval_timeout_secs: u64,
+) -> Result<(Vec<String>, Vec<Envelope>), AppError> {
+    let mut events_rx = process.take_events_rx();
+
+    if events_rx.is_some() {
+        // Wired path: count eval_end envelopes.  Every `;`/`$` in the
+        // input we sent will produce exactly one top-level eval, and
+        // therefore exactly one `eval_end` envelope — string-literal
+        // and comment-aware via find_terminators.
+        let expected_count = find_terminators(input).len();
+        let timeout_result = tokio::time::timeout(
+            std::time::Duration::from_secs(eval_timeout_secs),
+            process.read_until_n_eval_ends(expected_count, &mut events_rx),
+        )
+        .await;
+        let read_result = match timeout_result {
+            Ok(res) => res,
+            Err(_) => {
+                process.restore_events_rx(events_rx);
+                // Even on the envelope path, the EVAL_SENTINEL print is
+                // still in the input — interrupt_and_resync uses it as
+                // a regrouping marker to leave the process readable.
+                process.interrupt_and_resync(EVAL_SENTINEL).await;
+                return Err(AppError::Timeout(eval_timeout_secs));
+            }
+        };
+        process.restore_events_rx(events_rx);
+        read_result
+    } else {
+        // Legacy path: substring match on __AXIMAR_EVAL_END__ in
+        // stdout.  No envelopes flow on this branch (no kernel-events
+        // channel), so the envelope vec stays empty.
+        let timeout_result = tokio::time::timeout(
+            std::time::Duration::from_secs(eval_timeout_secs),
+            drive_with_envelope_drain(process.read_until_sentinel(EVAL_SENTINEL), &mut events_rx),
+        )
+        .await;
+        let (read_result, envelopes) = match timeout_result {
+            Ok((rr, env)) => (rr, env),
+            Err(_) => {
+                process.restore_events_rx(events_rx);
+                process.interrupt_and_resync(EVAL_SENTINEL).await;
+                return Err(AppError::Timeout(eval_timeout_secs));
+            }
+        };
+        process.restore_events_rx(events_rx);
+        let (lines, _prompt) = read_result?;
+        Ok((lines, envelopes))
+    }
 }
 
 /// Read stdout until `sentinel` while concurrently draining the
