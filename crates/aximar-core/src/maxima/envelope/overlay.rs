@@ -116,6 +116,73 @@ pub fn apply_display_envelopes(result: &mut EvalResult, envelopes: &[Envelope]) 
 #[cfg(not(unix))]
 pub fn apply_display_envelopes(_result: &mut EvalResult, _envelopes: &[()]) {}
 
+/// Phase B.4: when an `eval_result` envelope is available for the
+/// user's last statement, take its `application/x-maxima-latex` mime
+/// payload as authoritative over the parser's `$$...$$` scrape.
+/// Same goes for `output_label` — the envelope carries it directly
+/// instead of having to parse the `__AXIMAR_LABEL__ <n>` print line.
+///
+/// kernel-events fires one `eval_result` per top-level Maxima eval.
+/// Aximar's input appends exactly three housekeeping statements
+/// after the user's expression (`tex(%); print(__AXIMAR_LABEL__)$
+/// print(__AXIMAR_EVAL_END__)$`), each producing an eval_result.
+/// The user's last statement's eval_result is therefore the
+/// fourth-from-last in the envelope vec — that's the position-based
+/// identifier the overlay uses.  Anything fewer than 4 means
+/// something went wrong (eval errored before the housekeeping
+/// statements ran, or kernel-events isn't actually emitting) — the
+/// overlay no-ops and the legacy parser's view stays authoritative.
+///
+/// When `emit_latex` is false (user terminated with `$` so they
+/// didn't want display), the latex is not lifted into the result —
+/// matches the legacy parser's behaviour.
+#[cfg(unix)]
+pub fn apply_eval_result_envelopes(
+    result: &mut EvalResult,
+    envelopes: &[Envelope],
+    emit_latex: bool,
+) {
+    use crate::maxima::envelope::types::EvalResult as EvalResultEnv;
+
+    let eval_results: Vec<&EvalResultEnv> = envelopes
+        .iter()
+        .filter_map(|e| match e {
+            Envelope::EvalResult(r) => Some(r),
+            _ => None,
+        })
+        .collect();
+
+    // Need at least 1 user eval + 3 housekeeping evals.
+    if eval_results.len() < 4 {
+        return;
+    }
+    let user_last = eval_results[eval_results.len() - 4];
+
+    if emit_latex {
+        if let Some(latex) = user_last
+            .mime_bundle
+            .get("application/x-maxima-latex")
+            .and_then(|v| v.as_str())
+        {
+            result.latex = Some(latex.to_string());
+        }
+    }
+
+    // output_label from the envelope is authoritative — Maxima itself
+    // assigned it; no need to print and re-parse.
+    if user_last.output_label.is_some() {
+        result.output_label = user_last.output_label.clone();
+    }
+}
+
+#[cfg(not(unix))]
+pub fn apply_eval_result_envelopes(
+    _result: &mut EvalResult,
+    _envelopes: &[()],
+    _emit_latex: bool,
+) {
+}
+
 /// Phase A.1: log what came in on the events channel during an eval
 /// so we can validate the drain end-to-end before any envelope type
 /// starts feeding into EvalResult.  Off when no envelopes arrived

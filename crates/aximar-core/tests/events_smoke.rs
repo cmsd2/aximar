@@ -503,3 +503,46 @@ async fn query_variables_uses_vars_envelope_when_wired() {
     assert!(vars.iter().any(|v| v == "myvara"), "myvara missing from {:?}", vars);
     assert!(vars.iter().any(|v| v == "myvarb"), "myvarb missing from {:?}", vars);
 }
+
+/// eval_result envelope feeds EvalResult.latex and output_label.
+/// Kernel-events fires one eval_result per top-level Maxima eval;
+/// the overlay picks the user's last-statement eval_result (4th from
+/// the end, skipping the tex(%) / LABEL / EVAL_END housekeeping) and
+/// pulls its application/x-maxima-latex mime payload.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn eval_result_envelope_populates_latex_and_label() {
+    if !live_tests_enabled() {
+        eprintln!("skipping: set AXIMAR_RUN_LIVE_TESTS=1 to enable");
+        return;
+    }
+    unsafe {
+        std::env::set_var("AXIMAR_KERNEL_EVENTS", "1");
+    }
+
+    let sink: Arc<dyn OutputSink> = Arc::new(DropSink);
+    let mut proc = MaximaProcess::spawn(Backend::Local, None, sink)
+        .await
+        .expect("spawn maxima");
+
+    let catalog = Catalog::load();
+    let result = protocol::evaluate(&mut proc, "latex-cell", "1 + 1;", &catalog, 10)
+        .await
+        .expect("eval succeeds");
+    drop(proc);
+
+    let latex = result.latex.as_deref().expect("latex should be populated");
+    eprintln!("latex: {:?}", latex);
+    // Expected: the LaTeX rendering of 2.  Maxima's tex(2) produces "2".
+    assert_eq!(latex, "2", "expected the latex form of 2; got {latex:?}");
+
+    // output_label should come from the eval_result envelope, in the
+    // standard Maxima %oN format.
+    let label = result
+        .output_label
+        .as_deref()
+        .expect("output_label should be populated from the eval_result envelope");
+    assert!(
+        label.starts_with("%o"),
+        "expected %oN format; got {label:?}"
+    );
+}

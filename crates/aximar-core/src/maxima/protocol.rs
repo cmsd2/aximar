@@ -7,7 +7,8 @@ use crate::error::AppError;
 use crate::maxima::envelope::types::Envelope;
 use crate::maxima::envelope::drain::drive_with_envelope_drain;
 use crate::maxima::envelope::overlay::{
-    apply_display_envelopes, apply_error_envelopes, log_envelope_summary,
+    apply_display_envelopes, apply_error_envelopes, apply_eval_result_envelopes,
+    log_envelope_summary,
 };
 use crate::maxima::legacy::parser;
 use crate::maxima::process::MaximaProcess;
@@ -88,6 +89,7 @@ pub async fn evaluate(
     let mut result = parser::parse_output(cell_id, &lines, duration_ms, catalog, process.backend());
     apply_error_envelopes(&mut result, &envelopes, catalog, None)?;
     apply_display_envelopes(&mut result, &envelopes);
+    apply_eval_result_envelopes(&mut result, &envelopes, emit_latex);
     // If user suppressed output with $, clear the LaTeX (but plot detection
     // already happened in the parser using raw_latex).
     if !emit_latex {
@@ -161,6 +163,7 @@ pub async fn evaluate_with_packages(
     );
     apply_error_envelopes(&mut result, &envelopes, catalog, Some(packages))?;
     apply_display_envelopes(&mut result, &envelopes);
+    apply_eval_result_envelopes(&mut result, &envelopes, emit_latex);
     if !emit_latex {
         result.latex = None;
     }
