@@ -436,6 +436,21 @@ impl MaximaProcess {
     #[cfg(not(unix))]
     pub fn restore_events_rx(&mut self, _: Option<()>) {}
 
+    /// True when the kernel-events channel was wired at spawn AND the
+    /// receiver hasn't been moved out yet.  Callers route to the
+    /// envelope-driven query path when this is true and fall back to
+    /// the legacy stdout-scrape otherwise.
+    pub fn has_events_channel(&self) -> bool {
+        #[cfg(unix)]
+        {
+            self.events_rx.is_some()
+        }
+        #[cfg(not(unix))]
+        {
+            false
+        }
+    }
+
     /// Take the cancel-pipe handle out of the process so it can be
     /// stored in the host's session registry separately from the
     /// session lock.  Calling `CancelHandle::request_cancel` then

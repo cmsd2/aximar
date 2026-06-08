@@ -183,9 +183,13 @@ pub enum StdinKind {
 #[derive(Debug, Clone, Deserialize)]
 pub struct Vars {
     #[serde(default)]
-    pub names: Vec<String>,
+    pub eval_id: Option<String>,
+    /// Variable names (without the leading `$` Maxima prefix).
     #[serde(default)]
-    pub values: Vec<String>,
+    pub vars: Vec<String>,
+    /// mgrind-rendered values, parallel to `vars`.
+    #[serde(default)]
+    pub values_text: Vec<String>,
 }
 
 impl Envelope {

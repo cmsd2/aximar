@@ -464,3 +464,42 @@ async fn cancel_pipe_aborts_long_running_eval() {
         other => panic!("expected EvalCancelled; got {other:?}"),
     }
 }
+
+/// Vars-envelope migration: query_variables routes through the
+/// envelope path when kernel-events is wired, returning the user-
+/// bound variable names parsed from the `vars` envelope directly
+/// (no stdout-bracket scraping).
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn query_variables_uses_vars_envelope_when_wired() {
+    if !live_tests_enabled() {
+        eprintln!("skipping: set AXIMAR_RUN_LIVE_TESTS=1 to enable");
+        return;
+    }
+    unsafe {
+        std::env::set_var("AXIMAR_KERNEL_EVENTS", "1");
+    }
+
+    let sink: Arc<dyn OutputSink> = Arc::new(DropSink);
+    let mut proc = MaximaProcess::spawn(Backend::Local, None, sink)
+        .await
+        .expect("spawn maxima");
+
+    let catalog = Catalog::load();
+
+    // Define two user variables.  Avoid names that collide with
+    // built-ins (`beta`, `gamma`, …) so Maxima doesn't auto-escape
+    // them with a leading `%`.
+    let _ = protocol::evaluate(&mut proc, "setup", "myvarA: 1$  myvarB: 2$", &catalog, 10)
+        .await
+        .expect("setup eval");
+
+    // Query and assert both names came back.  has_events_channel
+    // must be true here (we set AXIMAR_KERNEL_EVENTS=1).
+    assert!(proc.has_events_channel(), "envelope channel should be wired");
+    let vars = protocol::query_variables(&mut proc).await.expect("vars query");
+    drop(proc);
+
+    eprintln!("vars: {:?}", vars);
+    assert!(vars.iter().any(|v| v == "myvara"), "myvara missing from {:?}", vars);
+    assert!(vars.iter().any(|v| v == "myvarb"), "myvarb missing from {:?}", vars);
+}

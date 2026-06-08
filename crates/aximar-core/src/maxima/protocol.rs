@@ -231,7 +231,107 @@ fn check_internal_error_envelopes(_envelopes: &[()]) -> Result<(), AppError> {
     Ok(())
 }
 
+/// Public entry: dispatch to the envelope path when kernel-events
+/// is wired; fall back to the legacy stdout-scrape otherwise.  Both
+/// paths return the same filtered Vec<String> shape so the Tauri
+/// command above doesn't care which one ran.
 pub async fn query_variables(process: &mut MaximaProcess) -> Result<Vec<String>, AppError> {
+    if process.has_events_channel() {
+        query_variables_envelope(process).await
+    } else {
+        query_variables_legacy(process).await
+    }
+}
+
+/// Envelope path (Phase B.3): call `emit_vars()` and consume the
+/// resulting `vars` envelope directly.  No stdout parsing.
+///
+/// Still uses a sentinel print as the read terminator so we know when
+/// emission is complete and we can stop draining envelopes — eventually
+/// (Phase A.2) the `eval_end` envelope can play that role and the
+/// VARS_SENTINEL goes away too.
+#[cfg(unix)]
+async fn query_variables_envelope(
+    process: &mut MaximaProcess,
+) -> Result<Vec<String>, AppError> {
+    use crate::maxima::envelope::drain::drive_with_envelope_drain;
+    use crate::maxima::envelope::types::Envelope;
+
+    // emit_vars() fires a `vars` envelope through the fd-3 sink.
+    // The terminator print is just here to give read_until_sentinel
+    // something to return on; we don't read its stdout for content.
+    let input = format!("emit_vars()$\nprint(\"{}\")$\n", VARS_SENTINEL);
+    process.write_stdin(&input).await?;
+
+    let mut events_rx = process.take_events_rx();
+
+    let timeout_result = tokio::time::timeout(
+        std::time::Duration::from_secs(VARS_TIMEOUT_SECS),
+        drive_with_envelope_drain(
+            process.read_until_sentinel(VARS_SENTINEL),
+            &mut events_rx,
+        ),
+    )
+    .await;
+
+    let (read_result, envelopes) = match timeout_result {
+        Ok((rr, env)) => (rr, env),
+        Err(_) => {
+            process.restore_events_rx(events_rx);
+            process.interrupt_and_resync(VARS_SENTINEL).await;
+            return Err(AppError::Timeout(VARS_TIMEOUT_SECS));
+        }
+    };
+
+    process.restore_events_rx(events_rx);
+    let _ = read_result?;
+
+    // Surface any error envelope so internal-command failures aren't
+    // silently swallowed (matches read_internal_until_sentinel).
+    check_internal_error_envelopes(&envelopes)?;
+
+    // First `vars` envelope wins.  emit_vars() emits exactly one per
+    // invocation; if a future kernel-events change emits multiples,
+    // the first is the snapshot we asked for.
+    //
+    // Normalize names: kernel-events derives them from Lisp's
+    // symbol-name (always upcased) and Maxima escapes
+    // built-in-colliding names with a leading `%` (e.g. `beta:2`
+    // binds `%BETA`).  The legacy stdout path gets lowercase
+    // user-facing names because Maxima's print() outputs that form;
+    // matching it keeps the variables-panel display consistent.
+    for env in &envelopes {
+        if let Envelope::Vars(v) = env {
+            return Ok(v
+                .vars
+                .iter()
+                .map(|n| n.to_lowercase())
+                .filter(|n| !is_internal_variable(n))
+                .collect());
+        }
+    }
+
+    // Channel was advertised but no vars envelope arrived — kernel-
+    // events loaded but its emit_vars went missing somehow.  Fall
+    // back to legacy so the user still gets a populated panel.
+    query_variables_legacy(process).await
+}
+
+#[cfg(not(unix))]
+async fn query_variables_envelope(
+    process: &mut MaximaProcess,
+) -> Result<Vec<String>, AppError> {
+    // has_events_channel is always false on non-unix, so this
+    // branch never executes — defensive delegate to legacy.
+    query_variables_legacy(process).await
+}
+
+/// Legacy path: print the values list to stdout with a marker and
+/// scrape the bracketed list back out.  Used when kernel-events isn't
+/// wired (Docker / WSL / non-Unix backend, env var off).
+async fn query_variables_legacy(
+    process: &mut MaximaProcess,
+) -> Result<Vec<String>, AppError> {
     let input = format!(
         // `$` on the VARS_END print so its return value (the printed
         // string itself) isn't displayed and left as an orphan
