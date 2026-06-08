@@ -157,23 +157,26 @@ async fn run_eval_read_with_envelope_drain(
     let mut events_rx = process.take_events_rx();
 
     if events_rx.is_some() {
-        // Fence path.  Every `;`/`$` in the input produces exactly
-        // one top-level eval, and therefore exactly one eval_end
-        // envelope — counted via find_terminators which is string-
-        // literal and comment-aware.
+        // Single-source envelope-only path.  Background drain owns
+        // stdout/stderr; eval read only watches the envelope mpsc.
+        // No fence needed — text content and termination signal
+        // both come from one stream (kernel-events fd-3), ordered
+        // by the kernel's serial emission.
         let expected_count = find_terminators(input).len();
         let timeout_result = tokio::time::timeout(
             std::time::Duration::from_secs(eval_timeout_secs),
-            process.read_eval_marker_and_count(sentinel, expected_count, &mut events_rx),
+            process.read_n_eval_ends_envelope_only(expected_count, &mut events_rx),
         )
         .await;
         let read_result = match timeout_result {
             Ok(res) => res,
             Err(_) => {
                 process.restore_events_rx(events_rx);
-                // The sentinel print is still part of the input, so
-                // interrupt_and_resync can use it as a regroup marker.
-                process.interrupt_and_resync(sentinel).await;
+                // Background drain owns stdout, so we can't use it
+                // for the regroup marker — kill the process instead.
+                // Cancel transport could be used if the user code
+                // calls check_cancel; this is the timeout fallback.
+                let _ = process.kill().await;
                 return Err(AppError::Timeout(eval_timeout_secs));
             }
         };
@@ -214,6 +217,38 @@ async fn read_internal_until_sentinel(
     sentinel: &str,
     timeout_secs: u64,
 ) -> Result<Vec<String>, AppError> {
+    // Single-source: on the wired path, background drain owns
+    // stdout/stderr, so we must read envelopes instead.  Internal
+    // commands' inputs are at most 2 top-level evals (the kill or
+    // values print + the sentinel print), so count eval_ends rather
+    // than scanning stdout text.
+    if process.has_events_channel() {
+        let mut events_rx = process.take_events_rx();
+        // Internal commands aren't perfectly statement-counted by
+        // their callers, so use a defensive fixed count: 2 (the
+        // primary action statement + the sentinel print).
+        // query_variables and kill_* all match this shape.
+        let expected_count = 2;
+        let timeout_result = tokio::time::timeout(
+            std::time::Duration::from_secs(timeout_secs),
+            process.read_n_eval_ends_envelope_only(expected_count, &mut events_rx),
+        )
+        .await;
+        let read_result = match timeout_result {
+            Ok(res) => res,
+            Err(_) => {
+                process.restore_events_rx(events_rx);
+                let _ = process.kill().await;
+                return Err(AppError::Timeout(timeout_secs));
+            }
+        };
+        process.restore_events_rx(events_rx);
+        let (lines, envelopes) = read_result?;
+        check_internal_error_envelopes(&envelopes)?;
+        return Ok(lines);
+    }
+
+    // Legacy path (non-wired sessions): substring match on stdout.
     let mut events_rx = process.take_events_rx();
 
     let timeout_result = tokio::time::timeout(
@@ -288,37 +323,36 @@ pub async fn query_variables(process: &mut MaximaProcess) -> Result<Vec<String>,
 async fn query_variables_envelope(
     process: &mut MaximaProcess,
 ) -> Result<Vec<String>, AppError> {
-    use crate::maxima::envelope::drain::drive_with_envelope_drain;
     use crate::maxima::envelope::types::Envelope;
 
     // emit_vars() fires a `vars` envelope through the fd-3 sink.
-    // The terminator print is just here to give read_until_sentinel
-    // something to return on; we don't read its stdout for content.
+    // The terminator print gives the envelope-count read a second
+    // top-level eval to wait for.
     let input = format!("emit_vars()$\nprint(\"{}\")$\n", VARS_SENTINEL);
     process.write_stdin(&input).await?;
 
     let mut events_rx = process.take_events_rx();
 
+    // Single-source: 2 eval_end envelopes — emit_vars() and the
+    // sentinel print.  No stdout reads (background drain owns the
+    // pipe on the wired path).
     let timeout_result = tokio::time::timeout(
         std::time::Duration::from_secs(VARS_TIMEOUT_SECS),
-        drive_with_envelope_drain(
-            process.read_until_sentinel(VARS_SENTINEL),
-            &mut events_rx,
-        ),
+        process.read_n_eval_ends_envelope_only(2, &mut events_rx),
     )
     .await;
 
-    let (read_result, envelopes) = match timeout_result {
-        Ok((rr, env)) => (rr, env),
+    let read_result = match timeout_result {
+        Ok(res) => res,
         Err(_) => {
             process.restore_events_rx(events_rx);
-            process.interrupt_and_resync(VARS_SENTINEL).await;
+            let _ = process.kill().await;
             return Err(AppError::Timeout(VARS_TIMEOUT_SECS));
         }
     };
 
     process.restore_events_rx(events_rx);
-    let _ = read_result?;
+    let (_lines, envelopes) = read_result?;
 
     // Surface any error envelope so internal-command failures aren't
     // silently swallowed (matches read_internal_until_sentinel).

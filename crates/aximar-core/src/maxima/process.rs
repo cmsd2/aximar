@@ -46,8 +46,17 @@ const INIT_DONE_SENTINEL: &str = "__AXIMAR_INIT_DONE__";
 pub struct MaximaProcess {
     child: Child,
     stdin: tokio::process::ChildStdin,
-    stdout_reader: BufReader<tokio::process::ChildStdout>,
-    stderr_reader: BufReader<tokio::process::ChildStderr>,
+    /// `Some` on the legacy stdout-parsing path (Docker / WSL /
+    /// non-Unix / `AXIMAR_KERNEL_EVENTS` unset).  `None` on the
+    /// kernel-events-wired path, where the BufReader is owned by a
+    /// background drain task — that task pulls bytes off the OS pipe
+    /// to prevent backpressure but discards their content; the eval
+    /// reader gets text from `output` envelopes instead.  The legacy
+    /// reader methods (read_until_sentinel, drain_stderr, etc.) check
+    /// for None and return an error — they're not called on the
+    /// wired path in normal operation.
+    stdout_reader: Option<BufReader<tokio::process::ChildStdout>>,
+    stderr_reader: Option<BufReader<tokio::process::ChildStderr>>,
     backend: Backend,
     container_name: Option<String>,
     output_sink: Arc<dyn OutputSink>,
@@ -72,6 +81,15 @@ pub struct MaximaProcess {
     /// abort released the lock.
     #[cfg(unix)]
     cancel_write: Option<std::os::fd::OwnedFd>,
+}
+
+/// Current time in milliseconds since the Unix epoch.  Used by the
+/// background stdout/stderr drain task to timestamp emitted OutputEvents.
+fn now_millis() -> u64 {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_millis() as u64)
+        .unwrap_or(0)
 }
 
 /// Opt-in env var: when set to a truthy value, the spawn path tries to
@@ -382,8 +400,8 @@ impl MaximaProcess {
         let mut proc = MaximaProcess {
             child,
             stdin,
-            stdout_reader,
-            stderr_reader,
+            stdout_reader: Some(stdout_reader),
+            stderr_reader: Some(stderr_reader),
             backend,
             container_name,
             output_sink,
@@ -395,7 +413,79 @@ impl MaximaProcess {
         };
 
         proc.initialize().await?;
+
+        // After init completes, hand stdout/stderr to a background
+        // drain task on the wired path.  Single-source: the eval
+        // pipeline reads text content from `output` envelopes, never
+        // from the OS pipe.  The drain task pulls bytes off the
+        // pipes to prevent Maxima's writes from blocking on a full
+        // pipe, and still calls emit_output so the GUI's Maxima-output
+        // log channel shows the same raw stream as today.
+        #[cfg(unix)]
+        if proc.has_events_channel() {
+            proc.start_background_drain();
+        }
+
         Ok(proc)
+    }
+
+    /// Move stdout_reader and stderr_reader into a background task
+    /// that continuously drains both pipes, calling emit_output on
+    /// each line (so the GUI log channel is preserved verbatim) and
+    /// discarding the content for everything else.  On the wired
+    /// path the eval pipeline gets its text from `output` envelopes
+    /// instead of these pipes, so the bytes are pure backpressure
+    /// management.  Background task exits when read_line returns 0
+    /// (child closed its end of the pipe), which happens
+    /// automatically when MaximaProcess drops (kill_on_drop = true).
+    #[cfg(unix)]
+    fn start_background_drain(&mut self) {
+        let Some(mut stdout_reader) = self.stdout_reader.take() else {
+            return;
+        };
+        let Some(mut stderr_reader) = self.stderr_reader.take() else {
+            return;
+        };
+        let output_sink_out = self.output_sink.clone();
+        let output_sink_err = self.output_sink.clone();
+
+        tokio::spawn(async move {
+            let mut line = String::new();
+            loop {
+                line.clear();
+                match stdout_reader.read_line(&mut line).await {
+                    Ok(0) => break,
+                    Ok(_) => {
+                        let trimmed = line.trim_end();
+                        output_sink_out.emit(OutputEvent {
+                            line: trimmed.to_string(),
+                            stream: "stdout".into(),
+                            timestamp: now_millis(),
+                        });
+                    }
+                    Err(_) => break,
+                }
+            }
+        });
+
+        tokio::spawn(async move {
+            let mut line = String::new();
+            loop {
+                line.clear();
+                match stderr_reader.read_line(&mut line).await {
+                    Ok(0) => break,
+                    Ok(_) => {
+                        let trimmed = line.trim_end();
+                        output_sink_err.emit(OutputEvent {
+                            line: trimmed.to_string(),
+                            stream: "stderr".into(),
+                            timestamp: now_millis(),
+                        });
+                    }
+                    Err(_) => break,
+                }
+            }
+        });
     }
 
     /// Take the kernel-events envelope receiver out of the process
@@ -697,7 +787,7 @@ impl MaximaProcess {
             stderr_line.clear();
 
             tokio::select! {
-                result = self.stdout_reader.read_line(&mut stdout_line) => {
+                result = self.stdout_reader.as_mut().expect("stdout_reader required on this code path").read_line(&mut stdout_line) => {
                     let bytes_read = result.map_err(|e| AppError::CommunicationError(e.to_string()))?;
                     if bytes_read == 0 {
                         return Err(AppError::CommunicationError(
@@ -713,7 +803,7 @@ impl MaximaProcess {
                         let mut extra = String::new();
                         let _ = tokio::time::timeout(
                             std::time::Duration::from_millis(200),
-                            self.stdout_reader.read_line(&mut extra),
+                            self.stdout_reader.as_mut().expect("stdout_reader required on this code path").read_line(&mut extra),
                         ).await;
                         return Ok(lines);
                     }
@@ -732,7 +822,7 @@ impl MaximaProcess {
                     }
                     lines.push(trimmed);
                 }
-                result = self.stderr_reader.read_line(&mut stderr_line) => {
+                result = self.stderr_reader.as_mut().expect("stderr_reader required on this code path").read_line(&mut stderr_line) => {
                     let bytes_read = result.map_err(|e| AppError::CommunicationError(e.to_string()))?;
                     if bytes_read == 0 {
                         continue;
@@ -753,7 +843,7 @@ impl MaximaProcess {
             line.clear();
             match tokio::time::timeout(
                 std::time::Duration::from_millis(50),
-                self.stderr_reader.read_line(&mut line),
+                self.stderr_reader.as_mut().expect("stderr_reader required on this code path").read_line(&mut line),
             ).await {
                 Ok(Ok(n)) if n > 0 => {
                     let trimmed = line.trim_end().to_string();
@@ -811,6 +901,67 @@ impl MaximaProcess {
                 GenerateConsoleCtrlEvent(CTRL_BREAK_EVENT, pid);
             }
         }
+    }
+
+    /// Single-source envelope-only eval read.  Used when the kernel-
+    /// events channel is wired and the background drain task owns
+    /// stdout/stderr — text content comes from `output` envelopes
+    /// rather than the OS pipes, so there's no read-coordination
+    /// problem at all: termination is one stream (envelopes), text
+    /// is one stream (envelopes), no fence needed.
+    ///
+    /// Reconstructs `Vec<String>` of lines from `output` envelopes'
+    /// `text` field so the legacy parser still works on it
+    /// (text_output building, sentinel-line stripping, etc.).  The
+    /// background drain task continues to populate the GUI's Maxima-
+    /// output log channel from the raw OS pipe.
+    #[cfg(unix)]
+    pub async fn read_n_eval_ends_envelope_only(
+        &mut self,
+        expected_eval_ends: usize,
+        events_rx: &mut Option<tokio::sync::mpsc::UnboundedReceiver<Envelope>>,
+    ) -> Result<(Vec<String>, Vec<Envelope>), AppError> {
+        let mut envelopes = Vec::new();
+        let mut eval_ends_seen: usize = 0;
+
+        while eval_ends_seen < expected_eval_ends {
+            let rx = match events_rx {
+                Some(rx) => rx,
+                None => {
+                    return Err(AppError::CommunicationError(
+                        "kernel-events channel not available for envelope-only read".into(),
+                    ));
+                }
+            };
+            match rx.recv().await {
+                Some(e) => {
+                    if matches!(e, Envelope::EvalEnd(_)) {
+                        eval_ends_seen += 1;
+                    }
+                    envelopes.push(e);
+                }
+                None => {
+                    return Err(AppError::CommunicationError(
+                        "kernel-events channel closed mid-eval".into(),
+                    ));
+                }
+            }
+        }
+
+        // Reconstruct lines from output envelopes' text payload.
+        // One envelope per print-line on the kernel side (output-wrap
+        // flushes on newline).  Trim trailing newline to match the
+        // legacy parser's input format (lines are pre-split, no
+        // trailing newline).
+        let lines: Vec<String> = envelopes
+            .iter()
+            .filter_map(|e| match e {
+                Envelope::Output(o) => Some(o.text.trim_end_matches('\n').to_string()),
+                _ => None,
+            })
+            .collect();
+
+        Ok((lines, envelopes))
     }
 
     /// Phase A.2: structural two-phase eval read with no wall-clock
@@ -876,7 +1027,7 @@ impl MaximaProcess {
                         }
                     }
                 }
-                result = self.stdout_reader.read_line(&mut stdout_line) => {
+                result = self.stdout_reader.as_mut().expect("stdout_reader required on this code path").read_line(&mut stdout_line) => {
                     let n = result.map_err(|e| AppError::CommunicationError(e.to_string()))?;
                     if n == 0 {
                         return Err(AppError::CommunicationError(
@@ -890,7 +1041,7 @@ impl MaximaProcess {
                     }
                     lines.push(trimmed);
                 }
-                result = self.stderr_reader.read_line(&mut stderr_line) => {
+                result = self.stderr_reader.as_mut().expect("stderr_reader required on this code path").read_line(&mut stderr_line) => {
                     let n = result.map_err(|e| AppError::CommunicationError(e.to_string()))?;
                     if n > 0 {
                         let trimmed = stderr_line.trim_end().to_string();
@@ -939,7 +1090,7 @@ impl MaximaProcess {
             let mut line = String::new();
             loop {
                 line.clear();
-                match self.stdout_reader.read_line(&mut line).await {
+                match self.stdout_reader.as_mut().expect("stdout_reader required on this code path").read_line(&mut line).await {
                     Ok(0) => break,
                     Ok(_) => {
                         let trimmed = line.trim();
@@ -1015,7 +1166,7 @@ impl MaximaProcess {
             stderr_line.clear();
 
             tokio::select! {
-                result = self.stdout_reader.read(&mut read_buf) => {
+                result = self.stdout_reader.as_mut().expect("stdout_reader required on this code path").read(&mut read_buf) => {
                     let n = result.map_err(|e| AppError::CommunicationError(e.to_string()))?;
                     if n == 0 {
                         return Err(AppError::CommunicationError(
@@ -1119,7 +1270,7 @@ impl MaximaProcess {
                         }
                     }
                 }
-                result = self.stderr_reader.read_line(&mut stderr_line) => {
+                result = self.stderr_reader.as_mut().expect("stderr_reader required on this code path").read_line(&mut stderr_line) => {
                     let bytes_read = result.map_err(|e| AppError::CommunicationError(e.to_string()))?;
                     if bytes_read == 0 {
                         continue;
