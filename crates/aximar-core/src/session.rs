@@ -3,6 +3,8 @@ use std::sync::Mutex as StdMutex;
 
 use tokio::sync::{Mutex, MutexGuard};
 
+#[cfg(unix)]
+use crate::maxima::cancel_pipe::CancelHandle;
 use crate::error::AppError;
 use crate::maxima::process::MaximaProcess;
 use crate::maxima::types::SessionStatus;
@@ -78,6 +80,14 @@ pub struct SessionManager {
     session: Mutex<Session>,
     status_code: AtomicU8,
     error_message: StdMutex<String>,
+    /// Cancel-pipe write handle, parked outside the session lock so
+    /// `request_cancel` can fire while `protocol::evaluate` is holding
+    /// the session.  Populated by `set_ready` extracting from the
+    /// freshly-spawned MaximaProcess; cleared by `stop`/`begin_start`
+    /// which kill the old process.  `None` on platforms or backends
+    /// where the fd-4 cancel transport isn't wired.
+    #[cfg(unix)]
+    cancel: StdMutex<Option<CancelHandle>>,
 }
 
 impl SessionManager {
@@ -86,6 +96,8 @@ impl SessionManager {
             session: Mutex::new(Session::Stopped),
             status_code: AtomicU8::new(SessionStatus::Stopped.as_code()),
             error_message: StdMutex::new(String::new()),
+            #[cfg(unix)]
+            cancel: StdMutex::new(None),
         }
     }
 
@@ -102,13 +114,22 @@ impl SessionManager {
     /// Transition to Starting, killing any existing process.
     pub async fn begin_start(&self) {
         let old = self.apply(Session::into_starting).await;
+        #[cfg(unix)]
+        self.clear_cancel_handle();
         if let Some(mut process) = old {
             let _ = process.kill().await;
         }
     }
 
-    /// Transition to Ready with a new process.
-    pub async fn set_ready(&self, process: MaximaProcess) {
+    /// Transition to Ready with a new process.  Extracts the cancel
+    /// handle out of the process and parks it outside the session
+    /// lock so request_cancel can fire concurrently with eval.
+    pub async fn set_ready(&self, mut process: MaximaProcess) {
+        #[cfg(unix)]
+        {
+            let handle = process.take_cancel_handle();
+            self.store_cancel_handle(handle);
+        }
         self.apply(|_| (Session::Ready { process }, ())).await
     }
 
@@ -120,10 +141,47 @@ impl SessionManager {
     /// Transition to Stopped, killing any existing process.
     pub async fn stop(&self) -> Result<(), AppError> {
         let old = self.apply(Session::into_stopped).await;
+        #[cfg(unix)]
+        self.clear_cancel_handle();
         if let Some(mut process) = old {
             process.kill().await?;
         }
         Ok(())
+    }
+
+    /// Fire a cancel signal at the running Maxima process.  Returns
+    /// `Ok(())` even if no cancel handle is present (cancel transport
+    /// disabled) — callers shouldn't get a hard error for clicking
+    /// stop on a build without kernel-events.
+    #[cfg(unix)]
+    pub fn request_cancel(&self) -> Result<(), AppError> {
+        let guard = self
+            .cancel
+            .lock()
+            .map_err(|_| AppError::CommunicationError("cancel mutex poisoned".into()))?;
+        if let Some(handle) = guard.as_ref() {
+            handle
+                .request_cancel()
+                .map_err(|e| AppError::CommunicationError(format!("cancel write failed: {e}")))?;
+        }
+        Ok(())
+    }
+
+    #[cfg(not(unix))]
+    pub fn request_cancel(&self) -> Result<(), AppError> {
+        Ok(())
+    }
+
+    #[cfg(unix)]
+    fn store_cancel_handle(&self, handle: Option<CancelHandle>) {
+        if let Ok(mut slot) = self.cancel.lock() {
+            *slot = handle;
+        }
+    }
+
+    #[cfg(unix)]
+    fn clear_cancel_handle(&self) {
+        self.store_cancel_handle(None);
     }
 
     /// Lock for operations that must hold state across async work (eval, variables).

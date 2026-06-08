@@ -7,6 +7,7 @@ import { useCodeMirrorEditor } from "../hooks/useCodeMirrorEditor";
 import { CellOutput } from "./CellOutput";
 import { CellSuggestions } from "./CellSuggestions";
 import { nbDeleteCell, nbMoveCell, nbAddCell } from "../lib/notebook-commands";
+import { cancelEvaluation } from "../lib/maxima-client";
 
 interface CellProps {
   cell: CellType;
@@ -126,13 +127,23 @@ export function Cell({ cell, onViewDocs, selectBracket }: CellProps) {
               </button>
             </>
           )}
-          <button
-            className="cell-btn run-btn"
-            onClick={() => executeCell(cell.id, cell.input)}
-            title="Run cell (Shift+Enter)"
-          >
-            &#9654;
-          </button>
+          {cell.status === "running" ? (
+            <button
+              className="cell-btn stop-btn"
+              onClick={() => cancelEvaluation()}
+              title="Cancel cell"
+            >
+              &#9632;
+            </button>
+          ) : (
+            <button
+              className="cell-btn run-btn"
+              onClick={() => executeCell(cell.id, cell.input)}
+              title="Run cell (Shift+Enter)"
+            >
+              &#9654;
+            </button>
+          )}
           {cellCount > 1 && (
             <button
               className="cell-btn delete-btn"

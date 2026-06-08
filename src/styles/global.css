@@ -502,6 +502,16 @@
   border-color: var(--success-color);
 }
 
+.stop-btn {
+  color: var(--error-color);
+  border-color: var(--error-color);
+}
+
+.stop-btn:hover {
+  background: var(--error-color);
+  color: var(--bg-primary);
+}
+
 .delete-btn:hover {
   color: var(--error-color);
   border-color: var(--error-color);

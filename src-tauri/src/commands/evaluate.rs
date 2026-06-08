@@ -45,3 +45,26 @@ pub async fn evaluate_expression(
     guard.end_eval();
     result
 }
+
+/// Fire a cooperative cancel at the running Maxima process.  Writes
+/// one byte through the fd-4 cancel pipe; the in-kernel watcher sets
+/// `*cancel-flag*`, the next `check_cancel()` in user code raises
+/// `cancellation-requested`, and `protocol::evaluate` returns
+/// `AppError::EvalCancelled` through the Phase-B.1 overlay.
+///
+/// Best-effort: returns `Ok(())` even when the cancel transport
+/// isn't wired (kernel-events disabled, non-Local backend, non-Unix
+/// platform) so a stop button in the UI doesn't error on builds
+/// without the envelope channel.  Cancellation is cooperative, so
+/// nothing happens until library code or the user's loop calls
+/// `check_cancel()` — a tight Maxima `for ... do (...)` without
+/// `check_cancel()` calls is uncancellable today (the upstream
+/// `mdo` patch would change that).
+#[tauri::command]
+pub async fn cancel_evaluation(
+    state: State<'_, AppState>,
+    notebook_id: Option<String>,
+) -> Result<(), AppError> {
+    let ctx = resolve_context(&state, notebook_id).await?;
+    ctx.session.request_cancel()
+}

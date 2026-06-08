@@ -79,6 +79,7 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             commands::evaluate::evaluate_expression,
+            commands::evaluate::cancel_evaluation,
             commands::session::start_session,
             commands::session::stop_session,
             commands::session::restart_session,

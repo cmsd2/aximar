@@ -40,3 +40,14 @@ export async function restartSession(): Promise<SessionStatus> {
 export async function getSessionStatus(): Promise<SessionStatus> {
   return invoke<SessionStatus>("get_session_status", { notebookId: activeId() });
 }
+
+/**
+ * Fire a cooperative cancel at the running Maxima eval.  Effective
+ * only when the AXIMAR_KERNEL_EVENTS env var was set at session
+ * spawn and the cell's user code calls check_cancel() periodically.
+ * Returns Ok even if the cancel transport isn't wired — UI doesn't
+ * surface a hard error when the stop button is clicked.
+ */
+export async function cancelEvaluation(): Promise<void> {
+  return invoke<void>("cancel_evaluation", { notebookId: activeId() });
+}
