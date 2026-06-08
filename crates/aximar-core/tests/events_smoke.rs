@@ -605,3 +605,80 @@ async fn plot2d_svg_arrives_via_eval_result_envelope() {
         svg
     );
 }
+
+/// PNG migration: when the user calls something that returns an image
+/// file path (e.g. `np_imshow`), the eval_result envelope's text/plain
+/// carries the quoted path string.  The overlay extracts the path,
+/// validates it against the safety policy, reads the file, and
+/// base64-encodes the contents into EvalResult.image_png.
+///
+/// numerics isn't loaded in this stripped-down test session, so we
+/// fake the np_imshow output: write a real PNG file under TMPDIR and
+/// have Maxima return its path as a string.  The codepath under test
+/// (extract_image_from_text + base64 encoding) is identical to a
+/// real np_imshow flow.
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn png_arrives_via_eval_result_envelope() {
+    if !live_tests_enabled() {
+        eprintln!("skipping: set AXIMAR_RUN_LIVE_TESTS=1 to enable");
+        return;
+    }
+    unsafe {
+        std::env::set_var("AXIMAR_KERNEL_EVENTS", "1");
+    }
+
+    // Minimal valid PNG: 1×1 black pixel, ~67 bytes.  is_safe_image_path
+    // validates the .png extension + that the path canonicalizes
+    // under std::env::temp_dir; the file content doesn't need to be a
+    // proper PNG for the test to verify the extraction path — but
+    // using real PNG bytes documents the expected mime.
+    const TINY_PNG: &[u8] = &[
+        0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, // signature
+        0x00, 0x00, 0x00, 0x0d, // IHDR length
+        0x49, 0x48, 0x44, 0x52, // "IHDR"
+        0x00, 0x00, 0x00, 0x01, // width 1
+        0x00, 0x00, 0x00, 0x01, // height 1
+        0x08, 0x00, // bit depth 8, grayscale
+        0x00, 0x00, 0x00, // compression, filter, interlace
+        0x3b, 0x7e, 0x9b, 0x55, // CRC
+        0x00, 0x00, 0x00, 0x0a, // IDAT length 10
+        0x49, 0x44, 0x41, 0x54, // "IDAT"
+        0x78, 0x9c, 0x62, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, // deflate
+        0x01, 0x0d, 0x0a, 0x2d, 0xb4, // CRC (approximation; content is what matters)
+        0x00, 0x00, 0x00, 0x00, // IEND length 0
+        0x49, 0x45, 0x4e, 0x44, // "IEND"
+        0xae, 0x42, 0x60, 0x82, // IEND CRC
+    ];
+    let tmp = std::env::temp_dir().join("aximar-png-envelope-test.png");
+    std::fs::write(&tmp, TINY_PNG).expect("write tiny png");
+
+    let sink: Arc<dyn OutputSink> = Arc::new(DropSink);
+    let mut proc = MaximaProcess::spawn(Backend::Local, None, sink)
+        .await
+        .expect("spawn maxima");
+
+    let catalog = Catalog::load();
+
+    // Maxima returns the path as a string value; eval_result
+    // text/plain will contain the quoted path.  `;` so it's
+    // the result of the cell (suppress_display rewrites to `$`).
+    let expr = format!("\"{}\";", tmp.display());
+    let result = protocol::evaluate(&mut proc, "png-cell", &expr, &catalog, 10)
+        .await
+        .expect("eval succeeds");
+    drop(proc);
+    let _ = std::fs::remove_file(&tmp);
+
+    let b64 = result
+        .image_png
+        .as_deref()
+        .expect("image_png should be populated from the eval_result envelope");
+    use base64::Engine;
+    let decoded = base64::engine::general_purpose::STANDARD
+        .decode(b64)
+        .expect("image_png must be valid base64");
+    assert_eq!(
+        decoded, TINY_PNG,
+        "decoded image_png should round-trip the original file content"
+    );
+}

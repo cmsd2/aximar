@@ -87,6 +87,24 @@ pub fn extract_svg_from_text(text: &str, backend: &Backend) -> Option<String> {
     fs::read_to_string(&path).ok()
 }
 
+/// Companion of `extract_svg_from_text` for `.png` / `.jpg` / `.jpeg`
+/// paths emitted by numerics' `np_imshow` (or any other function that
+/// returns an image file path as a string).  Returns the file contents
+/// base64-encoded — that's the shape `EvalResult.image_png` expects.
+pub fn extract_image_from_text(text: &str, backend: &Backend) -> Option<String> {
+    use base64::Engine;
+    let raw_path = IMAGE_PATH_RE.captures(text)?[1].to_string();
+    let path = backend
+        .translate_container_path(&raw_path)
+        .unwrap_or(raw_path);
+    if !is_safe_image_path(&path, backend) {
+        return None;
+    }
+    fs::read(&path)
+        .ok()
+        .map(|bytes| base64::engine::general_purpose::STANDARD.encode(&bytes))
+}
+
 fn is_safe_svg_path(path_str: &str, backend: &Backend) -> bool {
     let path = Path::new(path_str);
 

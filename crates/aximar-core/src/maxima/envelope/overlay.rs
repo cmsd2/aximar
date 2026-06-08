@@ -202,6 +202,17 @@ pub fn apply_eval_result_envelopes(
                 }
             }
         }
+        // PNG / JPG plots — np_imshow returns a file path string;
+        // same path-extraction pattern as SVG but base64-encoded so
+        // it slots straight into EvalResult.image_png.
+        if let Some(png_b64) = legacy_parser::extract_image_from_text(text_plain, backend) {
+            result.image_png = Some(png_b64);
+            if let Some(ref l) = result.latex {
+                if l.contains(".png") || l.contains(".jpg") || l.contains(".jpeg") {
+                    result.latex = None;
+                }
+            }
+        }
     }
 }
 
