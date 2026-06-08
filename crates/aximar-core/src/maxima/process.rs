@@ -813,43 +813,49 @@ impl MaximaProcess {
         }
     }
 
-    /// Phase A.2: read stdout (and stderr) until `expected_eval_ends`
-    /// `eval_end` envelopes have arrived on `events_rx`.  Replaces
-    /// substring-match termination on the kernel-events path — no
-    /// more risk of a user's `print("__AXIMAR_EVAL_END__")` (or any
-    /// substring collision) terminating the read prematurely.
+    /// Phase A.2: structural two-phase eval read with no wall-clock
+    /// timeouts.
     ///
-    /// Returns the collected stdout lines AND the envelopes seen
-    /// during the read so the caller's overlays can use them; the
-    /// stdout side stays in `Vec<String>` so the legacy parser can
-    /// scan it exactly the same way it does after read_until_sentinel.
+    /// Phase 1 — read stdout until `marker` appears on a line, draining
+    /// envelopes concurrently.  `marker` is per-eval unique (caller
+    /// generates a fresh token each call) so substring collision with
+    /// user output is impossible.  The marker arriving on stdout is
+    /// the structural proof that Maxima has processed everything
+    /// before it (Maxima evals serially), so all prior `eval_end`
+    /// envelopes have already been emitted to the fd-3 pipe.
     ///
-    /// Brief grace period after the count is reached so any stdout
-    /// still in flight when the last `eval_end` envelope arrived
-    /// (output-wrap mirrors to the underlying pipe before emitting
-    /// the envelope; the BufReader might not have read it yet) lands
-    /// in the lines vec.
+    /// Phase 2 — `recv().await` on the envelope channel until
+    /// `expected_eval_ends` envelopes have been seen.  They're
+    /// already in flight (kernel emitted them serially before the
+    /// marker print) so this is bounded; no timeout needed.  This
+    /// closes the race between "marker line read from stdout" and
+    /// "envelope JSON read from fd-3 by the reader task and pushed
+    /// onto the mpsc" without resorting to a wall-clock grace
+    /// window.
+    ///
+    /// Returns collected stdout lines (legacy parser still scans
+    /// these) and envelopes (overlays use these).
     #[cfg(unix)]
-    pub async fn read_until_n_eval_ends(
+    pub async fn read_eval_marker_and_count(
         &mut self,
+        marker: &str,
         expected_eval_ends: usize,
         events_rx: &mut Option<tokio::sync::mpsc::UnboundedReceiver<Envelope>>,
     ) -> Result<(Vec<String>, Vec<Envelope>), AppError> {
         let mut lines = Vec::new();
         let mut envelopes = Vec::new();
         let mut eval_ends_seen: usize = 0;
+        let mut marker_seen = false;
         let mut stdout_line = String::new();
         let mut stderr_line = String::new();
 
-        while eval_ends_seen < expected_eval_ends {
+        // ── Phase 1: read stdout (and stderr) until the marker is
+        // observed, while concurrently draining envelopes ───────────
+        while !marker_seen {
             stdout_line.clear();
             stderr_line.clear();
 
             tokio::select! {
-                // `biased` so we always pull envelopes first when
-                // both arms are ready — keeps the eval_end count
-                // current relative to stdout drainage.
-                biased;
                 env = async {
                     match events_rx {
                         Some(rx) => rx.recv().await,
@@ -864,9 +870,6 @@ impl MaximaProcess {
                             envelopes.push(e);
                         }
                         None => {
-                            // Receiver closed — channel dropped on
-                            // us.  Return what we've got; protocol
-                            // layer reports communication error.
                             return Err(AppError::CommunicationError(
                                 "kernel-events channel closed mid-eval".into(),
                             ));
@@ -882,6 +885,9 @@ impl MaximaProcess {
                     }
                     let trimmed = stdout_line.trim_end().to_string();
                     self.emit_output(&trimmed, "stdout");
+                    if trimmed.contains(marker) {
+                        marker_seen = true;
+                    }
                     lines.push(trimmed);
                 }
                 result = self.stderr_reader.read_line(&mut stderr_line) => {
@@ -895,36 +901,28 @@ impl MaximaProcess {
             }
         }
 
-        // Grace drain: after the last eval_end envelope, stdout for
-        // that eval may still be sitting in the kernel pipe (output-
-        // wrap mirrors to stdout, then emits the envelope — biased
-        // select drains the envelope first).  Pull whatever's
-        // immediately available for ~50ms; idle-timeout when stdout
-        // goes quiet.
-        let idle = std::time::Duration::from_millis(50);
-        loop {
-            stdout_line.clear();
-            tokio::select! {
-                biased;
-                env = async {
-                    match events_rx {
-                        Some(rx) => rx.recv().await,
-                        None => std::future::pending().await,
+        // ── Phase 2: drain remaining envelopes to reach the
+        // expected count ────────────────────────────────────────────
+        // All eval_ends were already emitted to fd-3 before the
+        // marker print Maxima processed (serial eval semantics); the
+        // reader task just needs to finish dequeuing them into the
+        // mpsc.  Blocking recv() terminates as the envelopes arrive.
+        while eval_ends_seen < expected_eval_ends {
+            let rx = match events_rx {
+                Some(rx) => rx,
+                None => break,
+            };
+            match rx.recv().await {
+                Some(e) => {
+                    if matches!(e, Envelope::EvalEnd(_)) {
+                        eval_ends_seen += 1;
                     }
-                } => {
-                    if let Some(e) = env {
-                        envelopes.push(e);
-                    }
+                    envelopes.push(e);
                 }
-                line_result = tokio::time::timeout(idle, self.stdout_reader.read_line(&mut stdout_line)) => {
-                    match line_result {
-                        Ok(Ok(n)) if n > 0 => {
-                            let trimmed = stdout_line.trim_end().to_string();
-                            self.emit_output(&trimmed, "stdout");
-                            lines.push(trimmed);
-                        }
-                        _ => break,
-                    }
+                None => {
+                    return Err(AppError::CommunicationError(
+                        "kernel-events channel closed before all eval_ends arrived".into(),
+                    ));
                 }
             }
         }

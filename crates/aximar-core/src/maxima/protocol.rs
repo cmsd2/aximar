@@ -1,8 +1,20 @@
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::Instant;
 
 use crate::catalog::packages::PackageCatalog;
 use crate::catalog::search::Catalog;
 use crate::error::AppError;
+
+/// Per-eval unique-sentinel counter.  Each call to `next_eval_sentinel`
+/// returns a fresh string that cannot collide with a user's earlier
+/// or current cell output — eliminates the substring-match leak that
+/// the static `__AXIMAR_EVAL_END__` was vulnerable to (a user's own
+/// `print("__AXIMAR_EVAL_END__")` would trip the legacy reader).
+fn next_eval_sentinel() -> String {
+    static COUNTER: AtomicU64 = AtomicU64::new(0);
+    let n = COUNTER.fetch_add(1, Ordering::Relaxed);
+    format!("__AXIMAR_EVAL_END_{:016x}__", n)
+}
 #[cfg(unix)]
 use crate::maxima::envelope::types::Envelope;
 use crate::maxima::envelope::drain::drive_with_envelope_drain;
@@ -14,7 +26,6 @@ use crate::maxima::legacy::parser;
 use crate::maxima::process::MaximaProcess;
 use crate::maxima::types::EvalResult;
 
-const EVAL_SENTINEL: &str = "__AXIMAR_EVAL_END__";
 const VARS_SENTINEL: &str = "__AXIMAR_VARS_END__";
 const VARS_START: &str = "__AXIMAR_VARS__";
 const VARS_TIMEOUT_SECS: u64 = 5;
@@ -44,22 +55,19 @@ pub async fn evaluate(
     let (expr, emit_latex) = suppress_display(&expr);
 
     // Always run tex(%) so the parser can detect plot file paths from LaTeX
-    // \mbox{} blocks, even when the user suppressed output with $.
+    // \mbox{} blocks, even when the user suppressed output with $.  The
+    // sentinel is per-eval unique so the substring-match termination
+    // can't collide with a user's own print of the same string.
+    let sentinel = next_eval_sentinel();
     let input = format!(
-        // `$` not `;` on the sentinel print: `;` makes Maxima display
-        // the return value of print(), which is the printed string
-        // itself.  That left an orphaned `"__AXIMAR_EVAL_END__"` line
-        // in the BufReader after each eval, which could trigger the
-        // next read_until_sentinel to return prematurely on a substring
-        // match — leaking content between evaluations.
         "{}\ntex(%);\nprint(\"__AXIMAR_LABEL__\", linenum)$\nprint(\"{}\")$\n",
-        expr, EVAL_SENTINEL
+        expr, sentinel
     );
 
     process.write_stdin(&input).await?;
 
     let (lines, envelopes) =
-        run_eval_read_with_envelope_drain(process, &input, eval_timeout_secs).await?;
+        run_eval_read_with_envelope_drain(process, &input, &sentinel, eval_timeout_secs).await?;
 
     log_envelope_summary(cell_id, &envelopes);
 
@@ -99,22 +107,19 @@ pub async fn evaluate_with_packages(
     let (expr, emit_latex) = suppress_display(&expr);
 
     // Always run tex(%) so the parser can detect plot file paths from LaTeX
-    // \mbox{} blocks, even when the user suppressed output with $.
+    // \mbox{} blocks, even when the user suppressed output with $.  The
+    // sentinel is per-eval unique so the substring-match termination
+    // can't collide with a user's own print of the same string.
+    let sentinel = next_eval_sentinel();
     let input = format!(
-        // `$` not `;` on the sentinel print: `;` makes Maxima display
-        // the return value of print(), which is the printed string
-        // itself.  That left an orphaned `"__AXIMAR_EVAL_END__"` line
-        // in the BufReader after each eval, which could trigger the
-        // next read_until_sentinel to return prematurely on a substring
-        // match — leaking content between evaluations.
         "{}\ntex(%);\nprint(\"__AXIMAR_LABEL__\", linenum)$\nprint(\"{}\")$\n",
-        expr, EVAL_SENTINEL
+        expr, sentinel
     );
 
     process.write_stdin(&input).await?;
 
     let (lines, envelopes) =
-        run_eval_read_with_envelope_drain(process, &input, eval_timeout_secs).await?;
+        run_eval_read_with_envelope_drain(process, &input, &sentinel, eval_timeout_secs).await?;
 
     log_envelope_summary(cell_id, &envelopes);
 
@@ -132,58 +137,61 @@ pub async fn evaluate_with_packages(
     Ok(result)
 }
 
-/// Phase A.2: read the eval's stdout while concurrently draining the
-/// envelope channel.  On envelope-wired sessions, termination is on
-/// the count of `eval_end` envelopes reaching the number of
-/// terminators in `input` — substring matching for
-/// `__AXIMAR_EVAL_END__` is gone.  On non-wired sessions, falls back
-/// to the legacy `read_until_sentinel` path so Docker / WSL / older
-/// hosts keep working.
+/// Phase A.2: drive the eval read with a fence between stdout and
+/// envelopes.  The eval input ends with `print("<sentinel>")$` where
+/// `<sentinel>` is per-eval unique.  When that print's text lands on
+/// stdout and its `eval_end` envelope lands on the mpsc, both streams
+/// have caught up to the same point in Maxima's processing — that's
+/// the fence.  No wall-clock timeouts needed for coordination; both
+/// signals are structural ("Maxima eval-hooks emitted the envelope"
+/// and "Maxima's print() wrote the line to stdout").
+///
+/// On non-wired sessions (kernel-events disabled, Docker / WSL),
+/// falls back to the legacy `read_until_sentinel` path.
 async fn run_eval_read_with_envelope_drain(
     process: &mut MaximaProcess,
     input: &str,
+    sentinel: &str,
     eval_timeout_secs: u64,
 ) -> Result<(Vec<String>, Vec<Envelope>), AppError> {
     let mut events_rx = process.take_events_rx();
 
     if events_rx.is_some() {
-        // Wired path: count eval_end envelopes.  Every `;`/`$` in the
-        // input we sent will produce exactly one top-level eval, and
-        // therefore exactly one `eval_end` envelope — string-literal
-        // and comment-aware via find_terminators.
+        // Fence path.  Every `;`/`$` in the input produces exactly
+        // one top-level eval, and therefore exactly one eval_end
+        // envelope — counted via find_terminators which is string-
+        // literal and comment-aware.
         let expected_count = find_terminators(input).len();
         let timeout_result = tokio::time::timeout(
             std::time::Duration::from_secs(eval_timeout_secs),
-            process.read_until_n_eval_ends(expected_count, &mut events_rx),
+            process.read_eval_marker_and_count(sentinel, expected_count, &mut events_rx),
         )
         .await;
         let read_result = match timeout_result {
             Ok(res) => res,
             Err(_) => {
                 process.restore_events_rx(events_rx);
-                // Even on the envelope path, the EVAL_SENTINEL print is
-                // still in the input — interrupt_and_resync uses it as
-                // a regrouping marker to leave the process readable.
-                process.interrupt_and_resync(EVAL_SENTINEL).await;
+                // The sentinel print is still part of the input, so
+                // interrupt_and_resync can use it as a regroup marker.
+                process.interrupt_and_resync(sentinel).await;
                 return Err(AppError::Timeout(eval_timeout_secs));
             }
         };
         process.restore_events_rx(events_rx);
         read_result
     } else {
-        // Legacy path: substring match on __AXIMAR_EVAL_END__ in
-        // stdout.  No envelopes flow on this branch (no kernel-events
-        // channel), so the envelope vec stays empty.
+        // Legacy path: substring match on the sentinel in stdout.
+        // No envelopes flow on this branch.
         let timeout_result = tokio::time::timeout(
             std::time::Duration::from_secs(eval_timeout_secs),
-            drive_with_envelope_drain(process.read_until_sentinel(EVAL_SENTINEL), &mut events_rx),
+            drive_with_envelope_drain(process.read_until_sentinel(sentinel), &mut events_rx),
         )
         .await;
         let (read_result, envelopes) = match timeout_result {
             Ok((rr, env)) => (rr, env),
             Err(_) => {
                 process.restore_events_rx(events_rx);
-                process.interrupt_and_resync(EVAL_SENTINEL).await;
+                process.interrupt_and_resync(sentinel).await;
                 return Err(AppError::Timeout(eval_timeout_secs));
             }
         };
