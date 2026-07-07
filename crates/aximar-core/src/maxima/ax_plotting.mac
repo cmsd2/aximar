@@ -56,6 +56,19 @@ ax__json_list(items) :=
  * these are identity functions. Load order does not matter.
  * ======================================================================== */
 
+/* Fallback stubs: when the numerics package is not loaded, these make
+ * ax__maybe_list / ax__maybe_matrix identity functions. Guarded so a real
+ * numerics package can override them regardless of load order. Without these,
+ * ax__ndarray_p(x) stays an unevaluated noun and ax__maybe_list returns an
+ * `if ... then ... else ...` expression instead of x, which later breaks
+ * map(first, ...) with "found true". */
+if not member('ax__ndarray_p, map(op, functions)) then
+  ax__ndarray_p(x) := false $
+if not member('ax__ndarray_to_list, map(op, functions)) then
+  ax__ndarray_to_list(x) := x $
+if not member('ax__ndarray_to_matrix, map(op, functions)) then
+  ax__ndarray_to_matrix(x) := x $
+
 ax__maybe_list(x) := if ax__ndarray_p(x) then ax__ndarray_to_list(x) else x $
 ax__maybe_matrix(x) := if ax__ndarray_p(x) then ax__ndarray_to_matrix(x) else x $
 
