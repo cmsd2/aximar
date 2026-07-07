@@ -218,7 +218,7 @@ claude mcp list
 
 - [Node.js](https://nodejs.org/) >= 18
 - [Rust](https://rustup.rs/) (stable toolchain)
-- Tauri v2 system dependencies — see the [Tauri prerequisites guide](https://tauri.app/start/prerequisites/)
+- Tauri v2 system dependencies — see the [Tauri prerequisites guide](https://tauri.app/start/prerequisites/) (Fedora users: see [`docs/building-on-fedora.md`](docs/building-on-fedora.md))
 
 ### Development
 
