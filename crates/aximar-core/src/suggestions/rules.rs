@@ -11,6 +11,34 @@ const MAX_SUGGESTIONS: usize = 5;
 static FUNC_NAME_RE: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"\b([a-zA-Z_]\w*)\s*\(").unwrap());
 
+/// True when `s` contains a bare `=`, i.e. an equation, as opposed to a
+/// `=` that belongs to a comparison operator (`<=`, `>=`, `==`, `!=`) or
+/// to Maxima's definition operators (`:=`, `::=`).
+///
+/// Written as a scan rather than a regex on purpose: the natural pattern
+/// is `[^<>=!]=(?!=)`, and the negative look-ahead makes it unsupported
+/// by the `regex` crate — `Regex::new` returns `Err`. The previous code
+/// swallowed that with `.ok()`, so this check silently evaluated to
+/// `false` for every input and the equation suggestions never appeared.
+///
+/// A leading `=` (no preceding character) counts as an equation; there
+/// is nothing before it that could make it part of an operator.
+fn contains_equation(s: &str) -> bool {
+    let mut prev: Option<char> = None;
+    let mut chars = s.chars().peekable();
+    while let Some(c) = chars.next() {
+        if c == '=' {
+            let prev_ok = !matches!(prev, Some('<' | '>' | '=' | '!' | ':'));
+            let next_ok = chars.peek() != Some(&'=');
+            if prev_ok && next_ok {
+                return true;
+            }
+        }
+        prev = Some(c);
+    }
+    false
+}
+
 pub fn suggestions_for_output(input: &str, output: &EvalResult) -> Vec<Suggestion> {
     suggestions_for_output_with_packages(input, output, None)
 }
@@ -144,11 +172,7 @@ pub fn suggestions_for_output_with_packages(
     }
 
     // Equation in output (contains =)
-    let eq_re = Regex::new(r"[^<>=!]=(?!=)").ok();
-    let has_equation = eq_re
-        .as_ref()
-        .map(|re| re.is_match(text) || re.is_match(latex))
-        .unwrap_or(false);
+    let has_equation = contains_equation(text) || contains_equation(latex);
     if has_equation && !input_lower.contains("solve(") {
         suggestions.push(Suggestion {
             label: "Solve".into(),
@@ -357,6 +381,51 @@ mod tests {
         assert!(suggestions
             .iter()
             .any(|s| s.template.contains("determinant")));
+    }
+
+    #[test]
+    fn test_contains_equation() {
+        // Genuine equations
+        assert!(contains_equation("x = 5"));
+        assert!(contains_equation("x=5"));
+        assert!(contains_equation("y=2*x+1"));
+        assert!(contains_equation("= 5")); // leading `=`, nothing to disqualify it
+
+        // Comparison operators are not equations
+        assert!(!contains_equation("x <= 5"));
+        assert!(!contains_equation("x >= 5"));
+        assert!(!contains_equation("x == 5"));
+        assert!(!contains_equation("x != 5"));
+        assert!(!contains_equation("x<=5"));
+
+        // Maxima definition operators are not equations
+        assert!(!contains_equation("f(x):=x^2"));
+        assert!(!contains_equation("f(x)::=x^2"));
+
+        // No `=` at all
+        assert!(!contains_equation(""));
+        assert!(!contains_equation("3*x^2"));
+
+        // A real equation alongside a comparison still counts
+        assert!(contains_equation("x <= 5 and y = 2"));
+    }
+
+    #[test]
+    fn test_equation_output_suggests_solve() {
+        // Regression: the equation check used a look-ahead regex that the
+        // `regex` crate rejects, so it was always false and these
+        // suggestions never appeared.
+        let result = make_result("x + 2*y = 7", Some("x+2\\,y=7"));
+        let suggestions = suggestions_for_output("x + 2*y = 7", &result);
+        assert!(suggestions.iter().any(|s| s.template.contains("solve(")));
+        assert!(suggestions.iter().any(|s| s.template.contains("rhs(")));
+    }
+
+    #[test]
+    fn test_comparison_output_does_not_suggest_solve() {
+        let result = make_result("x <= 5", Some("x\\leq 5"));
+        let suggestions = suggestions_for_output("is(x <= 5)", &result);
+        assert!(!suggestions.iter().any(|s| s.template.contains("solve(")));
     }
 
     #[test]
