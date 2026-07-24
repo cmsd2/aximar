@@ -1,30 +1,46 @@
 import { create } from "zustand";
 import { nanoid } from "nanoid";
-import type { LogEntry, LogLevel, RawOutputEntry, LogTab } from "../types/log";
+import type {
+  EnvelopeEntry,
+  LogEntry,
+  LogLevel,
+  LogTab,
+  RawOutputEntry,
+} from "../types/log";
 
 const MAX_ENTRIES = 5000;
 const MAX_RAW_ENTRIES = 5000;
+const MAX_ENVELOPE_ENTRIES = 5000;
 
 interface LogState {
   entries: LogEntry[];
   rawOutput: RawOutputEntry[];
+  envelopes: EnvelopeEntry[];
   unreadCount: number;
   windowOpen: boolean;
   activeTab: LogTab;
 
   addEntry: (level: LogLevel, message: string, source: string) => void;
   addRawOutput: (line: string, stream: "stdin" | "stdout" | "stderr", timestamp: number) => void;
+  addEnvelope: (
+    timestampMs: number,
+    rawLine: string,
+    kind: string | null,
+    parseError: string | null,
+  ) => void;
   toggleWindow: () => void;
   openWindow: () => void;
   closeWindow: () => void;
   setActiveTab: (tab: LogTab) => void;
   clearLog: () => void;
   clearRawOutput: () => void;
+  clearEnvelopes: () => void;
 }
 
 export const useLogStore = create<LogState>((set, get) => ({
   entries: [],
   rawOutput: [],
+  envelopes: [],
   unreadCount: 0,
   windowOpen: false,
   activeTab: "app",
@@ -69,6 +85,23 @@ export const useLogStore = create<LogState>((set, get) => ({
     });
   },
 
+  addEnvelope: (timestampMs, rawLine, kind, parseError) => {
+    const entry: EnvelopeEntry = {
+      id: nanoid(),
+      timestampMs,
+      rawLine,
+      kind,
+      parseError,
+    };
+    set((state) => {
+      const next = [...state.envelopes, entry];
+      if (next.length > MAX_ENVELOPE_ENTRIES) {
+        next.splice(0, next.length - MAX_ENVELOPE_ENTRIES);
+      }
+      return { envelopes: next };
+    });
+  },
+
   toggleWindow: () => {
     const opening = !get().windowOpen;
     set({
@@ -90,4 +123,6 @@ export const useLogStore = create<LogState>((set, get) => ({
   clearLog: () => set({ entries: [], unreadCount: 0 }),
 
   clearRawOutput: () => set({ rawOutput: [] }),
+
+  clearEnvelopes: () => set({ envelopes: [] }),
 }));

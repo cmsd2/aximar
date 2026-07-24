@@ -139,6 +139,7 @@ impl ServerCore {
             self.backend.clone(),
             self.maxima_path.clone(),
             move |ctx| (factory)(&ctx.id, &ctx.capture_sink),
+            |_ctx| None, // MCP doesn't surface envelope frames anywhere
             &self.catalog,
             self.eval_timeout,
             self.on_session_status.as_ref(),

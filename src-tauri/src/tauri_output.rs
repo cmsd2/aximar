@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 use tauri::Emitter;
 use tokio::sync::Mutex;
 
+use aximar_core::maxima::envelope::{EnvelopeFrame, EnvelopeObserver};
 use aximar_core::maxima::output::{OutputEvent, OutputSink};
 
 /// Tagged output event that includes the notebook ID for routing.
@@ -58,6 +59,46 @@ impl OutputSink for TauriOutputSink {
                 } else {
                     let _ = handle.emit("maxima-output", event);
                 }
+            }
+        }
+    }
+}
+
+/// Tagged envelope frame that includes the notebook ID for routing.
+#[derive(Debug, Clone, Serialize)]
+struct TaggedEnvelopeFrame {
+    notebook_id: String,
+    #[serde(flatten)]
+    frame: EnvelopeFrame,
+}
+
+/// EnvelopeObserver implementation that emits frames to the Tauri
+/// frontend as `maxima-event` events.  Tagged with a notebook ID so
+/// the frontend can route to the correct tab's events stream.
+pub struct TauriEnvelopeObserver {
+    app_handle: Arc<Mutex<Option<tauri::AppHandle>>>,
+    notebook_id: String,
+}
+
+impl TauriEnvelopeObserver {
+    pub fn new(
+        app_handle: Arc<Mutex<Option<tauri::AppHandle>>>,
+        notebook_id: String,
+    ) -> Self {
+        TauriEnvelopeObserver { app_handle, notebook_id }
+    }
+}
+
+impl EnvelopeObserver for TauriEnvelopeObserver {
+    fn observe(&self, frame: EnvelopeFrame) {
+        // Non-blocking lock: skip rather than stall the fd-3 reader.
+        if let Ok(guard) = self.app_handle.try_lock() {
+            if let Some(ref handle) = *guard {
+                let tagged = TaggedEnvelopeFrame {
+                    notebook_id: self.notebook_id.clone(),
+                    frame,
+                };
+                let _ = handle.emit("maxima-event", tagged);
             }
         }
     }

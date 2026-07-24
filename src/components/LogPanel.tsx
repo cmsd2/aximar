@@ -1,7 +1,12 @@
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { Virtuoso, type VirtuosoHandle } from "react-virtuoso";
 import { useLogStore } from "../store/logStore";
-import type { LogEntry, RawOutputEntry, LogTab } from "../types/log";
+import type {
+  EnvelopeEntry,
+  LogEntry,
+  LogTab,
+  RawOutputEntry,
+} from "../types/log";
 
 const formatTime = (ts: number) => {
   const d = new Date(ts);
@@ -32,6 +37,102 @@ function RawOutputRow({ entry }: { entry: RawOutputEntry }) {
         {entry.stream === "stdin" ? ">" : entry.stream === "stderr" ? "!" : " "}
       </span>
       <span className="log-raw-line">{entry.line}</span>
+    </div>
+  );
+}
+
+type ParsedEnvelope = Record<string, unknown>;
+
+function parseRaw(raw: string): ParsedEnvelope | null {
+  try {
+    const v = JSON.parse(raw);
+    return v && typeof v === "object" ? (v as ParsedEnvelope) : null;
+  } catch {
+    return null;
+  }
+}
+
+function ellipsize(s: string, n: number): string {
+  return s.length <= n ? s : `${s.slice(0, n - 1)}…`;
+}
+
+/** One-line salient summary for the row's collapsed view. */
+function summarize(env: ParsedEnvelope | null, kind: string): string {
+  if (!env) return "";
+  const s = (k: string) => (typeof env[k] === "string" ? (env[k] as string) : undefined);
+  const n = (k: string) => (typeof env[k] === "number" ? (env[k] as number) : undefined);
+  switch (kind) {
+    case "eval_begin":
+      return s("eval_id") ?? "";
+    case "eval_end": {
+      const status = s("status") ?? "";
+      const dur = n("duration_ms");
+      return dur !== undefined ? `${status} (${dur}ms)` : status;
+    }
+    case "eval_result": {
+      const label = s("output_label");
+      const mime = env["mime_bundle"];
+      const mimes =
+        mime && typeof mime === "object"
+          ? Object.keys(mime as Record<string, unknown>).join(", ")
+          : "";
+      return [label, mimes].filter(Boolean).join("  ");
+    }
+    case "error": {
+      const ek = s("kind") ?? "";
+      const msg = (s("message") ?? "").split("\n")[0];
+      return [ek, ellipsize(msg, 80)].filter(Boolean).join("  ");
+    }
+    case "display": {
+      const mime = env["mime_bundle"];
+      return mime && typeof mime === "object"
+        ? Object.keys(mime as Record<string, unknown>).join(", ")
+        : "";
+    }
+    case "vars": {
+      const vs = env["vars"];
+      if (Array.isArray(vs)) {
+        const head = (vs as unknown[]).slice(0, 4).join(", ");
+        return vs.length > 4 ? `${head}, … (${vs.length})` : head;
+      }
+      return "";
+    }
+    case "output": {
+      const stream = s("stream") ?? "";
+      const text = (s("text") ?? "").replace(/\n+$/, "");
+      return [stream, ellipsize(text, 80)].filter(Boolean).join("  ");
+    }
+    default:
+      return "";
+  }
+}
+
+function EnvelopeRow({ entry }: { entry: EnvelopeEntry }) {
+  const [expanded, setExpanded] = useState(false);
+  const parsed = useMemo(() => parseRaw(entry.rawLine), [entry.rawLine]);
+  const isError = entry.parseError !== null;
+  const kindLabel = entry.kind ?? "parse_error";
+  const summary = isError
+    ? ellipsize(entry.parseError ?? "", 100)
+    : summarize(parsed, kindLabel);
+  const pretty = useMemo(
+    () => (parsed ? JSON.stringify(parsed, null, 2) : entry.rawLine),
+    [parsed, entry.rawLine],
+  );
+  return (
+    <div className={`log-envelope log-envelope-${kindLabel}${isError ? " log-envelope-bad" : ""}`}>
+      <div
+        className="log-envelope-line"
+        onClick={() => setExpanded((v) => !v)}
+        role="button"
+        tabIndex={0}
+      >
+        <span className="log-envelope-toggle">{expanded ? "▾" : "▸"}</span>
+        <span className="log-envelope-time">{formatTime(entry.timestampMs)}</span>
+        <span className="log-envelope-kind">{kindLabel}</span>
+        <span className="log-envelope-summary">{summary}</span>
+      </div>
+      {expanded && <pre className="log-envelope-body">{pretty}</pre>}
     </div>
   );
 }
@@ -77,8 +178,10 @@ export function LogWindow() {
   const closeWindow = useLogStore((s) => s.closeWindow);
   const entries = useLogStore((s) => s.entries);
   const rawOutput = useLogStore((s) => s.rawOutput);
+  const envelopes = useLogStore((s) => s.envelopes);
   const clearLog = useLogStore((s) => s.clearLog);
   const clearRawOutput = useLogStore((s) => s.clearRawOutput);
+  const clearEnvelopes = useLogStore((s) => s.clearEnvelopes);
   const [height, setHeight] = useState(DEFAULT_HEIGHT);
   const dragging = useRef(false);
   const startY = useRef(0);
@@ -86,6 +189,7 @@ export function LogWindow() {
 
   const appVirtuosoRef = useRef<VirtuosoHandle>(null);
   const rawVirtuosoRef = useRef<VirtuosoHandle>(null);
+  const envelopeVirtuosoRef = useRef<VirtuosoHandle>(null);
 
   const onPointerDown = useCallback(
     (e: React.PointerEvent) => {
@@ -113,10 +217,19 @@ export function LogWindow() {
 
   useEffect(() => {
     if (!atBottom) return;
-    const ref = activeTab === "app" ? appVirtuosoRef : rawVirtuosoRef;
+    const ref =
+      activeTab === "app"
+        ? appVirtuosoRef
+        : activeTab === "maxima"
+          ? rawVirtuosoRef
+          : envelopeVirtuosoRef;
     ref.current?.scrollToIndex({ index: "LAST", behavior: "smooth" });
   }, [
-    activeTab === "app" ? entries.length : rawOutput.length,
+    activeTab === "app"
+      ? entries.length
+      : activeTab === "maxima"
+        ? rawOutput.length
+        : envelopes.length,
     atBottom,
     activeTab,
   ]);
@@ -126,7 +239,15 @@ export function LogWindow() {
   const tabs: { key: LogTab; label: string }[] = [
     { key: "app", label: "App Log" },
     { key: "maxima", label: "Maxima Output" },
+    { key: "events", label: "Events" },
   ];
+
+  const clearForActiveTab =
+    activeTab === "app"
+      ? clearLog
+      : activeTab === "maxima"
+        ? clearRawOutput
+        : clearEnvelopes;
 
   return (
     <div className="log-window" style={{ height }}>
@@ -149,10 +270,7 @@ export function LogWindow() {
           ))}
         </div>
         <div className="log-window-actions">
-          <button
-            className="log-window-clear"
-            onClick={activeTab === "app" ? clearLog : clearRawOutput}
-          >
+          <button className="log-window-clear" onClick={clearForActiveTab}>
             Clear
           </button>
           <button className="log-window-close" onClick={closeWindow}>
@@ -183,6 +301,19 @@ export function LogWindow() {
               data={rawOutput}
               atBottomStateChange={setAtBottom}
               itemContent={(_index, entry) => <RawOutputRow entry={entry} />}
+              followOutput="smooth"
+            />
+          )
+        )}
+        {activeTab === "events" && (
+          envelopes.length === 0 ? (
+            <div className="log-window-empty">No envelope frames</div>
+          ) : (
+            <Virtuoso
+              ref={envelopeVirtuosoRef}
+              data={envelopes}
+              atBottomStateChange={setAtBottom}
+              itemContent={(_index, entry) => <EnvelopeRow entry={entry} />}
               followOutput="smooth"
             />
           )

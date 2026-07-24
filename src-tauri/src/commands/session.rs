@@ -3,13 +3,14 @@ use serde::Serialize;
 use tauri::{Emitter, State};
 
 use aximar_core::error::AppError;
+use aximar_core::maxima::envelope::EnvelopeObserver;
 use aximar_core::maxima::output::{MultiOutputSink, OutputSink};
 use aximar_core::maxima::types::SessionStatus;
 use aximar_core::registry::NotebookContextRef;
 use aximar_core::session_ops::{self, SessionStatusCallback};
 use crate::commands::config::{read_backend, read_eval_timeout, read_maxima_path};
 use crate::state::AppState;
-use crate::tauri_output::{emit_app_log, TauriOutputSink};
+use crate::tauri_output::{emit_app_log, TauriEnvelopeObserver, TauriOutputSink};
 
 #[derive(Clone, Serialize)]
 struct SessionStatusEvent {
@@ -66,6 +67,18 @@ fn build_output_sink(state: &AppState, ctx: &NotebookContextRef) -> Arc<dyn Outp
     Arc::new(MultiOutputSink::new(vec![tauri_sink, capture_sink]))
 }
 
+/// Build an envelope observer that emits kernel-events frames to the
+/// frontend "Events" log tab, tagged with the notebook ID.
+fn build_envelope_observer(
+    state: &AppState,
+    ctx: &NotebookContextRef,
+) -> Option<Arc<dyn EnvelopeObserver>> {
+    Some(Arc::new(TauriEnvelopeObserver::new(
+        state.app_handle.clone(),
+        ctx.id.clone(),
+    )))
+}
+
 /// Resolve notebook context: if notebook_id is provided, use it; otherwise use the active notebook.
 async fn resolve_context(
     state: &AppState,
@@ -92,6 +105,7 @@ pub async fn ensure_session(
         backend,
         maxima_path,
         |ctx| build_output_sink(state, ctx),
+        |ctx| build_envelope_observer(state, ctx),
         &state.catalog,
         eval_timeout,
         Some(&on_status),
@@ -110,6 +124,7 @@ pub async fn start_session(
     let backend = read_backend(&app);
     let eval_timeout = read_eval_timeout(&app);
     let output_sink = build_output_sink(&state, &ctx);
+    let envelope_observer = build_envelope_observer(&state, &ctx);
     let on_status = build_session_status_callback(&state);
 
     ctx.session.begin_start().await;
@@ -120,6 +135,7 @@ pub async fn start_session(
         backend,
         maxima_path,
         output_sink,
+        envelope_observer,
         &state.catalog,
         eval_timeout,
         Some(&on_status),
@@ -151,6 +167,7 @@ pub async fn restart_session(
     let backend = read_backend(&app);
     let eval_timeout = read_eval_timeout(&app);
     let output_sink = build_output_sink(&state, &ctx);
+    let envelope_observer = build_envelope_observer(&state, &ctx);
     let on_status = build_session_status_callback(&state);
 
     // begin_start kills any existing process via into_starting()
@@ -162,6 +179,7 @@ pub async fn restart_session(
         backend,
         maxima_path,
         output_sink,
+        envelope_observer,
         &state.catalog,
         eval_timeout,
         Some(&on_status),

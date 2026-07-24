@@ -9,6 +9,7 @@ use std::sync::Arc;
 use crate::catalog::search::Catalog;
 use crate::error::AppError;
 use crate::maxima::backend::Backend;
+use crate::maxima::envelope::EnvelopeObserver;
 use crate::maxima::output::OutputSink;
 use crate::maxima::process::MaximaProcess;
 use crate::maxima::protocol;
@@ -34,6 +35,7 @@ pub async fn spawn_and_init_session(
     backend: Backend,
     maxima_path: Option<String>,
     output_sink: Arc<dyn OutputSink>,
+    envelope_observer: Option<Arc<dyn EnvelopeObserver>>,
     catalog: &Catalog,
     eval_timeout: u64,
     on_status: Option<&SessionStatusCallback>,
@@ -44,7 +46,15 @@ pub async fn spawn_and_init_session(
     let cwd = ctx.path.as_deref().map(|p| {
         if p.is_dir() { p } else { p.parent().unwrap_or(p) }
     });
-    match MaximaProcess::spawn_with_cwd(backend, maxima_path, output_sink, cwd).await {
+    match MaximaProcess::spawn_with_cwd_and_observer(
+        backend,
+        maxima_path,
+        output_sink,
+        cwd,
+        envelope_observer,
+    )
+    .await
+    {
         Ok(process) => {
             ctx.session.set_ready(process).await;
 
@@ -99,6 +109,7 @@ pub async fn ensure_session(
     backend: Backend,
     maxima_path: Option<String>,
     build_sink: impl FnOnce(&NotebookContextRef) -> Arc<dyn OutputSink>,
+    build_observer: impl FnOnce(&NotebookContextRef) -> Option<Arc<dyn EnvelopeObserver>>,
     catalog: &Catalog,
     eval_timeout: u64,
     on_status: Option<&SessionStatusCallback>,
@@ -112,11 +123,13 @@ pub async fn ensure_session(
                 cb(&ctx.id, SessionStatus::Starting);
             }
             let output_sink = build_sink(ctx);
+            let envelope_observer = build_observer(ctx);
             spawn_and_init_session(
                 ctx,
                 backend,
                 maxima_path,
                 output_sink,
+                envelope_observer,
                 catalog,
                 eval_timeout,
                 on_status,

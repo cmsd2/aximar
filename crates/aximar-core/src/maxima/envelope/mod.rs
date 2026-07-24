@@ -20,13 +20,17 @@
 //!   - [`drain`] — primitive for racing a future against envelope
 //!     collection; used by both per-eval and per-internal-command
 //!     drains in `protocol.rs`.
+//!   - [`observer`] — live tee for the fd-3 stream, used by the GUI
+//!     "Events" log tab to display every frame as it arrives.
 
 pub mod types;
 #[cfg(unix)]
 pub mod events_pipe;
 #[cfg(unix)]
 pub mod cancel_pipe;
+pub mod observer;
 pub mod overlay;
 pub mod drain;
 
+pub use observer::{EnvelopeFrame, EnvelopeObserver, NullEnvelopeObserver};
 pub use types::Envelope;

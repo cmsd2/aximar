@@ -68,6 +68,7 @@ function App() {
   const logUnreadCount = useLogStore((s) => s.unreadCount);
   const addLogEntry = useLogStore((s) => s.addEntry);
   const addRawOutput = useLogStore((s) => s.addRawOutput);
+  const addEnvelope = useLogStore((s) => s.addEnvelope);
 
   useEffect(() => {
     initSession();
@@ -127,6 +128,27 @@ function App() {
         );
       }
     );
+    return () => {
+      unlisten.then((fn) => fn());
+    };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Listen for kernel-events envelope frames from the backend
+  useEffect(() => {
+    const unlisten = listen<{
+      notebook_id?: string;
+      timestamp_ms: number;
+      raw_line: string;
+      kind: string | null;
+      parse_error: string | null;
+    }>("maxima-event", (event) => {
+      addEnvelope(
+        event.payload.timestamp_ms,
+        event.payload.raw_line,
+        event.payload.kind,
+        event.payload.parse_error,
+      );
+    });
     return () => {
       unlisten.then((fn) => fn());
     };

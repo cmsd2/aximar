@@ -15,10 +15,12 @@
 #![cfg(unix)]
 
 use std::os::fd::{FromRawFd, OwnedFd, RawFd};
+use std::sync::Arc;
 
 use tokio::io::{AsyncBufReadExt, BufReader};
 use tokio::sync::mpsc;
 
+use super::observer::{now_millis, EnvelopeFrame, EnvelopeObserver, NullEnvelopeObserver};
 use super::types::Envelope;
 
 /// The two ends of a freshly-created OS pipe used for kernel-events.
@@ -89,11 +91,21 @@ pub fn pre_exec_dup_to_fd3(write_fd: RawFd) -> impl FnMut() -> std::io::Result<(
 }
 
 /// Spawn a background tokio task that reads JSON-line envelopes from
-/// `read_end` and forwards them to `sender`.  Non-JSON lines and
-/// parse failures are logged but do not stop the loop.  The task
-/// ends when the pipe is closed (the child process exits) or when
-/// the receiver is dropped.
-pub fn spawn_reader_task(read_end: OwnedFd, sender: mpsc::UnboundedSender<Envelope>) {
+/// `read_end`, forwards them to `sender`, and tees each frame to
+/// `observer`.  The task ends when the pipe is closed (the child
+/// process exits) or when the receiver is dropped.
+///
+/// `observer` is called for every line — both successful envelope
+/// parses and lines that fail to parse — so the GUI can surface
+/// malformed frames as protocol bugs.  Pass `None` to disable
+/// observation (equivalent to `NullEnvelopeObserver`).
+pub fn spawn_reader_task(
+    read_end: OwnedFd,
+    sender: mpsc::UnboundedSender<Envelope>,
+    observer: Option<Arc<dyn EnvelopeObserver>>,
+) {
+    let observer: Arc<dyn EnvelopeObserver> =
+        observer.unwrap_or_else(|| Arc::new(NullEnvelopeObserver));
     tokio::spawn(async move {
         // OwnedFd -> std::fs::File -> tokio::fs::File: tokio::fs runs
         // reads on the blocking pool, so the underlying fd must stay
@@ -114,6 +126,12 @@ pub fn spawn_reader_task(read_end: OwnedFd, sender: mpsc::UnboundedSender<Envelo
                     }
                     match serde_json::from_str::<Envelope>(trimmed) {
                         Ok(env) => {
+                            observer.observe(EnvelopeFrame {
+                                timestamp_ms: now_millis(),
+                                raw_line: trimmed.to_string(),
+                                kind: Some(env.kind_label().to_string()),
+                                parse_error: None,
+                            });
                             if sender.send(env).is_err() {
                                 // Receiver dropped — protocol layer is
                                 // gone; nothing more to do.
@@ -121,18 +139,26 @@ pub fn spawn_reader_task(read_end: OwnedFd, sender: mpsc::UnboundedSender<Envelo
                             }
                         }
                         Err(e) => {
-                            // Bad-envelope diagnostics still go to
-                            // stderr — a malformed line is a real
-                            // protocol bug worth surfacing.
-                            eprintln!(
-                                "[events] bad envelope: {} | line: {:?}",
-                                e, trimmed
-                            );
+                            // Surface malformed frames through the
+                            // observer instead of stderr — the GUI's
+                            // Events tab is where protocol bugs are
+                            // visible now.
+                            observer.observe(EnvelopeFrame {
+                                timestamp_ms: now_millis(),
+                                raw_line: trimmed.to_string(),
+                                kind: None,
+                                parse_error: Some(e.to_string()),
+                            });
                         }
                     }
                 }
                 Err(e) => {
-                    eprintln!("[events] read error: {}", e);
+                    observer.observe(EnvelopeFrame {
+                        timestamp_ms: now_millis(),
+                        raw_line: String::new(),
+                        kind: None,
+                        parse_error: Some(format!("fd-3 read error: {}", e)),
+                    });
                     break;
                 }
             }
@@ -152,7 +178,7 @@ mod tests {
         // the test without going through a child process.
         let write_file = std::fs::File::from(pipe.write_end);
         let (tx, mut rx) = mpsc::unbounded_channel::<Envelope>();
-        spawn_reader_task(pipe.read_end, tx);
+        spawn_reader_task(pipe.read_end, tx, None);
 
         // Write two valid envelopes and one bad line.
         let mut w = write_file;

@@ -2323,6 +2323,80 @@
   word-break: break-all;
 }
 
+/* Events tab: one-line envelope frames; click row to expand JSON */
+.log-envelope {
+  font-family: "JetBrains Mono", "Fira Code", "SF Mono", Menlo, Consolas, monospace;
+  font-size: 12px;
+}
+
+.log-envelope-line {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  padding: 1px 16px;
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.log-envelope-line:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.log-envelope-toggle {
+  flex-shrink: 0;
+  width: 10px;
+  color: var(--text-secondary);
+  font-size: 10px;
+}
+
+.log-envelope-time {
+  flex-shrink: 0;
+  width: 72px;
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.log-envelope-kind {
+  flex-shrink: 0;
+  width: 90px;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.log-envelope-summary {
+  flex: 1 1 auto;
+  min-width: 0;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.log-envelope-body {
+  margin: 2px 16px 4px 34px;
+  padding: 6px 8px;
+  background: var(--bg-elevated, rgba(255, 255, 255, 0.03));
+  border-radius: 4px;
+  font-size: 11px;
+  color: var(--text-primary);
+  white-space: pre;
+  overflow-x: auto;
+}
+
+/* Distinct kind colors */
+.log-envelope-eval_end .log-envelope-kind { color: var(--text-secondary); }
+.log-envelope-eval_result .log-envelope-kind { color: var(--accent); }
+.log-envelope-error .log-envelope-kind { color: var(--error-color); }
+.log-envelope-display .log-envelope-kind { color: var(--running-color); }
+.log-envelope-vars .log-envelope-kind { color: var(--running-color); }
+.log-envelope-output .log-envelope-kind { color: var(--text-secondary); }
+.log-envelope-bad .log-envelope-kind,
+.log-envelope-parse_error .log-envelope-kind {
+  color: var(--error-color);
+}
+.log-envelope-bad .log-envelope-summary { color: var(--error-color); }
+
 /* Toolbar badge */
 .toolbar-btn-wrapper {
   position: relative;

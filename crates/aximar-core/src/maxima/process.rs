@@ -105,10 +105,25 @@ fn kernel_events_enabled() -> bool {
 
 impl MaximaProcess {
     pub async fn spawn(backend: Backend, custom_path: Option<String>, output_sink: Arc<dyn OutputSink>) -> Result<Self, AppError> {
-        Self::spawn_with_cwd(backend, custom_path, output_sink, None).await
+        Self::spawn_with_cwd_and_observer(backend, custom_path, output_sink, None, None).await
     }
 
     pub async fn spawn_with_cwd(backend: Backend, custom_path: Option<String>, output_sink: Arc<dyn OutputSink>, cwd: Option<&std::path::Path>) -> Result<Self, AppError> {
+        Self::spawn_with_cwd_and_observer(backend, custom_path, output_sink, cwd, None).await
+    }
+
+    /// Full spawn entry point with optional kernel-events observer.
+    /// The observer (when provided) is teed inside the fd-3 reader
+    /// task and sees every envelope frame as it arrives — used by the
+    /// GUI's "Events" log tab.  Pass `None` for headless / MCP / test
+    /// paths that don't surface envelope frames anywhere.
+    pub async fn spawn_with_cwd_and_observer(
+        backend: Backend,
+        custom_path: Option<String>,
+        output_sink: Arc<dyn OutputSink>,
+        cwd: Option<&std::path::Path>,
+        envelope_observer: Option<Arc<dyn crate::maxima::envelope::EnvelopeObserver>>,
+    ) -> Result<Self, AppError> {
         Self::preflight_check(&backend).await?;
 
         // Per-spawn reader-task handle for the kernel-events pipe.
@@ -164,7 +179,7 @@ impl MaximaProcess {
                             let raw_write = pipe.write_end.as_raw_fd();
                             let (tx, rx) =
                                 tokio::sync::mpsc::unbounded_channel::<Envelope>();
-                            spawn_reader_task(pipe.read_end, tx);
+                            spawn_reader_task(pipe.read_end, tx, envelope_observer.clone());
                             events_rx_slot = Some(rx);
                             cmd.env("MAXIMA_EVENTS_FD", "3");
                             // SAFETY: pre_exec_dup_to_fd3 only calls
@@ -647,8 +662,10 @@ impl MaximaProcess {
         }
 
         self.events_rx = events_rx;
-
-        log_init_envelope_diagnostics(&envelopes);
+        // Init-phase envelope frames (including any error frames) are
+        // visible per-frame in the GUI "Events" tab via the observer
+        // wired into spawn_reader_task — no separate stderr summary.
+        drop(envelopes);
     }
 
     /// Build the session-init prelude that loads kernel-events and
@@ -1505,43 +1522,3 @@ pub fn find_maxima_binary() -> String {
     "maxima".to_string()
 }
 
-/// Log a summary of envelopes drained during session init.  Error
-/// envelopes get their own per-line entries so init-time failures are
-/// visible to anyone watching the log, but they are NOT propagated to
-/// the next user evaluation's `EvalResult` — leaking an init error
-/// into a cell that didn't cause it is worse than logging it once.
-#[cfg(unix)]
-fn log_init_envelope_diagnostics(envelopes: &[crate::maxima::envelope::types::Envelope]) {
-    use crate::maxima::envelope::types::{Envelope, ErrorKind};
-
-    if envelopes.is_empty() {
-        return;
-    }
-
-    let mut errors: Vec<(&'static str, &str)> = Vec::new();
-    for env in envelopes {
-        if let Envelope::Error(err) = env {
-            let kind_label = match err.kind {
-                ErrorKind::MaximaError => "maxima_error",
-                ErrorKind::LispError => "lisp_error",
-                ErrorKind::ParserError => "parser_error",
-                ErrorKind::Timeout => "timeout",
-                ErrorKind::Cancelled => "cancelled",
-            };
-            errors.push((kind_label, err.message.as_str()));
-        }
-    }
-
-    if errors.is_empty() {
-        eprintln!("[events] drained {} init-phase envelopes", envelopes.len());
-    } else {
-        eprintln!(
-            "[events] drained {} init-phase envelopes — {} error(s) during init (logged, NOT propagated to user cells):",
-            envelopes.len(),
-            errors.len(),
-        );
-        for (kind, message) in &errors {
-            eprintln!("    init {}: {}", kind, message);
-        }
-    }
-}
