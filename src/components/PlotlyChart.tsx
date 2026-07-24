@@ -19,6 +19,7 @@ interface PlotlySpec {
 
 export function PlotlyChart({ plotData }: PlotlyChartProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const [renderError, setRenderError] = useState<string | null>(null);
 
   const spec = useMemo<PlotlySpec | null>(() => {
     try {
@@ -33,6 +34,7 @@ export function PlotlyChart({ plotData }: PlotlyChartProps) {
 
   useEffect(() => {
     if (!containerRef.current || !spec) return;
+    setRenderError(null);
 
     const computedStyle = getComputedStyle(document.documentElement);
     const textColor = computedStyle.getPropertyValue("--text-primary").trim() || "#e0e0e0";
@@ -68,15 +70,34 @@ export function PlotlyChart({ plotData }: PlotlyChartProps) {
       modeBarButtonsToRemove: ["sendDataToCloud", "toImage", "lasso2d", "select2d"],
     };
 
-    Plotly.newPlot(containerRef.current, spec.data, layout, config).then(() => {
-      // Animated figures (ax-plots `animate(...)`) carry a top-level
-      // `frames` array plus layout.sliders / layout.updatemenus.  The
-      // slider steps reference frames by name; addFrames registers them
-      // so the play button and slider scrub actually animate.
-      if (containerRef.current && spec.frames && spec.frames.length > 0) {
-        Plotly.addFrames(containerRef.current, spec.frames);
+    // Track cancellation so a resolving/rejecting Plotly promise can't touch
+    // a container that was torn down (cell re-run, unmount) or set error state
+    // after this effect was cleaned up.
+    let cancelled = false;
+    const failed = (err: unknown) => {
+      console.error("[PlotlyChart] Failed to render plot", err);
+      if (!cancelled) {
+        setRenderError(err instanceof Error ? err.message : String(err));
       }
-    });
+    };
+
+    try {
+      Plotly.newPlot(containerRef.current, spec.data, layout, config)
+        .then(() => {
+          // Animated figures (ax-plots `animate(...)`) carry a top-level
+          // `frames` array plus layout.sliders / layout.updatemenus.  The
+          // slider steps reference frames by name; addFrames registers them
+          // so the play button and slider scrub actually animate.
+          if (cancelled || !containerRef.current) return;
+          if (spec.frames && spec.frames.length > 0) {
+            Plotly.addFrames(containerRef.current, spec.frames);
+          }
+        })
+        .catch(failed);
+    } catch (err) {
+      // Plotly can also throw synchronously (e.g. invalid trace data).
+      failed(err);
+    }
 
     // Resize Plotly charts for print: the print CSS changes the container
     // dimensions, so we need to tell Plotly to re-fit.
@@ -107,9 +128,14 @@ export function PlotlyChart({ plotData }: PlotlyChartProps) {
     window.addEventListener("afterprint", resizePlot);
 
     return () => {
+      cancelled = true;
       window.removeEventListener("beforeprint", resizePlot);
       window.removeEventListener("afterprint", resizePlot);
-      Plotly.purge(el);
+      try {
+        Plotly.purge(el);
+      } catch (err) {
+        console.error("[PlotlyChart] Failed to purge plot", err);
+      }
     };
   }, [spec]);
 
@@ -119,6 +145,9 @@ export function PlotlyChart({ plotData }: PlotlyChartProps) {
 
   return (
     <div className="plotly-chart">
+      {renderError && (
+        <div className="plot-error">Failed to render plot: {renderError}</div>
+      )}
       <div ref={containerRef} className="plotly-output" />
       {reactive && reactive.signals.length > 0 && (
         <ReactiveControls containerRef={containerRef} reactive={reactive} />
@@ -165,7 +194,13 @@ function ReactiveControls({ containerRef, reactive }: ReactiveControlsProps) {
       inflightRef.current = true;
       try {
         for (;;) {
-          const result = await setSignalAndReplot(reactive.view_id, name, value);
+          let result;
+          try {
+            result = await setSignalAndReplot(reactive.view_id, name, value);
+          } catch (err) {
+            console.warn("[PlotlyChart] set_signal_and_replot failed", err);
+            break;
+          }
           if (result.plot_data && containerRef.current) {
             try {
               const next = JSON.parse(result.plot_data) as PlotlySpec;

@@ -231,6 +231,12 @@ function renderMathText(el: HTMLElement, text: string) {
         i = end + 1;
         continue;
       }
+      // Unmatched `$` — emit it as a literal and advance one character.
+      // Without this, the plain-text branch below loops forever because
+      // indexOf("$", i) returns i again and we never advance.
+      el.appendChild(document.createTextNode("$"));
+      i++;
+      continue;
     }
     // Plain text until next $
     const next = text.indexOf("$", i);

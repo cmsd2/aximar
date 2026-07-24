@@ -3,6 +3,7 @@ import type { CellOutput as CellOutputType } from "../types/notebook";
 import { KatexOutput } from "./KatexOutput";
 import { RichTextOutput } from "./RichTextOutput";
 import { EnhancedErrorOutput } from "./EnhancedErrorOutput";
+import { ErrorBoundary } from "./ErrorBoundary";
 import { sanitizeSvg } from "../lib/sanitize-svg";
 import { PlotlyChart } from "./PlotlyChart";
 
@@ -83,7 +84,16 @@ export function CellOutput({ output, cellId }: CellOutputProps) {
           )}
         </div>
       )}
-      {hasPlotData && <PlotlyChart plotData={output.plotData!} />}
+      {hasPlotData && (
+        <ErrorBoundary
+          label="PlotlyChart"
+          fallback={(err) => (
+            <div className="plot-error">Failed to render plot: {err.message}</div>
+          )}
+        >
+          <PlotlyChart plotData={output.plotData!} />
+        </ErrorBoundary>
+      )}
       {hasPlot && plotBlobUrl && (
         <div className="plot-output">
           <img src={plotBlobUrl} alt="Plot output" />
