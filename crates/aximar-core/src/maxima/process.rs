@@ -1,5 +1,6 @@
 use std::env;
 use std::path::PathBuf;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, LazyLock};
 use std::time::{SystemTime, UNIX_EPOCH};
 use regex::Regex;
@@ -81,6 +82,16 @@ pub struct MaximaProcess {
     /// abort released the lock.
     #[cfg(unix)]
     cancel_write: Option<std::os::fd::OwnedFd>,
+
+    /// Set to `true` when this process has been killed. The protocol
+    /// layer's timeout fallback calls `kill()` directly without going
+    /// through the `Session` state machine, so `Session::Ready { … }`
+    /// would otherwise keep pointing at a dead child and `status()`
+    /// would keep reporting `Ready` even though every subsequent
+    /// stdin write returns `EPIPE`. The session layer reads this flag
+    /// in `begin_eval` / `end_eval` to transition state to `Error`
+    /// when the process is gone, restoring truthful status reporting.
+    dead: AtomicBool,
 }
 
 /// Current time in milliseconds since the Unix epoch.  Used by the
@@ -425,6 +436,7 @@ impl MaximaProcess {
             events_rx: events_rx_slot,
             #[cfg(unix)]
             cancel_write: cancel_write_slot,
+            dead: AtomicBool::new(false),
         };
 
         proc.initialize().await?;
@@ -1337,6 +1349,11 @@ impl MaximaProcess {
     }
 
     pub async fn kill(&mut self) -> Result<(), AppError> {
+        // Record intent first so observers see "dead" even if the underlying
+        // OS kill fails or the result is discarded by the caller (the
+        // protocol layer uses `let _ = process.kill().await`).
+        self.dead.store(true, Ordering::Release);
+
         self.child.kill().await.map_err(AppError::Io)?;
 
         // For Docker/Podman, also force-remove the container as a safety net
@@ -1350,6 +1367,15 @@ impl MaximaProcess {
         }
 
         Ok(())
+    }
+
+    /// Returns `true` if this process has been killed. The flag is set by
+    /// `kill()` before any I/O so it's observable as soon as the kill is
+    /// requested, regardless of whether the caller awaits the result. The
+    /// session layer consults this to detect mid-flight kills initiated by
+    /// the protocol layer's timeout fallback.
+    pub fn is_dead(&self) -> bool {
+        self.dead.load(Ordering::Acquire)
     }
 
     pub fn backend(&self) -> &Backend {

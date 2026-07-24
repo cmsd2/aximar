@@ -49,17 +49,44 @@ impl Session {
     }
 
     /// Ready → Busy. Returns the new state, or the original state with an error.
+    ///
+    /// If the process has been killed (e.g. by the protocol layer's timeout
+    /// fallback) the state moves to `Error` instead of `Busy` — the
+    /// `Session::Ready` we were holding pointed at a dead child whose stdin
+    /// pipe is closed, so any attempt to start an eval on it would just
+    /// return `Broken pipe`. Surfacing the death up front gives the caller a
+    /// clear `ProcessNotRunning` and pushes the status atomic to `Error` so
+    /// `SessionManager::status()` stops lying about the session.
     fn begin_eval(self) -> Result<Self, (Self, AppError)> {
         match self {
+            Session::Ready { process } if process.is_dead() => {
+                drop(process);
+                Err((
+                    Session::Error(
+                        "Maxima process is no longer running (likely killed by an eval timeout). Call restart_session.".to_string(),
+                    ),
+                    AppError::ProcessNotRunning,
+                ))
+            }
             Session::Ready { process } => Ok(Session::Busy { process }),
             session @ Session::Busy { .. } => Err((session, AppError::SessionBusy)),
             other => Err((other, AppError::ProcessNotRunning)),
         }
     }
 
-    /// Busy → Ready. No-op if not Busy.
+    /// Busy → Ready, unless the process was killed during the evaluation
+    /// (e.g. by the protocol layer's timeout fallback) in which case the
+    /// session transitions to `Error`. Without this branch the dead process
+    /// would silently be reinstated as `Ready` and the next stdin write
+    /// would surface as `Broken pipe`. No-op for any non-Busy variant.
     fn end_eval(self) -> Self {
         match self {
+            Session::Busy { process } if process.is_dead() => {
+                drop(process);
+                Session::Error(
+                    "Maxima process was killed during evaluation (likely an eval timeout). Call restart_session.".to_string(),
+                )
+            }
             Session::Busy { process } => Session::Ready { process },
             other => other,
         }
@@ -215,6 +242,13 @@ pub struct SessionGuard<'a> {
 
 impl<'a> SessionGuard<'a> {
     /// Transition Ready → Busy, returning a mutable reference to the process.
+    ///
+    /// The status atomic is synced on **both** branches.  The success branch
+    /// mirrors `Ready → Busy`; the failure branch mirrors whatever new state
+    /// `begin_eval` decided on (e.g. our dead-process detection transitions
+    /// `Ready { dead } → Error`, and that transition has to make it into the
+    /// atomic too or `SessionManager::status()` keeps reporting the old
+    /// `Ready` and `ensure_session` short-circuits the auto-restart path).
     pub fn try_begin_eval(&mut self) -> Result<&mut MaximaProcess, AppError> {
         let old = std::mem::replace(&mut *self.guard, Session::Stopped);
         match old.begin_eval() {
@@ -228,6 +262,7 @@ impl<'a> SessionGuard<'a> {
             }
             Err((restored, err)) => {
                 *self.guard = restored;
+                sync_status(self.status_code, self.error_message, &*self.guard);
                 Err(err)
             }
         }
@@ -240,9 +275,13 @@ impl<'a> SessionGuard<'a> {
         sync_status(self.status_code, self.error_message, &*self.guard);
     }
 
-    /// Get a mutable reference to the process if Ready.
+    /// Get a mutable reference to the process if Ready. A `Ready` variant
+    /// whose process has been killed (mid-flight protocol-layer kill) is
+    /// reported as `ProcessNotRunning` so non-eval callers (variables
+    /// query, etc.) don't try to write to a closed pipe.
     pub fn process_mut(&mut self) -> Result<&mut MaximaProcess, AppError> {
         match &mut *self.guard {
+            Session::Ready { process } if process.is_dead() => Err(AppError::ProcessNotRunning),
             Session::Ready { process } => Ok(process),
             Session::Busy { .. } => Err(AppError::SessionBusy),
             _ => Err(AppError::ProcessNotRunning),
