@@ -481,8 +481,13 @@ export function DocsPanel({ open, functionName, requestId, onClose }: DocsPanelP
                 </ReactMarkdown>
               </div>
             ) : (
-              <div className="docs-no-content">
-                <p>{currentFunction.description}</p>
+              <div className="docs-no-content docs-markdown-body">
+                <ReactMarkdown
+                  remarkPlugins={[remarkGfm, remarkMath]}
+                  rehypePlugins={[rehypeKatex]}
+                >
+                  {currentFunction.description}
+                </ReactMarkdown>
               </div>
             )}
 
