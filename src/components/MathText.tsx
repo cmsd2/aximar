@@ -79,6 +79,17 @@ function splitMath(text: string): Part[] {
         i = end + 1;
         continue;
       }
+      // Unmatched `$` — emit as a literal and advance one character.
+      // Without this, the plain-text branch below loops forever because
+      // indexOf("$", i) returns i again and we never advance.
+      const last = parts[parts.length - 1];
+      if (last && last.type === "text") {
+        last.content += "$";
+      } else {
+        parts.push({ type: "text", content: "$" });
+      }
+      i++;
+      continue;
     }
 
     // Plain text — accumulate until next $
