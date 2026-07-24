@@ -1458,13 +1458,18 @@ ax__emit_plotly_with_meta(traces, layout, reactive_json) := block(
     body: sconcat(body, ",\"_reactive\":", reactive_json),
   json: sconcat("{", body, "}"),
   if ax__kernel_events_loaded_p() then
-    emit_display([["application/x-maxima-plotly", json]]),
-  path: ax__mktemp(),
-  stream: openw(path),
-  printf(stream, "~a", json),
-  close(stream),
-  /* Print the path so the Aximar parser can find and read the file */
-  print(path))$
+    /* Wired host: deliver via display envelope only; the printed
+       path would leak into the cell's text output. */
+    emit_display([["application/x-maxima-plotly", json]])
+  else (
+    /* Legacy host: write to a temp file and print the path so the
+       stdout-scrape parser can find and read the file. */
+    path: ax__mktemp(),
+    stream: openw(path),
+    printf(stream, "~a", json),
+    close(stream),
+    print(path)
+  ))$
 
 /* ========================================================================
  * Reactive views: detect signals, resolve them for sampling, emit
@@ -1862,12 +1867,16 @@ ax__emit_plotly_animated(traces, layout, frames_jsons) := block(
     "\"layout\":",   layout, ",",
     "\"frames\":",   ax__json_list(frames_jsons), "}"),
   if ax__kernel_events_loaded_p() then
-    emit_display([["application/x-maxima-plotly", json]]),
-  path: ax__mktemp(),
-  stream: openw(path),
-  printf(stream, "~a", json),
-  close(stream),
-  print(path))$
+    /* Wired host: deliver via display envelope only. */
+    emit_display([["application/x-maxima-plotly", json]])
+  else (
+    /* Legacy host: write to a temp file and print the path. */
+    path: ax__mktemp(),
+    stream: openw(path),
+    printf(stream, "~a", json),
+    close(stream),
+    print(path)
+  ))$
 
 /* ========================================================================
  * Public API: ax_draw2d, ax_draw3d, ax_plot2d

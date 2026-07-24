@@ -177,11 +177,10 @@ pub fn apply_eval_result_envelopes(
     // SVG plots: when the user called plot2d / plot3d, the return
     // value is the list of generated file paths, e.g.
     //   ["/tmp/foo.gnuplot","/tmp/maxplot.svg"]
-    // rendered into mime_bundle["text/plain"] by mgrind.  Pull the
-    // .svg path out, validate it, read the file.  This is the
-    // envelope-driven counterpart of the legacy parser's stdout
-    // scrape, and it works regardless of whether the user terminated
-    // with `;` or `$` because the envelope always carries the value.
+    // rendered into mime_bundle["text/plain"] by mgrind.  Read the
+    // SVG file and inline its contents on `EvalResult.plot_svg` so
+    // the frontend can render it directly — no asset-protocol scope
+    // needed.  (Mirrors the legacy stdout-scrape path's behaviour.)
     if let Some(text_plain) = user_last
         .mime_bundle
         .get("text/plain")
@@ -198,10 +197,9 @@ pub fn apply_eval_result_envelopes(
             }
         }
         // PNG / JPG plots — np_imshow returns a file path string;
-        // same path-extraction pattern as SVG but base64-encoded so
-        // it slots straight into EvalResult.image_png.
-        if let Some(png_b64) = legacy_parser::extract_image_from_text(text_plain, backend) {
-            result.image_png = Some(png_b64);
+        // read and base64-encode for inline display via data: URL.
+        if let Some(png) = legacy_parser::extract_image_from_text(text_plain, backend) {
+            result.image_png = Some(png);
             if let Some(ref l) = result.latex {
                 if l.contains(".png") || l.contains(".jpg") || l.contains(".jpeg") {
                     result.latex = None;
@@ -220,22 +218,3 @@ pub fn apply_eval_result_envelopes(
 ) {
 }
 
-/// Phase A.1: log what came in on the events channel during an eval
-/// so we can validate the drain end-to-end before any envelope type
-/// starts feeding into EvalResult.  Off when no envelopes arrived
-/// (kernel-events not enabled / not installed) to keep stderr quiet.
-#[cfg(unix)]
-pub fn log_envelope_summary(cell_id: &str, envelopes: &[Envelope]) {
-    if envelopes.is_empty() {
-        return;
-    }
-    let mut kinds: std::collections::BTreeMap<&'static str, usize> =
-        std::collections::BTreeMap::new();
-    for env in envelopes {
-        *kinds.entry(env.kind_label()).or_insert(0) += 1;
-    }
-    eprintln!("[events] cell={} envelopes={:?}", cell_id, kinds);
-}
-
-#[cfg(not(unix))]
-pub fn log_envelope_summary(_cell_id: &str, _envelopes: &[()]) {}

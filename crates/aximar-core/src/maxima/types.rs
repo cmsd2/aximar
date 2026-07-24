@@ -1,10 +1,12 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct EvalResult {
     pub cell_id: String,
     pub text_output: String,
     pub latex: Option<String>,
+    /// Inline SVG content, read from the file Maxima wrote.  Populated by
+    /// both the legacy stdout-scrape parser and the envelope overlay.
     pub plot_svg: Option<String>,
     pub plot_data: Option<String>,
     /// Base64-encoded PNG image data (from np_imshow)

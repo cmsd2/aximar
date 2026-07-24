@@ -328,14 +328,8 @@ mod tests {
             cell_id: "test".into(),
             text_output: text.into(),
             latex: latex.map(String::from),
-            plot_svg: None,
-            plot_data: None,
-            image_png: None,
-            error: None,
-            error_info: None,
-            is_error: false,
             duration_ms: 100,
-            output_label: None,
+            ..EvalResult::default()
         }
     }
 
@@ -369,16 +363,10 @@ mod tests {
     fn test_error_no_suggestions() {
         let result = EvalResult {
             cell_id: "test".into(),
-            text_output: "".into(),
-            latex: None,
-            plot_svg: None,
-            plot_data: None,
-            image_png: None,
             error: Some("error".into()),
-            error_info: None,
             is_error: true,
             duration_ms: 100,
-            output_label: None,
+            ..EvalResult::default()
         };
         let suggestions = suggestions_for_output("bad(", &result);
         assert!(suggestions.is_empty());

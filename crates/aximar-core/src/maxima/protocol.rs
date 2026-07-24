@@ -7,28 +7,41 @@ use crate::error::AppError;
 
 /// Build the stdin write for one cell evaluation.
 ///
-/// On the kernel-events-wired path the input is just the user's
-/// expression: latex, output_label, and plot-path detection all come
-/// from envelopes (eval_result mime_bundle and display envelopes),
-/// termination comes from eval_end envelope count, and the host
-/// never reads stdout for content.  No housekeeping prints needed.
+/// `sentinel = None` selects the kernel-events-wired path: the input
+/// is just the user's expression.  latex, output_label, and plot-path
+/// detection all come from envelopes (eval_result mime_bundle and
+/// display envelopes), termination comes from eval_end envelope count,
+/// and the host never reads stdout for content.  No housekeeping
+/// prints needed.
 ///
-/// On the legacy stdout-parsing path the input adds three statements
-/// the parser depends on:
+/// `sentinel = Some(s)` selects the legacy stdout-parsing path: the
+/// input adds three statements the parser depends on:
 ///   - `tex(%);` so it can extract LaTeX from $$..$$ blocks and
 ///     plot file paths from \mbox{} blocks;
 ///   - `print("__AXIMAR_LABEL__", linenum)$` so it can correlate
 ///     the cell with Maxima's %oN output label;
 ///   - `print("<sentinel>")$` as the read terminator (per-eval
 ///     unique so user content can't accidentally trigger it).
-fn build_eval_input(expr: &str, sentinel: &str, wired: bool) -> String {
-    if wired {
-        format!("{}\n", expr)
-    } else {
-        format!(
+fn build_eval_input(expr: &str, sentinel: Option<&str>) -> String {
+    match sentinel {
+        None => format!("{}\n", expr),
+        Some(s) => format!(
             "{}\ntex(%);\nprint(\"__AXIMAR_LABEL__\", linenum)$\nprint(\"{}\")$\n",
-            expr, sentinel
-        )
+            expr, s
+        ),
+    }
+}
+
+/// Build the stdin write for an internal-protocol command (variables
+/// query, kill, kill-all).  On the wired path the action is the
+/// entire input — eval_end envelope count signals completion, no
+/// sentinel print needed.  On the legacy path a `print("<sentinel>")$`
+/// is appended so the stdout substring-match read knows where to stop.
+fn build_internal_input(action: &str, wired: bool) -> String {
+    if wired {
+        format!("{}\n", action)
+    } else {
+        format!("{}\nprint(\"{}\")$\n", action, VARS_SENTINEL)
     }
 }
 
@@ -37,17 +50,55 @@ fn build_eval_input(expr: &str, sentinel: &str, wired: bool) -> String {
 /// or current cell output — eliminates the substring-match leak that
 /// the static `__AXIMAR_EVAL_END__` was vulnerable to (a user's own
 /// `print("__AXIMAR_EVAL_END__")` would trip the legacy reader).
+///
+/// Called only on the legacy path — the wired path drives termination
+/// off `eval_end` envelope count and never prints a sentinel.
 fn next_eval_sentinel() -> String {
     static COUNTER: AtomicU64 = AtomicU64::new(0);
     let n = COUNTER.fetch_add(1, Ordering::Relaxed);
     format!("__AXIMAR_EVAL_END_{:016x}__", n)
+}
+
+/// Phase A.3: build an `EvalResult` on the wired path without calling
+/// the legacy stdout parser.  Envelope overlays are authoritative for
+/// latex / plot_* / output_label / error / is_error / error_info, so
+/// the only field the wired path still needs to assemble itself is
+/// `text_output` from the user's side-effect stdout (print / user
+/// tex() / etc.).
+///
+/// The input on the wired path carries no housekeeping prints, so the
+/// envelope output lines need no per-line filtering beyond the
+/// gnuplot-warning skip that the legacy parser also applies (these
+/// warnings leak directly to stdout from gnuplot and aren't part of
+/// the Maxima conversation).
+fn build_envelope_eval_result(
+    cell_id: &str,
+    output_lines: &[String],
+    duration_ms: u64,
+) -> EvalResult {
+    let text_output = output_lines
+        .iter()
+        .filter(|line| {
+            let t = line.trim();
+            !(t.contains("warning:") && t.contains(".gnuplot"))
+        })
+        .filter(|line| !line.trim().is_empty())
+        .cloned()
+        .collect::<Vec<_>>()
+        .join("\n");
+
+    EvalResult {
+        cell_id: cell_id.to_string(),
+        text_output,
+        duration_ms,
+        ..EvalResult::default()
+    }
 }
 #[cfg(unix)]
 use crate::maxima::envelope::types::Envelope;
 use crate::maxima::envelope::drain::drive_with_envelope_drain;
 use crate::maxima::envelope::overlay::{
     apply_display_envelopes, apply_error_envelopes, apply_eval_result_envelopes,
-    log_envelope_summary,
 };
 use crate::maxima::legacy::parser;
 use crate::maxima::process::MaximaProcess;
@@ -88,19 +139,27 @@ pub async fn evaluate(
     // eval_result.text/plain.  On the legacy stdout path the
     // housekeeping prints stay because the parser needs the tex(%)
     // latex, the LABEL stdout line, and the EVAL_END sentinel.
-    let sentinel = next_eval_sentinel();
-    let input = build_eval_input(&expr, &sentinel, process.has_events_channel());
+    let wired = process.has_events_channel();
+    let sentinel = if wired { None } else { Some(next_eval_sentinel()) };
+    let input = build_eval_input(&expr, sentinel.as_deref());
 
     process.write_stdin(&input).await?;
 
-    let (lines, envelopes) =
-        run_eval_read_with_envelope_drain(process, &input, &sentinel, eval_timeout_secs).await?;
-
-    log_envelope_summary(cell_id, &envelopes);
+    let (lines, envelopes) = run_eval_read_with_envelope_drain(
+        process,
+        &input,
+        sentinel.as_deref(),
+        eval_timeout_secs,
+    )
+    .await?;
 
     let duration_ms = start.elapsed().as_millis() as u64;
 
-    let mut result = parser::parse_output(cell_id, &lines, duration_ms, catalog, process.backend());
+    let mut result = if wired {
+        build_envelope_eval_result(cell_id, &lines, duration_ms)
+    } else {
+        parser::parse_output(cell_id, &lines, duration_ms, catalog, process.backend())
+    };
     apply_error_envelopes(&mut result, &envelopes, catalog, None)?;
     apply_display_envelopes(&mut result, &envelopes);
     apply_eval_result_envelopes(&mut result, &envelopes, emit_latex, process.backend());
@@ -133,21 +192,34 @@ pub async fn evaluate_with_packages(
     };
     let (expr, emit_latex) = suppress_display(&expr);
 
-    let sentinel = next_eval_sentinel();
-    let input = build_eval_input(&expr, &sentinel, process.has_events_channel());
+    let wired = process.has_events_channel();
+    let sentinel = if wired { None } else { Some(next_eval_sentinel()) };
+    let input = build_eval_input(&expr, sentinel.as_deref());
 
     process.write_stdin(&input).await?;
 
-    let (lines, envelopes) =
-        run_eval_read_with_envelope_drain(process, &input, &sentinel, eval_timeout_secs).await?;
-
-    log_envelope_summary(cell_id, &envelopes);
+    let (lines, envelopes) = run_eval_read_with_envelope_drain(
+        process,
+        &input,
+        sentinel.as_deref(),
+        eval_timeout_secs,
+    )
+    .await?;
 
     let duration_ms = start.elapsed().as_millis() as u64;
 
-    let mut result = parser::parse_output_with_packages(
-        cell_id, &lines, duration_ms, catalog, packages, process.backend(),
-    );
+    let mut result = if wired {
+        build_envelope_eval_result(cell_id, &lines, duration_ms)
+    } else {
+        parser::parse_output_with_packages(
+            cell_id,
+            &lines,
+            duration_ms,
+            catalog,
+            packages,
+            process.backend(),
+        )
+    };
     apply_error_envelopes(&mut result, &envelopes, catalog, Some(packages))?;
     apply_display_envelopes(&mut result, &envelopes);
     apply_eval_result_envelopes(&mut result, &envelopes, emit_latex, process.backend());
@@ -157,70 +229,69 @@ pub async fn evaluate_with_packages(
     Ok(result)
 }
 
-/// Phase A.2: drive the eval read with a fence between stdout and
-/// envelopes.  The eval input ends with `print("<sentinel>")$` where
-/// `<sentinel>` is per-eval unique.  When that print's text lands on
-/// stdout and its `eval_end` envelope lands on the mpsc, both streams
-/// have caught up to the same point in Maxima's processing — that's
-/// the fence.  No wall-clock timeouts needed for coordination; both
-/// signals are structural ("Maxima eval-hooks emitted the envelope"
-/// and "Maxima's print() wrote the line to stdout").
+/// Drive the eval read on the wired or legacy path.
 ///
-/// On non-wired sessions (kernel-events disabled, Docker / WSL),
-/// falls back to the legacy `read_until_sentinel` path.
+/// `sentinel = None` (wired): single-source envelope-only.  Background
+/// drain owns stdout/stderr; eval read only watches the envelope mpsc.
+/// `eval_end` envelope count signals completion; text content and
+/// termination both come from one stream (kernel-events fd-3),
+/// ordered by the kernel's serial emission.
+///
+/// `sentinel = Some(s)` (legacy): substring-match on stdout looking
+/// for the unique per-eval sentinel.  No envelopes flow on this
+/// branch in practice.
 async fn run_eval_read_with_envelope_drain(
     process: &mut MaximaProcess,
     input: &str,
-    sentinel: &str,
+    sentinel: Option<&str>,
     eval_timeout_secs: u64,
 ) -> Result<(Vec<String>, Vec<Envelope>), AppError> {
     let mut events_rx = process.take_events_rx();
 
-    if events_rx.is_some() {
-        // Single-source envelope-only path.  Background drain owns
-        // stdout/stderr; eval read only watches the envelope mpsc.
-        // No fence needed — text content and termination signal
-        // both come from one stream (kernel-events fd-3), ordered
-        // by the kernel's serial emission.
-        let expected_count = find_terminators(input).len();
-        let timeout_result = tokio::time::timeout(
-            std::time::Duration::from_secs(eval_timeout_secs),
-            process.read_n_eval_ends_envelope_only(expected_count, &mut events_rx),
-        )
-        .await;
-        let read_result = match timeout_result {
-            Ok(res) => res,
-            Err(_) => {
-                process.restore_events_rx(events_rx);
-                // Background drain owns stdout, so we can't use it
-                // for the regroup marker — kill the process instead.
-                // Cancel transport could be used if the user code
-                // calls check_cancel; this is the timeout fallback.
-                let _ = process.kill().await;
-                return Err(AppError::Timeout(eval_timeout_secs));
-            }
-        };
-        process.restore_events_rx(events_rx);
-        read_result
-    } else {
-        // Legacy path: substring match on the sentinel in stdout.
-        // No envelopes flow on this branch.
-        let timeout_result = tokio::time::timeout(
-            std::time::Duration::from_secs(eval_timeout_secs),
-            drive_with_envelope_drain(process.read_until_sentinel(sentinel), &mut events_rx),
-        )
-        .await;
-        let (read_result, envelopes) = match timeout_result {
-            Ok((rr, env)) => (rr, env),
-            Err(_) => {
-                process.restore_events_rx(events_rx);
-                process.interrupt_and_resync(sentinel).await;
-                return Err(AppError::Timeout(eval_timeout_secs));
-            }
-        };
-        process.restore_events_rx(events_rx);
-        let (lines, _prompt) = read_result?;
-        Ok((lines, envelopes))
+    match sentinel {
+        None => {
+            // Wired: count top-level eval_ends to expect from the
+            // input we just wrote, then await that many envelopes.
+            let expected_count = find_terminators(input).len();
+            let timeout_result = tokio::time::timeout(
+                std::time::Duration::from_secs(eval_timeout_secs),
+                process.read_n_eval_ends_envelope_only(expected_count, &mut events_rx),
+            )
+            .await;
+            let read_result = match timeout_result {
+                Ok(res) => res,
+                Err(_) => {
+                    process.restore_events_rx(events_rx);
+                    // Background drain owns stdout, so we can't use
+                    // it for a regroup marker — kill the process
+                    // instead.  Cancel transport could be used if the
+                    // user code calls check_cancel; this is the
+                    // timeout fallback.
+                    let _ = process.kill().await;
+                    return Err(AppError::Timeout(eval_timeout_secs));
+                }
+            };
+            process.restore_events_rx(events_rx);
+            read_result
+        }
+        Some(s) => {
+            let timeout_result = tokio::time::timeout(
+                std::time::Duration::from_secs(eval_timeout_secs),
+                drive_with_envelope_drain(process.read_until_sentinel(s), &mut events_rx),
+            )
+            .await;
+            let (read_result, envelopes) = match timeout_result {
+                Ok((rr, env)) => (rr, env),
+                Err(_) => {
+                    process.restore_events_rx(events_rx);
+                    process.interrupt_and_resync(s).await;
+                    return Err(AppError::Timeout(eval_timeout_secs));
+                }
+            };
+            process.restore_events_rx(events_rx);
+            let (lines, _prompt) = read_result?;
+            Ok((lines, envelopes))
+        }
     }
 }
 
@@ -235,23 +306,18 @@ async fn run_eval_read_with_envelope_drain(
 async fn read_internal_until_sentinel(
     process: &mut MaximaProcess,
     sentinel: &str,
+    expected_wired_eval_count: usize,
     timeout_secs: u64,
 ) -> Result<Vec<String>, AppError> {
     // Single-source: on the wired path, background drain owns
-    // stdout/stderr, so we must read envelopes instead.  Internal
-    // commands' inputs are at most 2 top-level evals (the kill or
-    // values print + the sentinel print), so count eval_ends rather
-    // than scanning stdout text.
+    // stdout/stderr, so we read envelopes instead.  Caller passes
+    // the number of top-level eval_ends to wait for — matches the
+    // count of `;`/`$` terminators in the input it wrote.
     if process.has_events_channel() {
         let mut events_rx = process.take_events_rx();
-        // Internal commands aren't perfectly statement-counted by
-        // their callers, so use a defensive fixed count: 2 (the
-        // primary action statement + the sentinel print).
-        // query_variables and kill_* all match this shape.
-        let expected_count = 2;
         let timeout_result = tokio::time::timeout(
             std::time::Duration::from_secs(timeout_secs),
-            process.read_n_eval_ends_envelope_only(expected_count, &mut events_rx),
+            process.read_n_eval_ends_envelope_only(expected_wired_eval_count, &mut events_rx),
         )
         .await;
         let read_result = match timeout_result {
@@ -333,32 +399,27 @@ pub async fn query_variables(process: &mut MaximaProcess) -> Result<Vec<String>,
 }
 
 /// Envelope path (Phase B.3): call `emit_vars()` and consume the
-/// resulting `vars` envelope directly.  No stdout parsing.
-///
-/// Still uses a sentinel print as the read terminator so we know when
-/// emission is complete and we can stop draining envelopes — eventually
-/// (Phase A.2) the `eval_end` envelope can play that role and the
-/// VARS_SENTINEL goes away too.
+/// resulting `vars` envelope directly.  No stdout parsing, no
+/// sentinel print — the `eval_end` envelope for `emit_vars()` itself
+/// signals completion on the single-source wired path.
 #[cfg(unix)]
 async fn query_variables_envelope(
     process: &mut MaximaProcess,
 ) -> Result<Vec<String>, AppError> {
     use crate::maxima::envelope::types::Envelope;
 
-    // emit_vars() fires a `vars` envelope through the fd-3 sink.
-    // The terminator print gives the envelope-count read a second
-    // top-level eval to wait for.
-    let input = format!("emit_vars()$\nprint(\"{}\")$\n", VARS_SENTINEL);
-    process.write_stdin(&input).await?;
+    // emit_vars() fires a `vars` envelope through the fd-3 sink and
+    // an `eval_end` envelope when it returns.
+    let input = "emit_vars()$\n";
+    process.write_stdin(input).await?;
 
     let mut events_rx = process.take_events_rx();
 
-    // Single-source: 2 eval_end envelopes — emit_vars() and the
-    // sentinel print.  No stdout reads (background drain owns the
-    // pipe on the wired path).
+    // Single-source: 1 eval_end envelope — just emit_vars().  No
+    // stdout reads (background drain owns the pipe on the wired path).
     let timeout_result = tokio::time::timeout(
         std::time::Duration::from_secs(VARS_TIMEOUT_SECS),
-        process.read_n_eval_ends_envelope_only(2, &mut events_rx),
+        process.read_n_eval_ends_envelope_only(1, &mut events_rx),
     )
     .await;
 
@@ -420,18 +481,19 @@ async fn query_variables_envelope(
 async fn query_variables_legacy(
     process: &mut MaximaProcess,
 ) -> Result<Vec<String>, AppError> {
-    let input = format!(
-        // `$` on the VARS_END print so its return value (the printed
-        // string itself) isn't displayed and left as an orphan
-        // sentinel-looking line for the next read to trip on.
-        "print(\"{}\", values)$\nprint(\"{}\")$\n",
-        VARS_START, VARS_SENTINEL
-    );
+    let action = format!("print(\"{}\", values)$", VARS_START);
+    let input = build_internal_input(&action, process.has_events_channel());
 
     process.write_stdin(&input).await?;
 
-    let lines =
-        read_internal_until_sentinel(process, VARS_SENTINEL, VARS_TIMEOUT_SECS).await?;
+    let expected_count = find_terminators(&input).len();
+    let lines = read_internal_until_sentinel(
+        process,
+        VARS_SENTINEL,
+        expected_count,
+        VARS_TIMEOUT_SECS,
+    )
+    .await?;
 
     // Find __AXIMAR_VARS__ and parse the variable list.
     // Maxima may wrap long lists across multiple lines, so join them first.
@@ -466,15 +528,18 @@ pub async fn kill_variable(process: &mut MaximaProcess, name: &str) -> Result<()
         )));
     }
 
-    let input = format!(
-        // `$` on the sentinel print — see suppress_display rationale
-        // in the VARS_START format above.
-        "kill({})$\nprint(\"{}\")$\n",
-        name, VARS_SENTINEL
-    );
+    let action = format!("kill({})$", name);
+    let input = build_internal_input(&action, process.has_events_channel());
 
     process.write_stdin(&input).await?;
-    read_internal_until_sentinel(process, VARS_SENTINEL, VARS_TIMEOUT_SECS).await?;
+    let expected_count = find_terminators(&input).len();
+    read_internal_until_sentinel(
+        process,
+        VARS_SENTINEL,
+        expected_count,
+        VARS_TIMEOUT_SECS,
+    )
+    .await?;
     Ok(())
 }
 
@@ -482,14 +547,18 @@ pub async fn kill_all_variables(process: &mut MaximaProcess) -> Result<(), AppEr
     // Kill user variables but preserve ax__ internal variables used by
     // Aximar's plotting functions (ax__layout_option_names, etc.).
     // Uses ssearch from stringproc (loaded during session init by ax_plotting.mac).
-    let input = format!(
-        // `$` on the sentinel print — see VARS_START format above.
-        "block([ax__kill_list], ax__kill_list: sublist(values, lambda([v], not is(ssearch(\"ax__\", string(v)) = 1))), apply(kill, ax__kill_list))$\nprint(\"{}\")$\n",
-        VARS_SENTINEL
-    );
+    let action = "block([ax__kill_list], ax__kill_list: sublist(values, lambda([v], not is(ssearch(\"ax__\", string(v)) = 1))), apply(kill, ax__kill_list))$";
+    let input = build_internal_input(action, process.has_events_channel());
 
     process.write_stdin(&input).await?;
-    read_internal_until_sentinel(process, VARS_SENTINEL, VARS_TIMEOUT_SECS).await?;
+    let expected_count = find_terminators(&input).len();
+    read_internal_until_sentinel(
+        process,
+        VARS_SENTINEL,
+        expected_count,
+        VARS_TIMEOUT_SECS,
+    )
+    .await?;
     Ok(())
 }
 
