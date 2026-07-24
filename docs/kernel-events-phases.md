@@ -23,8 +23,12 @@ Aximar runs one of two pipelines per session:
   Lives in `crates/aximar-core/src/maxima/envelope/`.
 
 Selection is `MaximaProcess::has_events_channel()`, which is true only
-when **all** of these hold: Unix, a backend that inherits fds (not
-Docker / WSL / SSH), and `AXIMAR_KERNEL_EVENTS` set truthy.
+when **all** of these hold: Unix, `Backend::Local` (Docker and WSL
+don't inherit fd 3 — see [Deferred](#deferred-alternative-transports-for-docker--wsl)),
+and `AXIMAR_KERNEL_EVENTS` set truthy.
+
+(`Backend` is `Local | Docker | Wsl`. Some code comments mention SSH;
+there is no SSH backend.)
 
 **The wired path is opt-in and off by default.** Everything below in
 "Landed" is dark code in a default build.
@@ -96,11 +100,12 @@ gating step; until then none of the above ships to users.
 
 Two things to settle first:
 
-1. **Docker / WSL / SSH can't inherit fd 3.** Those backends stay
-   legacy regardless, so flipping the default does not retire the
-   legacy path — it makes the dual-path maintenance burden permanent
-   unless those backends get a different transport (a socket, or
-   envelopes multiplexed over stdout with a framing marker).
+1. **Docker and WSL can't inherit fd 3.** Those backends stay legacy
+   regardless, so flipping the default does not retire the legacy path
+   — the dual-path maintenance burden becomes permanent until they get
+   a different transport. That work is scoped below and **postponed**;
+   it is not a blocker for flipping the default, just a reason the
+   legacy path can't be deleted afterwards.
 2. **Coverage is thin for a default, and quiet about it.** 12 smoke
    tests plus the 35 Maxima-backed `ax_plotting` tests are the whole
    automated story — and the smoke tests pass vacuously unless
@@ -148,13 +153,112 @@ channel emits a full notebook snapshot per event, so *n* chunks would
 ship the notebook *n* times. It needs an append-style per-cell event,
 in the shape `maxima-output` and `maxima-event` already use.
 
+## Deferred: alternative transports for Docker / WSL
+
+**Status: postponed.** Scoped here so the analysis isn't redone.
+Nothing below is started.
+
+The framing "those backends are stuck on text parsing" overstates the
+problem. The blocker is not in the kernel package.
+
+### The constraint is thinner than it looks
+
+`kernel-events/lisp/sink.lisp` defines a sink as *any function taking
+an envelope*, and its own docstring anticipates several transports:
+
+> *"fd-3 transport … HTTP+SSE host … tests: accumulate into a list …
+> file logger: append to a file"*
+
+Aximar's init prelude (`maxima/process.rs`, the `lisp` string inside
+`MaximaProcess::events_init_snippet`) constructs the fd-3 stream
+**itself, in Lisp**, then registers a closure over it:
+
+```lisp
+(let* ((fd (parse-integer (sb-ext:posix-getenv "MAXIMA_EVENTS_FD")))
+       (out (sb-sys:make-fd-stream fd :output t ...)))
+  (register-sink (lambda (env) (write-line (envelope-to-json env) out) ...)))
+```
+
+So a different transport means editing that one string and adding a
+host-side reader that feeds the same
+`mpsc::UnboundedSender<Envelope>`. Everything downstream — the
+overlays, `EnvelopeObserver`, `read_n_eval_ends_envelope_only` — is
+transport-blind and needs no change. **No change to kernel-events
+either.**
+
+### Option A — file sink in the directory Docker already mounts
+
+Docker already bind-mounts host `host_temp_dir()` → container
+`/tmp/aximar` read-write; plot SVG/PNG files already travel that way.
+
+- Lisp: `(open "/tmp/aximar/events-<session>.jsonl" :direction :output
+  :if-exists :append)` in place of `make-fd-stream`.
+- Host: tail that file into the existing envelope channel.
+
+Decisive advantage: **no change to the container's security posture.**
+
+### Option B — socket — ruled out for Docker
+
+Theoretically nicer (low latency, bidirectional, could carry cancel
+too), but the container is spawned with:
+
+```
+--network none  --memory 512m  --security-opt seccomp=<custom>  --rm
+```
+
+A socket needs that isolation removed. Giving a container running
+untrusted user input a network path so telemetry can escape is a bad
+trade. Ruled out for Docker; still viable for WSL or a future remote
+backend.
+
+### Option C — multiplex over stdout — the eventual unifier
+
+A sink that writes framed lines to stdout, demuxed by the background
+drain that already owns stdout on the wired path. Works on every
+backend with no mount, no socket, no config — it would *delete* the
+branch rather than adding a third one.
+
+Framing risk is manageable (per-session random marker + base64 payload
+means no user byte can forge a frame; the codebase already uses
+per-eval unique sentinels for the same reason).
+
+The trap: kernel-events wraps stdout to produce `output` envelopes,
+and `sink.lisp` warns explicitly that writing to stdout from a sink
+"may be in an output-wrapper context and that would infinite-loop". A
+stdout sink must hold the **raw pre-wrap stream** captured at init,
+never `*standard-output*`.
+
+### If resumed
+
+Start with **A** for Docker and WSL: smallest diff, reuses existing
+plumbing, no security regression. Keep **C** in mind as the thing that
+eventually removes the special case entirely.
+
+Two things to settle before writing code:
+
+1. **Latency.** A polled tail adds interval-sized delay to every
+   envelope, and the `eval_end` termination fence is sensitive to it.
+   Use `notify` rather than a sleep loop, and measure. A FIFO would be
+   lower latency but is unreliable over Docker Desktop's VirtioFS on
+   macOS — plain append-file is the portable choice.
+2. **The cancel channel has the same gap.** fd 4 is equally
+   uninheritable, so Docker/WSL would get envelopes but still no stop
+   button. A sentinel file polled by the existing `check_cancel` would
+   close it symmetrically; design it alongside, not after.
+
+Also: WSL currently *copies* files out of `/tmp/aximar` rather than
+sharing a mount, so it needs a location decision — though the host can
+read `\\wsl$\<distro>\tmp\aximar` directly, which would avoid the copy.
+
 ## Suggested order
 
-1. Flip the default (behind a settings toggle), after resolving the
-   Docker/WSL question and doing a manual pass.
+1. Flip the default (behind a settings toggle), after a manual pass
+   and getting `AXIMAR_RUN_LIVE_TESTS` into CI. Not blocked on the
+   Docker/WSL transport work.
 2. `stdin_request`, then `debug_enter` / `debug_leave` — each deletes
    a heuristic.
 3. Streaming, as its own design pass with a transport decision first.
+4. *(Postponed)* Docker/WSL transport, per the section above.
 
 Nothing here is urgent. The wired path is complete for ordinary
 evaluation; what remains is reach (backends), robustness (replacing
