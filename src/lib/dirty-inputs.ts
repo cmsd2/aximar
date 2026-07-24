@@ -25,6 +25,13 @@ export function markDirty(cellId: string, input: string) {
   scheduleFlush();
 }
 
+/** True when a cell has a local input edit that hasn't yet been flushed to
+ *  the backend.  Used by the store's merge logic to distinguish a backend
+ *  echo of our own debounced sync from an external mutation (e.g. MCP). */
+export function hasPendingSync(cellId: string): boolean {
+  return dirtyInputs.has(cellId);
+}
+
 /** Immediately sync one cell's dirty input to the backend. */
 export async function flushCell(cellId: string): Promise<void> {
   const input = dirtyInputs.get(cellId);

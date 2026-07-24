@@ -2,6 +2,7 @@ import { create } from "zustand";
 import type { Cell } from "../types/notebook";
 import type { SessionStatus } from "../types/maxima";
 import { computeRange } from "../lib/selection-utils";
+import { hasPendingSync } from "../lib/dirty-inputs";
 
 export type Theme = "auto" | "light" | "dark";
 export type CellStyle = "card" | "bracket";
@@ -381,18 +382,17 @@ export const useNotebookStore = create<NotebookState>((set) => ({
       const tab = state.notebooks[notebookId];
       if (!tab || tab.type !== "notebook") return state;
 
-      // Merge backend cells with local state, preserving local input edits.
-      // For cell_input_updated events (echoes of frontend debounced syncs),
-      // always keep the local input — it may have advanced past what the
-      // backend echoed back.  Undo/redo use distinct effects (undone/redone)
-      // and fall through to useBackendInput via isReplace/!localCell.
+      // Merge backend cells with local state.  Adopt the backend's input
+      // by default — external mutations (MCP update_cell, undo/redo, load)
+      // need to land in the editor.  The one exception is when the user
+      // has an unflushed local edit for that cell: keep local so a backend
+      // echo of an earlier debounced sync doesn't revert in-flight typing.
       const isReplace = effect === "notebook_replaced";
       const mergedCells = cells.map((backendCell) => {
         const localCell = tab.cells.find((c) => c.id === backendCell.id);
-        const useBackendInput = isReplace || !localCell;
-        const input = useBackendInput
-          ? backendCell.input
-          : localCell.input;
+        const keepLocal =
+          !isReplace && localCell && hasPendingSync(backendCell.id);
+        const input = keepLocal ? localCell.input : backendCell.input;
         return {
           ...backendCell,
           input,
