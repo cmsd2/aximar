@@ -89,6 +89,7 @@ jobs:
           cat <<SOURCES | sudo tee /etc/apt/sources.list.d/arm64-ports.list
           deb [arch=arm64] http://ports.ubuntu.com/ ${CODENAME} main restricted universe multiverse
           deb [arch=arm64] http://ports.ubuntu.com/ ${CODENAME}-updates main restricted universe multiverse
+          deb [arch=arm64] http://ports.ubuntu.com/ ${CODENAME}-security main restricted universe multiverse
           SOURCES
 
           sudo apt-get update
