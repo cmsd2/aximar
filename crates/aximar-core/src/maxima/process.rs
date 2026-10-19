@@ -589,6 +589,20 @@ impl MaximaProcess {
         None
     }
 
+    /// Non-unix stub for the envelope-only eval read: the kernel-events
+    /// pipe is never wired here (`has_events_channel` is always false),
+    /// so callers take the legacy sentinel path and this never runs.
+    #[cfg(not(unix))]
+    pub async fn read_n_eval_ends_envelope_only(
+        &mut self,
+        _expected_eval_ends: usize,
+        _events_rx: &mut Option<()>,
+    ) -> Result<(Vec<String>, Vec<()>), AppError> {
+        Err(AppError::CommunicationError(
+            "kernel-events envelopes are not available on this platform".to_string(),
+        ))
+    }
+
     async fn initialize(&mut self) -> Result<(), AppError> {
         // For Docker/WSL, set maxima_tempdir so gnuplot writes SVGs to a known location
         let tempdir_cmd = match &self.backend {

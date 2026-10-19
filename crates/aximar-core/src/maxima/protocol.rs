@@ -96,6 +96,11 @@ fn build_envelope_eval_result(
 }
 #[cfg(unix)]
 use crate::maxima::envelope::types::Envelope;
+// Non-unix builds have no kernel-events pipe; the envelope stand-ins
+// (drive_with_envelope_drain, the overlays, check_internal_error_envelopes)
+// use `()` as the envelope type, so the shared code here does too.
+#[cfg(not(unix))]
+type Envelope = ();
 use crate::maxima::envelope::drain::drive_with_envelope_drain;
 use crate::maxima::envelope::overlay::{
     apply_display_envelopes, apply_error_envelopes, apply_eval_result_envelopes,
