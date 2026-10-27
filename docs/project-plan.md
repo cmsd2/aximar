@@ -1,6 +1,6 @@
 # Aximar project plan
 
-Written 2026-10-27, from a review of aximar, ax-plots, mxpm, kernel-events and the VS Code extension, and updated against v0.15.0. Update the status columns as items land.
+Written 2026-10-27, from a review of aximar, ax-plots, mxpm, kernel-events and the VS Code extension, and updated against v0.15.0. Status lives in the [Maxima ecosystem plan project](https://github.com/users/cmsd2/projects/2): one item per fix and per stream deliverable, with Stream, Phase and Kind fields. This doc holds the reasoning.
 
 Companion docs: [kernel-events-phases.md](kernel-events-phases.md) (wired-path status), [technical-debt.md](technical-debt.md) (older audit), [ide-features.md](ide-features.md) (GUI vs editor split), and ax-plots' `doc/roadmap.md` § Packaging (the original packaging proposal, 2026-10-19).
 
@@ -31,25 +31,27 @@ Bugs and debt found in the review. A fix that a stream replaces properly has its
 
 | ID | Problem | Where | Lands in |
 |---|---|---|---|
-| F1 | When the events fd is wired but kernel-events fails to load, every cell runs to the eval timeout. `has_events_channel()` doesn't check that the package loaded. Wait for the `ready`/`capabilities` envelope at init, and fall back to legacy if it never arrives. Found by reading the code, not reproduced. | `maxima/process.rs` | Phase 0 |
-| F2 | The kernel-events init `:lisp` line uses `sb-sys:`/`sb-ext:`, which fails at read time on Maxima builds that don't use SBCL. `handler-case` can't catch a read-time error. | `maxima/process.rs` `events_init_snippet` | Phase 0 |
-| F3 | Aximar treats a `text/plain` fallback as real output, so plots saved in VS Code show their source as text. | `src/lib/notebooks-client.ts:143`, `aximar-mcp/src/convert.rs` | S1 (patch in Phase 0) |
-| F4 | `error` outputs are ignored on read, and Aximar never saves errors at all. | both readers and writers | S1 |
-| F5 | Outputs loaded from a file look current, but their Maxima labels are gone. `%oN` for a loaded cell goes to Maxima unchanged and means something else. VS Code restarts numbering at 1 on each new kernel. | `maxima/labels.rs` `rewrite_labels`, `notebook.rs` LoadCells, extension `controller.ts` | S1 |
-| F6 | The GUI save writes only `kernelspec` and empty cell metadata. The Rust `NotebookMetadata` drops unknown keys on read. | `notebooks-client.ts` `buildNotebook`, `notebooks/types.rs` | S1 |
-| F7 | nbformat 4.5 requires a cell `id`. aximar-mcp and VS Code both declare 4.5 without writing one. The GUI writes 4.0. No reader keeps IDs. | `convert.rs`, extension `serializer.ts`, `notebooks-client.ts` | S1 |
-| F8 | `partial_cmp().unwrap()` panics on a NaN score. This is the old tech-debt item 5, now in new files. | `catalog/packages.rs:101,131`, `catalog/doc_index.rs:338` | Phase 0 |
-| F9 | `ax__deliver_plotly` exists only in the bundled copy. Upstream ax-plots always writes a temp file and prints its path, so loading upstream ax-plots into a kernel-events session leaks the path into the cell's text output. Move `ax__deliver_plotly` into ax-plots so the bundle's one remaining difference is the missing `load(...)` lines. | ax-plots `ax-plots.mac` | Phase 0 |
-| F10 | The kernel-events smoke tests pass without running in CI. Install Maxima and kernel-events in CI and set `AXIMAR_RUN_LIVE_TESTS=1`. | `.github/workflows/build.yml` | Phase 0 |
-| F11 | aximar-core copies the mxpm doc-index types and the user-dir lookup instead of using `mxpm-doc-index` 0.1.1 and `mxpm-core` 0.2.0 from crates.io. | `catalog/doc_index.rs` | Phase 0 |
-| F12 | The extension's `docs/architecture.md` says it starts aximar-mcp with `--no-auth`. The code uses `--allow-dangerous` and a bearer token. | vscode-extension | Phase 0 |
-| F13 | The workspace's ax-plots checkout is 30 commits behind `origin/master` and pre-0.2.0. It also has one unpushed commit (`6497f60`, an earlier version of the `emit_display` delivery) that `ax__deliver_plotly` replaces. `~/.maxima/ax-plots` symlinks to this checkout, so `load("ax-plots")` on the development machine loads stale code. Drop `6497f60` (or fold anything still useful into F9) and fast-forward. Local environment only, but it affects any S2 testing that uses the editable install. | `maxima-workspace/ax-plots` | Phase 0 |
+| F1 ([#4](https://github.com/cmsd2/aximar/issues/4)) | When the events fd is wired but kernel-events fails to load, every cell runs to the eval timeout. `has_events_channel()` doesn't check that the package loaded. Wait for the `ready`/`capabilities` envelope at init, and fall back to legacy if it never arrives. Found by reading the code, not reproduced. | `maxima/process.rs` | Phase 0 |
+| F2 ([#5](https://github.com/cmsd2/aximar/issues/5)) | The kernel-events init `:lisp` line uses `sb-sys:`/`sb-ext:`, which fails at read time on Maxima builds that don't use SBCL. `handler-case` can't catch a read-time error. | `maxima/process.rs` `events_init_snippet` | Phase 0 |
+| F3 ([#6](https://github.com/cmsd2/aximar/issues/6)) | Aximar treats a `text/plain` fallback as real output, so plots saved in VS Code show their source as text. | `src/lib/notebooks-client.ts:143`, `aximar-mcp/src/convert.rs` | S1 (patch in Phase 0) |
+| F4 ([#7](https://github.com/cmsd2/aximar/issues/7)) | `error` outputs are ignored on read, and Aximar never saves errors at all. | both readers and writers | S1 |
+| F5 ([#8](https://github.com/cmsd2/aximar/issues/8)) | Outputs loaded from a file look current, but their Maxima labels are gone. `%oN` for a loaded cell goes to Maxima unchanged and means something else. VS Code restarts numbering at 1 on each new kernel. | `maxima/labels.rs` `rewrite_labels`, `notebook.rs` LoadCells, extension `controller.ts` | S1 |
+| F6 ([#9](https://github.com/cmsd2/aximar/issues/9)) | The GUI save writes only `kernelspec` and empty cell metadata. The Rust `NotebookMetadata` drops unknown keys on read. | `notebooks-client.ts` `buildNotebook`, `notebooks/types.rs` | S1 |
+| F7 ([#10](https://github.com/cmsd2/aximar/issues/10)) | nbformat 4.5 requires a cell `id`. aximar-mcp and VS Code both declare 4.5 without writing one. The GUI writes 4.0. No reader keeps IDs. | `convert.rs`, extension `serializer.ts`, `notebooks-client.ts` | S1 |
+| F8 ([#11](https://github.com/cmsd2/aximar/issues/11)) | `partial_cmp().unwrap()` panics on a NaN score. This is the old tech-debt item 5, now in new files. | `catalog/packages.rs:101,131`, `catalog/doc_index.rs:338` | Phase 0 |
+| F9 ([ax-plots#9](https://github.com/cmsd2/ax-plots/issues/9)) | `ax__deliver_plotly` exists only in the bundled copy. Upstream ax-plots always writes a temp file and prints its path, so loading upstream ax-plots into a kernel-events session leaks the path into the cell's text output. Move `ax__deliver_plotly` into ax-plots so the bundle's one remaining difference is the missing `load(...)` lines. | ax-plots `ax-plots.mac` | Phase 0 |
+| F10 ([#12](https://github.com/cmsd2/aximar/issues/12)) | The kernel-events smoke tests pass without running in CI. Install Maxima and kernel-events in CI and set `AXIMAR_RUN_LIVE_TESTS=1`. | `.github/workflows/build.yml` | Phase 0 |
+| F11 ([#13](https://github.com/cmsd2/aximar/issues/13)) | aximar-core copies the mxpm doc-index types and the user-dir lookup instead of using `mxpm-doc-index` 0.1.1 and `mxpm-core` 0.2.0 from crates.io. | `catalog/doc_index.rs` | Phase 0 |
+| F12 (project draft) | The extension's `docs/architecture.md` says it starts aximar-mcp with `--no-auth`. The code uses `--allow-dangerous` and a bearer token. | vscode-extension | Phase 0 |
+| F13 (project draft) | The workspace's ax-plots checkout is 30 commits behind `origin/master` and pre-0.2.0. It also has one unpushed commit (`6497f60`, an earlier version of the `emit_display` delivery) that `ax__deliver_plotly` replaces. `~/.maxima/ax-plots` symlinks to this checkout, so `load("ax-plots")` on the development machine loads stale code. Drop `6497f60` (or fold anything still useful into F9) and fast-forward. Local environment only, but it affects any S2 testing that uses the editable install. | `maxima-workspace/ax-plots` | Phase 0 |
 
-[technical-debt.md](technical-debt.md) items 6, 9 and 10 (WSL/Docker path tests, LaTeX accumulation bound, WSL error handling) are still open and fit in Phase 0 too.
+[technical-debt.md](technical-debt.md) items 6, 9 and 10 (WSL/Docker path tests, LaTeX accumulation bound, WSL error handling) are still open and fit in Phase 0 too ([#14](https://github.com/cmsd2/aximar/issues/14)).
 
 ## Streams
 
 ### S1 Notebook format
+
+Issues: [#15](https://github.com/cmsd2/aximar/issues/15), [#16](https://github.com/cmsd2/aximar/issues/16), [#17](https://github.com/cmsd2/aximar/issues/17).
 
 Goal: every host reads and writes `.macnb` identically, and nothing gets lost in a round trip.
 
@@ -67,6 +69,8 @@ Goal: every host reads and writes `.macnb` identically, and nothing gets lost in
 Fixes F3 to F7.
 
 ### S2 Packages
+
+Issues: [#18](https://github.com/cmsd2/aximar/issues/18), [maxima-mxpm#3](https://github.com/cmsd2/maxima-mxpm/issues/3), [#19](https://github.com/cmsd2/aximar/issues/19), [#20](https://github.com/cmsd2/aximar/issues/20), [#21](https://github.com/cmsd2/aximar/issues/21).
 
 Goal: Aximar installs ax-plots and kernel-events as ordinary mxpm packages, at locked versions, after the user agrees, from every host. The bundled copy goes away.
 
@@ -104,6 +108,8 @@ Maxima picks up a package installed mid-session without a restart, because `~/.m
 
 ### S3 Kernel protocol
 
+Issues: [#22](https://github.com/cmsd2/aximar/issues/22), [#23](https://github.com/cmsd2/aximar/issues/23).
+
 Goal: the kernel-events wired path becomes the default on local Unix sessions.
 
 - Prerequisites: F1, F2, F10.
@@ -116,6 +122,8 @@ Goal: the kernel-events wired path becomes the default on local Unix sessions.
 - Longer term: "Option C" in kernel-events-phases.md (framed lines multiplexed over stdout) would work on every backend and platform, including Windows. It's the only route to retiring the legacy stdout parser, and it would remove the per-backend split that S2 question 6 describes.
 
 ### S4 Renderers and reactive parity
+
+Issues: [#24](https://github.com/cmsd2/aximar/issues/24), [#25](https://github.com/cmsd2/aximar/issues/25), [#26](https://github.com/cmsd2/aximar/issues/26).
 
 Goal: one renderer for LaTeX, Plotly (including `animate()` frames), reactive controls and errors, used by every front end.
 
@@ -134,6 +142,8 @@ Goal: one renderer for LaTeX, Plotly (including `animate()` frames), reactive co
 
 ### S5 Jupyter and Quarto
 
+Issues: [#27](https://github.com/cmsd2/aximar/issues/27), [#28](https://github.com/cmsd2/aximar/issues/28), [#29](https://github.com/cmsd2/aximar/issues/29).
+
 Goal: JupyterLab, `nbconvert --execute` and Quarto `.qmd` files run Maxima with the aximar features.
 
 - Add `crates/aximar-kernel`. It handles one session per process through `aximar_core::session_ops`, with the same init as the GUI and MCP. It supports execute, complete and inspect (from the core catalog), interrupt through the cancel handle, and an `install` subcommand that writes the kernelspec.
@@ -145,6 +155,8 @@ Goal: JupyterLab, `nbconvert --execute` and Quarto `.qmd` files run Maxima with 
 
 ### S6 VS Code extension parity
 
+Items: four drafts in the project, because cmsd2/maxima-notebook has issues turned off.
+
 Goal: the extension gets the features that are currently Aximar-only.
 
 - Use the `notebook-format` and `renderers` packages, dropping its own copies.
@@ -154,6 +166,8 @@ Goal: the extension gets the features that are currently Aximar-only.
 - Add basic CI. The extension has none today.
 
 ### S7 Aximar GUI
+
+Issues: [#30](https://github.com/cmsd2/aximar/issues/30), [#31](https://github.com/cmsd2/aximar/issues/31), [#32](https://github.com/cmsd2/aximar/issues/32).
 
 Goal: a better notebook, not an IDE.
 
