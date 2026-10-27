@@ -3,11 +3,39 @@ name: Build
 on:
   push:
     branches: [master]
+    paths-ignore:
+      - 'docs/**'
+      - '**/*.md'
+      - 'LICENSE*'
+  # PRs build the full matrix only when labelled full-build (see the job's
+  # `if`). Adding the label starts a build; later pushes rebuild while it
+  # stays on. ci.yml runs the tests on every PR.
   pull_request:
     branches: [master]
+    types: [opened, synchronize, reopened, labeled]
+    paths-ignore:
+      - 'docs/**'
+      - '**/*.md'
+      - 'LICENSE*'
+  # Any branch, on demand: gh workflow run build.yml --ref <branch>
+  workflow_dispatch:
 
 jobs:
   build:
+    # On PRs: only with the full-build label, and for a labeled event only
+    # when that label is the one just added, so other labels don't rebuild.
+    if: >-
+      github.event_name != 'pull_request' ||
+      (contains(github.event.pull_request.labels.*.name, 'full-build') &&
+       (github.event.action != 'labeled' || github.event.label.name == 'full-build'))
+
+    # A new push to a PR supersedes its build in progress. Master builds
+    # queue instead, so every merged commit still gets its artifacts. Set on
+    # the job, not the workflow, so a skipped run can't cancel a real one.
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+      cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
     strategy:
       fail-fast: false
       matrix:
