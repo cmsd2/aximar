@@ -72,15 +72,19 @@ Fixes F3 to F7.
 
 Issues: [#18](https://github.com/cmsd2/aximar/issues/18), [maxima-mxpm#3](https://github.com/cmsd2/maxima-mxpm/issues/3), [#19](https://github.com/cmsd2/aximar/issues/19), [#20](https://github.com/cmsd2/aximar/issues/20), [#21](https://github.com/cmsd2/aximar/issues/21).
 
-Goal: Aximar installs ax-plots and kernel-events as ordinary mxpm packages, at locked versions, after the user agrees, from every host. The bundled copy goes away.
+Goal: Aximar installs ax-plots and kernel-events as ordinary mxpm packages, at the versions in its package BOM, after the user agrees, from every host. The bundled copy goes away.
 
 This stream carries out the proposal in ax-plots' `doc/roadmap.md` § Packaging (2026-10-19). That doc's sequencing says the release after v0.15.0 starts with a design doc in aximar covering its questions. So S2's first deliverable is `docs/package-management.md`, which settles the questions below. Where this plan already takes a position, it's stated.
 
 **Design questions (from the ax-plots roadmap):**
 
-1. **Version pinning.** The index pins one commit per package, with no ranges. kernel-events' envelope schema is a contract with Aximar's parser, so an index update can break an installed Aximar. Position: each Aximar release carries a lockfile of the exact package versions it was tested with, installs those, and offers newer ones as an explicit update. This replaces the "minimum version" check in the first draft of this plan.
-2. **Offline first run.** Position: ship the locked package archives inside the app and install them through mxpm's local-path install (`install_local_package`). The consent prompt then works without a network, and the packages are still ordinary installs.
-3. **Install location.** In the shared `~/.maxima`, a developer's editable install wins. That's useful for development, but risky for users with a half-broken install. F13 shows the risk on this machine: the editable ax-plots there is pre-0.2.0. An Aximar-private directory avoids conflicts but duplicates packages. Open. If the shared directory wins, Aximar should at least show when the active copy differs from its lockfile.
+1. **Version pinning.** The index pins one commit per package, with no ranges. kernel-events' envelope schema is a contract with Aximar's parser, so an index update can break an installed Aximar. Position: each Aximar release carries a **package BOM** (bill of materials): the exact package versions, with hashes, that the release ships and was tested with. Aximar installs those and offers newer ones as an explicit update. It's a BOM rather than a lockfile because nothing is resolved: it records what a release contains, as a distribution's manifest does. This replaces the "minimum version" check in the first draft of this plan.
+2. **Offline first run.** Position: ship the archives the BOM lists inside the app and install them through mxpm's local-path install (`install_local_package`). The consent prompt then works without a network, and the packages are still ordinary installs.
+3. **Install location.** In the shared `~/.maxima`, a developer's editable install wins. That's useful for development, but risky for users with a half-broken install. F13 shows the risk on this machine: the editable ax-plots there is pre-0.2.0. An Aximar-private directory avoids conflicts but duplicates packages. Position (decided 2026-10-27):
+   - **Aximar's own dependencies** (ax-plots, kernel-events) install at their BOM versions into an Aximar-owned folder. Each session searches that folder first, ahead of `~/.maxima`.
+   - **Everything else** the user installs (numerics, for example) goes in `~/.maxima` as now, and stays visible in Aximar sessions. The user's `maxima-init.mac` still runs.
+   - **Package developers** get a setting to let `~/.maxima` win, so an editable checkout can be tested in Aximar.
+   - **The BOM format** is mxpm's, not Aximar's, and mxpm can install a BOM into any folder its caller names. Other projects can then use an Aximar release's BOM as their set of versions ("the versions Aximar 0.16 ships"). A project lockfile, if per-project environments ever arrive, would be a separate file produced by resolving a project's own dependencies (see "Not planned").
 4. **Loading.** Replace session-init injection with `load("ax-plots")` / `load("kernel-events")` at startup, so examples still need no `load` cell. Every aximar-core host (GUI, aximar-mcp for VS Code, aximar-kernel) shares the init, so this covers all of them. An explicit `load` cell is only needed for notebooks meant to run in plain Maxima. The first draft of this plan added one to every example; that's dropped.
 5. **Docker and WSL backends.** Packages must exist inside the container or WSL filesystem, so the install target is per backend. The package service takes the backend as an input.
 6. **What packaging doesn't fix.** kernel-events' text-output capture is SBCL-only, and the fd-3 transport is Unix plus Local backend only. Both the envelope path and the stdout parser remain. S3 covers the transport that could unify them.
@@ -90,21 +94,21 @@ This stream carries out the proposal in ax-plots' `doc/roadmap.md` § Packaging 
    - fall back to the cached index when offline;
    - keep the CLI-only dependencies (clap, dialoguer, tera, …) out of the library crate;
    - add an upgrade operation (today `AlreadyInstalled` forces remove then install);
-   - support lockfile installs and local-archive installs as first-class operations;
+   - install a BOM (exact versions and hashes) into a named folder, from the index or from local archives, as first-class operations;
    - consider listing ax-plots as a release tarball, so aximar can build mxpm without git2 and OpenSSL.
 
 **Added by this plan:**
 
-- **Consent.** The roadmap doesn't cover asking the user. The first install, and every update beyond the lockfile, goes through a prompt in each host:
+- **Consent.** The roadmap doesn't cover asking the user. The first install, and every update beyond the BOM, goes through a prompt in each host:
   - Aximar: a banner in the style of `TrustBanner`;
   - VS Code: a notification;
   - MCP: an `install_package` tool the client approves;
   - Jupyter kernel: a yes/no `input_request`.
-- **An aximar-core package service.** It works out what a notebook needs (from `metadata.aximar.requires`, or from an undefined-function error looked up in the function-to-package map), checks what's installed against the lockfile for the session's backend, and installs or updates after consent. `requires` metadata depends on S1, because the GUI save drops metadata today.
+- **An aximar-core package service.** It works out what a notebook needs (from `metadata.aximar.requires`, or from an undefined-function error looked up in the function-to-package map), checks what's installed against the BOM for the session's backend, and installs or updates after consent. `requires` metadata depends on S1, because the GUI save drops metadata today.
 - **kernel-events** installs through the same prompt, offered from the setting that turns on the wired path. With F1 in place, a missing install falls back to the legacy path.
 - **Removing the bundle:** `ax_plotting.mac`, `ax_plotting.lisp`, the stdin `:lisp (progn …)` trick, and the embedded catalog and docs JSON. Do this only after VS Code and MCP can prompt (Phase 2), because aximar-mcp uses the same copy.
 
-Maxima picks up a package installed mid-session without a restart, because `~/.maxima/**` is searched each time `load` runs (tested on 5.50). An Aximar-private directory (question 3) would need adding to `file_search_maxima` at session start instead.
+Maxima picks up a package installed mid-session without a restart, because `~/.maxima/**` is searched each time `load` runs (tested on 5.50). The Aximar-owned folder (question 3) goes at the front of `file_search_maxima` and `file_search_lisp` at session start, rather than replacing the user directory through `MAXIMA_USERDIR`, which would hide the user's other packages.
 
 ### S3 Kernel protocol
 
@@ -197,12 +201,12 @@ Exit: an Aximar → VS Code → Aximar round trip of every demo notebook loses n
 
 ### Phase 2: Packages and protocol
 
-- S2: lockfile and bundled package archives, package service with per-backend install targets, prompts in Aximar, MCP and VS Code, startup `load` replacing init injection, bundled copy removed.
+- S2: package BOM and bundled package archives, package service with per-backend install targets, prompts in Aximar, MCP and VS Code, startup `load` replacing init injection, bundled copy removed.
 - S3: wired path on by default, with `stdin_request` and `ready` in use.
 - S4: `renderers` package published, Aximar frontend switched over.
 - S6: extension uses both npm packages and shows install prompts.
 
-Exit: a fresh install with no `~/.maxima` packages and no network opens a plotting example, asks once, installs the locked ax-plots and runs it, in both Aximar and VS Code.
+Exit: a fresh install with no `~/.maxima` packages and no network opens a plotting example, asks once, installs the BOM's ax-plots and runs it, in both Aximar and VS Code.
 
 ### Phase 3: New front ends
 
@@ -221,7 +225,7 @@ S7 (Packages panel, LSP completions, Open in VS Code), Quarto setup cell and dae
 | Item | Needs |
 |---|---|
 | S3 default flip | F1, F2, F10 |
-| S2 implementation | S2 design doc, mxpm lockfile and local-archive installs |
+| S2 implementation | S2 design doc, mxpm BOM installs from the index and from local archives |
 | S2 removing the bundled copy | S2 prompts in Aximar, VS Code and MCP |
 | S2 `requires` metadata | S1 (the GUI save drops metadata today) |
 | S4 renderer in VS Code | S4 package published |
@@ -232,7 +236,6 @@ S7 (Packages panel, LSP completions, Open in VS Code), Quarto setup cell and dae
 ## Open questions
 
 - npm scope for the packages: `@aximar/*` needs an npm org of that name, otherwise use a user scope.
-- Package install location: shared `~/.maxima` or an Aximar-private directory (S2 question 3).
 - Reactive controls in static output: computing frames ahead multiplies with each control. Decide on a limit, or disable controls instead.
 - "Frozen" outputs: S1 treats this as stale outputs whose labels no longer exist. Confirm nothing else was meant.
 
@@ -242,3 +245,9 @@ S7 (Packages panel, LSP completions, Open in VS Code), Quarto setup cell and dae
 - Merging vscode-extension into this repo.
 - Building on maxima-jupyter.
 - Docker and WSL kernel-events transports (deferred in kernel-events-phases.md).
+- Per-project Maxima environments for users: `mxpm.toml` + `mxpm.lock` + a project `.maxima/` used as `MAXIMA_USERDIR`, with `mxpm sync` / `mxpm run` and every tool detecting the project. The mechanism exists: `MAXIMA_USERDIR` isolates packages (tested on 5.50), and mxpm and aximar-core both honour it. It isn't worth the cost yet:
+  - the ecosystem has about six packages and no dependency resolution;
+  - every front end would have to detect environments;
+  - Quicklisp and SBCL's compile cache stay shared, so the isolation leaks.
+
+  Revisit when two projects on one machine need different versions of the same package, or when frozen notes (such as Study's) render differently because a package changed. Until then, a project can record `mxpm list` output alongside its other locks.
