@@ -1,14 +1,14 @@
 # Aximar project plan
 
-Written 2026-10-27, from a review of aximar, ax-plots, mxpm, kernel-events and the VS Code extension. Update the status columns as items land.
+Written 2026-10-27, from a review of aximar, ax-plots, mxpm, kernel-events and the VS Code extension, and updated against v0.15.0. Update the status columns as items land.
 
-Companion docs: [kernel-events-phases.md](kernel-events-phases.md) (wired-path status), [technical-debt.md](technical-debt.md) (older audit), [ide-features.md](ide-features.md) (GUI vs editor split).
+Companion docs: [kernel-events-phases.md](kernel-events-phases.md) (wired-path status), [technical-debt.md](technical-debt.md) (older audit), [ide-features.md](ide-features.md) (GUI vs editor split), and ax-plots' `doc/roadmap.md` § Packaging (the original packaging proposal, 2026-10-19).
 
 ## Where things stand
 
-- The core works. `cargo test --workspace` passes (501 tests), and kernel-events phases A through D have landed on master.
+- The core works. `cargo test --workspace` passes (501 tests at v0.15.0), and kernel-events phases A through D have landed on master.
 - The kernel-events wired path is still opt-in (`AXIMAR_KERNEL_EVENTS`). Its 12 smoke tests pass without running unless `AXIMAR_RUN_LIVE_TESTS=1` is set.
-- aximar bundles a forked copy of ax-plots ([ax_plotting.mac](../crates/aximar-core/src/maxima/ax_plotting.mac)). It has drifted from upstream in both directions. kernel-events, by contrast, loads from `~/.maxima` and must be installed with mxpm.
+- aximar bundles a copy of ax-plots ([ax_plotting.mac](../crates/aximar-core/src/maxima/ax_plotting.mac)). v0.15.0 re-synced it to ax-plots 0.2.0 with two local changes: no `load(...)` lines, and `ax__deliver_plotly`, which sends plots through kernel-events' `emit_display` when that is loaded. kernel-events, by contrast, loads from `~/.maxima` and must be installed with mxpm.
 - The VS Code extension and Aximar both read and write `.macnb`, but they disagree on outputs, cell IDs and metadata. An Aximar notebook opened and saved in VS Code shows raw SVG, Plotly JSON or PNG base64 as text when reopened in Aximar.
 - Reactive plot controls work only in the Aximar GUI. Their host half is a Tauri command ([reactive.rs](../src-tauri/src/commands/reactive.rs)), so MCP, VS Code and any future kernel can't reach it.
 - Aximar has no Jupyter kernel, so Quarto can't execute Maxima. Quarto renders pre-executed Aximar notebooks, but shows its "Unable to display output" placeholder for every LaTeX and Plotly output.
@@ -20,7 +20,7 @@ Companion docs: [kernel-events-phases.md](kernel-events-phases.md) (wired-path s
 | Aximar stays a notebook. Editing, debugging and package authoring stay in VS Code. | Building an IDE in Aximar would duplicate the extension. `ide-features.md` already lists a full editor as a non-goal. |
 | Every front end (GUI, VS Code, MCP, Jupyter/Quarto) gets as much of the ecosystem as possible. | Aximar's value is in features other Maxima front ends lack. |
 | Each feature has three layers: a Maxima package, an aximar-core API, and a shared renderer. Hosts are thin adapters. | A feature written once then reaches every host. |
-| Packages install through the mxpm library, after the user agrees, and not from a bundled fork. | Built-in examples keep working with one click, and nothing writes to `~/.maxima` without consent. |
+| Packages install through the mxpm library, after the user agrees, at the exact versions each Aximar release was tested with, and not from a bundled copy. | Built-in examples keep working with one click. Nothing writes to `~/.maxima` without consent. Package fixes reach users without an Aximar release. |
 | aximar stays one repo. | Every Rust crate depends on aximar-core by path. Planned work changes core and hosts together. |
 | vscode-extension stays a separate repo. Shared TypeScript ships as npm packages built in an npm workspace inside aximar. | Keeps the extension's release flow independent. |
 | The Jupyter kernel builds on aximar-core. maxima-jupyter is a reference only. | maxima-jupyter runs inside Maxima's Lisp. It can load Maxima packages, but none of aximar-core's host-side features. |
@@ -39,10 +39,11 @@ Bugs and debt found in the review. A fix that a stream replaces properly has its
 | F6 | The GUI save writes only `kernelspec` and empty cell metadata. The Rust `NotebookMetadata` drops unknown keys on read. | `notebooks-client.ts` `buildNotebook`, `notebooks/types.rs` | S1 |
 | F7 | nbformat 4.5 requires a cell `id`. aximar-mcp and VS Code both declare 4.5 without writing one. The GUI writes 4.0. No reader keeps IDs. | `convert.rs`, extension `serializer.ts`, `notebooks-client.ts` | S1 |
 | F8 | `partial_cmp().unwrap()` panics on a NaN score. This is the old tech-debt item 5, now in new files. | `catalog/packages.rs:101,131`, `catalog/doc_index.rs:338` | Phase 0 |
-| F9 | Fixes that exist only in the bundled ax-plots copy: the ndarray fallback stubs, and sending the display envelope alone on the wired path (upstream also prints the temp path, which leaks into text output). Upstream them to ax-plots. | ax-plots repo | Phase 0 |
+| F9 | `ax__deliver_plotly` exists only in the bundled copy. Upstream ax-plots always writes a temp file and prints its path, so loading upstream ax-plots into a kernel-events session leaks the path into the cell's text output. Move `ax__deliver_plotly` into ax-plots so the bundle's one remaining difference is the missing `load(...)` lines. | ax-plots `ax-plots.mac` | Phase 0 |
 | F10 | The kernel-events smoke tests pass without running in CI. Install Maxima and kernel-events in CI and set `AXIMAR_RUN_LIVE_TESTS=1`. | `.github/workflows/build.yml` | Phase 0 |
 | F11 | aximar-core copies the mxpm doc-index types and the user-dir lookup instead of using `mxpm-doc-index` 0.1.1 and `mxpm-core` 0.2.0 from crates.io. | `catalog/doc_index.rs` | Phase 0 |
 | F12 | The extension's `docs/architecture.md` says it starts aximar-mcp with `--no-auth`. The code uses `--allow-dangerous` and a bearer token. | vscode-extension | Phase 0 |
+| F13 | The workspace's ax-plots checkout is 30 commits behind `origin/master` and pre-0.2.0. It also has one unpushed commit (`6497f60`, an earlier version of the `emit_display` delivery) that `ax__deliver_plotly` replaces. `~/.maxima/ax-plots` symlinks to this checkout, so `load("ax-plots")` on the development machine loads stale code. Drop `6497f60` (or fold anything still useful into F9) and fast-forward. Local environment only, but it affects any S2 testing that uses the editable install. | `maxima-workspace/ax-plots` | Phase 0 |
 
 [technical-debt.md](technical-debt.md) items 6, 9 and 10 (WSL/Docker path tests, LaTeX accumulation bound, WSL error handling) are still open and fit in Phase 0 too.
 
@@ -67,27 +68,39 @@ Fixes F3 to F7.
 
 ### S2 Packages
 
-Goal: packages install through mxpm after the user agrees, from every host, and the bundled ax-plots fork goes away.
+Goal: Aximar installs ax-plots and kernel-events as ordinary mxpm packages, at locked versions, after the user agrees, from every host. The bundled copy goes away.
 
-- mxpm library readiness, in the mxpm repo:
-  - replace the `eprintln!`/indicatif output in `install.rs` with a progress callback;
-  - move the synchronous `git2` clone into `spawn_blocking`;
-  - fall back to the cached index when offline;
-  - put the CLI-only dependencies behind a `cli` feature;
-  - add an upgrade operation (today `AlreadyInstalled` forces remove then install);
-  - consider listing ax-plots as a release tarball, so aximar can build mxpm without git2 and OpenSSL.
-- An aximar-core package service. It works out which packages a notebook needs (from `metadata.aximar.requires`, or from an undefined-function error looked up in the function-to-package map), checks what is installed and compares against a minimum version, then installs or upgrades.
-- The prompt in each host:
+This stream carries out the proposal in ax-plots' `doc/roadmap.md` § Packaging (2026-10-19). That doc's sequencing says the release after v0.15.0 starts with a design doc in aximar covering its questions. So S2's first deliverable is `docs/package-management.md`, which settles the questions below. Where this plan already takes a position, it's stated.
+
+**Design questions (from the ax-plots roadmap):**
+
+1. **Version pinning.** The index pins one commit per package, with no ranges. kernel-events' envelope schema is a contract with Aximar's parser, so an index update can break an installed Aximar. Position: each Aximar release carries a lockfile of the exact package versions it was tested with, installs those, and offers newer ones as an explicit update. This replaces the "minimum version" check in the first draft of this plan.
+2. **Offline first run.** Position: ship the locked package archives inside the app and install them through mxpm's local-path install (`install_local_package`). The consent prompt then works without a network, and the packages are still ordinary installs.
+3. **Install location.** In the shared `~/.maxima`, a developer's editable install wins. That's useful for development, but risky for users with a half-broken install. F13 shows the risk on this machine: the editable ax-plots there is pre-0.2.0. An Aximar-private directory avoids conflicts but duplicates packages. Open. If the shared directory wins, Aximar should at least show when the active copy differs from its lockfile.
+4. **Loading.** Replace session-init injection with `load("ax-plots")` / `load("kernel-events")` at startup, so examples still need no `load` cell. Every aximar-core host (GUI, aximar-mcp for VS Code, aximar-kernel) shares the init, so this covers all of them. An explicit `load` cell is only needed for notebooks meant to run in plain Maxima. The first draft of this plan added one to every example; that's dropped.
+5. **Docker and WSL backends.** Packages must exist inside the container or WSL filesystem, so the install target is per backend. The package service takes the backend as an input.
+6. **What packaging doesn't fix.** kernel-events' text-output capture is SBCL-only, and the fd-3 transport is Unix plus Local backend only. Both the envelope path and the stdout parser remain. S3 covers the transport that could unify them.
+7. **mxpm's library API.** mxpm's library surface wasn't designed as a stable API. Installation probably moves into `mxpm-core` with a deliberate interface (mxpm repo). The work this review found:
+   - replace the `eprintln!`/indicatif output in `install.rs` with a progress callback;
+   - move the synchronous `git2` clone into `spawn_blocking`;
+   - fall back to the cached index when offline;
+   - keep the CLI-only dependencies (clap, dialoguer, tera, …) out of the library crate;
+   - add an upgrade operation (today `AlreadyInstalled` forces remove then install);
+   - support lockfile installs and local-archive installs as first-class operations;
+   - consider listing ax-plots as a release tarball, so aximar can build mxpm without git2 and OpenSSL.
+
+**Added by this plan:**
+
+- **Consent.** The roadmap doesn't cover asking the user. The first install, and every update beyond the lockfile, goes through a prompt in each host:
   - Aximar: a banner in the style of `TrustBanner`;
   - VS Code: a notification;
   - MCP: an `install_package` tool the client approves;
   - Jupyter kernel: a yes/no `input_request`.
-- If a package is installed, aximar loads it at session start, under a "preload packages" setting. Existing notebooks that call `ax_plot2d` without `load` keep working.
-- Built-in examples get `requires` metadata and a `load("ax-plots")$` first cell.
-- Remove the bundled fork: `ax_plotting.mac`, `ax_plotting.lisp`, the stdin `:lisp (progn …)` trick, and the embedded catalog and docs JSON. Do this only after VS Code and MCP can prompt (Phase 2), because aximar-mcp bundles the same copy.
-- kernel-events installs through the same prompt, offered from the setting that turns on the wired path. With F1 in place, a missing install degrades to the legacy path.
+- **An aximar-core package service.** It works out what a notebook needs (from `metadata.aximar.requires`, or from an undefined-function error looked up in the function-to-package map), checks what's installed against the lockfile for the session's backend, and installs or updates after consent. `requires` metadata depends on S1, because the GUI save drops metadata today.
+- **kernel-events** installs through the same prompt, offered from the setting that turns on the wired path. With F1 in place, a missing install falls back to the legacy path.
+- **Removing the bundle:** `ax_plotting.mac`, `ax_plotting.lisp`, the stdin `:lisp (progn …)` trick, and the embedded catalog and docs JSON. Do this only after VS Code and MCP can prompt (Phase 2), because aximar-mcp uses the same copy.
 
-Maxima picks up a package installed mid-session without a restart, because `~/.maxima/**` is searched each time `load` runs (tested on 5.50).
+Maxima picks up a package installed mid-session without a restart, because `~/.maxima/**` is searched each time `load` runs (tested on 5.50). An Aximar-private directory (question 3) would need adding to `file_search_maxima` at session start instead.
 
 ### S3 Kernel protocol
 
@@ -100,6 +113,7 @@ Goal: the kernel-events wired path becomes the default on local Unix sessions.
   - `debug_enter`/`debug_leave` replace prompt scraping;
   - `ready`/`capabilities` replace the init sentinels.
 - Remaining work stays as listed in [kernel-events-phases.md](kernel-events-phases.md): streaming envelopes, and Docker/WSL transports (deferred).
+- Longer term: "Option C" in kernel-events-phases.md (framed lines multiplexed over stdout) would work on every backend and platform, including Windows. It's the only route to retiring the legacy stdout parser, and it would remove the per-backend split that S2 question 6 describes.
 
 ### S4 Renderers and reactive parity
 
@@ -154,14 +168,14 @@ Each phase lists the work from each stream. A phase ends when its exit check pas
 
 ### Phase 0: Fixes
 
-F1, F2, F8, F9, F10, F11, F12, the F3 patch if S1 is more than a few weeks away, and the open technical-debt items.
+F1, F2, F8, F9, F10, F11, F12, F13, the F3 patch if S1 is more than a few weeks away, and the open technical-debt items.
 
-Exit: CI runs the live kernel-events tests. Upstream ax-plots matches the bundled copy's behaviour.
+Exit: CI runs the live kernel-events tests. Upstream ax-plots and the bundled copy differ only by the `load(...)` lines. The workspace ax-plots checkout matches `origin/master`.
 
 ### Phase 1: Foundations
 
 - S1: format spec, one core serializer, test notebooks, npm workspace in aximar, `notebook-format` package.
-- S2: mxpm library readiness (mxpm repo).
+- S2: `docs/package-management.md` answering the seven roadmap questions. mxpm library work (mxpm repo), shaped by those answers.
 - S4: replot moved into core.
 - S3: wired-path setting.
 
@@ -169,12 +183,12 @@ Exit: an Aximar → VS Code → Aximar round trip of every demo notebook loses n
 
 ### Phase 2: Packages and protocol
 
-- S2: package service, prompts in Aximar, MCP and VS Code, preload setting, built-in examples updated, bundled fork removed.
+- S2: lockfile and bundled package archives, package service with per-backend install targets, prompts in Aximar, MCP and VS Code, startup `load` replacing init injection, bundled copy removed.
 - S3: wired path on by default, with `stdin_request` and `ready` in use.
 - S4: `renderers` package published, Aximar frontend switched over.
 - S6: extension uses both npm packages and shows install prompts.
 
-Exit: a fresh install with no `~/.maxima` packages opens a plotting example, asks once, installs ax-plots and runs it, in both Aximar and VS Code.
+Exit: a fresh install with no `~/.maxima` packages and no network opens a plotting example, asks once, installs the locked ax-plots and runs it, in both Aximar and VS Code.
 
 ### Phase 3: New front ends
 
@@ -193,7 +207,8 @@ S7 (Packages panel, LSP completions, Open in VS Code), Quarto setup cell and dae
 | Item | Needs |
 |---|---|
 | S3 default flip | F1, F2, F10 |
-| S2 removing the bundled fork | S2 prompts in Aximar, VS Code and MCP |
+| S2 implementation | S2 design doc, mxpm lockfile and local-archive installs |
+| S2 removing the bundled copy | S2 prompts in Aximar, VS Code and MCP |
 | S2 `requires` metadata | S1 (the GUI save drops metadata today) |
 | S4 renderer in VS Code | S4 package published |
 | S5 Plotly in Quarto | S4 standalone bundle |
@@ -203,8 +218,7 @@ S7 (Packages panel, LSP completions, Open in VS Code), Quarto setup cell and dae
 ## Open questions
 
 - npm scope for the packages: `@aximar/*` needs an npm org of that name, otherwise use a user scope.
-- Offline first run: should Aximar ship an unmodified ax-plots release archive so the install prompt works without a network?
-- Which installed copy wins: the user's `~/.maxima` copy over anything aximar provides, or should aximar warn when the installed version is below its minimum?
+- Package install location: shared `~/.maxima` or an Aximar-private directory (S2 question 3).
 - Reactive controls in static output: computing frames ahead multiplies with each control. Decide on a limit, or disable controls instead.
 - "Frozen" outputs: S1 treats this as stale outputs whose labels no longer exist. Confirm nothing else was meant.
 
