@@ -289,8 +289,12 @@ fn parse_output_inner(
             continue;
         }
 
-        // Accumulate multi-line LaTeX: started with $$ but not yet closed
+        // Accumulate multi-line LaTeX: started with $$ but not yet closed.
+        // tex() breaks lines between tokens and TeX reads each break as a
+        // space, so join with one.  Plain concatenation turns a wrap after
+        // a control word (`\log` then ` a`) into `\loga`.
         if let Some(ref mut buf) = latex_buf {
+            buf.push(' ');
             buf.push_str(trimmed);
             if trimmed.ends_with("$$") {
                 // Complete LaTeX block — strip $$ delimiters
@@ -702,11 +706,11 @@ mod tests {
 
     #[test]
     fn test_parse_multiline_latex() {
-        // Maxima wraps long tex() output across lines
+        // Maxima wraps long tex() output across lines (this is linel:60)
         let lines = vec![
             "-(%e^x*sin(x)^2)+%e^x*cos(x)*sin(x)+%e^x*cos(x)^2".to_string(),
-            "$$-\\left(e^{x}\\,\\sin ^2x\\right)+e^{x}\\,\\cos x\\,\\sin x+e^{x}\\".to_string(),
-            "\\,\\cos ^2x$$".to_string(),
+            "$$-\\left(e^{x}\\,\\sin ^2x\\right)+e^{x}\\,\\cos x\\,\\sin x+e^{x}".to_string(),
+            " \\,\\cos ^2x$$".to_string(),
             "false".to_string(),
             "__AXIMAR_LABEL__ 8".to_string(),
             "__AXIMAR_EVAL_END__".to_string(),
@@ -722,6 +726,30 @@ mod tests {
         // Text output should NOT contain the LaTeX lines
         assert!(!result.text_output.contains("$$"));
         assert!(!result.text_output.contains("\\left("));
+    }
+
+    #[test]
+    fn test_multiline_latex_keeps_space_at_wrap() {
+        // tex() wraps at linel and starts each continuation line with a
+        // space.  A wrap right after a control word must not glue it to
+        // the next token (\log a becoming \loga).  These lines are real
+        // output of `linel:26$ tex(-log(c)+2*log(b)+log(a))$`, once from
+        // a user tex() call and once from our tex(%).
+        let lines = vec![
+            "$$-\\log c+2\\,\\log b+\\log ".to_string(),
+            " a$$".to_string(),
+            "false".to_string(),
+            "$$-\\log c+2\\,\\log b+\\log ".to_string(),
+            " a$$".to_string(),
+            "false".to_string(),
+            "__AXIMAR_LABEL__ 8".to_string(),
+            "__AXIMAR_EVAL_END__".to_string(),
+        ];
+
+        let result = parse_output("cell-1", &lines, 100, &catalog(), &Backend::Local);
+        assert!(!result.is_error);
+        assert_eq!(result.latex.as_deref(), Some("-\\log c+2\\,\\log b+\\log a"));
+        assert_eq!(result.text_output, "$$-\\log c+2\\,\\log b+\\log a$$");
     }
 
     #[test]
