@@ -314,9 +314,11 @@ ax__sample_1d(expr, var, lo, hi, n) := block(
     i, 0, n - 1),
   [xs, ys])$
 
-/* Sample a 2-variable expression for surface/contour: returns [xs, ys, z_matrix] */
+/* Sample a 2-variable expression for surface/contour: returns [xs, ys, z_matrix].
+   Rows run over y and columns over x, so z_matrix[j][i] = f(xs[i], ys[j]),
+   which is the orientation Plotly expects for z. */
 ax__sample_2d(expr, xvar, xlo, xhi, yvar, ylo, yhi, nx, ny) := block(
-  [xstep, ystep, xs, ys, zmat, zrow, zv],
+  [xstep, ystep, xs, ys, zmat, zv],
   xlo: float(xlo), xhi: float(xhi),
   ylo: float(ylo), yhi: float(yhi),
   xstep: (xhi - xlo) / (nx - 1),
@@ -327,8 +329,8 @@ ax__sample_2d(expr, xvar, xlo, xhi, yvar, ylo, yhi, nx, ny) := block(
     makelist(
       block([zv: errcatch(float(subst([xvar = xs[i+1], yvar = ys[j+1]], expr)))],
         if zv = [] then false else first(zv)),
-      j, 0, ny - 1),
-    i, 0, nx - 1),
+      i, 0, nx - 1),
+    j, 0, ny - 1),
   [xs, ys, zmat])$
 
 /* Sample a parametric curve: returns [xs, ys] */

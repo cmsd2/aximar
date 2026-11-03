@@ -169,6 +169,19 @@ fn test_ax_draw2d_implicit() {
 
 #[test]
 #[ignore]
+fn test_ax_draw2d_implicit_grid_orientation() {
+    // Plotly reads z[row][col] as the value at (x[col], y[row]), so for
+    // x = 1 every row must change sign along x.
+    let (stdout, _) = run_maxima("ax_draw2d(nticks=3, implicit(x = 1, x, 0, 2, y, 0, 5));");
+    let json = extract_plotly_json(&stdout).expect("should produce plotly JSON");
+    let spec = parse_plotly(&json);
+
+    let z = &spec["data"][0]["z"];
+    assert_eq!(*z, serde_json::json!([[-1.0, 0.0, 1.0], [-1.0, 0.0, 1.0], [-1.0, 0.0, 1.0]]));
+}
+
+#[test]
+#[ignore]
 fn test_ax_draw2d_multiple_traces() {
     let (stdout, _) = run_maxima(
         r#"ax_draw2d(color="red", explicit(sin(x), x, -%pi, %pi), color="blue", explicit(cos(x), x, -%pi, %pi));"#,
