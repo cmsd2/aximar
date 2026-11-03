@@ -5,13 +5,50 @@ All notable changes to the standalone Maxima language tools are documented here.
 This changelog covers releases tagged `tools-v*`. For the Aximar desktop app,
 see the `v*` releases on GitHub.
 
-## [Unreleased]
+## [0.5.0] — 2026-11-03
+
+maxima-lsp and maxima-dap have no changes of their own; their versions move to
+0.5.0 with aximar-mcp.
 
 ### aximar-core
 
-- **Fixed transposed 2D grid plots** in the bundled ax-plots: `implicit` (2D),
-  `explicit` (3D surfaces), `ax_contour`, `ax_contour3d` and the expression
-  form of `ax_heatmap` drew f(y, x) instead of f(x, y). Same fix as ax-plots.
+- **Bundled ax-plots re-synced to 0.2.0**, plus the 0.2.1 grid fix below.
+  Adds labels, arrows, polygons and shapes; arrowheads and snake/zigzag
+  decorations on curves; per-object options; `theme="dark"` and the diagram preset;
+  `height=fit`; `group()` and lists of objects; `animate()`; and reactive
+  plot metadata for 2D and 3D plots. See the
+  [ax-plots changelog](https://github.com/cmsd2/ax-plots/blob/master/CHANGELOG.md).
+- **Fixed transposed 2D grid plots**: `implicit` (2D), `explicit` (3D
+  surfaces), `ax_contour`, `ax_contour3d` and the expression form of
+  `ax_heatmap` drew f(y, x) instead of f(x, y).
+- **Fixed plots that needed the numerics package**: `ax_draw3d(points(...))`,
+  `ax_heatmap` on a matrix and `ax_bar` with a matrix of columns failed with
+  `first: argument must be a non-atomic expression` or
+  `map: improper argument: true` unless numerics was loaded.
+- **Results of 0 display again**: a cell that evaluated to 0 rendered empty.
+- **Wrapped LaTeX keeps its spaces**: when `tex()` wrapped a long result, a
+  control word could fuse with the next token (`\log a` became `\loga`) and
+  show as raw text.
+- **Fixed output leaking between commands**: each protocol sentinel also
+  printed its return value as a stray line, which could put the variables list
+  into a cell's text output or cut off a cell's last statement.
+- **Solve and right-hand-side suggestions appear for equations**: equation
+  detection never matched anything, so these suggestions never appeared.
+  `:=` and `::=` definitions don't count as equations.
+- **Session status after a timeout kill**: when an evaluation timed out and
+  Maxima was killed, the session kept reporting Ready and later commands
+  failed with "Broken pipe". It now moves to an error state that points at
+  `restart_session`.
+- **Experimental kernel-events protocol**, off by default. On Unix,
+  `AXIMAR_KERNEL_EVENTS=1` gives Maxima an event channel on fd 3 and a cancel
+  channel on fd 4, and results, errors, variables and plots arrive as JSON
+  envelopes instead of scraped stdout. It needs the `kernel-events` Maxima
+  package and an SBCL-based Maxima; without the package, evaluations run to
+  the timeout.
+
+### aximar-mcp
+
+- Inherits all aximar-core changes above.
 
 ## [0.4.1] — 2026-04-22
 
@@ -177,6 +214,7 @@ Initial standalone release of the Maxima language tools.
 - Dangerous function safety gates
 - Structured JSON startup output for VS Code integration
 
+[0.5.0]: https://github.com/cmsd2/aximar/releases/tag/tools-v0.5.0
 [0.4.1]: https://github.com/cmsd2/aximar/releases/tag/tools-v0.4.1
 [0.4.0]: https://github.com/cmsd2/aximar/releases/tag/tools-v0.4.0
 [0.3.1]: https://github.com/cmsd2/aximar/releases/tag/tools-v0.3.1
