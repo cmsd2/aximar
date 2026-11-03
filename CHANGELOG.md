@@ -5,6 +5,14 @@ All notable changes to the standalone Maxima language tools are documented here.
 This changelog covers releases tagged `tools-v*`. For the Aximar desktop app,
 see the `v*` releases on GitHub.
 
+## [Unreleased]
+
+### aximar-core
+
+- **Fixed transposed 2D grid plots** in the bundled ax-plots: `implicit` (2D),
+  `explicit` (3D surfaces), `ax_contour`, `ax_contour3d` and the expression
+  form of `ax_heatmap` drew f(y, x) instead of f(x, y). Same fix as ax-plots.
+
 ## [0.4.1] — 2026-04-22
 
 ### aximar-mcp
