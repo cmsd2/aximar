@@ -45,6 +45,11 @@ jobs:
 
     runs-on: ${{ matrix.os }}
 
+    # The Apple signing secrets live in the "release" environment, which has
+    # required reviewers. Only the macOS jobs use it, so Linux/Windows builds
+    # don't wait for approval.
+    environment: ${{ startsWith(matrix.os, 'macos') && 'release' || '' }}
+
     steps:
       - uses: actions/checkout@v4
 

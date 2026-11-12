@@ -16,7 +16,9 @@ trigger; the tap's workflow polls hourly (or run it manually).
 ## macOS signing and notarization
 
 `.github/workflows/release.yml` signs and notarizes the macOS app when these
-repository secrets are set; otherwise it builds unsigned (with a warning):
+secrets are set in the `release` GitHub Environment (Settings → Environments,
+with required reviewers, so a tag push waits for approval before the macOS jobs
+get the secrets); otherwise it builds unsigned (with a warning):
 
 | Secret | Value |
 |---|---|
