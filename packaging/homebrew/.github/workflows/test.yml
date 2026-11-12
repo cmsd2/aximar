@@ -1,0 +1,23 @@
+name: Test
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  audit:
+    strategy:
+      matrix:
+        os: [macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install the tap from this checkout
+        run: |
+          brew tap-new --no-git local/tap
+          cp Formula/*.rb "$(brew --repository local/tap)/Formula/"
+          cp Casks/*.rb "$(brew --repository local/tap)/Casks/"
+      - name: Audit
+        run: |
+          brew audit --strict --formula local/tap/aximar-tools
+          brew audit --strict --cask local/tap/aximar
