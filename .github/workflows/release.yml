@@ -26,7 +26,9 @@ jobs:
               target/x86_64-unknown-linux-gnu/release/bundle/deb/*.deb
               target/x86_64-unknown-linux-gnu/release/bundle/rpm/*.rpm
               target/x86_64-unknown-linux-gnu/release/bundle/appimage/*.AppImage
-          - os: ubuntu-latest
+          # Pinned: on newer ubuntu-latest images the cross toolchain install
+          # forces apt to downgrade the host gcc/binutils and fails.
+          - os: ubuntu-24.04
             rust-target: aarch64-unknown-linux-gnu
             cross: true
             bundles: deb
