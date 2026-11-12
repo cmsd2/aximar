@@ -121,7 +121,36 @@ jobs:
       - name: Install npm dependencies
         run: npm ci
 
+      # Apple signing + notarization is optional: when the APPLE_* secrets are
+      # not configured the macOS build proceeds unsigned, as before.
+      - name: Check for Apple signing secrets
+        id: apple
+        if: runner.os == 'macOS'
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+        run: |
+          if [ -n "$APPLE_CERTIFICATE" ]; then
+            echo "signing=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "signing=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::APPLE_CERTIFICATE secret not set; building an unsigned, un-notarized app"
+          fi
+
+      # The Tauri CLI imports the certificate into a temporary keychain, signs
+      # with the hardened runtime, and submits to notarytool + staples.
+      - name: Build Tauri app (signed + notarized)
+        if: steps.apple.outputs.signing == 'true'
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: npx tauri build --target ${{ matrix.rust-target }}
+
       - name: Build Tauri app
+        if: steps.apple.outputs.signing != 'true'
         run: npx tauri build --target ${{ matrix.rust-target }} ${{ matrix.bundles && format('--bundles {0}', matrix.bundles) || '' }}
 
       - name: Upload release assets
