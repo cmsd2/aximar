@@ -11,7 +11,13 @@ The tap's contents are staged in `packaging/homebrew/` — copy them to the root
 of the `cmsd2/homebrew-tap` repo. `bump.py` rewrites versions and sha256s from
 the latest **published** (non-draft) GitHub releases: `v*` for the cask,
 `tools-v*` for the formula. Publishing a draft release is therefore the release
-trigger; the tap's workflow polls hourly (or run it manually).
+trigger: publishing fires `.github/workflows/notify-tap.yml`, which sends an
+`aximar-released` dispatch that starts the tap's `Bump` workflow. The tap also
+runs `Bump` daily to catch a missed dispatch, or run it by hand with
+`gh workflow run Bump -R cmsd2/homebrew-tap`. `notify-tap.yml` needs a
+`TAP_DISPATCH_TOKEN` repository secret (a fine-grained PAT with access to
+`cmsd2/homebrew-tap` only, Contents read/write); without it the workflow logs a
+warning and the daily run picks the release up.
 
 ## macOS signing and notarization
 
