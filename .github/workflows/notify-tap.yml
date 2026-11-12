@@ -5,6 +5,8 @@ name: Notify tap
 on:
   release:
     types: [published]
+  # Run by hand to check TAP_DISPATCH_TOKEN; the tap's Bump finds nothing new.
+  workflow_dispatch:
 
 permissions: {}
 
