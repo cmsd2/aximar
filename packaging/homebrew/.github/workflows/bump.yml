@@ -1,0 +1,29 @@
+name: Bump aximar
+
+on:
+  schedule:
+    - cron: "17 * * * *"
+  workflow_dispatch:
+  repository_dispatch:
+    types: [aximar-released]
+
+permissions:
+  contents: write
+
+jobs:
+  bump:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Update formula and cask to the latest releases
+        run: python3 bump.py
+      - name: Commit and push
+        run: |
+          if git diff --quiet; then
+            echo "Already up to date"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -am "Update aximar formula/cask"
+          git push
