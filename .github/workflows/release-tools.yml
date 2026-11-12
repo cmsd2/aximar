@@ -20,7 +20,9 @@ jobs:
             target: x86_64-apple-darwin
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
-          - os: ubuntu-latest
+          # Pinned: on newer ubuntu-latest images the cross toolchain install
+          # forces apt to downgrade the host gcc/binutils and fails.
+          - os: ubuntu-24.04
             target: aarch64-unknown-linux-gnu
             cross: true
           - os: windows-latest
