@@ -5,6 +5,18 @@ All notable changes to the standalone Maxima language tools are documented here.
 This changelog covers releases tagged `tools-v*`. For the Aximar desktop app,
 see the `v*` releases on GitHub.
 
+## [Unreleased]
+
+### aximar-mcp
+
+- **`run_all_cells` reports cells that did not succeed**: each result now has a
+  `status` (`ok`, `empty`, `error`, `needs_trust`, `failed`, `not_run`). A cell
+  held back because the notebook is untrusted used to count as `success: true`,
+  and so did a cell whose evaluation ended in a Maxima error. The tool now stops
+  at the first such cell, as its description said, marks the remaining cells
+  `not_run`, and adds top-level `success`, `stopped_at`, `stop_reason` and
+  `message` fields. The unused `pending_approval` field is gone.
+
 ## [0.5.0] — 2026-11-03
 
 maxima-lsp and maxima-dap have no changes of their own; their versions move to

@@ -781,3 +781,237 @@ async fn evaluate_expression_blocks_unknown_load() {
     assert!(msg.contains("Dangerous function(s) blocked"));
     assert!(msg.contains("load"));
 }
+
+// ── run_all_cells status reporting ───────────────────────────────────
+
+use crate::server::{run_all_summary, summarize_cell_run, CellRunStatus};
+
+fn build_server_connected() -> AximarMcpServer {
+    let process_sink_factory: crate::server::ProcessSinkFactory =
+        Arc::new(|_id, capture| capture.clone() as Arc<dyn aximar_core::maxima::output::OutputSink>);
+    AximarMcpServer::new_connected(
+        Arc::new(Mutex::new(NotebookRegistry::new())),
+        Arc::new(Catalog::load()),
+        Arc::new(PackageCatalog::load()),
+        Backend::Local,
+        None,
+        30,
+        process_sink_factory,
+        Arc::new(|_, _| {}),
+        Arc::new(|_, _| {}),
+        Arc::new(|_, _| {}),
+    )
+}
+
+async fn add_code_cell(s: &AximarMcpServer, input: &str) -> String {
+    let v = parse_ok(
+        s.add_cell(Parameters(AddCellParams {
+            cell_type: Some("code".into()),
+            input: Some(input.into()),
+            after_cell_id: None,
+            notebook_id: None,
+        }))
+        .await,
+    );
+    v["cell_id"].as_str().unwrap().to_string()
+}
+
+fn ok_json(v: serde_json::Value) -> Result<String, String> {
+    Ok(v.to_string())
+}
+
+#[test]
+fn summarize_needs_trust_is_not_success() {
+    let (status, entry) = summarize_cell_run(
+        "c1",
+        &ok_json(serde_json::json!({
+            "cell_id": "c1",
+            "needs_notebook_trust": true,
+            "dangerous_functions": ["load"],
+            "message": "Notebook is untrusted.",
+        })),
+    );
+    assert_eq!(status, CellRunStatus::NeedsTrust);
+    assert!(status.stops_run());
+    assert_eq!(entry["status"], "needs_trust");
+    assert_eq!(entry["success"], false);
+    assert_eq!(entry["dangerous_functions"], serde_json::json!(["load"]));
+}
+
+#[test]
+fn summarize_is_error_is_not_success() {
+    let (status, entry) = summarize_cell_run(
+        "c2",
+        &ok_json(serde_json::json!({
+            "cell_id": "c2",
+            "execution_count": 3,
+            "text_output": "inpart: invalid index 4 of list or matrix.\n",
+            "error": null,
+            "is_error": true,
+        })),
+    );
+    assert_eq!(status, CellRunStatus::Error);
+    assert!(status.stops_run());
+    assert_eq!(entry["status"], "error");
+    assert_eq!(entry["success"], false);
+    assert_eq!(entry["error"], "inpart: invalid index 4 of list or matrix.");
+}
+
+#[test]
+fn summarize_prefers_error_field_when_set() {
+    let (_, entry) = summarize_cell_run(
+        "c2",
+        &ok_json(serde_json::json!({
+            "execution_count": 1,
+            "text_output": "",
+            "error": "Evaluation timed out",
+            "is_error": true,
+        })),
+    );
+    assert_eq!(entry["error"], "Evaluation timed out");
+}
+
+#[test]
+fn summarize_clean_and_empty_cells_succeed() {
+    let (status, entry) = summarize_cell_run(
+        "c3",
+        &ok_json(serde_json::json!({ "execution_count": 4, "is_error": false, "error": null })),
+    );
+    assert_eq!(status, CellRunStatus::Ok);
+    assert_eq!(entry["success"], true);
+    assert_eq!(entry["execution_count"], 4);
+
+    let (status, entry) = summarize_cell_run(
+        "c4",
+        &ok_json(serde_json::json!({ "message": "Empty cell — nothing to execute" })),
+    );
+    assert_eq!(status, CellRunStatus::Empty);
+    assert!(!status.stops_run());
+    assert_eq!(entry["success"], true);
+}
+
+#[test]
+fn summarize_run_cell_err_is_failed() {
+    let (status, entry) = summarize_cell_run("c5", &Err("Dangerous function(s) blocked: system".into()));
+    assert_eq!(status, CellRunStatus::Failed);
+    assert!(status.stops_run());
+    assert_eq!(entry["success"], false);
+    assert!(entry["error"].as_str().unwrap().contains("blocked"));
+}
+
+#[test]
+fn run_all_summary_reports_stop() {
+    let results = vec![
+        serde_json::json!({ "cell_id": "a", "status": "ok", "success": true }),
+        serde_json::json!({ "cell_id": "b", "status": "needs_trust", "success": false }),
+        serde_json::json!({ "cell_id": "c", "status": "not_run", "success": false }),
+    ];
+    let v = run_all_summary(3, results, Some(("b".into(), CellRunStatus::NeedsTrust)));
+    assert_eq!(v["success"], false);
+    assert_eq!(v["cells_total"], 3);
+    assert_eq!(v["cells_run"], 1);
+    assert_eq!(v["cells_not_run"], 2);
+    assert_eq!(v["stopped_at"], "b");
+    assert_eq!(v["stop_reason"], "needs_trust");
+    assert!(v["message"].as_str().unwrap().contains("untrusted"));
+}
+
+#[test]
+fn run_all_summary_all_ok() {
+    let results = vec![serde_json::json!({ "cell_id": "a", "status": "ok", "success": true })];
+    let v = run_all_summary(1, results, None);
+    assert_eq!(v["success"], true);
+    assert_eq!(v["cells_run"], 1);
+    assert_eq!(v["cells_not_run"], 0);
+    assert!(v["stopped_at"].is_null());
+    assert!(v["stop_reason"].is_null());
+}
+
+#[tokio::test]
+#[ignore = "requires Maxima to be installed"]
+async fn run_all_cells_stops_at_untrusted_load_in_connected_mode() {
+    let s = build_server_connected();
+    let first = add_code_cell(&s, "a: 1$").await;
+    // A local file load is not a known package, so the safety scan flags it.
+    let load_cell = add_code_cell(&s, "load(\"my_helpers.mac\")$").await;
+    let after = add_code_cell(&s, "a + 1;").await;
+    // New notebooks start trusted; opened files start untrusted.
+    {
+        let ctx = s.core.resolve_context(None).await.unwrap();
+        ctx.notebook.lock().await.set_trusted(false);
+    }
+
+    let v = parse_ok(s.run_all_cells(Parameters(NotebookIdParam { notebook_id: None })).await);
+    let results = v["results"].as_array().unwrap();
+    let by_id = |id: &str| results.iter().find(|r| r["cell_id"] == id).unwrap().clone();
+
+    assert_eq!(v["success"], false, "{v:#}");
+    assert_eq!(v["stopped_at"], load_cell.as_str());
+    assert_eq!(v["stop_reason"], "needs_trust");
+    assert_eq!(by_id(&first)["status"], "ok");
+    let skipped = by_id(&load_cell);
+    assert_eq!(skipped["status"], "needs_trust");
+    assert_eq!(skipped["success"], false);
+    assert!(skipped["dangerous_functions"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|f| f == "load"));
+    assert_eq!(by_id(&after)["status"], "not_run");
+    assert_eq!(by_id(&after)["success"], false);
+}
+
+#[tokio::test]
+#[ignore = "requires Maxima to be installed"]
+async fn run_all_cells_runs_dangerous_cell_once_notebook_trusted() {
+    let s = build_server_connected();
+    add_code_cell(&s, "system(\"true\")$").await;
+    add_code_cell(&s, "1 + 1;").await;
+    {
+        let ctx = s.core.resolve_context(None).await.unwrap();
+        ctx.notebook.lock().await.set_trusted(true);
+    }
+
+    let v = parse_ok(s.run_all_cells(Parameters(NotebookIdParam { notebook_id: None })).await);
+    assert_eq!(v["success"], true, "{v:#}");
+    assert!(v["stopped_at"].is_null());
+    for r in v["results"].as_array().unwrap() {
+        assert_eq!(r["success"], true, "{r:#}");
+    }
+}
+
+#[tokio::test]
+#[ignore = "requires Maxima to be installed"]
+async fn run_all_cells_stops_at_maxima_error() {
+    let s = build_server();
+    let first = add_code_cell(&s, "l: [1, 2, 3]$").await;
+    let bad = add_code_cell(&s, "inpart(l, 4);").await;
+    let after = add_code_cell(&s, "b: 5;").await;
+
+    let v = parse_ok(s.run_all_cells(Parameters(NotebookIdParam { notebook_id: None })).await);
+    let results = v["results"].as_array().unwrap();
+    let by_id = |id: &str| results.iter().find(|r| r["cell_id"] == id).unwrap().clone();
+
+    assert_eq!(v["success"], false, "{v:#}");
+    assert_eq!(v["stopped_at"], bad.as_str());
+    assert_eq!(v["stop_reason"], "error");
+    assert_eq!(by_id(&first)["status"], "ok");
+    let errored = by_id(&bad);
+    assert_eq!(errored["status"], "error");
+    assert_eq!(errored["success"], false);
+    assert!(
+        errored["error"].as_str().unwrap().contains("inpart"),
+        "error text should name the failing call: {errored:#}"
+    );
+    assert_eq!(by_id(&after)["status"], "not_run");
+
+    // The skipped cell really did not run: `b` stays unbound.
+    let v = parse_ok(
+        s.evaluate_expression(Parameters(EvaluateExpressionParams {
+            expression: "b;".into(),
+            notebook_id: None,
+        }))
+        .await,
+    );
+    assert_eq!(v["latex"], "b", "later cell should not have run: {v:#}");
+}
