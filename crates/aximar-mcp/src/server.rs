@@ -978,7 +978,9 @@ Best practice: run each cell immediately after creating it before moving on to t
         }
     }
 
-    #[tool(description = "Execute all code cells in the notebook in order. Returns results for each cell. Stops on the first cell that produces an error. When building a notebook, prefer running cells individually with run_cell to verify each result before proceeding.")]
+    #[tool(description = "Execute all code cells in the notebook in order. Stops at the first cell that errors, fails to run, or is blocked because the notebook is untrusted; later cells are reported with status \"not_run\". Check the top-level `success` field: it is true only when every code cell ran without error.
+
+Each entry in `results` has a `status`: \"ok\" (ran cleanly), \"empty\" (nothing to execute), \"error\" (Maxima reported an error; see `error`), \"needs_trust\" (skipped because the notebook is untrusted; see `dangerous_functions` and trust the notebook in the GUI), \"failed\" (could not run; see `error`), or \"not_run\" (skipped because an earlier cell stopped the run). When building a notebook, prefer running cells individually with run_cell to verify each result before proceeding.")]
     async fn run_all_cells(
         &self,
         Parameters(params): Parameters<NotebookIdParam>,
@@ -997,44 +999,31 @@ Best practice: run each cell immediately after creating it before moving on to t
                 .collect()
         };
 
-        let mut results = Vec::new();
+        let mut results = Vec::with_capacity(cell_ids.len());
+        let mut stop: Option<(String, CellRunStatus)> = None;
         for cell_id in &cell_ids {
+            if stop.is_some() {
+                results.push(serde_json::json!({
+                    "cell_id": cell_id,
+                    "status": CellRunStatus::NotRun.as_str(),
+                    "success": false,
+                }));
+                continue;
+            }
             let result = self
                 .run_cell(Parameters(CellIdParams {
                     cell_id: cell_id.to_string(),
                     notebook_id: Some(ctx.id.clone()),
                 }))
                 .await;
-            match &result {
-                Err(_) => {
-                    results.push(serde_json::json!({
-                        "cell_id": cell_id,
-                        "success": false,
-                    }));
-                    break;
-                }
-                Ok(json_str) => {
-                    // Check if the result indicates pending approval
-                    let is_pending = serde_json::from_str::<serde_json::Value>(json_str)
-                        .ok()
-                        .and_then(|v| v.get("pending_approval")?.as_bool())
-                        .unwrap_or(false);
-                    results.push(serde_json::json!({
-                        "cell_id": cell_id,
-                        "success": !is_pending,
-                        "pending_approval": is_pending,
-                    }));
-                    if is_pending {
-                        break;
-                    }
-                }
+            let (status, entry) = summarize_cell_run(cell_id, &result);
+            if status.stops_run() {
+                stop = Some((cell_id.clone(), status));
             }
+            results.push(entry);
         }
 
-        success_json(&serde_json::json!({
-            "cells_run": results.len(),
-            "results": results,
-        }))
+        success_json(&run_all_summary(cell_ids.len(), results, stop))
     }
 
     #[tool(description = "Evaluate a Maxima expression without creating a notebook cell. Good for quick calculations and checks. Auto-starts the session if needed. The expression is ephemeral (no cell is created), but session state persists — variables and definitions set here are available to subsequent cells and expressions.
@@ -1306,6 +1295,192 @@ impl rmcp::handler::server::ServerHandler for AximarMcpServer {
                  notebook.",
             )
     }
+}
+
+// ── run_all_cells result classification ───────────────────────────────
+
+/// Outcome of one code cell within `run_all_cells`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum CellRunStatus {
+    /// Evaluated without error.
+    Ok,
+    /// Nothing to execute (empty input).
+    Empty,
+    /// Evaluated, but Maxima reported an error.
+    Error,
+    /// Skipped: contains dangerous calls and the notebook is untrusted.
+    NeedsTrust,
+    /// `run_cell` returned an error (blocked, session failure, timeout, ...).
+    Failed,
+    /// Not attempted because an earlier cell stopped the run.
+    NotRun,
+}
+
+impl CellRunStatus {
+    pub(crate) fn as_str(self) -> &'static str {
+        match self {
+            CellRunStatus::Ok => "ok",
+            CellRunStatus::Empty => "empty",
+            CellRunStatus::Error => "error",
+            CellRunStatus::NeedsTrust => "needs_trust",
+            CellRunStatus::Failed => "failed",
+            CellRunStatus::NotRun => "not_run",
+        }
+    }
+
+    /// Whether this outcome should stop `run_all_cells` from running later cells.
+    pub(crate) fn stops_run(self) -> bool {
+        matches!(
+            self,
+            CellRunStatus::Error | CellRunStatus::NeedsTrust | CellRunStatus::Failed
+        )
+    }
+}
+
+/// Classify the result of `run_cell` and build the per-cell entry that
+/// `run_all_cells` reports.
+pub(crate) fn summarize_cell_run(
+    cell_id: &str,
+    result: &Result<String, String>,
+) -> (CellRunStatus, serde_json::Value) {
+    let json_str = match result {
+        Err(msg) => {
+            let status = CellRunStatus::Failed;
+            return (
+                status,
+                serde_json::json!({
+                    "cell_id": cell_id,
+                    "status": status.as_str(),
+                    "success": false,
+                    "error": msg,
+                }),
+            );
+        }
+        Ok(s) => s,
+    };
+
+    let v: serde_json::Value = match serde_json::from_str(json_str) {
+        Ok(v) => v,
+        Err(e) => {
+            let status = CellRunStatus::Failed;
+            return (
+                status,
+                serde_json::json!({
+                    "cell_id": cell_id,
+                    "status": status.as_str(),
+                    "success": false,
+                    "error": format!("Unreadable run_cell result: {e}"),
+                }),
+            );
+        }
+    };
+    let flag = |key: &str| v.get(key).and_then(|x| x.as_bool()).unwrap_or(false);
+
+    if flag("needs_notebook_trust") {
+        let status = CellRunStatus::NeedsTrust;
+        return (
+            status,
+            serde_json::json!({
+                "cell_id": cell_id,
+                "status": status.as_str(),
+                "success": false,
+                "dangerous_functions": v.get("dangerous_functions").cloned().unwrap_or_default(),
+                "message": v.get("message").cloned().unwrap_or_default(),
+            }),
+        );
+    }
+
+    if flag("is_error") {
+        let status = CellRunStatus::Error;
+        // Maxima error text usually lands in text_output; `error` is set for
+        // timeouts and protocol-level failures. Report whichever is present.
+        let error_text = v
+            .get("error")
+            .and_then(|x| x.as_str())
+            .filter(|s| !s.is_empty())
+            .or_else(|| v.get("text_output").and_then(|x| x.as_str()))
+            .unwrap_or("")
+            .trim()
+            .to_string();
+        return (
+            status,
+            serde_json::json!({
+                "cell_id": cell_id,
+                "status": status.as_str(),
+                "success": false,
+                "execution_count": v.get("execution_count").cloned().unwrap_or_default(),
+                "error": error_text,
+            }),
+        );
+    }
+
+    let status = if v.get("execution_count").is_some() {
+        CellRunStatus::Ok
+    } else {
+        // Markdown/empty cells return only a message.
+        CellRunStatus::Empty
+    };
+    let mut entry = serde_json::json!({
+        "cell_id": cell_id,
+        "status": status.as_str(),
+        "success": true,
+    });
+    if let Some(n) = v.get("execution_count") {
+        entry["execution_count"] = n.clone();
+    }
+    (status, entry)
+}
+
+/// Build the top-level `run_all_cells` response.
+pub(crate) fn run_all_summary(
+    cells_total: usize,
+    results: Vec<serde_json::Value>,
+    stop: Option<(String, CellRunStatus)>,
+) -> serde_json::Value {
+    let status_of = |r: &serde_json::Value| r.get("status").and_then(|s| s.as_str()).map(str::to_owned);
+    let cells_run = results
+        .iter()
+        .filter(|r| {
+            matches!(
+                status_of(r).as_deref(),
+                Some("ok") | Some("empty") | Some("error")
+            )
+        })
+        .count();
+    let cells_not_run = results
+        .iter()
+        .filter(|r| matches!(status_of(r).as_deref(), Some("needs_trust") | Some("not_run")))
+        .count();
+
+    let (stopped_at, stop_reason, message) = match &stop {
+        None => (None, None, format!("All {cells_total} code cell(s) ran without error.")),
+        Some((cell_id, status)) => {
+            let skipped = cells_not_run;
+            let why = match status {
+                CellRunStatus::Error => format!("Cell '{cell_id}' produced an error"),
+                CellRunStatus::NeedsTrust => format!(
+                    "Cell '{cell_id}' was not run because the notebook is untrusted; trust the notebook in the GUI and run again"
+                ),
+                _ => format!("Cell '{cell_id}' could not be run"),
+            };
+            (
+                Some(cell_id.clone()),
+                Some(status.as_str()),
+                format!("{why}. Stopped; {skipped} cell(s) not run."),
+            )
+        }
+    };
+
+    serde_json::json!({
+        "success": stop.is_none(),
+        "cells_total": cells_total,
+        "cells_run": cells_run,
+        "cells_not_run": cells_not_run,
+        "stopped_at": stopped_at,
+        "stop_reason": stop_reason,
+        "message": message,
+        "results": results,
+    })
 }
 
 #[cfg(test)]

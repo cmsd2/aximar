@@ -130,7 +130,12 @@ Replace `<token>` with the value shown in Settings.
 ### Execution
 
 - **run_cell(cell_id)** -- Execute a notebook cell (auto-starts session).
-- **run_all_cells()** -- Execute all code cells in order.
+- **run_all_cells()** -- Execute all code cells in order. Stops at the first
+  cell that errors, fails, or needs notebook trust. Each entry in `results` has
+  a `status`: `ok`, `empty`, `error` (with `error` text), `needs_trust` (with
+  `dangerous_functions`), `failed` (with `error`), or `not_run`. Top-level
+  `success` is true only when every code cell ran cleanly; `stopped_at` and
+  `stop_reason` name the cell that stopped the run.
 - **evaluate_expression(expression)** -- Quick evaluation without creating a cell.
 
 ### Session
