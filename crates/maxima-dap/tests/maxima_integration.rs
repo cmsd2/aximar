@@ -1531,3 +1531,106 @@ async fn legacy_load_program_reports_syntax_error() {
 
     proc.kill().await.unwrap();
 }
+
+// ---------------------------------------------------------------------------
+// Frames in a package loaded from outside the program's folder (#43)
+// ---------------------------------------------------------------------------
+
+/// Send a command and wait until Maxima has finished with it.
+async fn run_to_sentinel(proc: &mut MaximaProcess, cmd: &str) {
+    let sentinel = "__TEST_DONE__";
+    proc.write_stdin(cmd).await.unwrap();
+    proc.write_stdin(&format!("print(\"{}\")$\n", sentinel))
+        .await
+        .unwrap();
+    proc.read_until_sentinel(sentinel).await.unwrap();
+}
+
+#[tokio::test]
+#[ignore]
+async fn legacy_frame_paths_find_package_outside_program_dir() {
+    // `:bt` names a frame's file without its directory. For a package
+    // found on file_search_maxima, that name can't be found next to the
+    // program, so the frame's path has to come from `:frame N`.
+    let project = tempfile::tempdir().unwrap();
+    let libs = tempfile::tempdir().unwrap();
+    let package = libs.path().join("dap_pkg_43.mac");
+    std::fs::write(
+        &package,
+        "/* package */\n\npkg_fn(x) := block(\n  [y],\n  y : x + 1,\n  y)$\n",
+    )
+    .unwrap();
+    let program = project.path().join("main.mac");
+    std::fs::write(&program, "caller(x) := pkg_fn(x * 10)$\n").unwrap();
+    let fwd = |p: &Path| p.to_string_lossy().replace('\\', "/");
+
+    let mut proc = spawn_maxima().await;
+    run_to_sentinel(&mut proc, "debugmode(true)$\n").await;
+    run_to_sentinel(
+        &mut proc,
+        &format!(
+            "file_search_maxima : cons(\"{}/###.mac\", file_search_maxima)$\n",
+            fwd(libs.path())
+        ),
+    )
+    .await;
+    run_to_sentinel(&mut proc, "load(dap_pkg_43)$\n").await;
+    run_to_sentinel(&mut proc, &format!("batchload(\"{}\")$\n", fwd(&program))).await;
+    run_to_sentinel(&mut proc, ":break pkg_fn 2\n").await;
+
+    let eval_sentinel = "__EVAL_DONE__";
+    let wrapped = format!(
+        "block([__dap_r__], __dap_r__: (caller(4)), print(\"{}\"), __dap_r__)$\n",
+        eval_sentinel
+    );
+    proc.write_stdin(&wrapped).await.unwrap();
+    let (_lines, prompt) = proc.read_dap_response(Some(eval_sentinel)).await.unwrap();
+    assert!(matches!(prompt, PromptKind::Debugger { .. }));
+
+    proc.write_stdin(":bt\n").await.unwrap();
+    let (bt_lines, _) = proc.read_dap_response(None).await.unwrap();
+    let indices: Vec<u32> = bt_lines
+        .iter()
+        .filter_map(|l| debugger::parse_backtrace_frame(l))
+        .map(|f| f.index)
+        .collect();
+    assert!(indices.len() >= 2, "expected pkg_fn and caller frames, got: {:?}", bt_lines);
+
+    let source_index = SourceIndex::new();
+    let state = DebugState::Running;
+    let mut ctx = StrategyContext {
+        process: &mut proc,
+        state: &state,
+        source_index: &source_index,
+    };
+    let canonical = LegacyStrategy.resolve_frame_paths(&mut ctx, &indices).await;
+    let dap_frames = maxima_dap::frames::parse_backtrace(
+        &bt_lines,
+        &source_index,
+        &program,
+        &std::collections::HashMap::new(),
+        Some(project.path()),
+        &canonical,
+    );
+
+    let path_of = |i: usize| {
+        let path = dap_frames[i].source.as_ref().and_then(|s| s.path.clone());
+        let path = path.unwrap_or_else(|| panic!("frame {} has no path", i));
+        Path::new(&path)
+            .canonicalize()
+            .unwrap_or_else(|e| panic!("frame {} path {} doesn't exist: {}", i, path, e))
+    };
+    assert_eq!(path_of(0), package.canonicalize().unwrap());
+    assert_eq!(dap_frames[0].line, 5, "breakpoint is two lines into pkg_fn");
+    assert_eq!(path_of(1), program.canonicalize().unwrap());
+
+    // The `:frame` commands leave frame 0 selected, so x is pkg_fn's 40
+    // rather than caller's 4.
+    proc.write_stdin("x;\n").await.unwrap();
+    let (lines, _) = proc.read_dap_response(None).await.unwrap();
+    assert!(lines.iter().any(|l| l.contains("40")), "expected 40, got: {:?}", lines);
+
+    proc.write_stdin(":resume\n").await.unwrap();
+    let _ = proc.read_dap_response(Some(eval_sentinel)).await;
+    proc.kill().await.unwrap();
+}

@@ -10,7 +10,7 @@ use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
 use aximar_core::error::AppError;
-use aximar_core::maxima::debugger::{CanonicalLocation, PromptKind};
+use aximar_core::maxima::debugger::{self, CanonicalLocation, PromptKind};
 use aximar_core::maxima::process::MaximaProcess;
 
 use crate::breakpoints::SourceIndex;
@@ -123,8 +123,8 @@ pub trait BreakpointStrategy: Send {
     /// Resolve canonical absolute paths for backtrace frames.
     ///
     /// Given the frame indices from a `:bt` output, returns a map of
-    /// frame index → canonical location. Enhanced mode issues `:frame N`
-    /// for each frame; Legacy returns an empty map (heuristic resolution).
+    /// frame index → canonical location. Both strategies use
+    /// [`frame_paths_from_frame_command`].
     async fn resolve_frame_paths(
         &self,
         ctx: &mut StrategyContext<'_>,
@@ -140,4 +140,33 @@ pub trait BreakpointStrategy: Send {
 
     /// Returns a human-readable name for this strategy (for logging).
     fn name(&self) -> &'static str;
+}
+
+/// Ask Maxima for the absolute source path of each frame with `:frame N`.
+///
+/// `:bt` names a frame's file without its directory, which can't be
+/// found when the file was loaded from outside the program's folder (a
+/// package on `file_search_maxima`, say). `:frame N` prints a
+/// `file:line::` line with the full path, in stock Maxima as well as
+/// Enhanced. Frames are visited outermost first, so the last command
+/// selects frame 0, where Maxima stopped.
+pub async fn frame_paths_from_frame_command(
+    ctx: &mut StrategyContext<'_>,
+    frame_indices: &[u32],
+) -> HashMap<u32, CanonicalLocation> {
+    let mut canonical_paths = HashMap::new();
+    for &idx in frame_indices.iter().rev() {
+        let cmd = format!(":frame {}", idx);
+        match ctx.send_debugger_command_raw(&cmd).await {
+            Ok((frame_lines, _)) => {
+                if let Some(loc) = debugger::find_canonical_location(&frame_lines) {
+                    canonical_paths.insert(idx, loc);
+                }
+            }
+            Err(e) => {
+                tracing::warn!("resolve_frame_paths: :frame {} failed: {}", idx, e);
+            }
+        }
+    }
+    canonical_paths
 }
