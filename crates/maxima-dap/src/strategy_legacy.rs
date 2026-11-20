@@ -14,7 +14,10 @@ use regex::Regex;
 use tracing;
 
 use crate::breakpoints::{self, BreakpointMapping, SourceIndex};
-use crate::strategy::{BreakpointStrategy, LoadResult, SetBreakpointResult, StrategyContext};
+use crate::strategy::{
+    frame_paths_from_frame_command, BreakpointStrategy, LoadResult, SetBreakpointResult,
+    StrategyContext,
+};
 
 /// Legacy strategy using function+offset breakpoints.
 pub struct LegacyStrategy;
@@ -260,11 +263,10 @@ impl BreakpointStrategy for LegacyStrategy {
 
     async fn resolve_frame_paths(
         &self,
-        _ctx: &mut StrategyContext<'_>,
-        _frame_indices: &[u32],
+        ctx: &mut StrategyContext<'_>,
+        frame_indices: &[u32],
     ) -> HashMap<u32, CanonicalLocation> {
-        // Legacy Maxima doesn't output canonical paths — use heuristic resolution.
-        HashMap::new()
+        frame_paths_from_frame_command(ctx, frame_indices).await
     }
 
     fn supports_deferred_breakpoints(&self) -> bool {

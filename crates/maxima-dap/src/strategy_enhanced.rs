@@ -9,12 +9,15 @@ use std::collections::HashMap;
 use std::path::Path;
 
 use aximar_core::error::AppError;
-use aximar_core::maxima::debugger::{self, CanonicalLocation};
+use aximar_core::maxima::debugger::CanonicalLocation;
 use regex::Regex;
 use tracing;
 
 use crate::breakpoints::SourceIndex;
-use crate::strategy::{BreakpointStrategy, LoadResult, SetBreakpointResult, StrategyContext};
+use crate::strategy::{
+    frame_paths_from_frame_command, BreakpointStrategy, LoadResult, SetBreakpointResult,
+    StrategyContext,
+};
 
 /// Enhanced strategy using file:line breakpoints and deferred resolution.
 pub struct EnhancedStrategy;
@@ -123,21 +126,7 @@ impl BreakpointStrategy for EnhancedStrategy {
         ctx: &mut StrategyContext<'_>,
         frame_indices: &[u32],
     ) -> HashMap<u32, CanonicalLocation> {
-        let mut canonical_paths = HashMap::new();
-        for &idx in frame_indices {
-            let cmd = format!(":frame {}", idx);
-            match ctx.send_debugger_command_raw(&cmd).await {
-                Ok((frame_lines, _)) => {
-                    if let Some(loc) = debugger::find_canonical_location(&frame_lines) {
-                        canonical_paths.insert(idx, loc);
-                    }
-                }
-                Err(e) => {
-                    tracing::warn!("resolve_frame_paths: :frame {} failed: {}", idx, e);
-                }
-            }
-        }
-        canonical_paths
+        frame_paths_from_frame_command(ctx, frame_indices).await
     }
 
     fn supports_deferred_breakpoints(&self) -> bool {
