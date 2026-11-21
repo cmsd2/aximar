@@ -16,26 +16,28 @@ Method: four read-only passes (core; MCP and Tauri adapters; frontend; LSP, mac 
 
 ## 1. Bugs found
 
+Each bug links to the issue that tracks it. [PR #62](https://github.com/cmsd2/aximar/pull/62) fixed the ones marked fixed; 16 to 19 have no issue yet.
+
 ### Data loss or wrong results
 
-1. **A debounced edit can go to the wrong notebook.** `src/lib/dirty-inputs.ts` keys pending edits by cell id only, and `nbUpdateCellInput` reads the active notebook when the 300 ms timer fires (`notebook-commands.ts:83`). Switching tabs does not flush, and `flushAll` has no callers. The backend replies "Cell not found", which only reaches `console.warn`; inferred, the edit is lost and a following run uses the old input.
-2. **A config parse error wipes the user's settings.** `src-tauri/src/commands/config.rs:318` falls back to `AppConfig::default()` on bad JSON, and `set_config` then writes the defaults back, including a new `mcp_token`. `gemini_mcp_configure` (`config.rs:741`) does the same to `~/.gemini/settings.json`.
-3. **Docker notebooks share one container name.** `process.rs:297` names the container `aximar-{pid}`, but each notebook has its own session. A second notebook's `docker run --name` fails, and `kill()` (`process.rs:1374`) removes the shared name, which can stop another notebook's container.
-4. **Output capture race.** `evaluation.rs:75` clears the capture sink before taking the session lock, so a run queued behind an active one clears the first cell's partial output. MCP `evaluate_expression` has the same order (`server.rs:315`).
-5. **Labels are rewritten inside strings.** `replace_bare_percent` (`labels.rs:52`) turns `"hello %"` into `"hello %o6"`; the test at `labels.rs:292` asserts this.
-6. **An unclosed bracket hides the rest of a `.mac` file.** `skip_to_terminator` (`maxima-mac-parser/src/parser.rs:121`) ignores `;` and `$` while a bracket is open, so the outline, LSP symbols and DAP lookups lose every later definition, with no diagnostic.
-7. **FindBar Replace All corrupts overlapping matches.** `FindBar.tsx:49` advances by `idx + 1`, and Replace All splices the overlapping ranges: "aa" to "b" in "aaa" gives "b" (worked by hand).
+1. **A debounced edit can go to the wrong notebook.** `src/lib/dirty-inputs.ts` keys pending edits by cell id only, and `nbUpdateCellInput` reads the active notebook when the 300 ms timer fires (`notebook-commands.ts:83`). Switching tabs does not flush, and `flushAll` has no callers. The backend replies "Cell not found", which only reaches `console.warn`; inferred, the edit is lost and a following run uses the old input. Tracked in [#47](https://github.com/cmsd2/aximar/issues/47). Fixed in [#62](https://github.com/cmsd2/aximar/pull/62).
+2. **A config parse error wipes the user's settings.** `src-tauri/src/commands/config.rs:318` falls back to `AppConfig::default()` on bad JSON, and `set_config` then writes the defaults back, including a new `mcp_token`. `gemini_mcp_configure` (`config.rs:741`) does the same to `~/.gemini/settings.json`. Tracked in [#46](https://github.com/cmsd2/aximar/issues/46). Fixed in [#62](https://github.com/cmsd2/aximar/pull/62).
+3. **Docker notebooks share one container name.** `process.rs:297` names the container `aximar-{pid}`, but each notebook has its own session. A second notebook's `docker run --name` fails, and `kill()` (`process.rs:1374`) removes the shared name, which can stop another notebook's container. Tracked in [#48](https://github.com/cmsd2/aximar/issues/48). Fixed in [#62](https://github.com/cmsd2/aximar/pull/62).
+4. **Output capture race.** `evaluation.rs:75` clears the capture sink before taking the session lock, so a run queued behind an active one clears the first cell's partial output. MCP `evaluate_expression` has the same order (`server.rs:315`). Tracked in [#51](https://github.com/cmsd2/aximar/issues/51). Fixed in [#62](https://github.com/cmsd2/aximar/pull/62).
+5. **Labels are rewritten inside strings.** `replace_bare_percent` (`labels.rs:52`) turns `"hello %"` into `"hello %o6"`; the test at `labels.rs:292` asserts this. Tracked in [#50](https://github.com/cmsd2/aximar/issues/50). Fixed in [#62](https://github.com/cmsd2/aximar/pull/62).
+6. **An unclosed bracket hides the rest of a `.mac` file.** `skip_to_terminator` (`maxima-mac-parser/src/parser.rs:121`) ignores `;` and `$` while a bracket is open, so the outline, LSP symbols and DAP lookups lose every later definition, with no diagnostic. Tracked in [#57](https://github.com/cmsd2/aximar/issues/57).
+7. **FindBar Replace All corrupts overlapping matches.** `FindBar.tsx:49` advances by `idx + 1`, and Replace All splices the overlapping ranges: "aa" to "b" in "aaa" gives "b" (worked by hand). Tracked in [#52](https://github.com/cmsd2/aximar/issues/52). Fixed in [#62](https://github.com/cmsd2/aximar/pull/62).
 
 ### Things that silently don't work
 
-8. **Enhanced error explanations never reach the screen.** Both output paths compute `error_info`, but core's `CellOutput` (`notebook.rs:26`) has no such field, and `useNotebookEvents.ts:73` sets `errorInfo: null`. `EnhancedErrorOutput` always shows its raw fallback. Lost in commit abb3fc9.
-9. **The embedded MCP server ignores the user's Maxima settings.** `src-tauri/src/mcp/startup.rs:84` hard-codes the default backend, no Maxima path and a 30 s timeout. If an MCP call starts the session first, WSL, Docker and custom-path users get the wrong Maxima.
-10. **The GUI misses status for MCP-driven runs.** `evaluate_cell` discards the Running and error effects (`evaluation.rs:55`, and the error returns). Tauri re-applies them itself (`commands/notebook.rs:346-381`); MCP `run_cell` cannot, so in connected mode the GUI never sees Running, errors or timeouts from MCP runs (inferred).
-11. **GUI events drop under contention.** `app_handle` sits behind a tokio `Mutex` read with `try_lock` in six places (`tauri_output.rs:49,95,161`, `mcp/startup.rs:52,70`, `commands/session.rs:27`); a busy lock skips the emit. `startup.rs:46` spawns a task per effect, so order isn't kept either. The last event of a run is the one most likely missing, and nothing later repairs the GUI.
-12. **`list_cells` panics on multi-byte output.** `aximar-mcp/src/server.rs:746` slices `&preview[..200]` by bytes.
-13. **Loading a notebook clears its path, then restores it.** `notebookStore.ts:430` clears `filePath` on `notebook_replaced`, which `nb_load_cells` emits; both open paths patch it back (`App.tsx:314`, `useNotebookEvents.ts:125`), so the result depends on event order.
-14. **Core reads `~/.maxima` on Windows.** The copied `maxima_userdir` (`doc_index.rs:551`) dropped mxpm's Windows branch. The LSP uses this copy.
-15. **Package symbol conflicts resolve randomly.** `load_runtime_files` iterates a `HashMap` (`doc_index.rs:205`), so when two packages define a symbol the winner changes between runs.
+8. **Enhanced error explanations never reach the screen.** Both output paths compute `error_info`, but core's `CellOutput` (`notebook.rs:26`) has no such field, and `useNotebookEvents.ts:73` sets `errorInfo: null`. `EnhancedErrorOutput` always shows its raw fallback. Lost in commit abb3fc9. Tracked in [#56](https://github.com/cmsd2/aximar/issues/56).
+9. **The embedded MCP server ignores the user's Maxima settings.** `src-tauri/src/mcp/startup.rs:84` hard-codes the default backend, no Maxima path and a 30 s timeout. If an MCP call starts the session first, WSL, Docker and custom-path users get the wrong Maxima. Tracked in [#53](https://github.com/cmsd2/aximar/issues/53).
+10. **The GUI misses status for MCP-driven runs.** `evaluate_cell` discards the Running and error effects (`evaluation.rs:55`, and the error returns). Tauri re-applies them itself (`commands/notebook.rs:346-381`); MCP `run_cell` cannot, so in connected mode the GUI never sees Running, errors or timeouts from MCP runs (inferred). Tracked in [#54](https://github.com/cmsd2/aximar/issues/54).
+11. **GUI events drop under contention.** `app_handle` sits behind a tokio `Mutex` read with `try_lock` in six places (`tauri_output.rs:49,95,161`, `mcp/startup.rs:52,70`, `commands/session.rs:27`); a busy lock skips the emit. `startup.rs:46` spawns a task per effect, so order isn't kept either. The last event of a run is the one most likely missing, and nothing later repairs the GUI. Tracked in [#55](https://github.com/cmsd2/aximar/issues/55).
+12. **`list_cells` panics on multi-byte output.** `aximar-mcp/src/server.rs:746` slices `&preview[..200]` by bytes. Tracked in [#49](https://github.com/cmsd2/aximar/issues/49). Fixed in [#62](https://github.com/cmsd2/aximar/pull/62).
+13. **Loading a notebook clears its path, then restores it.** `notebookStore.ts:430` clears `filePath` on `notebook_replaced`, which `nb_load_cells` emits; both open paths patch it back (`App.tsx:314`, `useNotebookEvents.ts:125`), so the result depends on event order. Tracked in [#16](https://github.com/cmsd2/aximar/issues/16).
+14. **Core reads `~/.maxima` on Windows.** The copied `maxima_userdir` (`doc_index.rs:551`) dropped mxpm's Windows branch. The LSP uses this copy. Tracked in [#13](https://github.com/cmsd2/aximar/issues/13).
+15. **Package symbol conflicts resolve randomly.** `load_runtime_files` iterates a `HashMap` (`doc_index.rs:205`), so when two packages define a symbol the winner changes between runs. Tracked in [#13](https://github.com/cmsd2/aximar/issues/13).
 
 ### Robustness (inferred or latent)
 
@@ -43,7 +45,7 @@ Method: four read-only passes (core; MCP and Tauri adapters; frontend; LSP, mac 
 17. `session_ops.rs:57` marks the session Ready before the texput and plotting init runs; init errors are discarded; `ensure_session` checks then starts in two steps, so two callers can both spawn.
 18. `inline_images` (`maxima-lsp/src/server.rs:470-505`) joins package-supplied paths with no containment check, so a package's docs can embed any readable local file.
 19. `useTheme.ts` writes the default theme on mount, which can race the saved theme read (inferred).
-20. Remaining `partial_cmp().unwrap()` at `doc_index.rs:338` and `packages.rs:101,131` (tech-debt #5 / issue #11, partly fixed).
+20. Remaining `partial_cmp().unwrap()` at `doc_index.rs:338` and `packages.rs:101,131` (tech-debt #5 / issue #11, partly fixed). Tracked in [#11](https://github.com/cmsd2/aximar/issues/11). Fixed in [#62](https://github.com/cmsd2/aximar/pull/62).
 
 ## 2. Cross-cutting themes
 
@@ -99,6 +101,10 @@ Issue cmsd2/aximar#14 tracks these three items from the old `technical-debt.md`.
 - **10. WSL error handling.** The temp-dir `mkdir` result is discarded (`process.rs:389`), `std::fs::copy` from the WSL share has no timeout (`backend.rs:132`), and an `unwrap` remains at `process.rs:314` (safe in practice).
 
 ## 6. Existing issues these touch
+
+Issues filed from this audit: [#46](https://github.com/cmsd2/aximar/issues/46) to [#57](https://github.com/cmsd2/aximar/issues/57). Testing the fixes found four label problems, filed as [#58](https://github.com/cmsd2/aximar/issues/58) to [#61](https://github.com/cmsd2/aximar/issues/61).
+
+Earlier issues the audit touches:
 
 - cmsd2/aximar#11 (NaN panic): mostly resolved; three unwraps remain.
 - cmsd2/aximar#13 (mxpm copies): confirmed, with drift; catalog-gen's orphaned pipeline is a larger copy.
