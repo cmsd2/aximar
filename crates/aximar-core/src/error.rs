@@ -34,6 +34,9 @@ pub enum AppError {
 
     #[error("Cell '{0}' not found")]
     CellNotFound(String),
+
+    #[error("{0}")]
+    InvalidConfig(String),
 }
 
 impl Serialize for AppError {
