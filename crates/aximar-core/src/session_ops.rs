@@ -56,6 +56,9 @@ pub async fn spawn_and_init_session(
     .await
     {
         Ok(process) => {
+            // The new process numbers its labels from the start again, so
+            // labels recorded in an earlier session now name other values
+            ctx.notebook.lock().await.forget_labels();
             ctx.session.set_ready(process).await;
 
             // Configure texput so Greek letters render correctly in TeX output

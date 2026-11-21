@@ -221,18 +221,24 @@ impl Notebook {
         self.label_map.insert(execution_count, label);
     }
 
-    /// Get the previous output label for bare % resolution.
+    /// Forget every recorded label.  Called when a new Maxima process
+    /// starts: its labels reuse the old numbers for unrelated values.
+    /// Execution counts keep increasing, so earlier `Out[n]` stay unique and
+    /// a reference to one reports that it has no value.
+    pub fn forget_labels(&mut self) {
+        self.label_map.clear();
+    }
+
+    /// Get the previous output label for bare % resolution: the label of the
+    /// nearest cell above whose output is in the label map.  Going through
+    /// the map skips cells that errored and outputs from an earlier session.
     pub fn previous_output_label(&self, cell_id: &str) -> Option<String> {
         let pos = self.cells.iter().position(|c| c.id == cell_id)?;
         // Walk backwards from the cell before this one
-        for i in (0..pos).rev() {
-            if let Some(ref output) = self.cells[i].output {
-                if let Some(ref label) = output.output_label {
-                    return Some(label.clone());
-                }
-            }
-        }
-        None
+        self.cells[..pos].iter().rev().find_map(|cell| {
+            let count = cell.output.as_ref()?.execution_count?;
+            self.label_map.get(&count).cloned()
+        })
     }
 
     pub fn clear(&mut self) {
@@ -785,6 +791,65 @@ mod tests {
             cell_id: "nonexistent".into(),
         });
         assert!(result.is_err());
+    }
+
+    /// Give a cell an output as `evaluate_cell` would, recording its label
+    /// when the evaluation succeeded.
+    fn run(n: &mut Notebook, cell_id: &str, label: Option<&str>) {
+        let count = n.next_execution_count();
+        let result = EvalResult {
+            output_label: label.map(String::from),
+            is_error: label.is_none(),
+            ..Default::default()
+        };
+        if let Some(label) = label {
+            n.record_label(count, label.to_string());
+        }
+        n.apply(NotebookCommand::SetCellOutput {
+            cell_id: cell_id.to_string(),
+            output: CellOutput::from_eval_result(&result, count),
+            raw_output: Vec::new(),
+        })
+        .unwrap();
+    }
+
+    fn add_code_cell(n: &mut Notebook) -> String {
+        match n
+            .apply(NotebookCommand::AddCell {
+                cell_type: CellType::Code,
+                input: String::new(),
+                after_cell_id: None,
+                before_cell_id: None,
+            })
+            .unwrap()
+        {
+            CommandEffect::CellAdded { cell_id } => cell_id,
+            other => panic!("unexpected effect {other:?}"),
+        }
+    }
+
+    #[test]
+    fn previous_output_label_skips_cells_without_a_label() {
+        let mut n = nb();
+        let first = first_cell_id(&n);
+        let failed = add_code_cell(&mut n);
+        let current = add_code_cell(&mut n);
+        run(&mut n, &first, Some("%o196"));
+        run(&mut n, &failed, None);
+        assert_eq!(n.previous_output_label(&current), Some("%o196".to_string()));
+    }
+
+    #[test]
+    fn forget_labels_clears_previous_output_label() {
+        let mut n = nb();
+        let first = first_cell_id(&n);
+        let current = add_code_cell(&mut n);
+        run(&mut n, &first, Some("%o196"));
+        n.forget_labels();
+        assert!(n.label_map().is_empty());
+        assert_eq!(n.previous_output_label(&current), None);
+        // Counts keep going, so a later Out[n] can't reuse an old number
+        assert_eq!(n.next_execution_count(), 2);
     }
 }
 

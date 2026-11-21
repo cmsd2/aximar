@@ -2,7 +2,7 @@ use crate::catalog::packages::PackageCatalog;
 use crate::catalog::search::Catalog;
 use crate::commands::{CommandEffect, NotebookCommand};
 use crate::error::AppError;
-use crate::maxima::labels::{rewrite_labels, LabelContext};
+use crate::maxima::labels::{rewrite_labels, LabelContext, UnresolvedLabel};
 use crate::maxima::protocol;
 use crate::maxima::types::EvalResult;
 use crate::maxima::unicode::unicode_to_maxima;
@@ -69,7 +69,14 @@ pub async fn evaluate_cell(
 
     // ── No lock: translate and rewrite ──
     let translated = unicode_to_maxima(&input);
-    let rewritten = rewrite_labels(&translated, &label_ctx);
+    let rewritten = match rewrite_labels(&translated, &label_ctx) {
+        Ok(rewritten) => rewritten,
+        // A label with no value: show the message as the cell's error
+        // instead of letting Maxima read an unrelated label of its own
+        Err(UnresolvedLabel(message)) => {
+            return Ok(label_error_result(ctx, cell_id, exec_count, message).await);
+        }
+    };
 
     // ── Session lock: evaluate ──
     let mut guard = ctx.session.lock().await;
@@ -146,5 +153,37 @@ pub async fn evaluate_cell(
             }
             Err(e)
         }
+    }
+}
+
+/// Finish a cell whose input refers to a label with no value, without
+/// running Maxima: the message becomes the cell's error output.
+async fn label_error_result(
+    ctx: &NotebookContextRef,
+    cell_id: &str,
+    exec_count: u32,
+    message: String,
+) -> EvalCellResult {
+    let eval_result = EvalResult {
+        cell_id: cell_id.to_string(),
+        error: Some(message),
+        is_error: true,
+        ..Default::default()
+    };
+    let cell_output = CellOutput::from_eval_result(&eval_result, exec_count);
+    let mut nb = ctx.notebook.lock().await;
+    let effects = nb
+        .apply(NotebookCommand::SetCellOutput {
+            cell_id: cell_id.to_string(),
+            output: cell_output.clone(),
+            raw_output: Vec::new(),
+        })
+        .into_iter()
+        .collect();
+    EvalCellResult {
+        eval_result,
+        cell_output,
+        execution_count: exec_count,
+        effects,
     }
 }
