@@ -1152,3 +1152,64 @@ async fn connected_mode_reports_create_and_switch() {
     let seen = events.lock().unwrap().clone();
     assert_eq!(seen, vec![format!("{id} created"), format!("{id} active_changed")]);
 }
+
+// ── Effects reach the window as they happen ───────────────────────────
+
+/// A connected-mode server that records the effect names it sends to the window.
+fn build_server_recording_effects() -> (AximarMcpServer, Arc<std::sync::Mutex<Vec<String>>>) {
+    let seen = Arc::new(std::sync::Mutex::new(Vec::<String>::new()));
+    let recorded = seen.clone();
+    let process_sink_factory: crate::server::ProcessSinkFactory =
+        Arc::new(|_id, capture| capture.clone() as Arc<dyn aximar_core::maxima::output::OutputSink>);
+    let s = AximarMcpServer::new_connected(
+        Arc::new(Mutex::new(NotebookRegistry::new())),
+        Arc::new(Catalog::load()),
+        Arc::new(PackageCatalog::load()),
+        Backend::Local,
+        None,
+        30,
+        process_sink_factory,
+        Arc::new(move |_id: &str, effect: aximar_core::commands::CommandEffect| {
+            recorded.lock().unwrap().push(effect.effect_name().to_string());
+        }),
+        Arc::new(|_, _| {}),
+        Arc::new(|_, _| {}),
+    );
+    (s, seen)
+}
+
+/// Run `input` in a new cell and return the effects sent while it ran, and
+/// the cell's final status.
+async fn effects_of_run(
+    s: &AximarMcpServer,
+    seen: &Arc<std::sync::Mutex<Vec<String>>>,
+    input: &str,
+) -> (Vec<String>, String) {
+    let cell_id = add_code_cell(s, input).await;
+    seen.lock().unwrap().clear();
+    parse_ok(
+        s.run_cell(Parameters(CellIdParams { cell_id: cell_id.clone(), notebook_id: None }))
+            .await,
+    );
+    let effects = seen.lock().unwrap().clone();
+    let cell = parse_ok(s.get_cell(Parameters(CellIdParams { cell_id, notebook_id: None })).await);
+    (effects, cell["status"].as_str().unwrap().to_string())
+}
+
+#[tokio::test]
+#[ignore = "requires Maxima to be installed"]
+async fn mcp_run_reports_running_before_the_result() {
+    let (s, seen) = build_server_recording_effects();
+    let (effects, status) = effects_of_run(&s, &seen, "2 + 3;").await;
+    assert_eq!(effects, vec!["cell_status_updated", "cell_output_updated"]);
+    assert_eq!(status, "success");
+}
+
+#[tokio::test]
+#[ignore = "requires Maxima to be installed"]
+async fn mcp_run_reports_running_before_an_error() {
+    let (s, seen) = build_server_recording_effects();
+    let (effects, status) = effects_of_run(&s, &seen, "1/0;").await;
+    assert_eq!(effects, vec!["cell_status_updated", "cell_output_updated"]);
+    assert_eq!(status, "error");
+}

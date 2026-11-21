@@ -5,7 +5,7 @@ use rmcp::model::{Implementation, ServerCapabilities, ServerInfo};
 use rmcp::{tool, tool_handler, tool_router};
 use tokio::sync::Mutex;
 
-use aximar_core::commands::{CommandEffect, NotebookCommand};
+use aximar_core::commands::{CommandEffect, EffectSink, NotebookCommand};
 use aximar_core::safety;
 use aximar_core::catalog::packages::PackageCatalog;
 use aximar_core::catalog::search::Catalog;
@@ -32,6 +32,16 @@ pub type ProcessSinkFactory =
     Arc<dyn Fn(&str, &Arc<CaptureOutputSink>) -> Arc<dyn OutputSink> + Send + Sync>;
 
 // ── Shared server core ────────────────────────────────────────────────
+
+/// Forwards effects to the notebook-change callback, which queues them for
+/// the window in connected mode and is absent when standalone.
+pub(crate) struct ClientEffects<'a>(&'a ServerCore);
+
+impl EffectSink for ClientEffects<'_> {
+    fn effect(&self, notebook_id: &str, _notebook: &aximar_core::notebook::Notebook, effect: &CommandEffect) {
+        self.0.notify_notebook_change(notebook_id, effect.clone());
+    }
+}
 
 /// Shared state and logic used by both `AximarMcpServer` (notebook mode)
 /// and `SimpleMcpServer` (simple mode).
@@ -122,6 +132,12 @@ impl ServerCore {
         if let Some(ref cb) = self.on_notebook_change {
             cb(notebook_id, effect);
         }
+    }
+
+    /// Report effects to the connected window as they happen (no-op when
+    /// standalone, like notify_notebook_change).
+    pub(crate) fn effect_sink(&self) -> ClientEffects<'_> {
+        ClientEffects(self)
     }
 
     /// Invoke the lifecycle callback if one is registered (connected mode).
@@ -941,11 +957,17 @@ Best practice: run each cell immediately after creating it before moving on to t
         use aximar_core::error::AppError;
         use aximar_core::evaluation::evaluate_cell;
 
-        match evaluate_cell(&ctx, &params.cell_id, &self.core.catalog, &self.core.packages, self.core.eval_timeout).await {
+        match evaluate_cell(
+            &ctx,
+            &params.cell_id,
+            &self.core.catalog,
+            &self.core.packages,
+            self.core.eval_timeout,
+            &self.core.effect_sink(),
+        )
+        .await
+        {
             Ok(result) => {
-                for effect in &result.effects {
-                    self.core.notify_notebook_change(&ctx.id, effect.clone());
-                }
                 success_json(&serde_json::json!({
                     "cell_id": params.cell_id,
                     "execution_count": result.execution_count,

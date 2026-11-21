@@ -1,7 +1,7 @@
 use serde::Serialize;
 
 use crate::maxima::output::OutputEvent;
-use crate::notebook::{CellOutput, CellStatus, CellType};
+use crate::notebook::{CellOutput, CellStatus, CellType, Notebook};
 
 /// A command representing a structural mutation to the notebook.
 /// All notebook state changes flow through commands for consistency.
@@ -98,4 +98,19 @@ impl CommandEffect {
             CommandEffect::NoOp { .. } => "no_op",
         }
     }
+}
+
+/// Receives effects as operations produce them, so a front end can show
+/// each change while a long evaluation is still running.  Called with the
+/// notebook still locked, right after the change: an implementation must not
+/// lock the notebook again, and should only emit or queue.
+pub trait EffectSink: Send + Sync {
+    fn effect(&self, notebook_id: &str, notebook: &Notebook, effect: &CommandEffect);
+}
+
+/// A sink for callers with no window to update, such as batch runs.
+pub struct NoEffects;
+
+impl EffectSink for NoEffects {
+    fn effect(&self, _notebook_id: &str, _notebook: &Notebook, _effect: &CommandEffect) {}
 }

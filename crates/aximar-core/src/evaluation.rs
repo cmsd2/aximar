@@ -1,22 +1,19 @@
 use crate::catalog::packages::PackageCatalog;
 use crate::catalog::search::Catalog;
-use crate::commands::{CommandEffect, NotebookCommand};
+use crate::commands::{EffectSink, NotebookCommand};
 use crate::error::AppError;
 use crate::maxima::labels::{rewrite_labels, LabelContext, UnresolvedLabel};
 use crate::maxima::protocol;
 use crate::maxima::types::EvalResult;
 use crate::maxima::unicode::unicode_to_maxima;
-use crate::notebook::{CellOutput, CellStatus, CellType};
+use crate::notebook::{CellOutput, CellStatus, CellType, Notebook};
 use crate::registry::NotebookContextRef;
 
-/// Result of evaluating a cell, including all notebook effects produced.
+/// Result of evaluating a cell.
 pub struct EvalCellResult {
     pub eval_result: EvalResult,
     pub cell_output: CellOutput,
     pub execution_count: u32,
-    /// Effects produced by notebook commands (Running status, Output/Error).
-    /// Callers should iterate these to emit transport-specific notifications.
-    pub effects: Vec<CommandEffect>,
 }
 
 /// Shared cell evaluation logic used by both Tauri and MCP transports.
@@ -25,15 +22,20 @@ pub struct EvalCellResult {
 /// evaluate via Maxima → apply output. Consolidates lock acquisitions from
 /// 6-7 down to 2 notebook locks + 1 session lock.
 ///
+/// Every change to the cell is reported to `effects` as it happens: Running
+/// when evaluation starts, then the output, or Error when evaluation fails.
+///
 /// Returns `Err(AppError::CellIsMarkdown)` for markdown cells and
 /// `Err(AppError::EmptyInput)` for blank cells so callers can decide
-/// how to present these (error vs success-with-message).
+/// how to present these (error vs success-with-message).  Neither changes
+/// the cell or reports an effect.
 pub async fn evaluate_cell(
     ctx: &NotebookContextRef,
     cell_id: &str,
     catalog: &Catalog,
     packages: &PackageCatalog,
     eval_timeout: u64,
+    effects: &dyn EffectSink,
 ) -> Result<EvalCellResult, AppError> {
     // ── Lock 1: validate, set Running, get exec count + label context ──
     let (input, exec_count, label_ctx) = {
@@ -51,11 +53,7 @@ pub async fn evaluate_cell(
             return Err(AppError::EmptyInput);
         }
 
-        // Set status to Running
-        let _effect = nb.apply(NotebookCommand::SetCellStatus {
-            cell_id: cell_id.to_string(),
-            status: CellStatus::Running,
-        });
+        set_status(&mut nb, ctx, cell_id, CellStatus::Running, effects);
 
         let ec = nb.next_execution_count();
         let lctx = LabelContext {
@@ -74,7 +72,7 @@ pub async fn evaluate_cell(
         // A label with no value: show the message as the cell's error
         // instead of letting Maxima read an unrelated label of its own
         Err(UnresolvedLabel(message)) => {
-            return Ok(label_error_result(ctx, cell_id, exec_count, message).await);
+            return Ok(label_error_result(ctx, cell_id, exec_count, message, effects).await);
         }
     };
 
@@ -83,12 +81,8 @@ pub async fn evaluate_cell(
     let process = match guard.try_begin_eval() {
         Ok(p) => p,
         Err(e) => {
-            // Set error status before returning
             let mut nb = ctx.notebook.lock().await;
-            let _ = nb.apply(NotebookCommand::SetCellStatus {
-                cell_id: cell_id.to_string(),
-                status: CellStatus::Error,
-            });
+            set_status(&mut nb, ctx, cell_id, CellStatus::Error, effects);
             return Err(e);
         }
     };
@@ -115,12 +109,10 @@ pub async fn evaluate_cell(
     // Session lock dropped here
 
     // ── Lock 2: apply output or error status ──
-    let mut effects = Vec::new();
-
+    let mut nb = ctx.notebook.lock().await;
     match result {
         Ok(eval_result) => {
             let cell_output = CellOutput::from_eval_result(&eval_result, exec_count);
-            let mut nb = ctx.notebook.lock().await;
 
             if let Some(ref label) = eval_result.output_label {
                 nb.record_label(exec_count, label.clone(), cell_id);
@@ -131,28 +123,39 @@ pub async fn evaluate_cell(
                 output: cell_output.clone(),
                 raw_output,
             }) {
-                effects.push(effect);
+                effects.effect(&ctx.id, &nb, &effect);
             }
 
             Ok(EvalCellResult {
                 eval_result,
                 cell_output,
                 execution_count: exec_count,
-                effects,
             })
         }
         Err(e) => {
-            let mut nb = ctx.notebook.lock().await;
-            let _ = nb.apply(NotebookCommand::SetCellStatus {
-                cell_id: cell_id.to_string(),
-                status: CellStatus::Error,
-            });
-            // Store raw output even on error
+            // Store raw output even on error, before reporting the status
             if let Some(cell) = nb.get_cell_mut(cell_id) {
                 cell.raw_output = raw_output;
             }
+            set_status(&mut nb, ctx, cell_id, CellStatus::Error, effects);
             Err(e)
         }
+    }
+}
+
+/// Set a cell's status and report the change.
+fn set_status(
+    nb: &mut Notebook,
+    ctx: &NotebookContextRef,
+    cell_id: &str,
+    status: CellStatus,
+    effects: &dyn EffectSink,
+) {
+    if let Ok(effect) = nb.apply(NotebookCommand::SetCellStatus {
+        cell_id: cell_id.to_string(),
+        status,
+    }) {
+        effects.effect(&ctx.id, nb, &effect);
     }
 }
 
@@ -163,6 +166,7 @@ async fn label_error_result(
     cell_id: &str,
     exec_count: u32,
     message: String,
+    effects: &dyn EffectSink,
 ) -> EvalCellResult {
     let eval_result = EvalResult {
         cell_id: cell_id.to_string(),
@@ -172,18 +176,98 @@ async fn label_error_result(
     };
     let cell_output = CellOutput::from_eval_result(&eval_result, exec_count);
     let mut nb = ctx.notebook.lock().await;
-    let effects = nb
-        .apply(NotebookCommand::SetCellOutput {
-            cell_id: cell_id.to_string(),
-            output: cell_output.clone(),
-            raw_output: Vec::new(),
-        })
-        .into_iter()
-        .collect();
+    if let Ok(effect) = nb.apply(NotebookCommand::SetCellOutput {
+        cell_id: cell_id.to_string(),
+        output: cell_output.clone(),
+        raw_output: Vec::new(),
+    }) {
+        effects.effect(&ctx.id, &nb, &effect);
+    }
     EvalCellResult {
         eval_result,
         cell_output,
         execution_count: exec_count,
-        effects,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::commands::CommandEffect;
+    use crate::registry::NotebookRegistry;
+    use std::sync::Mutex;
+
+    /// Records each reported effect with the cell's status at that moment.
+    #[derive(Default)]
+    struct Recorder(Mutex<Vec<String>>);
+
+    impl EffectSink for Recorder {
+        fn effect(&self, _notebook_id: &str, nb: &Notebook, effect: &CommandEffect) {
+            let status = effect
+                .cell_id()
+                .and_then(|id| nb.get_cell(id))
+                .map(|cell| format!("{:?}", cell.status))
+                .unwrap_or_default();
+            self.0.lock().unwrap().push(format!("{} {status}", effect.effect_name()));
+        }
+    }
+
+    /// A notebook whose first cell holds `input`, with no Maxima session.
+    async fn notebook_with(input: &str, cell_type: CellType) -> (NotebookContextRef, String) {
+        let mut registry = NotebookRegistry::new();
+        let id = registry.create();
+        let ctx = registry.get(&id).unwrap();
+        let cell_id = {
+            let mut nb = ctx.notebook.lock().await;
+            let cell_id = nb.cells()[0].id.clone();
+            if cell_type == CellType::Markdown {
+                nb.apply(NotebookCommand::ToggleCellType { cell_id: cell_id.clone() }).unwrap();
+            }
+            nb.apply(NotebookCommand::UpdateCellInput {
+                cell_id: cell_id.clone(),
+                input: input.to_string(),
+            })
+            .unwrap();
+            cell_id
+        };
+        (ctx, cell_id)
+    }
+
+    async fn run(ctx: &NotebookContextRef, cell_id: &str, sink: &Recorder) -> Result<EvalCellResult, AppError> {
+        evaluate_cell(ctx, cell_id, &Catalog::load(), &PackageCatalog::load(), 5, sink).await
+    }
+
+    #[tokio::test]
+    async fn markdown_and_empty_cells_report_nothing() {
+        let sink = Recorder::default();
+        let (ctx, cell_id) = notebook_with("# Title", CellType::Markdown).await;
+        assert!(matches!(run(&ctx, &cell_id, &sink).await, Err(AppError::CellIsMarkdown)));
+        let (ctx, cell_id) = notebook_with("   ", CellType::Code).await;
+        assert!(matches!(run(&ctx, &cell_id, &sink).await, Err(AppError::EmptyInput)));
+        assert!(sink.0.lock().unwrap().is_empty());
+    }
+
+    #[tokio::test]
+    async fn failure_to_run_reports_running_then_error() {
+        // No session was started, so the evaluation can't begin
+        let sink = Recorder::default();
+        let (ctx, cell_id) = notebook_with("2 + 3;", CellType::Code).await;
+        assert!(matches!(run(&ctx, &cell_id, &sink).await, Err(AppError::ProcessNotRunning)));
+        assert_eq!(
+            *sink.0.lock().unwrap(),
+            vec!["cell_status_updated Running", "cell_status_updated Error"]
+        );
+    }
+
+    #[tokio::test]
+    async fn label_error_reports_running_then_the_error_output() {
+        let sink = Recorder::default();
+        let (ctx, cell_id) = notebook_with("%o9 + 1;", CellType::Code).await;
+        let result = run(&ctx, &cell_id, &sink).await.unwrap();
+        assert!(result.cell_output.is_error);
+        assert_eq!(
+            *sink.0.lock().unwrap(),
+            vec!["cell_status_updated Running", "cell_output_updated Error"]
+        );
     }
 }

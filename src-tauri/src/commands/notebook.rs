@@ -6,8 +6,8 @@ use aximar_core::evaluation::evaluate_cell;
 use aximar_core::maxima::types::EvalResult;
 use aximar_core::safety;
 
-use aximar_core::commands::{CommandEffect, NotebookCommand};
-use aximar_core::notebook::{CellStatus, CellType};
+use aximar_core::commands::{CommandEffect, EffectSink, NotebookCommand};
+use aximar_core::notebook::CellType;
 use aximar_core::notebook::Notebook;
 use aximar_core::registry::{NotebookContextRef, NotebookInfo};
 
@@ -49,6 +49,15 @@ pub fn emit_notebook_state(
         trusted: nb.trusted(),
     };
     let _ = app_handle.emit("notebook-state-changed", event);
+}
+
+/// Emits each effect to the window as the operation produces it.
+struct WindowEffects<'a>(&'a AppHandle);
+
+impl EffectSink for WindowEffects<'_> {
+    fn effect(&self, notebook_id: &str, notebook: &Notebook, effect: &CommandEffect) {
+        emit_notebook_state(self.0, notebook_id, notebook, effect);
+    }
 }
 
 // ── Helper ───────────────────────────────────────────────────────────
@@ -344,50 +353,17 @@ pub async fn nb_run_cell(
     let maxima_path = read_maxima_path(&app);
     ensure_session(&state, &ctx, backend, maxima_path, eval_timeout).await?;
 
-    // Set Running and emit the transition NOW, before evaluate_cell
-    // starts the (potentially long-running) Maxima eval.  Without this
-    // early emit, the Running transition and the Success/Error
-    // transition would be returned together at the end of
-    // evaluate_cell and the frontend would never observe the Running
-    // state — the stop button would never appear for any cell.
-    // evaluate_cell's own SetCellStatus(Running) inside its first
-    // lock is now a redundant no-op transition.
-    {
-        let mut nb = ctx.notebook.lock().await;
-        if let Ok(effect) = nb.apply(NotebookCommand::SetCellStatus {
-            cell_id: cell_id.clone(),
-            status: CellStatus::Running,
-        }) {
-            emit_notebook_state(&app, &ctx.id, &nb, &effect);
-        }
-    }
-
-    let result = match evaluate_cell(&ctx, &cell_id, &state.catalog, &state.packages, eval_timeout).await {
-        Ok(r) => r,
-        Err(e) => {
-            // evaluate_cell applies SetCellStatus(Error) inside its
-            // error path but discards the effect (it has no AppHandle
-            // to emit through), so without this the frontend never
-            // sees the Running → Error transition and the cell is
-            // stuck showing the stop button.  Re-apply here and emit
-            // — the re-apply is harmless since the status is already
-            // Error (the second apply is just a no-op transition).
-            let mut nb = ctx.notebook.lock().await;
-            if let Ok(effect) = nb.apply(NotebookCommand::SetCellStatus {
-                cell_id: cell_id.clone(),
-                status: CellStatus::Error,
-            }) {
-                emit_notebook_state(&app, &ctx.id, &nb, &effect);
-            }
-            return Err(e);
-        }
-    };
-
-    // Emit transport-specific notifications for all effects
-    let nb = ctx.notebook.lock().await;
-    for effect in &result.effects {
-        emit_notebook_state(&app, &ctx.id, &nb, effect);
-    }
+    // evaluate_cell reports Running, the output and any error to the window
+    // as each happens
+    let result = evaluate_cell(
+        &ctx,
+        &cell_id,
+        &state.catalog,
+        &state.packages,
+        eval_timeout,
+        &WindowEffects(&app),
+    )
+    .await?;
 
     Ok(RunCellResult::Evaluated(result.eval_result))
 }
