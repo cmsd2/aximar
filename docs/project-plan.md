@@ -2,7 +2,7 @@
 
 Written 2026-10-27, from a review of aximar, ax-plots, mxpm, kernel-events and the VS Code extension, and updated against v0.15.0. Status lives in the [Maxima ecosystem plan project](https://github.com/users/cmsd2/projects/2): one item per fix and per stream deliverable, with Stream, Phase and Kind fields. This doc holds the reasoning.
 
-Companion docs: [kernel-events-phases.md](kernel-events-phases.md) (wired-path status), [technical-debt.md](technical-debt.md) (older audit), [ide-features.md](ide-features.md) (GUI vs editor split), and ax-plots' `doc/roadmap.md` § Packaging (the original packaging proposal, 2026-10-19).
+Companion docs: [kernel-events-phases.md](kernel-events-phases.md) (wired-path status), [code-audit.md](code-audit.md) (code audit, November 2026), [ide-features.md](ide-features.md) (GUI vs editor split), and ax-plots' `doc/roadmap.md` § Packaging (the original packaging proposal, 2026-10-19).
 
 ## Where things stand
 
@@ -45,7 +45,7 @@ Bugs and debt found in the review. A fix that a stream replaces properly has its
 | F12 (project draft) | The extension's `docs/architecture.md` says it starts aximar-mcp with `--no-auth`. The code uses `--allow-dangerous` and a bearer token. | vscode-extension | Phase 0 |
 | F13 (project draft) | The workspace's ax-plots checkout is 30 commits behind `origin/master` and pre-0.2.0. It also has one unpushed commit (`6497f60`, an earlier version of the `emit_display` delivery) that `ax__deliver_plotly` replaces. `~/.maxima/ax-plots` symlinks to this checkout, so `load("ax-plots")` on the development machine loads stale code. Drop `6497f60` (or fold anything still useful into F9) and fast-forward. Local environment only, but it affects any S2 testing that uses the editable install. | `maxima-workspace/ax-plots` | Phase 0 |
 
-[technical-debt.md](technical-debt.md) items 6, 9 and 10 (WSL/Docker path tests, LaTeX accumulation bound, WSL error handling) are still open and fit in Phase 0 too ([#14](https://github.com/cmsd2/aximar/issues/14)).
+The old technical-debt items 6, 9 and 10 (WSL/Docker path tests, LaTeX accumulation bound, WSL error handling; see [code-audit.md](code-audit.md#technical-debt-items-6-9-and-10)) are still open and fit in Phase 0 too ([#14](https://github.com/cmsd2/aximar/issues/14)).
 
 ## Streams
 
