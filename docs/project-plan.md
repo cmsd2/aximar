@@ -35,7 +35,7 @@ Bugs and debt found in the review. A fix that a stream replaces properly has its
 | F2 ([#5](https://github.com/cmsd2/aximar/issues/5)) | The kernel-events init `:lisp` line uses `sb-sys:`/`sb-ext:`, which fails at read time on Maxima builds that don't use SBCL. `handler-case` can't catch a read-time error. | `maxima/process.rs` `events_init_snippet` | Phase 0 |
 | F3 ([#6](https://github.com/cmsd2/aximar/issues/6)) | Aximar treats a `text/plain` fallback as real output, so plots saved in VS Code show their source as text. | `src/lib/notebooks-client.ts:143`, `aximar-mcp/src/convert.rs` | S1 (patch in Phase 0) |
 | F4 ([#7](https://github.com/cmsd2/aximar/issues/7)) | `error` outputs are ignored on read, and Aximar never saves errors at all. | both readers and writers | S1 |
-| F5 ([#8](https://github.com/cmsd2/aximar/issues/8)) | Outputs loaded from a file look current, but their Maxima labels are gone. `%oN` for a loaded cell goes to Maxima unchanged and means something else. VS Code restarts numbering at 1 on each new kernel. | `maxima/labels.rs` `rewrite_labels`, `notebook.rs` LoadCells, extension `controller.ts` | S1 |
+| F5 ([#8](https://github.com/cmsd2/aximar/issues/8)) | Outputs loaded from a file look current, but their Maxima labels are gone. `%oN` for a loaded cell used to go to Maxima unchanged and mean something else; it now reports that it has no value ([#59](https://github.com/cmsd2/aximar/issues/59)). VS Code restarts numbering at 1 on each new kernel, and Aximar now does too. | `maxima/labels.rs` `rewrite_labels`, `notebook.rs` LoadCells, extension `controller.ts` | S1 |
 | F6 ([#9](https://github.com/cmsd2/aximar/issues/9)) | The GUI save writes only `kernelspec` and empty cell metadata. The Rust `NotebookMetadata` drops unknown keys on read. | `notebooks-client.ts` `buildNotebook`, `notebooks/types.rs` | S1 |
 | F7 ([#10](https://github.com/cmsd2/aximar/issues/10)) | nbformat 4.5 requires a cell `id`. aximar-mcp and VS Code both declare 4.5 without writing one. The GUI writes 4.0. No reader keeps IDs. | `convert.rs`, extension `serializer.ts`, `notebooks-client.ts` | S1 |
 | F8 ([#11](https://github.com/cmsd2/aximar/issues/11)) | `partial_cmp().unwrap()` panics on a NaN score. This is the old tech-debt item 5, now in new files. | `catalog/packages.rs:101,131`, `catalog/doc_index.rs:338` | Phase 0 |
@@ -64,7 +64,7 @@ Goal: every host reads and writes `.macnb` identically, and nothing gets lost in
 - Make one Rust serializer in aximar-core. The GUI saves and opens through Tauri commands instead of its own TypeScript copy, and aximar-mcp uses it too.
 - Publish an npm package (working name `notebook-format`) for the extension, with the same rules.
 - Ship shared test notebooks with the npm package. The Rust tests and the extension's tests both run against them.
-- Mark loaded outputs as stale in both apps. A display label (`%oN`) that maps to no live output becomes an error ("re-run cell N") instead of passing through.
+- Mark loaded outputs as stale in both apps. In Aximar a display label (`%oN`) that maps to no live output already reports an error instead of passing through ([#59](https://github.com/cmsd2/aximar/issues/59)).
 
 Fixes F3 to F7.
 

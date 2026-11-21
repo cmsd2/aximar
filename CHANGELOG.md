@@ -16,6 +16,30 @@ see the `v*` releases on GitHub.
   at the first such cell, as its description said, marks the remaining cells
   `not_run`, and adds top-level `success`, `stopped_at`, `stop_reason` and
   `message` fields. The unused `pending_approval` field is gone.
+- **`list_cells` no longer fails on multi-byte output**: the 200-character
+  preview was cut at a byte offset, which panicked inside a Greek letter or
+  other non-ASCII character.
+
+### aximar-core
+
+- **Label references resolve only to values from the current session**:
+  - After a Maxima restart, execution numbers start again at 1, as in
+    Jupyter. Restarting and running all cells gives them the same `In[n]` and
+    `Out[n]` as before, so references such as `%o4` keep working.
+  - A `%oN` or `%iN` with no value in the current session (a cell that
+    errored, a cell loaded from a file, a number from before a restart) used
+    to reach one of Maxima's own labels and return an unrelated value. The
+    cell now shows an error such as "Out[6] (%o6) has no value in this
+    session".
+  - Bare `%` refers to the previous cell only in a cell's first statement;
+    in `x: 5; % + 1;` it is now the result of `x: 5`, as in Maxima.
+  - `%` and labels inside strings and comments are left as typed.
+- **Output of a running cell is kept**: a run queued behind it no longer
+  clears its captured output.
+- **Docker sessions get unique container names**: a second notebook on the
+  Docker backend failed to start, and stopping one could remove another's
+  container.
+- **Catalog search can't panic on a NaN score**.
 
 ## [0.5.0] — 2026-11-03
 
