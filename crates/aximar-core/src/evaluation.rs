@@ -71,9 +71,6 @@ pub async fn evaluate_cell(
     let translated = unicode_to_maxima(&input);
     let rewritten = rewrite_labels(&translated, &label_ctx);
 
-    // ── Clear capture sink ──
-    ctx.capture_sink.take_cell_output();
-
     // ── Session lock: evaluate ──
     let mut guard = ctx.session.lock().await;
     let process = match guard.try_begin_eval() {
@@ -89,6 +86,11 @@ pub async fn evaluate_cell(
         }
     };
 
+    // Clear and read the capture sink only while holding the session lock.
+    // A run queued behind this one would otherwise clear this cell's output
+    // while it is still being written, or before it is read.
+    ctx.capture_sink.take_cell_output();
+
     let result = protocol::evaluate_with_packages(
         process,
         cell_id,
@@ -99,12 +101,11 @@ pub async fn evaluate_cell(
     )
     .await;
 
+    let raw_output = ctx.capture_sink.take_cell_output();
+
     guard.end_eval();
     drop(guard);
     // Session lock dropped here
-
-    // ── Capture raw output ──
-    let raw_output = ctx.capture_sink.take_cell_output();
 
     // ── Lock 2: apply output or error status ──
     let mut effects = Vec::new();

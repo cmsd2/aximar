@@ -311,14 +311,15 @@ impl ServerCore {
             return error_result(format!("Failed to start session: {e}"));
         }
 
-        // Clear capture
-        ctx.capture_sink.take_cell_output();
-
         let mut guard = ctx.session.lock().await;
         let process = match guard.try_begin_eval() {
             Ok(p) => p,
             Err(e) => return error_result(format!("Session not ready: {e}")),
         };
+
+        // Clear the capture sink under the session lock, so a cell that is
+        // still evaluating keeps its output
+        ctx.capture_sink.take_cell_output();
 
         let translated = unicode_to_maxima(expression);
         let result = protocol::evaluate_with_packages(
