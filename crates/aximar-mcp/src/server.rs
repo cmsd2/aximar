@@ -741,14 +741,7 @@ impl AximarMcpServer {
                 input: c.input.clone(),
                 status: c.status,
                 has_output: c.output.is_some(),
-                output_preview: c.output.as_ref().map(|o| {
-                    let preview = &o.text_output;
-                    if preview.len() > 200 {
-                        format!("{}...", &preview[..200])
-                    } else {
-                        preview.clone()
-                    }
-                }),
+                output_preview: c.output.as_ref().map(|o| output_preview(&o.text_output)),
             })
             .collect();
         success_json(&summaries)
