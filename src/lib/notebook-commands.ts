@@ -76,11 +76,14 @@ export async function nbToggleCellType(cellId: string): Promise<void> {
   return invoke<void>("nb_toggle_cell_type", { notebookId: activeId(), cellId });
 }
 
+/** Takes the notebook explicitly: edits are sent after a delay, by which
+ *  time the active notebook may have changed. */
 export async function nbUpdateCellInput(
+  notebookId: string,
   cellId: string,
   input: string
 ): Promise<void> {
-  return invoke<void>("nb_update_cell_input", { notebookId: activeId(), cellId, input });
+  return invoke<void>("nb_update_cell_input", { notebookId, cellId, input });
 }
 
 export async function nbUndo(): Promise<void> {

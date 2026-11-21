@@ -391,7 +391,7 @@ export const useNotebookStore = create<NotebookState>((set) => ({
       const mergedCells = cells.map((backendCell) => {
         const localCell = tab.cells.find((c) => c.id === backendCell.id);
         const keepLocal =
-          !isReplace && localCell && hasPendingSync(backendCell.id);
+          !isReplace && localCell && hasPendingSync(notebookId, backendCell.id);
         const input = keepLocal ? localCell.input : backendCell.input;
         return {
           ...backendCell,
