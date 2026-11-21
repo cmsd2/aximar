@@ -1,32 +1,48 @@
 schema: spec-driven
 
-# Project context (optional)
-# This is shown to AI when creating artifacts.
-# Add your tech stack, conventions, style guides, domain knowledge, etc.
-# Example:
-#   context: |
-#     Tech stack: TypeScript, React, Node.js
-#     We use conventional commits
-#     Domain: e-commerce platform
+context: |
+  Aximar is a notebook front end for the Maxima computer algebra system, plus a set of
+  Maxima language tools. One Cargo workspace and one npm package:
 
-# Per-artifact rules (optional)
-# Add custom rules for specific artifacts.
-# Example:
-#   rules:
-#     proposal:
-#       - Keep proposals under 500 words
-#       - Always include a "Non-goals" section
-#     tasks:
-#       - Break tasks into chunks of max 2 hours
+  - crates/aximar-core: shared logic. Maxima process and backends (local, WSL, Docker),
+    the evaluation protocol (legacy stdout parsing and the kernel-events envelope path),
+    notebooks and their commands with undo, label rewriting, the function catalog.
+  - crates/aximar-mcp: MCP server. Runs standalone, connected to the desktop app, or in
+    batch mode, all on top of aximar-core.
+  - src-tauri: desktop app backend. Tauri commands and events over aximar-core.
+  - src: React + Zustand frontend for the desktop app. It mirrors notebook state the
+    backend owns and talks to it through Tauri commands and events.
+  - crates/maxima-lsp, crates/maxima-dap, crates/maxima-mac-parser: language server,
+    debugger and .mac parser, released as the standalone tools.
+  - tools/catalog-gen: generates catalog data.
 
-# Per-operation guidance (optional)
-# Add advisory guidance for how apply and archive work should be conducted.
-# This is separate from artifact rules above.
-# Example:
-#   operations:
-#     apply:
-#       guidance:
-#         - Keep test summaries concise
-#     archive:
-#       guidance:
-#         - Summarize the archive outcome before finishing
+  The GUI and MCP must behave the same for any operation both offer. Logic and policy
+  (trust checks, run-all, input preparation, label rewriting) belong in aximar-core;
+  Tauri commands and MCP tools only translate parameters and results.
+
+  Planning lives in docs/project-plan.md (phases and streams S1 to S7) and on the GitHub
+  project "Maxima ecosystem plan". Issues are in cmsd2/aximar. docs/code-audit.md is the
+  latest code audit.
+
+  Tests: cargo test --workspace; tests that need Maxima are #[ignore] and run with
+  cargo test -- --ignored; the frontend uses vitest (npm test). Behaviour that depends
+  on Maxima gets a Maxima-backed test.
+
+  Conventions: when a change is significant, update the relevant docs in docs/. User-visible
+  changes to the tools go in the Unreleased section of CHANGELOG.md (Keep a Changelog).
+  Plain prose in docs, specs, comments and commit messages: active voice, no em dashes,
+  no filler.
+
+rules:
+  proposal:
+    - Link the GitHub issues the change closes or touches
+    - Name the layers it touches (core, MCP, Tauri, frontend, tools)
+    - Include a Non-goals section
+  design:
+    - Say which logic moves into or stays in aximar-core, and what the adapters keep
+    - Note what changes for MCP clients and for saved notebooks, if anything
+  specs:
+    - Write each scenario so a test can check it; say when it needs a live Maxima
+  tasks:
+    - Group tasks by pull request, so each group can land and be reviewed on its own
+    - Name the tests each group adds
