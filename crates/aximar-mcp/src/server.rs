@@ -717,9 +717,13 @@ impl AximarMcpServer {
     ) -> Result<String, String> {
         let mut reg = self.core.registry.lock().await;
         match reg.set_active(&params.notebook_id) {
-            Ok(()) => success_json(&serde_json::json!({
-                "active_notebook_id": params.notebook_id,
-            })),
+            Ok(()) => {
+                drop(reg);
+                self.core.notify_lifecycle(&params.notebook_id, "active_changed");
+                success_json(&serde_json::json!({
+                    "active_notebook_id": params.notebook_id,
+                }))
+            }
             Err(e) => error_result(e),
         }
     }

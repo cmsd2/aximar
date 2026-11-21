@@ -10,10 +10,9 @@ use aximar_mcp::server::{AximarMcpServer, ProcessSinkFactory};
 use crate::state::AppState;
 use crate::tauri_output::{emit_app_log, TauriOutputSink};
 
-use crate::commands::notebook::emit_notebook_state;
 use crate::commands::session::build_session_status_callback;
+use crate::gui_events::{spawn_gui_event_task, GuiEvent, TauriGuiEmitter};
 use aximar_core::commands::CommandEffect;
-use tauri::Emitter;
 
 /// Start the embedded MCP streamable HTTP server.
 ///
@@ -33,48 +32,25 @@ pub async fn start_mcp_server(state: AppState, listen_address: String, token: St
         Arc::new(MultiOutputSink::new(vec![tauri_sink, capture]))
     });
 
-    // Build notebook-change callback that emits a Tauri event
-    let app_handle = state.app_handle.clone();
-    let registry_for_cb = state.registry.clone();
+    // Notebook changes and lifecycle events made over MCP go through one
+    // queue, so the window sees them in the order they happened.
+    let gui_events = spawn_gui_event_task(
+        state.registry.clone(),
+        Arc::new(TauriGuiEmitter(state.app_handle.clone())),
+    );
+    let changes = gui_events.clone();
     let on_notebook_change: Arc<dyn Fn(&str, CommandEffect) + Send + Sync> =
         Arc::new(move |notebook_id: &str, effect: CommandEffect| {
-            let app_handle = app_handle.clone();
-            let registry = registry_for_cb.clone();
-            let nb_id = notebook_id.to_string();
-            tokio::spawn(async move {
-                let notebook = {
-                    let reg = registry.lock().await;
-                    match reg.get(&nb_id) {
-                        Ok(ctx) => ctx.notebook.clone(),
-                        Err(_) => return,
-                    }
-                };
-                if let Ok(guard) = app_handle.try_lock() {
-                    if let Some(ref handle) = *guard {
-                        let nb = notebook.lock().await;
-                        emit_notebook_state(handle, &nb_id, &nb, &effect);
-                    }
-                }
+            let _ = changes.send(GuiEvent::NotebookChanged {
+                notebook_id: notebook_id.to_string(),
+                effect,
             });
         });
-
-    // Build notebook lifecycle callback that emits Tauri events for
-    // MCP-initiated create/close/switch so the frontend stays in sync.
-    let app_handle_for_lifecycle = state.app_handle.clone();
     let on_notebook_lifecycle: Arc<dyn Fn(&str, &str) + Send + Sync> =
         Arc::new(move |notebook_id: &str, event_type: &str| {
-            let app_handle = app_handle_for_lifecycle.clone();
-            let nb_id = notebook_id.to_string();
-            let evt = event_type.to_string();
-            tokio::spawn(async move {
-                if let Ok(guard) = app_handle.try_lock() {
-                    if let Some(ref handle) = *guard {
-                        let _ = handle.emit("notebook-lifecycle", serde_json::json!({
-                            "notebook_id": nb_id,
-                            "event": evt,
-                        }));
-                    }
-                }
+            let _ = gui_events.send(GuiEvent::Lifecycle {
+                notebook_id: notebook_id.to_string(),
+                event: event_type.to_string(),
             });
         });
 

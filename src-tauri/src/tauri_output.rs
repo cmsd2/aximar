@@ -1,7 +1,8 @@
-use std::sync::{Arc, Mutex as StdMutex};
+use std::sync::Mutex as StdMutex;
 use serde::{Deserialize, Serialize};
 use tauri::Emitter;
-use tokio::sync::Mutex;
+
+use crate::state::SharedAppHandle;
 
 use aximar_core::maxima::envelope::{EnvelopeFrame, EnvelopeObserver};
 use aximar_core::maxima::output::{OutputEvent, OutputSink};
@@ -18,13 +19,13 @@ struct TaggedOutputEvent {
 /// OutputSink implementation that emits events to the Tauri frontend,
 /// tagged with a notebook ID so the frontend can route to the correct tab.
 pub struct TauriOutputSink {
-    app_handle: Arc<Mutex<Option<tauri::AppHandle>>>,
+    app_handle: SharedAppHandle,
     notebook_id: Option<String>,
 }
 
 impl TauriOutputSink {
     #[allow(dead_code)]
-    pub fn new(app_handle: Arc<Mutex<Option<tauri::AppHandle>>>) -> Self {
+    pub fn new(app_handle: SharedAppHandle) -> Self {
         TauriOutputSink {
             app_handle,
             notebook_id: None,
@@ -32,7 +33,7 @@ impl TauriOutputSink {
     }
 
     pub fn with_notebook_id(
-        app_handle: Arc<Mutex<Option<tauri::AppHandle>>>,
+        app_handle: SharedAppHandle,
         notebook_id: String,
     ) -> Self {
         TauriOutputSink {
@@ -44,21 +45,17 @@ impl TauriOutputSink {
 
 impl OutputSink for TauriOutputSink {
     fn emit(&self, event: OutputEvent) {
-        // Try to get the app handle without blocking. If the lock is held,
-        // we skip the event rather than blocking the Maxima I/O loop.
-        if let Ok(guard) = self.app_handle.try_lock() {
-            if let Some(ref handle) = *guard {
-                if let Some(ref nb_id) = self.notebook_id {
-                    let tagged = TaggedOutputEvent {
-                        notebook_id: nb_id.clone(),
-                        line: event.line,
-                        stream: event.stream,
-                        timestamp: event.timestamp,
-                    };
-                    let _ = handle.emit("maxima-output", tagged);
-                } else {
-                    let _ = handle.emit("maxima-output", event);
-                }
+        if let Some(handle) = self.app_handle.get() {
+            if let Some(ref nb_id) = self.notebook_id {
+                let tagged = TaggedOutputEvent {
+                    notebook_id: nb_id.clone(),
+                    line: event.line,
+                    stream: event.stream,
+                    timestamp: event.timestamp,
+                };
+                let _ = handle.emit("maxima-output", tagged);
+            } else {
+                let _ = handle.emit("maxima-output", event);
             }
         }
     }
@@ -76,13 +73,13 @@ struct TaggedEnvelopeFrame {
 /// frontend as `maxima-event` events.  Tagged with a notebook ID so
 /// the frontend can route to the correct tab's events stream.
 pub struct TauriEnvelopeObserver {
-    app_handle: Arc<Mutex<Option<tauri::AppHandle>>>,
+    app_handle: SharedAppHandle,
     notebook_id: String,
 }
 
 impl TauriEnvelopeObserver {
     pub fn new(
-        app_handle: Arc<Mutex<Option<tauri::AppHandle>>>,
+        app_handle: SharedAppHandle,
         notebook_id: String,
     ) -> Self {
         TauriEnvelopeObserver { app_handle, notebook_id }
@@ -91,15 +88,12 @@ impl TauriEnvelopeObserver {
 
 impl EnvelopeObserver for TauriEnvelopeObserver {
     fn observe(&self, frame: EnvelopeFrame) {
-        // Non-blocking lock: skip rather than stall the fd-3 reader.
-        if let Ok(guard) = self.app_handle.try_lock() {
-            if let Some(ref handle) = *guard {
-                let tagged = TaggedEnvelopeFrame {
-                    notebook_id: self.notebook_id.clone(),
-                    frame,
-                };
-                let _ = handle.emit("maxima-event", tagged);
-            }
+        if let Some(handle) = self.app_handle.get() {
+            let tagged = TaggedEnvelopeFrame {
+                notebook_id: self.notebook_id.clone(),
+                frame,
+            };
+            let _ = handle.emit("maxima-event", tagged);
         }
     }
 }
@@ -146,7 +140,7 @@ impl AppLog {
 /// Emit an app-level log entry to the frontend via Tauri event,
 /// and buffer it in `app_log` so late-mounting frontends can replay it.
 pub fn emit_app_log(
-    app_handle: &Arc<Mutex<Option<tauri::AppHandle>>>,
+    app_handle: &SharedAppHandle,
     app_log: &AppLog,
     level: &str,
     message: &str,
@@ -158,9 +152,7 @@ pub fn emit_app_log(
         source: source.to_string(),
     };
     app_log.push(event.clone());
-    if let Ok(guard) = app_handle.try_lock() {
-        if let Some(ref handle) = *guard {
-            let _ = handle.emit("app-log", event);
-        }
+    if let Some(handle) = app_handle.get() {
+        let _ = handle.emit("app-log", event);
     }
 }
