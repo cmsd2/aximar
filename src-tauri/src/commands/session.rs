@@ -24,16 +24,14 @@ pub fn build_session_status_callback(state: &AppState) -> SessionStatusCallback 
     let app_log = state.app_log.clone();
     Arc::new(move |notebook_id: &str, status: SessionStatus| {
         // Emit session-status-changed event for the frontend
-        if let Ok(guard) = app_handle.try_lock() {
-            if let Some(ref handle) = *guard {
-                let _ = handle.emit(
-                    "session-status-changed",
-                    SessionStatusEvent {
-                        notebook_id: notebook_id.to_string(),
-                        status: status.clone(),
-                    },
-                );
-            }
+        if let Some(handle) = app_handle.get() {
+            let _ = handle.emit(
+                "session-status-changed",
+                SessionStatusEvent {
+                    notebook_id: notebook_id.to_string(),
+                    status: status.clone(),
+                },
+            );
         }
         // Emit app log
         let msg = match &status {

@@ -1,6 +1,7 @@
 pub use aximar_core::catalog;
 mod commands;
 pub use aximar_core::error;
+mod gui_events;
 pub use aximar_core::maxima;
 mod mcp;
 mod menu;
@@ -46,8 +47,9 @@ pub fn run() {
                 .skip(1)
                 .filter(|a| !a.starts_with('-'))
                 .collect();
+            // setup runs once, so the handle is never already set
+            let _ = state.app_handle.set(handle);
             tauri::async_runtime::block_on(async {
-                *state.app_handle.lock().await = Some(handle);
                 if !file_args.is_empty() {
                     *state.initial_file_args.lock().await = Some(file_args);
                 }

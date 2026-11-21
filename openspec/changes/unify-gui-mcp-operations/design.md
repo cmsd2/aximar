@@ -33,7 +33,7 @@ Core operations take an `&dyn EffectSink` (one method, `effect(notebook_id, Comm
 
 ### 2. One ordered channel to the window
 
-`AppState` holds the `AppHandle` in a `OnceLock<AppHandle>` set in `setup`, replacing `Arc<Mutex<Option<AppHandle>>>`. Emitters call `get()` and never skip. Connected MCP sends `(notebook_id, effect)` pairs into an unbounded `tokio::mpsc` channel; one task drains it, locks the notebook, takes the snapshot and emits. Lifecycle events (created, closed, active changed) and session status go through the same channel, so the window sees them in the order they happened.
+`AppState` holds the `AppHandle` in a `OnceLock<AppHandle>` set in `setup`, replacing `Arc<Mutex<Option<AppHandle>>>`. Emitters call `get()` and never skip. Connected MCP sends `(notebook_id, effect)` pairs into an unbounded `tokio::mpsc` channel; one task drains it, locks the notebook, takes the snapshot and emits. Lifecycle events (created, closed, active changed) go through the same channel, so the window sees them in the order they happened. Session status needs no notebook lock, so its callback emits directly and synchronously.
 
 - Tauri commands keep emitting directly: they already run in order on the command's task.
 - *Alternative:* keep `tokio::Mutex` and use `lock().await` instead of `try_lock`. That fixes the drops but not the ordering between spawned tasks, and the snapshot would still be taken whenever the task happens to run.

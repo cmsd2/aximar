@@ -1118,3 +1118,37 @@ async fn restart_then_run_all_numbers_cells_from_one() {
     assert_eq!(third["output"]["execution_count"], 3, "{third:#}");
     assert_eq!(third["output"]["latex"], "a:10", "{third:#}");
 }
+
+// ── Lifecycle events in connected mode ────────────────────────────────
+
+#[tokio::test]
+async fn connected_mode_reports_create_and_switch() {
+    let events = Arc::new(std::sync::Mutex::new(Vec::<String>::new()));
+    let recorded = events.clone();
+    let process_sink_factory: crate::server::ProcessSinkFactory =
+        Arc::new(|_id, capture| capture.clone() as Arc<dyn aximar_core::maxima::output::OutputSink>);
+    let s = AximarMcpServer::new_connected(
+        Arc::new(Mutex::new(NotebookRegistry::new())),
+        Arc::new(Catalog::load()),
+        Arc::new(PackageCatalog::load()),
+        Backend::Local,
+        None,
+        30,
+        process_sink_factory,
+        Arc::new(|_, _| {}),
+        Arc::new(move |id: &str, event: &str| {
+            recorded.lock().unwrap().push(format!("{id} {event}"));
+        }),
+        Arc::new(|_, _| {}),
+    );
+
+    let v = parse_ok(s.create_notebook().await);
+    let id = v["notebook_id"].as_str().unwrap().to_string();
+    parse_ok(
+        s.switch_notebook(Parameters(SwitchNotebookParams { notebook_id: id.clone() }))
+            .await,
+    );
+
+    let seen = events.lock().unwrap().clone();
+    assert_eq!(seen, vec![format!("{id} created"), format!("{id} active_changed")]);
+}

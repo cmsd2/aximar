@@ -2,10 +2,10 @@ Each numbered group is one pull request. Every group updates the Unreleased sect
 
 ## 1. Ordered delivery to the window (#55)
 
-- [ ] 1.1 Replace `Arc<Mutex<Option<AppHandle>>>` in `AppState` with `OnceLock<AppHandle>` set in `setup`, and remove every `try_lock` on it; verify with `git grep try_lock src-tauri` returning nothing
-- [ ] 1.2 Send connected-MCP notebook effects, lifecycle events and session status through one `tokio::mpsc` channel drained by a single task that snapshots and emits; verify with a unit test in `src-tauri` that drains 50 queued effects into a recording emitter in order
-- [ ] 1.3 Emit lifecycle events for `nb_create`, `nb_close`, `nb_set_active` and MCP `switch_notebook`; verify with an aximar-mcp test whose connected-mode callbacks record a `created` then an `active_changed` event
-- [ ] 1.4 Handle `active_changed` in `useNotebookEvents.ts`; verify with a vitest test that the store's active tab follows the event
+- [x] 1.1 Replace `Arc<Mutex<Option<AppHandle>>>` in `AppState` with `OnceLock<AppHandle>` set in `setup`, and remove every `try_lock` on it; verify with `git grep try_lock src-tauri` returning nothing
+- [x] 1.2 Send connected-MCP notebook effects and lifecycle events through one `tokio::mpsc` channel drained by a single task that snapshots and emits; session status emits directly, now that it takes no lock; verify with a unit test in `src-tauri` that drains 50 queued effects into a recording emitter in order
+- [x] 1.3 Emit an `active_changed` lifecycle event from MCP `switch_notebook` (MCP create and close already notify; the window's own create, close and switch update that window directly); verify with an aximar-mcp test whose connected-mode callbacks record a `created` then an `active_changed` event
+- [x] 1.4 Handle `active_changed` in `useNotebookEvents.ts`; verify with a vitest test that the store's active tab follows the event
 
 ## 2. Effects reported as they happen (#54)
 

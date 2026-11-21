@@ -14,6 +14,58 @@ function isMainWindow(): boolean {
   return getCurrentWindow().label === "main";
 }
 
+/** Apply a notebook lifecycle event made over MCP to this window's tabs. */
+export function handleLifecycleEvent(notebook_id: string, eventType: string) {
+  const store = useNotebookStore.getState();
+
+  if (eventType === "created") {
+    // Only auto-adopt MCP-created notebooks in the main window
+    if (!store.notebooks[notebook_id] && isMainWindow()) {
+      store.addTab(notebook_id);
+    }
+  } else if (eventType === "active_changed") {
+    // Follow MCP's switch only in the window that holds the notebook
+    if (store.notebooks[notebook_id]) {
+      store.setActiveTab(notebook_id);
+    }
+  } else if (eventType === "closed") {
+    if (store.notebooks[notebook_id]) {
+      store.removeTab(notebook_id);
+    }
+  } else if (eventType === "close_requested") {
+    const tab = store.notebooks[notebook_id];
+    // Skip if tab doesn't exist, is already pending close, or is the last tab
+    if (!tab || tab.closePending || Object.keys(store.notebooks).length <= 1) return;
+
+    if (!tab.isDirty) {
+      // Clean tab — close immediately
+      nbClose(notebook_id).then(() => {
+        useNotebookStore.getState().removeTab(notebook_id);
+      }).catch((e) => console.warn("Failed to close notebook:", e));
+    } else {
+      // Dirty tab — prompt user
+      store.setClosePending(notebook_id, true);
+      ask("You have unsaved changes. Close without saving?", {
+        title: "Unsaved Changes",
+        kind: "warning",
+      }).then((confirmed) => {
+        // Re-read store state after await to handle races (e.g. user saved while dialog was showing)
+        const current = useNotebookStore.getState();
+        const currentTab = current.notebooks[notebook_id];
+        if (!currentTab) return; // Tab was removed while dialog was open
+
+        if (confirmed) {
+          nbClose(notebook_id).then(() => {
+            useNotebookStore.getState().removeTab(notebook_id);
+          }).catch((e) => console.warn("Failed to close notebook:", e));
+        } else {
+          current.setClosePending(notebook_id, false);
+        }
+      });
+    }
+  }
+}
+
 interface SyncCellOutput {
   text_output: string;
   latex: string | null;
@@ -281,52 +333,7 @@ export function useNotebookEvents() {
   useEffect(() => {
     const unlisten = listen<{ notebook_id: string; event: string }>(
       "notebook-lifecycle",
-      (event) => {
-        const { notebook_id, event: eventType } = event.payload;
-        const store = useNotebookStore.getState();
-
-        if (eventType === "created") {
-          // Only auto-adopt MCP-created notebooks in the main window
-          if (!store.notebooks[notebook_id] && isMainWindow()) {
-            store.addTab(notebook_id);
-          }
-        } else if (eventType === "closed") {
-          if (store.notebooks[notebook_id]) {
-            store.removeTab(notebook_id);
-          }
-        } else if (eventType === "close_requested") {
-          const tab = store.notebooks[notebook_id];
-          // Skip if tab doesn't exist, is already pending close, or is the last tab
-          if (!tab || tab.closePending || Object.keys(store.notebooks).length <= 1) return;
-
-          if (!tab.isDirty) {
-            // Clean tab — close immediately
-            nbClose(notebook_id).then(() => {
-              useNotebookStore.getState().removeTab(notebook_id);
-            }).catch((e) => console.warn("Failed to close notebook:", e));
-          } else {
-            // Dirty tab — prompt user
-            store.setClosePending(notebook_id, true);
-            ask("You have unsaved changes. Close without saving?", {
-              title: "Unsaved Changes",
-              kind: "warning",
-            }).then((confirmed) => {
-              // Re-read store state after await to handle races (e.g. user saved while dialog was showing)
-              const current = useNotebookStore.getState();
-              const currentTab = current.notebooks[notebook_id];
-              if (!currentTab) return; // Tab was removed while dialog was open
-
-              if (confirmed) {
-                nbClose(notebook_id).then(() => {
-                  useNotebookStore.getState().removeTab(notebook_id);
-                }).catch((e) => console.warn("Failed to close notebook:", e));
-              } else {
-                current.setClosePending(notebook_id, false);
-              }
-            });
-          }
-        }
-      }
+      (event) => handleLifecycleEvent(event.payload.notebook_id, event.payload.event)
     );
 
     return () => {

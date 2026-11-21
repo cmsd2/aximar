@@ -20,7 +20,7 @@ Every change to a notebook's cells, statuses, outputs, trust, path or session st
 
 ### Requirement: Changes arrive in the order they happened
 
-Changes SHALL reach the window in the order they were made, and each SHALL carry the notebook state as it was right after that change.
+Changes SHALL reach the window in the order they were made. Each SHALL carry the notebook's state at delivery, which is never older than the change itself, so the window always ends showing the current state.
 
 #### Scenario: Status order
 
