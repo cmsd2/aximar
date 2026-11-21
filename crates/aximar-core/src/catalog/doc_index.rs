@@ -335,7 +335,7 @@ impl DocIndexStore {
             })
             .collect();
 
-        results.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap());
+        results.sort_by(|a, b| b.score.total_cmp(&a.score));
         results.truncate(20);
         results
     }
