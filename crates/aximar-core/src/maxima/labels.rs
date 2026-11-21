@@ -3,6 +3,8 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::LazyLock;
 
+use super::code_spans::{spans, Span};
+
 /// Maps display execution counts to real Maxima labels, and tracks
 /// the previous cell's output label for bare `%` resolution.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -24,7 +26,20 @@ static DISPLAY_LABEL_RE: LazyLock<Regex> =
 /// Order matters: display labels are replaced first on the original input,
 /// then bare `%` is expanded. This prevents double-rewriting where bare `%`
 /// expands to e.g. `%o6` and then the display label regex re-matches it.
+///
+/// String literals and comments are left as typed.
 pub fn rewrite_labels(input: &str, ctx: &LabelContext) -> String {
+    spans(input)
+        .into_iter()
+        .map(|span| match span {
+            Span::Code(code) => rewrite_code(code, ctx),
+            Span::Text(text) => text.to_string(),
+        })
+        .collect()
+}
+
+/// Rewrite labels in a piece of code that contains no strings or comments.
+fn rewrite_code(input: &str, ctx: &LabelContext) -> String {
     // Step 1: replace display %oN / %iN
     let result = DISPLAY_LABEL_RE.replace_all(input, |caps: &regex::Captures| {
         let kind = &caps[1]; // "o" or "i"
@@ -290,10 +305,36 @@ mod tests {
 
     #[test]
     fn percent_in_string_literal() {
-        // We don't parse string literals — matches existing TS behavior
         assert_eq!(
             rewrite_labels("\"hello %\"", &ctx_bare(Some("%o6"))),
-            "\"hello %o6\""
+            "\"hello %\""
+        );
+    }
+
+    #[test]
+    fn display_label_in_string_literal() {
+        assert_eq!(
+            rewrite_labels(r#"print("see %o1"), %o1"#, &ctx_map(&[(1, "%o6")])),
+            r#"print("see %o1"), %o6"#
+        );
+    }
+
+    #[test]
+    fn escaped_quote_does_not_end_string() {
+        assert_eq!(
+            rewrite_labels(r#""say \"%\"" + %"#, &ctx_bare(Some("%o6"))),
+            r#""say \"%\"" + %o6"#
+        );
+    }
+
+    #[test]
+    fn labels_in_comments_preserved() {
+        assert_eq!(
+            rewrite_labels(
+                "/* uses % and %o1 /* nested % */ */ % + %o1",
+                &ctx_full(Some("%o10"), &[(1, "%o6")])
+            ),
+            "/* uses % and %o1 /* nested % */ */ %o10 + %o6"
         );
     }
 

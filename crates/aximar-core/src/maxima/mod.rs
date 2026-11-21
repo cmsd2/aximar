@@ -1,4 +1,5 @@
 pub mod backend;
+pub mod code_spans;
 pub mod debugger;
 pub mod envelope;
 pub mod errors;
