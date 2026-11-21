@@ -9,8 +9,8 @@ Each numbered group is one pull request. Every group updates the Unreleased sect
 
 ## 2. Effects reported as they happen (#54)
 
-- [ ] 2.1 Add an `EffectSink` trait in aximar-core and pass it to `evaluate_cell`; report Running at start and Error on every failure path; verify with a core unit test that a markdown cell and an empty cell report no Running, and a test with a recording sink
-- [ ] 2.2 Implement the sink for Tauri (`emit_notebook_state`), connected MCP (the group 1 channel), and standalone MCP and batch (no-op); remove the Running and Error workaround in `nb_run_cell`; verify with a Maxima-backed aximar-mcp test in connected mode that records Running before Success for `2 + 3`, and Running before Error for `1/0`
+- [x] 2.1 Add an `EffectSink` trait in aximar-core and pass it to `evaluate_cell`; report Running at start and Error on every failure path; verify with a core unit test that a markdown cell and an empty cell report no Running, and a test with a recording sink
+- [x] 2.2 Implement the sink for Tauri (`emit_notebook_state`), connected MCP (the group 1 channel), and standalone MCP and batch (no-op); remove the Running and Error workaround in `nb_run_cell`; verify with a Maxima-backed aximar-mcp test in connected mode that records Running before Success for `2 + 3`, and Running before Error for `1/0`
 
 ## 3. Session settings from the app's config (#53)
 

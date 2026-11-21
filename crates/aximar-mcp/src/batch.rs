@@ -4,7 +4,7 @@ use tokio::sync::Mutex;
 
 use aximar_core::catalog::packages::PackageCatalog;
 use aximar_core::catalog::search::Catalog;
-use aximar_core::commands::NotebookCommand;
+use aximar_core::commands::{NoEffects, NotebookCommand};
 use aximar_core::error::AppError;
 use aximar_core::evaluation::evaluate_cell;
 use aximar_core::notebooks::io as notebook_io;
@@ -109,7 +109,7 @@ pub async fn run(
         }
 
         let start = Instant::now();
-        match evaluate_cell(&ctx, cell_id, &catalog, &packages, eval_timeout).await {
+        match evaluate_cell(&ctx, cell_id, &catalog, &packages, eval_timeout, &NoEffects).await {
             Ok(result) => {
                 let elapsed = start.elapsed();
                 let status = if result.cell_output.is_error {
