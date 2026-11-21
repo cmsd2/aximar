@@ -77,6 +77,9 @@ pub struct Notebook {
     execution_counter: u32,
     /// Maps display count → real Maxima %oN label
     label_map: HashMap<u32, String>,
+    /// Maps display count → the cell whose run recorded that label.  After a
+    /// restart a cell can still show an old count that a new run reuses.
+    label_cells: HashMap<u32, String>,
     undo_past: Vec<NotebookSnapshot>,
     undo_future: Vec<NotebookSnapshot>,
     /// Whether the notebook is trusted for execution of dangerous functions.
@@ -98,6 +101,7 @@ impl Notebook {
             cells: vec![initial_cell],
             execution_counter: 0,
             label_map: HashMap::new(),
+            label_cells: HashMap::new(),
             undo_past: Vec::new(),
             undo_future: Vec::new(),
             trusted: true,
@@ -217,26 +221,34 @@ impl Notebook {
         &self.label_map
     }
 
-    pub fn record_label(&mut self, execution_count: u32, label: String) {
+    pub fn record_label(&mut self, execution_count: u32, label: String, cell_id: &str) {
         self.label_map.insert(execution_count, label);
+        self.label_cells.insert(execution_count, cell_id.to_string());
     }
 
-    /// Forget every recorded label.  Called when a new Maxima process
-    /// starts: its labels reuse the old numbers for unrelated values.
-    /// Execution counts keep increasing, so earlier `Out[n]` stay unique and
-    /// a reference to one reports that it has no value.
-    pub fn forget_labels(&mut self) {
+    /// Start numbering afresh for a new Maxima process: forget every
+    /// recorded label and count executions from 1 again, as Jupyter does on
+    /// a kernel restart.  The new process reuses the old label numbers for
+    /// unrelated values, and running the cells again in order gives them the
+    /// same `In[n]`/`Out[n]` as before, so references like `%o4` keep working.
+    pub fn start_new_session(&mut self) {
         self.label_map.clear();
+        self.label_cells.clear();
+        self.execution_counter = 0;
     }
 
     /// Get the previous output label for bare % resolution: the label of the
-    /// nearest cell above whose output is in the label map.  Going through
-    /// the map skips cells that errored and outputs from an earlier session.
+    /// nearest cell above whose output was produced in this session.  Going
+    /// through the label map skips cells that errored and outputs left from
+    /// an earlier session, even when a new run has reused their count.
     pub fn previous_output_label(&self, cell_id: &str) -> Option<String> {
         let pos = self.cells.iter().position(|c| c.id == cell_id)?;
         // Walk backwards from the cell before this one
         self.cells[..pos].iter().rev().find_map(|cell| {
             let count = cell.output.as_ref()?.execution_count?;
+            if self.label_cells.get(&count) != Some(&cell.id) {
+                return None;
+            }
             self.label_map.get(&count).cloned()
         })
     }
@@ -245,6 +257,7 @@ impl Notebook {
         self.cells.clear();
         self.execution_counter = 0;
         self.label_map.clear();
+        self.label_cells.clear();
         self.undo_past.clear();
         self.undo_future.clear();
         self.cells.push(Cell {
@@ -380,6 +393,7 @@ impl Notebook {
                 self.cells.clear();
                 self.execution_counter = 0;
                 self.label_map.clear();
+                self.label_cells.clear();
                 self.trusted = true;
                 self.cells.push(Cell {
                     id: new_cell_id(),
@@ -452,6 +466,7 @@ impl Notebook {
         self.cells.clear();
         self.execution_counter = 0;
         self.label_map.clear();
+        self.label_cells.clear();
         self.trusted = false;
         for (id, cell_type, input, output) in incoming {
             // Track the highest execution count from loaded outputs
@@ -803,7 +818,7 @@ mod tests {
             ..Default::default()
         };
         if let Some(label) = label {
-            n.record_label(count, label.to_string());
+            n.record_label(count, label.to_string(), cell_id);
         }
         n.apply(NotebookCommand::SetCellOutput {
             cell_id: cell_id.to_string(),
@@ -840,16 +855,32 @@ mod tests {
     }
 
     #[test]
-    fn forget_labels_clears_previous_output_label() {
+    fn new_session_forgets_labels_and_counts_from_one() {
         let mut n = nb();
         let first = first_cell_id(&n);
         let current = add_code_cell(&mut n);
         run(&mut n, &first, Some("%o196"));
-        n.forget_labels();
+        n.start_new_session();
         assert!(n.label_map().is_empty());
         assert_eq!(n.previous_output_label(&current), None);
-        // Counts keep going, so a later Out[n] can't reuse an old number
-        assert_eq!(n.next_execution_count(), 2);
+        assert_eq!(n.next_execution_count(), 1);
+    }
+
+    #[test]
+    fn stale_output_does_not_match_a_reused_count() {
+        // Before the restart: a ran as [1], b as [2]
+        let mut n = nb();
+        let a = first_cell_id(&n);
+        let b = add_code_cell(&mut n);
+        let c = add_code_cell(&mut n);
+        run(&mut n, &a, Some("%o196"));
+        run(&mut n, &b, Some("%o200"));
+        n.start_new_session();
+        // After it, b runs first and becomes [1]; a still shows the old [1]
+        run(&mut n, &b, Some("%o196"));
+        assert_eq!(n.previous_output_label(&c), Some("%o196".to_string()));
+        // For b, the cell above is a, whose [1] belongs to the old session
+        assert_eq!(n.previous_output_label(&b), None);
     }
 }
 

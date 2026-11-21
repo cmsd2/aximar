@@ -123,7 +123,7 @@ pub async fn evaluate_cell(
             let mut nb = ctx.notebook.lock().await;
 
             if let Some(ref label) = eval_result.output_label {
-                nb.record_label(exec_count, label.clone());
+                nb.record_label(exec_count, label.clone(), cell_id);
             }
 
             if let Ok(effect) = nb.apply(NotebookCommand::SetCellOutput {
