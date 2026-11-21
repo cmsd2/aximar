@@ -30,10 +30,13 @@ jobs:
        (github.event.action != 'labeled' || github.event.label.name == 'full-build'))
 
     # A new push to a PR supersedes its build in progress. Master builds
-    # queue instead, so every merged commit still gets its artifacts. Set on
-    # the job, not the workflow, so a skipped run can't cancel a real one.
+    # queue instead of cancelling the running one. Set on the job, not the
+    # workflow, so a skipped run can't cancel a real one. The group includes
+    # the target: a group holds one running and one waiting job, and GitHub
+    # cancels any other waiting job, so a group shared by the whole matrix
+    # let only two of the six targets build.
     concurrency:
-      group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+      group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}-${{ matrix.rust-target }}
       cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
     strategy:
