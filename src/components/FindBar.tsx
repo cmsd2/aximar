@@ -2,6 +2,7 @@ import { useEffect, useRef, useCallback } from "react";
 import { useFindStore } from "../store/findStore";
 import { useActiveTab, useNotebookStore, getActiveTabState } from "../store/notebookStore";
 import type { FindMatch } from "../store/findStore";
+import { findMatches, replaceAllMatches } from "../lib/find-replace";
 
 export function FindBar() {
   const isOpen = useFindStore((s) => s.isOpen);
@@ -37,18 +38,9 @@ export function FindBar() {
       setMatches([]);
       return;
     }
-    const newMatches: FindMatch[] = [];
-    const q = caseSensitive ? query : query.toLowerCase();
-    for (const cell of cells) {
-      const text = caseSensitive ? cell.input : cell.input.toLowerCase();
-      let pos = 0;
-      while (pos < text.length) {
-        const idx = text.indexOf(q, pos);
-        if (idx === -1) break;
-        newMatches.push({ cellId: cell.id, start: idx, end: idx + query.length });
-        pos = idx + 1;
-      }
-    }
+    const newMatches: FindMatch[] = cells.flatMap((cell) =>
+      findMatches(cell.input, query, caseSensitive).map((m) => ({ cellId: cell.id, ...m }))
+    );
     setMatches(newMatches);
   }, [query, cells, caseSensitive, setMatches]);
 
@@ -92,28 +84,15 @@ export function FindBar() {
     if (matches.length === 0) return;
 
     const { updateCellInput } = useNotebookStore.getState();
-    const currentCells = getActiveTabState().cells;
-
-    // Group matches by cell
-    const byCellId = new Map<string, FindMatch[]>();
-    for (const m of matches) {
-      const arr = byCellId.get(m.cellId) ?? [];
-      arr.push(m);
-      byCellId.set(m.cellId, arr);
-    }
-
-    for (const [cellId, cellMatches] of byCellId) {
-      const cell = currentCells.find((c: { id: string }) => c.id === cellId);
-      if (!cell) continue;
-      // Process in reverse order so indices stay valid
-      let text = cell.input;
-      for (let i = cellMatches.length - 1; i >= 0; i--) {
-        const m = cellMatches[i];
-        text = text.slice(0, m.start) + replacement + text.slice(m.end);
+    // Match against each cell's current text rather than the stored matches,
+    // which may be stale
+    for (const cell of getActiveTabState().cells) {
+      const text = replaceAllMatches(cell.input, query, replacement, caseSensitive);
+      if (text !== cell.input) {
+        updateCellInput(cell.id, text);
       }
-      updateCellInput(cellId, text);
     }
-  }, [matches, replacement]);
+  }, [matches.length, query, replacement, caseSensitive]);
 
   const handleFindKeyDown = useCallback(
     (e: React.KeyboardEvent) => {

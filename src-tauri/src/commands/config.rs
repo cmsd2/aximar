@@ -1,7 +1,7 @@
 use rand::Rng;
 use serde::{Deserialize, Serialize};
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use tauri::Manager;
 use tokio_util::sync::CancellationToken;
 
@@ -309,15 +309,68 @@ fn config_path(app: &tauri::AppHandle) -> Result<PathBuf, AppError> {
     Ok(dir.join("config.json"))
 }
 
-fn read_config(app: &tauri::AppHandle) -> Result<(AppConfig, Vec<String>), AppError> {
-    let path = config_path(app)?;
-    if !path.exists() {
-        return Ok((AppConfig::default(), Vec::new()));
+/// What the settings file holds.
+enum ConfigFile {
+    Missing,
+    Valid(AppConfig),
+    /// The file exists but can't be parsed.  Holds a message for the user.
+    Invalid(String),
+}
+
+fn parse_config_file(path: &Path, contents: Option<&str>) -> ConfigFile {
+    match contents {
+        None => ConfigFile::Missing,
+        Some(text) => match serde_json::from_str::<AppConfig>(text) {
+            Ok(config) => ConfigFile::Valid(config),
+            Err(e) => ConfigFile::Invalid(format!(
+                "Settings file {} can't be read ({e}). Aximar is using default \
+                 settings and won't save changes until the file is fixed or removed.",
+                path.display()
+            )),
+        },
     }
-    let contents = fs::read_to_string(&path)?;
-    let config: AppConfig = serde_json::from_str(&contents)
-        .unwrap_or_default();
-    Ok(config.validated())
+}
+
+fn load_config_file(app: &tauri::AppHandle) -> Result<ConfigFile, AppError> {
+    let path = config_path(app)?;
+    let contents = if path.exists() {
+        Some(fs::read_to_string(&path)?)
+    } else {
+        None
+    };
+    Ok(parse_config_file(&path, contents.as_deref()))
+}
+
+/// Read settings for display or use.  A file that can't be parsed gives the
+/// defaults plus a warning, so the app keeps working.
+fn read_config(app: &tauri::AppHandle) -> Result<(AppConfig, Vec<String>), AppError> {
+    Ok(config_or_defaults(load_config_file(app)?))
+}
+
+fn config_or_defaults(file: ConfigFile) -> (AppConfig, Vec<String>) {
+    match file {
+        ConfigFile::Missing => (AppConfig::default(), Vec::new()),
+        ConfigFile::Valid(config) => config.validated(),
+        ConfigFile::Invalid(message) => {
+            let (config, mut warnings) = AppConfig::default().validated();
+            warnings.insert(0, message);
+            (config, warnings)
+        }
+    }
+}
+
+/// Read settings in order to change and save them.  Fails when the file
+/// can't be parsed, so that saving never replaces the user's file with
+/// defaults.
+fn read_config_for_update(app: &tauri::AppHandle) -> Result<AppConfig, AppError> {
+    config_for_update(load_config_file(app)?)
+}
+
+fn config_for_update(file: ConfigFile) -> Result<AppConfig, AppError> {
+    match file {
+        ConfigFile::Invalid(message) => Err(AppError::InvalidConfig(message)),
+        other => Ok(config_or_defaults(other).0),
+    }
 }
 
 fn write_config(app: &tauri::AppHandle, config: &AppConfig) -> Result<(), AppError> {
@@ -339,7 +392,7 @@ pub async fn get_theme(app: tauri::AppHandle) -> Result<Theme, AppError> {
 
 #[tauri::command]
 pub async fn set_theme(app: tauri::AppHandle, theme: Theme) -> Result<(), AppError> {
-    let (mut config, _) = read_config(&app)?;
+    let mut config = read_config_for_update(&app)?;
     config.theme = theme;
     write_config(&app, &config)?;
     Ok(())
@@ -353,7 +406,7 @@ pub async fn get_has_seen_welcome(app: tauri::AppHandle) -> Result<bool, AppErro
 
 #[tauri::command]
 pub async fn set_has_seen_welcome(app: tauri::AppHandle) -> Result<(), AppError> {
-    let (mut config, _) = read_config(&app)?;
+    let mut config = read_config_for_update(&app)?;
     config.has_seen_welcome = true;
     write_config(&app, &config)?;
     Ok(())
@@ -394,7 +447,7 @@ pub async fn get_config(app: tauri::AppHandle) -> Result<ConfigResponse, AppErro
 pub async fn set_config(app: tauri::AppHandle, updates: ConfigUpdate) -> Result<(), AppError> {
     let mcp_changed = updates.mcp_enabled.is_some() || updates.mcp_listen_address.is_some() || updates.mcp_token.is_some();
 
-    let (mut config, _) = read_config(&app)?;
+    let mut config = read_config_for_update(&app)?;
     if let Some(theme) = updates.theme {
         config.theme = theme;
     }
@@ -533,10 +586,17 @@ pub struct McpConfig {
 /// Read MCP-related config in a single pass and persist any generated defaults
 /// (like `mcp_token`) back to disk. This avoids token mismatches caused by
 /// `default_mcp_token()` generating a different random value on each call.
+/// When the file can't be parsed, the defaults are used for this run only and
+/// nothing is written.
 pub fn read_mcp_config(app: &tauri::AppHandle) -> McpConfig {
-    let (config, _) = read_config(app).unwrap_or_else(|_| (AppConfig::default(), Vec::new()));
-    // Persist so that generated defaults (especially mcp_token) are saved to disk.
-    let _ = write_config(app, &config);
+    let config = match read_config_for_update(app) {
+        Ok(config) => {
+            // Persist so that generated defaults (especially mcp_token) are saved to disk.
+            let _ = write_config(app, &config);
+            config
+        }
+        Err(_) => AppConfig::default(),
+    };
     McpConfig {
         enabled: config.mcp_enabled,
         listen_address: config.mcp_listen_address,
@@ -648,7 +708,7 @@ pub async fn codex_mcp_configure(url: String, token: String) -> Result<String, A
 
     // Read and parse existing config (or start with empty document)
     let content = if config_path.exists() {
-        tokio::fs::read_to_string(&config_path).await.unwrap_or_default()
+        tokio::fs::read_to_string(&config_path).await?
     } else {
         String::new()
     };
@@ -738,10 +798,21 @@ pub async fn gemini_mcp_configure(url: String, token: String) -> Result<String, 
     let config_dir = std::path::Path::new(&home).join(".gemini");
     let settings_path = config_dir.join("settings.json");
 
-    // Read existing settings or start with empty object
+    // Read existing settings or start with an empty object.  A file that
+    // can't be read or parsed is left alone: writing back only our entry
+    // would discard the user's other Gemini settings.
     let mut settings: serde_json::Value = if settings_path.exists() {
-        let content = tokio::fs::read_to_string(&settings_path).await.unwrap_or_default();
-        serde_json::from_str(&content).unwrap_or_else(|_| serde_json::json!({}))
+        let content = tokio::fs::read_to_string(&settings_path).await?;
+        if content.trim().is_empty() {
+            serde_json::json!({})
+        } else {
+            serde_json::from_str(&content).map_err(|e| {
+                AppError::InvalidConfig(format!(
+                    "{} can't be read ({e}). Fix or remove it, then try again.",
+                    settings_path.display()
+                ))
+            })?
+        }
     } else {
         serde_json::json!({})
     };
@@ -784,4 +855,51 @@ pub async fn get_buffered_logs(
     state: tauri::State<'_, AppState>,
 ) -> Result<Vec<AppLogEvent>, AppError> {
     Ok(state.app_log.drain())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn path() -> &'static Path {
+        Path::new("/home/user/.config/aximar/config.json")
+    }
+
+    #[test]
+    fn missing_file_gives_defaults() {
+        let file = parse_config_file(path(), None);
+        assert!(matches!(file, ConfigFile::Missing));
+        let (config, warnings) = config_or_defaults(file);
+        assert_eq!(config.font_size, default_font_size());
+        assert!(warnings.is_empty());
+        assert!(config_for_update(parse_config_file(path(), None)).is_ok());
+    }
+
+    #[test]
+    fn valid_file_is_used() {
+        let text = r#"{"font_size": 20, "mcp_token": "kept"}"#;
+        let (config, warnings) = config_or_defaults(parse_config_file(path(), Some(text)));
+        assert_eq!(config.font_size, 20);
+        assert!(warnings.is_empty());
+        let config = config_for_update(parse_config_file(path(), Some(text))).unwrap();
+        assert_eq!(config.mcp_token, "kept");
+    }
+
+    #[test]
+    fn invalid_file_gives_defaults_and_a_warning() {
+        let text = r#"{"font_size": 20,"#;
+        let (config, warnings) = config_or_defaults(parse_config_file(path(), Some(text)));
+        assert_eq!(config.font_size, default_font_size());
+        assert_eq!(warnings.len(), 1);
+        assert!(warnings[0].contains("config.json"));
+    }
+
+    #[test]
+    fn invalid_file_refuses_updates() {
+        let text = r#"{"font_size": 20,"#;
+        match config_for_update(parse_config_file(path(), Some(text))) {
+            Err(AppError::InvalidConfig(message)) => assert!(message.contains("config.json")),
+            other => panic!("expected InvalidConfig, got {other:?}"),
+        }
+    }
 }

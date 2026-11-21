@@ -71,7 +71,10 @@ export function useMaxima() {
 
       try {
         // Ensure the backend has the latest input before evaluating
-        await flushCell(cellId);
+        const notebookId = useNotebookStore.getState().activeNotebookId;
+        if (notebookId) {
+          await flushCell(notebookId, cellId);
+        }
         // nb_run_cell handles: set status → evaluate → set output → emit events
         // The frontend receives status/output updates via notebook-state-changed events
         const result = await nbRunCell(cellId);

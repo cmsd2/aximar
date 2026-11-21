@@ -383,7 +383,7 @@ export function useNotebookEvents() {
       for (const cell of tab.cells) {
         const prev = prevTab.cells.find((c: { id: string }) => c.id === cell.id);
         if (prev && prev.input !== cell.input) {
-          markDirty(cell.id, cell.input);
+          markDirty(nbId, cell.id, cell.input);
         }
       }
     });

@@ -162,3 +162,41 @@ pub(crate) struct CellSummary {
     pub has_output: bool,
     pub output_preview: Option<String>,
 }
+
+/// Longest output preview `list_cells` returns, in characters.
+const OUTPUT_PREVIEW_CHARS: usize = 200;
+
+/// Shorten cell output for `list_cells`.  Counts characters, not bytes, so
+/// Greek letters and other multi-byte text can't split a character.
+pub(crate) fn output_preview(text: &str) -> String {
+    match text.char_indices().nth(OUTPUT_PREVIEW_CHARS) {
+        Some((cut, _)) => format!("{}...", &text[..cut]),
+        None => text.to_string(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn output_preview_keeps_short_text() {
+        assert_eq!(output_preview("x^2"), "x^2");
+        let exact = "a".repeat(OUTPUT_PREVIEW_CHARS);
+        assert_eq!(output_preview(&exact), exact);
+    }
+
+    #[test]
+    fn output_preview_cuts_long_text() {
+        let long = "a".repeat(OUTPUT_PREVIEW_CHARS + 1);
+        assert_eq!(output_preview(&long), format!("{}...", "a".repeat(OUTPUT_PREVIEW_CHARS)));
+    }
+
+    #[test]
+    fn output_preview_cuts_multibyte_text_on_a_character() {
+        // 'α' is two bytes, so byte 200 falls inside a character
+        let greek = format!("x{}", "α".repeat(OUTPUT_PREVIEW_CHARS));
+        let preview = output_preview(&greek);
+        assert_eq!(preview, format!("x{}...", "α".repeat(OUTPUT_PREVIEW_CHARS - 1)));
+    }
+}

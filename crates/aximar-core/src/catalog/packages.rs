@@ -98,7 +98,7 @@ impl PackageCatalog {
             })
             .collect();
 
-        results.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap());
+        results.sort_by(|a, b| b.score.total_cmp(&a.score));
         results.truncate(20);
         results
     }
@@ -128,7 +128,7 @@ impl PackageCatalog {
             })
             .collect();
 
-        matches.sort_by(|a, b| b.0.partial_cmp(&a.0).unwrap());
+        matches.sort_by(|a, b| b.0.total_cmp(&a.0));
         matches.truncate(10);
 
         matches
@@ -190,7 +190,7 @@ impl PackageCatalog {
             }
         }
 
-        results.sort_by(|a, b| b.0.partial_cmp(&a.0).unwrap_or(std::cmp::Ordering::Equal));
+        results.sort_by(|a, b| b.0.total_cmp(&a.0));
         results.truncate(20);
         results.into_iter().map(|(_, r)| r).collect()
     }
@@ -244,7 +244,7 @@ impl PackageCatalog {
             }
         }
 
-        results.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap_or(std::cmp::Ordering::Equal));
+        results.sort_by(|a, b| b.score.total_cmp(&a.score));
         results.truncate(20);
         results
     }

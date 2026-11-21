@@ -28,16 +28,27 @@ pub async fn evaluate_expression(
     expression: String,
     label_context: Option<LabelContext>,
 ) -> Result<EvalResult, AppError> {
+    // A label with no value is reported as the result's error, as for cells
+    let expression = match label_context {
+        Some(ref label_ctx) => match labels::rewrite_labels(&expression, label_ctx) {
+            Ok(rewritten) => rewritten,
+            Err(labels::UnresolvedLabel(message)) => {
+                return Ok(EvalResult {
+                    cell_id,
+                    error: Some(message),
+                    is_error: true,
+                    ..Default::default()
+                });
+            }
+        },
+        None => expression,
+    };
+
     let ctx = resolve_context(&state, notebook_id).await?;
     let eval_timeout = read_eval_timeout(&app);
     let backend = read_backend(&app);
     let maxima_path = read_maxima_path(&app);
     ensure_session(&state, &ctx, backend, maxima_path, eval_timeout).await?;
-
-    let expression = match label_context {
-        Some(ref ctx) => labels::rewrite_labels(&expression, ctx),
-        None => expression,
-    };
 
     let mut guard = ctx.session.lock().await;
     let process = guard.try_begin_eval()?;

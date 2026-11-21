@@ -77,6 +77,9 @@ pub struct Notebook {
     execution_counter: u32,
     /// Maps display count → real Maxima %oN label
     label_map: HashMap<u32, String>,
+    /// Maps display count → the cell whose run recorded that label.  After a
+    /// restart a cell can still show an old count that a new run reuses.
+    label_cells: HashMap<u32, String>,
     undo_past: Vec<NotebookSnapshot>,
     undo_future: Vec<NotebookSnapshot>,
     /// Whether the notebook is trusted for execution of dangerous functions.
@@ -98,6 +101,7 @@ impl Notebook {
             cells: vec![initial_cell],
             execution_counter: 0,
             label_map: HashMap::new(),
+            label_cells: HashMap::new(),
             undo_past: Vec::new(),
             undo_future: Vec::new(),
             trusted: true,
@@ -217,28 +221,43 @@ impl Notebook {
         &self.label_map
     }
 
-    pub fn record_label(&mut self, execution_count: u32, label: String) {
+    pub fn record_label(&mut self, execution_count: u32, label: String, cell_id: &str) {
         self.label_map.insert(execution_count, label);
+        self.label_cells.insert(execution_count, cell_id.to_string());
     }
 
-    /// Get the previous output label for bare % resolution.
+    /// Start numbering afresh for a new Maxima process: forget every
+    /// recorded label and count executions from 1 again, as Jupyter does on
+    /// a kernel restart.  The new process reuses the old label numbers for
+    /// unrelated values, and running the cells again in order gives them the
+    /// same `In[n]`/`Out[n]` as before, so references like `%o4` keep working.
+    pub fn start_new_session(&mut self) {
+        self.label_map.clear();
+        self.label_cells.clear();
+        self.execution_counter = 0;
+    }
+
+    /// Get the previous output label for bare % resolution: the label of the
+    /// nearest cell above whose output was produced in this session.  Going
+    /// through the label map skips cells that errored and outputs left from
+    /// an earlier session, even when a new run has reused their count.
     pub fn previous_output_label(&self, cell_id: &str) -> Option<String> {
         let pos = self.cells.iter().position(|c| c.id == cell_id)?;
         // Walk backwards from the cell before this one
-        for i in (0..pos).rev() {
-            if let Some(ref output) = self.cells[i].output {
-                if let Some(ref label) = output.output_label {
-                    return Some(label.clone());
-                }
+        self.cells[..pos].iter().rev().find_map(|cell| {
+            let count = cell.output.as_ref()?.execution_count?;
+            if self.label_cells.get(&count) != Some(&cell.id) {
+                return None;
             }
-        }
-        None
+            self.label_map.get(&count).cloned()
+        })
     }
 
     pub fn clear(&mut self) {
         self.cells.clear();
         self.execution_counter = 0;
         self.label_map.clear();
+        self.label_cells.clear();
         self.undo_past.clear();
         self.undo_future.clear();
         self.cells.push(Cell {
@@ -374,6 +393,7 @@ impl Notebook {
                 self.cells.clear();
                 self.execution_counter = 0;
                 self.label_map.clear();
+                self.label_cells.clear();
                 self.trusted = true;
                 self.cells.push(Cell {
                     id: new_cell_id(),
@@ -446,6 +466,7 @@ impl Notebook {
         self.cells.clear();
         self.execution_counter = 0;
         self.label_map.clear();
+        self.label_cells.clear();
         self.trusted = false;
         for (id, cell_type, input, output) in incoming {
             // Track the highest execution count from loaded outputs
@@ -785,6 +806,81 @@ mod tests {
             cell_id: "nonexistent".into(),
         });
         assert!(result.is_err());
+    }
+
+    /// Give a cell an output as `evaluate_cell` would, recording its label
+    /// when the evaluation succeeded.
+    fn run(n: &mut Notebook, cell_id: &str, label: Option<&str>) {
+        let count = n.next_execution_count();
+        let result = EvalResult {
+            output_label: label.map(String::from),
+            is_error: label.is_none(),
+            ..Default::default()
+        };
+        if let Some(label) = label {
+            n.record_label(count, label.to_string(), cell_id);
+        }
+        n.apply(NotebookCommand::SetCellOutput {
+            cell_id: cell_id.to_string(),
+            output: CellOutput::from_eval_result(&result, count),
+            raw_output: Vec::new(),
+        })
+        .unwrap();
+    }
+
+    fn add_code_cell(n: &mut Notebook) -> String {
+        match n
+            .apply(NotebookCommand::AddCell {
+                cell_type: CellType::Code,
+                input: String::new(),
+                after_cell_id: None,
+                before_cell_id: None,
+            })
+            .unwrap()
+        {
+            CommandEffect::CellAdded { cell_id } => cell_id,
+            other => panic!("unexpected effect {other:?}"),
+        }
+    }
+
+    #[test]
+    fn previous_output_label_skips_cells_without_a_label() {
+        let mut n = nb();
+        let first = first_cell_id(&n);
+        let failed = add_code_cell(&mut n);
+        let current = add_code_cell(&mut n);
+        run(&mut n, &first, Some("%o196"));
+        run(&mut n, &failed, None);
+        assert_eq!(n.previous_output_label(&current), Some("%o196".to_string()));
+    }
+
+    #[test]
+    fn new_session_forgets_labels_and_counts_from_one() {
+        let mut n = nb();
+        let first = first_cell_id(&n);
+        let current = add_code_cell(&mut n);
+        run(&mut n, &first, Some("%o196"));
+        n.start_new_session();
+        assert!(n.label_map().is_empty());
+        assert_eq!(n.previous_output_label(&current), None);
+        assert_eq!(n.next_execution_count(), 1);
+    }
+
+    #[test]
+    fn stale_output_does_not_match_a_reused_count() {
+        // Before the restart: a ran as [1], b as [2]
+        let mut n = nb();
+        let a = first_cell_id(&n);
+        let b = add_code_cell(&mut n);
+        let c = add_code_cell(&mut n);
+        run(&mut n, &a, Some("%o196"));
+        run(&mut n, &b, Some("%o200"));
+        n.start_new_session();
+        // After it, b runs first and becomes [1]; a still shows the old [1]
+        run(&mut n, &b, Some("%o196"));
+        assert_eq!(n.previous_output_label(&c), Some("%o196".to_string()));
+        // For b, the cell above is a, whose [1] belongs to the old session
+        assert_eq!(n.previous_output_label(&b), None);
     }
 }
 

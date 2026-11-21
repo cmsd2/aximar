@@ -1015,3 +1015,106 @@ async fn run_all_cells_stops_at_maxima_error() {
     );
     assert_eq!(v["latex"], "b", "later cell should not have run: {v:#}");
 }
+
+// ── Label references ──────────────────────────────────────────────────
+
+/// Add a code cell at the end of the notebook and run it.
+async fn add_and_run(s: &AximarMcpServer, input: &str) -> serde_json::Value {
+    let v = parse_ok(
+        s.add_cell(Parameters(AddCellParams {
+            cell_type: Some("code".into()),
+            input: Some(input.into()),
+            after_cell_id: None,
+            notebook_id: None,
+        }))
+        .await,
+    );
+    let cell_id = v["cell_id"].as_str().unwrap().to_string();
+    parse_ok(
+        s.run_cell(Parameters(CellIdParams {
+            cell_id,
+            notebook_id: None,
+        }))
+        .await,
+    )
+}
+
+#[tokio::test]
+#[ignore = "requires Maxima to be installed"]
+async fn label_references_follow_the_gutter_numbers() {
+    let s = build_server();
+    add_and_run(&s, "a: 10;").await; // Out[1]
+    add_and_run(&s, "b: 20$").await; // Out[2]
+    add_and_run(&s, "1/0;").await; // In[3], an error with no output
+    let v = add_and_run(&s, "[%o1, %o2, %];").await;
+    assert!(v["latex"].as_str().unwrap().contains("10 , 20 , 20"), "{v:#}");
+
+    // % in a later statement is Maxima's own: the statement before it
+    let v = add_and_run(&s, "x: 5; % + 1;").await;
+    assert_eq!(v["latex"], "6", "{v:#}");
+
+    // Out[3] has no value: the cell reports it instead of reading %o3
+    let v = add_and_run(&s, "%o3 + 1;").await;
+    assert_eq!(v["is_error"], true, "{v:#}");
+    assert!(v["error"].as_str().unwrap().starts_with("Out[3] (%o3) has no value"), "{v:#}");
+}
+
+#[tokio::test]
+#[ignore = "requires Maxima to be installed"]
+async fn labels_from_before_a_restart_have_no_value() {
+    let s = build_server();
+    add_and_run(&s, "a: 10;").await; // Out[1]
+    parse_ok(
+        s.restart_session(Parameters(NotebookIdParam { notebook_id: None }))
+            .await,
+    );
+
+    let v = add_and_run(&s, "%o1;").await;
+    assert_eq!(v["is_error"], true, "{v:#}");
+    assert!(v["error"].as_str().unwrap().starts_with("Out[1] (%o1) has no value"), "{v:#}");
+
+    let v = add_and_run(&s, "% + 1;").await;
+    assert_eq!(v["is_error"], true, "{v:#}");
+    assert!(v["error"].as_str().unwrap().starts_with("% refers to the previous cell"), "{v:#}");
+
+    // Cells run after the restart work as usual
+    add_and_run(&s, "p: 7;").await;
+    let v = add_and_run(&s, "% + 1;").await;
+    assert_eq!(v["latex"], "8", "{v:#}");
+}
+
+#[tokio::test]
+#[ignore = "requires Maxima to be installed"]
+async fn restart_then_run_all_numbers_cells_from_one() {
+    let s = build_server();
+    let mut ids = Vec::new();
+    for input in ["a: 10;", "%o1 + 1;", "%i1;"] {
+        let v = parse_ok(
+            s.add_cell(Parameters(AddCellParams {
+                cell_type: Some("code".into()),
+                input: Some(input.into()),
+                after_cell_id: None,
+                notebook_id: None,
+            }))
+            .await,
+        );
+        ids.push(v["cell_id"].as_str().unwrap().to_string());
+    }
+
+    let all = || async { parse_ok(s.run_all_cells(Parameters(NotebookIdParam { notebook_id: None })).await) };
+    let v = all().await;
+    assert_eq!(v["success"], true, "{v:#}");
+    parse_ok(s.restart_session(Parameters(NotebookIdParam { notebook_id: None })).await);
+    let v = all().await;
+    assert_eq!(v["success"], true, "{v:#}");
+
+    let cell = |id: String| async {
+        parse_ok(s.get_cell(Parameters(CellIdParams { cell_id: id, notebook_id: None })).await)
+    };
+    let second = cell(ids[1].clone()).await;
+    assert_eq!(second["output"]["execution_count"], 2, "{second:#}");
+    assert_eq!(second["output"]["latex"], "11", "{second:#}");
+    let third = cell(ids[2].clone()).await;
+    assert_eq!(third["output"]["execution_count"], 3, "{third:#}");
+    assert_eq!(third["output"]["latex"], "a:10", "{third:#}");
+}

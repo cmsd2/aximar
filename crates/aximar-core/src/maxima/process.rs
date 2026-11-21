@@ -1,6 +1,6 @@
 use std::env;
 use std::path::PathBuf;
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{Arc, LazyLock};
 use std::time::{SystemTime, UNIX_EPOCH};
 use regex::Regex;
@@ -92,6 +92,17 @@ pub struct MaximaProcess {
     /// in `begin_eval` / `end_eval` to transition state to `Error`
     /// when the process is gone, restoring truthful status reporting.
     dead: AtomicBool,
+}
+
+/// Sessions started by this app process, for Docker container names.
+static CONTAINER_COUNTER: AtomicU64 = AtomicU64::new(0);
+
+/// A container name no other session in this app shares.  Each notebook has
+/// its own session, so the app's process id alone would collide, and
+/// `kill()` would remove another notebook's container.
+fn next_container_name() -> String {
+    let n = CONTAINER_COUNTER.fetch_add(1, Ordering::Relaxed);
+    format!("aximar-{}-{}", std::process::id(), n)
 }
 
 /// Current time in milliseconds since the Unix epoch.  Used by the
@@ -294,7 +305,7 @@ impl MaximaProcess {
                     ));
                 }
 
-                let container_name = format!("aximar-{}", std::process::id());
+                let container_name = next_container_name();
 
                 // Ensure host temp dir exists
                 if let Some(host_dir) = backend.host_temp_dir() {
@@ -1562,3 +1573,17 @@ pub fn find_maxima_binary() -> String {
     "maxima".to_string()
 }
 
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn container_names_are_unique_per_session() {
+        let a = next_container_name();
+        let b = next_container_name();
+        let prefix = format!("aximar-{}-", std::process::id());
+        assert!(a.starts_with(&prefix) && b.starts_with(&prefix));
+        assert_ne!(a, b);
+    }
+}
