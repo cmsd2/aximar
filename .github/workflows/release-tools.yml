@@ -18,13 +18,13 @@ jobs:
             target: aarch64-apple-darwin
           - os: macos-latest
             target: x86_64-apple-darwin
-          - os: ubuntu-latest
-            target: x86_64-unknown-linux-gnu
-          # Pinned: on newer ubuntu-latest images the cross toolchain install
-          # forces apt to downgrade the host gcc/binutils and fails.
+          # Linux builds run on Ubuntu 24.04, so the tools work there and on
+          # newer systems: a binary needs at least the glibc it was built with.
+          # arm64 builds natively on GitHub's arm64 runner.
           - os: ubuntu-24.04
+            target: x86_64-unknown-linux-gnu
+          - os: ubuntu-24.04-arm
             target: aarch64-unknown-linux-gnu
-            cross: true
           - os: windows-latest
             target: x86_64-pc-windows-msvc
           - os: windows-11-arm
@@ -45,45 +45,11 @@ jobs:
         with:
           key: ${{ matrix.target }}
 
-      - name: Install system dependencies (Linux x64)
-        if: matrix.target == 'x86_64-unknown-linux-gnu'
+      - name: Install system dependencies (Linux)
+        if: runner.os == 'Linux'
         run: |
           sudo apt-get update
           sudo apt-get install -y libssl-dev
-
-      - name: Install cross-compilation dependencies (Linux arm64)
-        if: matrix.cross
-        run: |
-          sudo dpkg --add-architecture arm64
-
-          # Pin existing sources to amd64 only, then add arm64 from ports
-          for f in /etc/apt/sources.list.d/*.sources; do
-            [ -f "$f" ] && sudo sed -i '/^Architectures:/d; /^Types:/a Architectures: amd64' "$f"
-          done
-          for f in /etc/apt/sources.list.d/*.list; do
-            [ -f "$f" ] && sudo sed -i 's|^deb \[|deb [arch=amd64,|; s|^deb http|deb [arch=amd64] http|' "$f"
-          done
-
-          CODENAME=$(lsb_release -cs)
-          cat <<SOURCES | sudo tee /etc/apt/sources.list.d/arm64-ports.list
-          deb [arch=arm64] http://ports.ubuntu.com/ ${CODENAME} main restricted universe multiverse
-          deb [arch=arm64] http://ports.ubuntu.com/ ${CODENAME}-updates main restricted universe multiverse
-          deb [arch=arm64] http://ports.ubuntu.com/ ${CODENAME}-security main restricted universe multiverse
-          SOURCES
-
-          sudo apt-get update
-          sudo apt-get install -y \
-            gcc-aarch64-linux-gnu \
-            g++-aarch64-linux-gnu
-          sudo apt-get install -y --fix-broken \
-            libssl-dev:arm64
-
-      - name: Configure cross-compilation environment (Linux arm64)
-        if: matrix.cross
-        run: |
-          echo "PKG_CONFIG_SYSROOT_DIR=/usr/aarch64-linux-gnu" >> $GITHUB_ENV
-          echo "PKG_CONFIG_PATH=/usr/lib/aarch64-linux-gnu/pkgconfig" >> $GITHUB_ENV
-          echo "CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc" >> $GITHUB_ENV
 
       - name: Build tools
         run: cargo build --release --target ${{ matrix.target }} -p maxima-lsp -p maxima-dap -p aximar-mcp
