@@ -9,6 +9,16 @@ see the `v*` releases on GitHub.
 
 ### aximar-mcp
 
+- **Packages installed with mxpm load without `--allow-dangerous`**: the
+  trust check treated `load("numerics")`, `load("ax-plots")` and other mxpm
+  packages as loading an unknown file, so `aximar-mcp run` stopped at the
+  first cell of any notebook that used one unless the whole check was off.
+  A plain name that is an mxpm package in the Maxima user directory, or a
+  `.mac` or `.lisp` file at the top of one (`load("numerics-optimize")`), now
+  counts as a known package, like Maxima's own share packages. The desktop
+  app's trust banner no longer appears for these loads either. Paths and
+  other files still need trust.
+
 - **Catalog tools cover functions that only a package provides**:
   `search_functions` lists functions it finds by name after the catalog's
   ranked results, without a score, marking those with no documentation

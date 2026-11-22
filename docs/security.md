@@ -20,7 +20,7 @@ Maxima is a full programming environment with access to the host system. The `sy
 
 - **GUI and MCP connected mode (interactive):** the notebook's trust flag decides. Notebooks loaded from disk start untrusted; new notebooks are trusted. When a cell with dangerous functions is blocked, from the window or over MCP, the window shows a notebook-level trust banner. The user can trust the entire notebook with one click, after which all cells and expressions execute freely. Over MCP a blocked cell returns a `needs_notebook_trust` status, and a blocked `evaluate_expression` returns an error.
 - **MCP headless mode and batch runs:** dangerous calls are always blocked regardless of notebook trust. The `--allow-dangerous` CLI flag opts in.
-- **Smart `load()` detection:** `load("distrib")` is allowed when the argument matches a known Maxima package; unknown targets are flagged.
+- **Smart `load()` detection:** `load("distrib")` is allowed when the argument matches a known Maxima package. So is a package installed with mxpm: a plain name (letters, digits, `-`, `_`) that is a folder in the Maxima user directory (`$MAXIMA_USERDIR`, else `~/.maxima`) holding `.mxpm.json`, or a `.mac` or `.lisp` file at the top of such a folder. Maxima's default search path reaches those files and does not include the notebook's folder, so a file shipped beside a notebook cannot pose as an installed package. Paths and other unknown targets are flagged.
 - **Trust model:** Notebooks start untrusted when loaded from disk. New notebooks created by the user are trusted. Trust is session-only — not persisted to the file.
 
 The Docker backend provides additional sandboxing:
