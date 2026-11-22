@@ -40,7 +40,9 @@ Core operations take an `&dyn EffectSink` (one method, `effect(notebook_id, Comm
 
 ### 3. Session settings come from a provider
 
-`ServerCore` takes a `SessionSettingsProvider` (a closure returning backend, Maxima path and timeout) instead of fixed values. The desktop app passes a closure that reads its config file, so changes in Settings apply to the next session MCP starts. Standalone MCP passes a closure returning its command-line values.
+`ServerCore` takes a `SessionSettingsProvider` (a closure returning a `SessionSettings` of backend, Maxima path and timeout) instead of fixed values, and calls it when a session starts and when a cell runs. The desktop app passes a closure that reads its config file, so changes in Settings apply to the next session MCP starts. Standalone MCP and batch pass fixed values read from the environment at startup.
+
+`session_ops::ensure_session` and `spawn_and_init_session` take `&SessionSettings` too, and the window's commands read one `SessionSettings` from the config instead of three separate values.
 
 ### 4. Trust is one function with a mode
 

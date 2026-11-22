@@ -8,17 +8,22 @@ use aximar_core::catalog::search::Catalog;
 use aximar_core::maxima::backend::Backend;
 use aximar_core::registry::NotebookRegistry;
 
+use aximar_core::session_ops::{SessionSettings, SessionSettingsProvider};
+
 use crate::params::*;
 use crate::server::AximarMcpServer;
+
+/// The local Maxima on the PATH, with a 30-second timeout.
+fn local_settings() -> SessionSettingsProvider {
+    SessionSettings { backend: Backend::Local, maxima_path: None, eval_timeout: 30 }.fixed()
+}
 
 fn build_server() -> AximarMcpServer {
     AximarMcpServer::new(
         Arc::new(Mutex::new(NotebookRegistry::new())),
         Arc::new(Catalog::load()),
         Arc::new(PackageCatalog::load()),
-        Backend::Local,
-        None,
-        30,
+        local_settings(),
         false,
     )
 }
@@ -28,9 +33,7 @@ fn build_server_allow_dangerous() -> AximarMcpServer {
         Arc::new(Mutex::new(NotebookRegistry::new())),
         Arc::new(Catalog::load()),
         Arc::new(PackageCatalog::load()),
-        Backend::Local,
-        None,
-        30,
+        local_settings(),
         true,
     )
 }
@@ -793,9 +796,7 @@ fn build_server_connected() -> AximarMcpServer {
         Arc::new(Mutex::new(NotebookRegistry::new())),
         Arc::new(Catalog::load()),
         Arc::new(PackageCatalog::load()),
-        Backend::Local,
-        None,
-        30,
+        local_settings(),
         process_sink_factory,
         Arc::new(|_, _| {}),
         Arc::new(|_, _| {}),
@@ -1131,9 +1132,7 @@ async fn connected_mode_reports_create_and_switch() {
         Arc::new(Mutex::new(NotebookRegistry::new())),
         Arc::new(Catalog::load()),
         Arc::new(PackageCatalog::load()),
-        Backend::Local,
-        None,
-        30,
+        local_settings(),
         process_sink_factory,
         Arc::new(|_, _| {}),
         Arc::new(move |id: &str, event: &str| {
@@ -1165,9 +1164,7 @@ fn build_server_recording_effects() -> (AximarMcpServer, Arc<std::sync::Mutex<Ve
         Arc::new(Mutex::new(NotebookRegistry::new())),
         Arc::new(Catalog::load()),
         Arc::new(PackageCatalog::load()),
-        Backend::Local,
-        None,
-        30,
+        local_settings(),
         process_sink_factory,
         Arc::new(move |_id: &str, effect: aximar_core::commands::CommandEffect| {
             recorded.lock().unwrap().push(effect.effect_name().to_string());
@@ -1212,4 +1209,34 @@ async fn mcp_run_reports_running_before_an_error() {
     let (effects, status) = effects_of_run(&s, &seen, "1/0;").await;
     assert_eq!(effects, vec!["cell_status_updated", "cell_output_updated"]);
     assert_eq!(status, "error");
+}
+
+// ── Session settings ──────────────────────────────────────────────────
+
+#[tokio::test]
+async fn sessions_use_the_settings_in_force_when_they_start() {
+    // The settings change after the server is built, as when the user
+    // changes them in the app while MCP is running
+    let current = Arc::new(std::sync::Mutex::new(SessionSettings {
+        backend: Backend::Local,
+        maxima_path: None,
+        eval_timeout: 30,
+    }));
+    let provided = current.clone();
+    let s = AximarMcpServer::new(
+        Arc::new(Mutex::new(NotebookRegistry::new())),
+        Arc::new(Catalog::load()),
+        Arc::new(PackageCatalog::load()),
+        Arc::new(move || provided.lock().unwrap().clone()),
+        false,
+    );
+    let missing = "/nonexistent/aximar-test/bin/maxima";
+    current.lock().unwrap().maxima_path = Some(missing.into());
+
+    let cell_id = add_code_cell(&s, "1 + 1;").await;
+    let err = s
+        .run_cell(Parameters(CellIdParams { cell_id, notebook_id: None }))
+        .await
+        .expect_err("a missing Maxima can't start");
+    assert!(err.contains(missing), "error should name the path: {err}");
 }

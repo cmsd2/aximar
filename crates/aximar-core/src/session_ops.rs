@@ -22,6 +22,27 @@ use crate::registry::NotebookContextRef;
 /// Parameters: `(notebook_id, new_status)`.
 pub type SessionStatusCallback = Arc<dyn Fn(&str, SessionStatus) + Send + Sync>;
 
+/// Which Maxima a session runs, and how long one evaluation may take.
+#[derive(Debug, Clone)]
+pub struct SessionSettings {
+    pub backend: Backend,
+    pub maxima_path: Option<String>,
+    pub eval_timeout: u64,
+}
+
+impl SessionSettings {
+    /// A provider that always gives these settings, for front ends whose
+    /// settings can't change while they run.
+    pub fn fixed(self) -> SessionSettingsProvider {
+        Arc::new(move || self.clone())
+    }
+}
+
+/// Gives the settings in force now.  Front ends call it each time a session
+/// starts or a cell runs, so a change in the settings applies to the next
+/// session without restarting the server.
+pub type SessionSettingsProvider = Arc<dyn Fn() -> SessionSettings + Send + Sync>;
+
 /// Spawn a new Maxima process and run initialization code (texput setup).
 ///
 /// **Precondition:** the caller must have already called
@@ -32,12 +53,10 @@ pub type SessionStatusCallback = Arc<dyn Fn(&str, SessionStatus) + Send + Sync>;
 /// On failure the session transitions to `Error`.
 pub async fn spawn_and_init_session(
     ctx: &NotebookContextRef,
-    backend: Backend,
-    maxima_path: Option<String>,
+    settings: &SessionSettings,
     output_sink: Arc<dyn OutputSink>,
     envelope_observer: Option<Arc<dyn EnvelopeObserver>>,
     catalog: &Catalog,
-    eval_timeout: u64,
     on_status: Option<&SessionStatusCallback>,
 ) -> Result<(), AppError> {
     // ctx.path may be a directory (from create_session's path param) or a
@@ -46,9 +65,10 @@ pub async fn spawn_and_init_session(
     let cwd = ctx.path.as_deref().map(|p| {
         if p.is_dir() { p } else { p.parent().unwrap_or(p) }
     });
+    let eval_timeout = settings.eval_timeout;
     match MaximaProcess::spawn_with_cwd_and_observer(
-        backend,
-        maxima_path,
+        settings.backend.clone(),
+        settings.maxima_path.clone(),
         output_sink,
         cwd,
         envelope_observer,
@@ -109,12 +129,10 @@ pub async fn spawn_and_init_session(
 /// so callers don't need to pre-allocate an output sink on every call.
 pub async fn ensure_session(
     ctx: &NotebookContextRef,
-    backend: Backend,
-    maxima_path: Option<String>,
+    settings: &SessionSettings,
     build_sink: impl FnOnce(&NotebookContextRef) -> Arc<dyn OutputSink>,
     build_observer: impl FnOnce(&NotebookContextRef) -> Option<Arc<dyn EnvelopeObserver>>,
     catalog: &Catalog,
-    eval_timeout: u64,
     on_status: Option<&SessionStatusCallback>,
 ) -> Result<(), AppError> {
     let status = ctx.session.status();
@@ -129,12 +147,10 @@ pub async fn ensure_session(
             let envelope_observer = build_observer(ctx);
             spawn_and_init_session(
                 ctx,
-                backend,
-                maxima_path,
+                settings,
                 output_sink,
                 envelope_observer,
                 catalog,
-                eval_timeout,
                 on_status,
             )
             .await

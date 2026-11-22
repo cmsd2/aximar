@@ -2,7 +2,6 @@ use std::sync::Arc;
 
 use tokio_util::sync::CancellationToken;
 
-use aximar_core::maxima::backend::{Backend, BackendKind, ContainerEngine};
 use aximar_core::maxima::output::{MultiOutputSink, OutputSink};
 
 use aximar_mcp::server::{AximarMcpServer, ProcessSinkFactory};
@@ -10,9 +9,11 @@ use aximar_mcp::server::{AximarMcpServer, ProcessSinkFactory};
 use crate::state::AppState;
 use crate::tauri_output::{emit_app_log, TauriOutputSink};
 
+use crate::commands::config::read_session_settings;
 use crate::commands::session::build_session_status_callback;
 use crate::gui_events::{spawn_gui_event_task, GuiEvent, TauriGuiEmitter};
 use aximar_core::commands::CommandEffect;
+use aximar_core::session_ops::SessionSettingsProvider;
 
 /// Start the embedded MCP streamable HTTP server.
 ///
@@ -54,17 +55,16 @@ pub async fn start_mcp_server(state: AppState, listen_address: String, token: St
             });
         });
 
-    // Default backend config — the MCP server uses these when auto-starting a
-    // session.  When the GUI starts the session first the backend is already
-    // configured and this is not used.
-    let backend = Backend::from_config(
-        BackendKind::default(),
-        "",
-        "",
-        ContainerEngine::default(),
-    );
-    let maxima_path: Option<String> = None;
-    let eval_timeout: u64 = 30;
+    // Sessions MCP starts use the app's settings as they are when the
+    // session starts, like sessions the window starts.  The handle is set in
+    // setup, before the server starts.
+    let app_handle_for_settings = state.app_handle.clone();
+    let session_settings: SessionSettingsProvider = Arc::new(move || {
+        let app = app_handle_for_settings
+            .get()
+            .expect("the app handle is set before the MCP server starts");
+        read_session_settings(app)
+    });
 
     // Build session-status callback so MCP-initiated session starts are
     // reflected in the GUI's session status indicator.
@@ -74,9 +74,7 @@ pub async fn start_mcp_server(state: AppState, listen_address: String, token: St
         state.registry.clone(),
         state.catalog.clone(),
         state.packages.clone(),
-        backend,
-        maxima_path,
-        eval_timeout,
+        session_settings,
         process_sink_factory,
         on_notebook_change,
         on_notebook_lifecycle,

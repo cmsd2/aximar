@@ -9,13 +9,12 @@ use aximar_core::commands::{CommandEffect, EffectSink, NotebookCommand};
 use aximar_core::safety;
 use aximar_core::catalog::packages::PackageCatalog;
 use aximar_core::catalog::search::Catalog;
-use aximar_core::maxima::backend::Backend;
 use aximar_core::maxima::output::OutputSink;
 use aximar_core::maxima::unicode::unicode_to_maxima;
 use aximar_core::maxima::protocol;
 use aximar_core::notebooks::{data as notebook_data, io as notebook_io};
 use aximar_core::registry::{NotebookContextRef, NotebookRegistry};
-use aximar_core::session_ops::{self, SessionStatusCallback};
+use aximar_core::session_ops::{self, SessionSettings, SessionSettingsProvider, SessionStatusCallback};
 
 use crate::capture::CaptureOutputSink;
 use crate::convert::{ipynb_to_cell_tuples, notebook_to_ipynb};
@@ -50,9 +49,7 @@ pub struct ServerCore {
     pub(crate) registry: Arc<Mutex<NotebookRegistry>>,
     pub(crate) catalog: Arc<Catalog>,
     pub(crate) packages: Arc<PackageCatalog>,
-    pub(crate) backend: Backend,
-    pub(crate) maxima_path: Option<String>,
-    pub(crate) eval_timeout: u64,
+    pub(crate) session_settings: SessionSettingsProvider,
     pub(crate) process_sink_factory: ProcessSinkFactory,
     pub(crate) on_notebook_change: Option<Arc<dyn Fn(&str, CommandEffect) + Send + Sync>>,
     pub(crate) on_notebook_lifecycle: Option<Arc<dyn Fn(&str, &str) + Send + Sync>>,
@@ -66,9 +63,7 @@ impl ServerCore {
         registry: Arc<Mutex<NotebookRegistry>>,
         catalog: Arc<Catalog>,
         packages: Arc<PackageCatalog>,
-        backend: Backend,
-        maxima_path: Option<String>,
-        eval_timeout: u64,
+        session_settings: SessionSettingsProvider,
         allow_dangerous: bool,
     ) -> Self {
         let process_sink_factory: ProcessSinkFactory =
@@ -77,9 +72,7 @@ impl ServerCore {
             registry,
             catalog,
             packages,
-            backend,
-            maxima_path,
-            eval_timeout,
+            session_settings,
             process_sink_factory,
             on_notebook_change: None,
             on_notebook_lifecycle: None,
@@ -93,9 +86,7 @@ impl ServerCore {
         registry: Arc<Mutex<NotebookRegistry>>,
         catalog: Arc<Catalog>,
         packages: Arc<PackageCatalog>,
-        backend: Backend,
-        maxima_path: Option<String>,
-        eval_timeout: u64,
+        session_settings: SessionSettingsProvider,
         process_sink_factory: ProcessSinkFactory,
         on_notebook_change: Arc<dyn Fn(&str, CommandEffect) + Send + Sync>,
         on_notebook_lifecycle: Arc<dyn Fn(&str, &str) + Send + Sync>,
@@ -105,9 +96,7 @@ impl ServerCore {
             registry,
             catalog,
             packages,
-            backend,
-            maxima_path,
-            eval_timeout,
+            session_settings,
             process_sink_factory,
             on_notebook_change: Some(on_notebook_change),
             on_notebook_lifecycle: Some(on_notebook_lifecycle),
@@ -147,17 +136,20 @@ impl ServerCore {
         }
     }
 
+    /// The session settings in force now (in connected mode, the app's).
+    pub(crate) fn settings(&self) -> SessionSettings {
+        (self.session_settings)()
+    }
+
     /// Ensure Maxima session is started for the given notebook context.
     pub(crate) async fn ensure_session(&self, ctx: &NotebookContextRef) -> Result<(), String> {
         let factory = self.process_sink_factory.clone();
         session_ops::ensure_session(
             ctx,
-            self.backend.clone(),
-            self.maxima_path.clone(),
+            &self.settings(),
             move |ctx| (factory)(&ctx.id, &ctx.capture_sink),
             |_ctx| None, // MCP doesn't surface envelope frames anywhere
             &self.catalog,
-            self.eval_timeout,
             self.on_session_status.as_ref(),
         )
         .await
@@ -344,7 +336,7 @@ impl ServerCore {
             &translated,
             &self.catalog,
             &self.packages,
-            self.eval_timeout,
+            self.settings().eval_timeout,
         )
         .await;
 
@@ -547,18 +539,14 @@ impl AximarMcpServer {
         registry: Arc<Mutex<NotebookRegistry>>,
         catalog: Arc<Catalog>,
         packages: Arc<PackageCatalog>,
-        backend: Backend,
-        maxima_path: Option<String>,
-        eval_timeout: u64,
+        session_settings: SessionSettingsProvider,
         allow_dangerous: bool,
     ) -> Self {
         let core = ServerCore::new(
             registry,
             catalog,
             packages,
-            backend,
-            maxima_path,
-            eval_timeout,
+            session_settings,
             allow_dangerous,
         );
         Self::from_core(core)
@@ -570,9 +558,7 @@ impl AximarMcpServer {
         registry: Arc<Mutex<NotebookRegistry>>,
         catalog: Arc<Catalog>,
         packages: Arc<PackageCatalog>,
-        backend: Backend,
-        maxima_path: Option<String>,
-        eval_timeout: u64,
+        session_settings: SessionSettingsProvider,
         process_sink_factory: ProcessSinkFactory,
         on_notebook_change: Arc<dyn Fn(&str, CommandEffect) + Send + Sync>,
         on_notebook_lifecycle: Arc<dyn Fn(&str, &str) + Send + Sync>,
@@ -582,9 +568,7 @@ impl AximarMcpServer {
             registry,
             catalog,
             packages,
-            backend,
-            maxima_path,
-            eval_timeout,
+            session_settings,
             process_sink_factory,
             on_notebook_change,
             on_notebook_lifecycle,
@@ -962,7 +946,7 @@ Best practice: run each cell immediately after creating it before moving on to t
             &params.cell_id,
             &self.core.catalog,
             &self.core.packages,
-            self.core.eval_timeout,
+            self.core.settings().eval_timeout,
             &self.core.effect_sink(),
         )
         .await

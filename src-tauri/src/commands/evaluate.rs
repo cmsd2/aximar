@@ -5,7 +5,7 @@ use aximar_core::maxima::labels::{self, LabelContext};
 use aximar_core::maxima::protocol;
 use aximar_core::maxima::types::EvalResult;
 use aximar_core::registry::NotebookContextRef;
-use crate::commands::config::{read_backend, read_eval_timeout, read_maxima_path};
+use crate::commands::config::read_session_settings;
 use crate::commands::session::ensure_session;
 use crate::state::AppState;
 
@@ -45,10 +45,9 @@ pub async fn evaluate_expression(
     };
 
     let ctx = resolve_context(&state, notebook_id).await?;
-    let eval_timeout = read_eval_timeout(&app);
-    let backend = read_backend(&app);
-    let maxima_path = read_maxima_path(&app);
-    ensure_session(&state, &ctx, backend, maxima_path, eval_timeout).await?;
+    let settings = read_session_settings(&app);
+    let eval_timeout = settings.eval_timeout;
+    ensure_session(&state, &ctx, &settings).await?;
 
     let mut guard = ctx.session.lock().await;
     let process = guard.try_begin_eval()?;

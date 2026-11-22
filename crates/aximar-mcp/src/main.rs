@@ -95,9 +95,7 @@ async fn main() -> anyhow::Result<()> {
     tracing::info!("Loaded function catalog and packages");
 
     // Read configuration from environment
-    let backend = aximar_mcp::config::backend_from_env();
-    let maxima_path = aximar_mcp::config::maxima_path_from_env();
-    let eval_timeout = aximar_mcp::config::eval_timeout_from_env();
+    let session_settings = aximar_mcp::config::session_settings_from_env();
 
     // Create registry with one default notebook/session
     let registry = Arc::new(Mutex::new(NotebookRegistry::new()));
@@ -107,9 +105,7 @@ async fn main() -> anyhow::Result<()> {
         registry,
         catalog,
         packages,
-        backend,
-        maxima_path,
-        eval_timeout,
+        session_settings.fixed(),
         cli.allow_dangerous,
     );
 

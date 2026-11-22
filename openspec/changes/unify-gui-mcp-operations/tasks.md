@@ -14,8 +14,8 @@ Each numbered group is one pull request. Every group updates the Unreleased sect
 
 ## 3. Session settings from the app's config (#53)
 
-- [ ] 3.1 Give `ServerCore` a `SessionSettingsProvider` in place of fixed backend, Maxima path and timeout; standalone MCP passes its command-line values; verify with an aximar-mcp test (no Maxima) where the provider names a missing Maxima path and `run_cell` fails with that path in the error
-- [ ] 3.2 Pass a provider from `src-tauri/src/mcp/startup.rs` that reads `read_backend`, `read_maxima_path` and `read_eval_timeout` when a session starts; verify with a unit test of the provider against a config file
+- [x] 3.1 Give `ServerCore` a `SessionSettingsProvider` in place of fixed backend, Maxima path and timeout; standalone MCP passes its command-line values; verify with an aximar-mcp test (no Maxima) where the provider names a missing Maxima path and `run_cell` fails with that path in the error
+- [x] 3.2 Pass a provider from `src-tauri/src/mcp/startup.rs` that reads `read_backend`, `read_maxima_path` and `read_eval_timeout` when a session starts; verify with a unit test of the provider against a config file
 
 ## 4. One trust check, with the banner for MCP runs (#39)
 
