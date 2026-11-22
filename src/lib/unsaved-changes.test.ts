@@ -31,12 +31,16 @@ function setDirty(id: string, dirty: boolean) {
   const store = useNotebookStore.getState();
   if (!store.notebooks[id]) store.addTab(id, `${id}.macnb`);
   const tab = useNotebookStore.getState().notebooks[id];
+  if (tab.type !== "notebook") throw new Error(`${id} is not a notebook tab`);
   useNotebookStore.setState({
     notebooks: { ...useNotebookStore.getState().notebooks, [id]: { ...tab, isDirty: dirty } },
   });
 }
 
-const isDirty = (id: string) => useNotebookStore.getState().notebooks[id].isDirty;
+function isDirty(id: string): boolean {
+  const tab = useNotebookStore.getState().notebooks[id];
+  return tab.type === "notebook" && tab.isDirty;
+}
 
 beforeEach(() => {
   dialog.answer = "Cancel";
