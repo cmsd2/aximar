@@ -635,7 +635,7 @@ fn extract_params(sig: &str) -> Vec<String> {
         .collect()
 }
 
-fn levenshtein(a: &str, b: &str) -> usize {
+pub(crate) fn levenshtein(a: &str, b: &str) -> usize {
     let a_chars: Vec<char> = a.chars().collect();
     let b_chars: Vec<char> = b.chars().collect();
     let m = a_chars.len();

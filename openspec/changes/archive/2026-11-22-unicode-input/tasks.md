@@ -10,4 +10,4 @@ Each numbered group is one pull request. Every group runs `cargo test --workspac
 
 ## 2. Close-out
 
-- [ ] 2.1 Archive this change with `openspec archive unicode-input`, and check that `openspec/specs/` gains `unicode-input`
+- [x] 2.1 Archive this change with `openspec archive unicode-input`, and check that `openspec/specs/` gains `unicode-input`

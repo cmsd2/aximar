@@ -8,6 +8,7 @@ use tokio::sync::Mutex;
 use aximar_core::commands::{CommandEffect, EffectSink, NotebookCommand};
 use aximar_core::safety::{self, TrustDecision, TrustMode};
 use aximar_core::catalog::packages::PackageCatalog;
+use aximar_core::catalog::queries::{self as catalog_queries, FunctionDocs};
 use aximar_core::catalog::search::Catalog;
 use aximar_core::maxima::output::OutputSink;
 use aximar_core::maxima::protocol;
@@ -188,7 +189,7 @@ impl ServerCore {
     // ── Shared tool implementations ──────────────────────────────
 
     pub(crate) async fn do_search_functions(&self, query: &str) -> Result<String, String> {
-        let results = self.catalog.search(query);
+        let results = catalog_queries::search(&self.catalog, &self.packages, query);
         if results.is_empty() {
             return success_json(&serde_json::json!({
                 "results": [],
@@ -197,41 +198,65 @@ impl ServerCore {
         }
         let items: Vec<serde_json::Value> = results
             .iter()
-            .map(|dr| {
-                serde_json::json!({
-                    "name": dr.name,
-                    "signatures": [dr.signature],
-                    "description": dr.summary,
-                    "score": dr.score,
-                    "package": dr.package,
-                })
+            .map(|hit| {
+                let mut item = serde_json::json!({
+                    "name": hit.name,
+                    "signatures": [hit.signature],
+                    "description": hit.summary,
+                    "score": hit.score,
+                    "package": hit.package,
+                });
+                if hit.undocumented {
+                    item["undocumented"] = true.into();
+                }
+                item
             })
             .collect();
         success_json(&serde_json::json!({ "results": items }))
     }
 
     pub(crate) async fn do_get_function_docs(&self, name: &str) -> Result<String, String> {
-        if let Some((pkg, entry)) = self.catalog.get(name) {
-            let docs = if entry.body_md.is_empty() { &entry.summary } else { &entry.body_md };
-            return success_json(&serde_json::json!({
-                "name": name,
-                "signatures": [entry.signature],
-                "description": entry.summary,
-                "examples": entry.examples,
-                "see_also": entry.see_also,
-                "full_docs": docs,
-                "package": pkg,
-            }));
-        }
-        // Not found — suggest similar
-        let similar = self.catalog.find_similar(name, 3);
-        if similar.is_empty() {
-            error_result(format!("Function '{name}' not found"))
-        } else {
-            error_result(format!(
+        match catalog_queries::docs(&self.catalog, &self.packages, name) {
+            FunctionDocs::Documented { package, entry } => {
+                let docs = if entry.body_md.is_empty() { &entry.summary } else { &entry.body_md };
+                success_json(&serde_json::json!({
+                    "name": name,
+                    "signatures": [entry.signature],
+                    "description": entry.summary,
+                    "examples": entry.examples,
+                    "see_also": entry.see_also,
+                    "full_docs": docs,
+                    "package": package,
+                }))
+            }
+            FunctionDocs::InPackage { package, signature } => {
+                let load = if package.builtin {
+                    String::new()
+                } else {
+                    format!(" Load it with load(\"{}\")$.", package.name)
+                };
+                let description = format!(
+                    "Provided by the {} package ({}). It has no documentation.{load}",
+                    package.name, package.description
+                );
+                success_json(&serde_json::json!({
+                    "name": name,
+                    "signatures": signature.into_iter().collect::<Vec<_>>(),
+                    "description": description,
+                    "examples": [],
+                    "see_also": [],
+                    "full_docs": description,
+                    "package": package.name,
+                    "undocumented": true,
+                }))
+            }
+            FunctionDocs::NotFound { suggestions } if suggestions.is_empty() => {
+                error_result(format!("Function '{name}' not found"))
+            }
+            FunctionDocs::NotFound { suggestions } => error_result(format!(
                 "Function '{name}' not found. Did you mean: {}?",
-                similar.join(", ")
-            ))
+                suggestions.join(", ")
+            )),
         }
     }
 
@@ -244,17 +269,7 @@ impl ServerCore {
     }
 
     pub(crate) async fn do_complete_function(&self, prefix: &str) -> Result<String, String> {
-        let mut results = self.catalog.complete(prefix);
-        let mut existing: std::collections::HashSet<String> =
-            results.iter().map(|r| r.name.to_lowercase()).collect();
-
-        // Also include package functions (deduped)
-        for r in self.packages.complete_functions(prefix) {
-            if !existing.contains(&r.name.to_lowercase()) {
-                existing.insert(r.name.to_lowercase());
-                results.push(r);
-            }
-        }
+        let results = catalog_queries::complete(&self.catalog, &self.packages, prefix);
 
         let items: Vec<serde_json::Value> = results
             .iter()
