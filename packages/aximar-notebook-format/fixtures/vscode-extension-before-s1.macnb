@@ -1,0 +1,133 @@
+{
+ "nbformat": 4,
+ "nbformat_minor": 5,
+ "metadata": {
+  "kernelspec": {
+   "name": "maxima",
+   "display_name": "Maxima",
+   "language": "maxima"
+  }
+ },
+ "cells": [
+  {
+   "cell_type": "markdown",
+   "source": [
+    "# Integrals"
+   ],
+   "metadata": {}
+  },
+  {
+   "cell_type": "code",
+   "source": [
+    "print(\"working\")$\n",
+    "integrate(x, x);"
+   ],
+   "metadata": {
+    "outputLabel": "%o8",
+    "executionCount": 1
+   },
+   "execution_count": 1,
+   "outputs": [
+    {
+     "output_type": "execute_result",
+     "data": {
+      "text/plain": [
+       "working"
+      ]
+     },
+     "metadata": {},
+     "execution_count": null
+    },
+    {
+     "output_type": "execute_result",
+     "data": {
+      "text/latex": [
+       "{{x^2}\\over{2}}"
+      ],
+      "text/plain": [
+       "{{x^2}\\over{2}}"
+      ]
+     },
+     "metadata": {
+      "execution_count": 1
+     },
+     "execution_count": 1
+    }
+   ]
+  },
+  {
+   "cell_type": "code",
+   "source": [
+    "plot2d(x^2, [x, 0, 1])$"
+   ],
+   "metadata": {
+    "executionCount": 2
+   },
+   "execution_count": 2,
+   "outputs": [
+    {
+     "output_type": "execute_result",
+     "data": {
+      "image/svg+xml": [
+       "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"40\" height=\"20\"><path d=\"M0,20 L40,0\" stroke=\"blue\"/></svg>\n"
+      ],
+      "text/plain": [
+       "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"40\" height=\"20\"><path d=\"M0,20 L40,0\" stroke=\"blue\"/></svg>\n"
+      ]
+     },
+     "metadata": {
+      "execution_count": 2
+     },
+     "execution_count": 2
+    }
+   ]
+  },
+  {
+   "cell_type": "code",
+   "source": [
+    "plot2d(x, [x, 0, 1], [plot_format, plotly])$"
+   ],
+   "metadata": {
+    "executionCount": 3
+   },
+   "execution_count": 3,
+   "outputs": [
+    {
+     "output_type": "execute_result",
+     "data": {
+      "application/x-maxima-plotly": [
+       "{\"data\":[{\"x\":[0,1],\"y\":[0,1],\"type\":\"scatter\"}],\"layout\":{}}"
+      ],
+      "text/plain": [
+       "{\"data\":[{\"x\":[0,1],\"y\":[0,1],\"type\":\"scatter\"}],\"layout\":{}}"
+      ]
+     },
+     "metadata": {
+      "execution_count": 3
+     },
+     "execution_count": 3
+    }
+   ]
+  },
+  {
+   "cell_type": "code",
+   "source": [
+    "1/0;"
+   ],
+   "metadata": {
+    "executionCount": 4
+   },
+   "execution_count": 4,
+   "outputs": [
+    {
+     "output_type": "error",
+     "ename": "Error",
+     "evalue": "expt: undefined: 0 to a negative exponent.\n -- an error. To debug this try: debugmode(true);",
+     "traceback": [
+      "Error: expt: undefined: 0 to a negative exponent."
+     ]
+    }
+   ]
+  }
+ ]
+}
