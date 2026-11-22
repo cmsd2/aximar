@@ -1,3 +1,6 @@
+use std::path::Path;
+
+use crate::catalog::doc_index::maxima_userdir;
 use crate::catalog::packages::PackageCatalog;
 use crate::notebook::Notebook;
 
@@ -71,7 +74,9 @@ const DANGEROUS_FUNCTIONS: &[(&str, &str)] = &[
 /// Detect dangerous function calls in Maxima input.
 ///
 /// When `packages` is provided, `load("known_package")` calls are considered
-/// safe and not flagged. Unknown `load()` arguments are flagged.
+/// safe and not flagged.  So are packages installed with mxpm in the Maxima
+/// user directory (see [`is_mxpm_package`]).  Other `load()` arguments are
+/// flagged.
 pub fn detect_dangerous_calls(
     input: &str,
     packages: Option<&PackageCatalog>,
@@ -91,7 +96,7 @@ pub fn detect_dangerous_calls(
 
     // Smart load() detection
     if has_function_call(input, "load") {
-        let is_dangerous = check_load_calls(input, packages);
+        let is_dangerous = check_load_calls(input, packages, maxima_userdir().as_deref());
         if is_dangerous && seen.insert("load") {
             results.push(DangerousCall {
                 function_name: "load".to_string(),
@@ -137,7 +142,13 @@ fn is_word_char(b: u8) -> bool {
 
 /// Check if any `load()` call in the input loads an unknown (non-package) file.
 /// Returns `true` if at least one load call is dangerous.
-fn check_load_calls(input: &str, packages: Option<&PackageCatalog>) -> bool {
+///
+/// `userdir` is the Maxima user directory to look for mxpm packages in.
+fn check_load_calls(
+    input: &str,
+    packages: Option<&PackageCatalog>,
+    userdir: Option<&Path>,
+) -> bool {
     // Extract string arguments from load("...") calls
     let bytes = input.as_bytes();
     let load_bytes = b"load";
@@ -157,13 +168,10 @@ fn check_load_calls(input: &str, packages: Option<&PackageCatalog>) -> bool {
         // Found load( — extract string argument
         let after_paren = trimmed[1..].trim_start();
         if let Some(arg) = extract_string_arg(after_paren) {
-            match packages {
-                Some(pkg_catalog) if pkg_catalog.get(&arg).is_some() => {
-                    // Known package — safe
-                }
-                _ => {
-                    return true;
-                }
+            let in_catalog = packages.is_some_and(|catalog| catalog.get(&arg).is_some());
+            let from_mxpm = userdir.is_some_and(|dir| is_mxpm_package(&arg, dir));
+            if !in_catalog && !from_mxpm {
+                return true;
             }
         } else {
             // Non-string argument (variable, expression) — flag as dangerous
@@ -171,6 +179,33 @@ fn check_load_calls(input: &str, packages: Option<&PackageCatalog>) -> bool {
         }
     }
     false
+}
+
+/// Whether `name` is a package installed with mxpm under `userdir`.
+///
+/// mxpm installs each package into `<userdir>/<package>/` and writes a
+/// `.mxpm.json` there.  A name counts when it is such a package
+/// (`load("numerics")`), or a `.mac` or `.lisp` file at the top of one, which
+/// is how packages ship companions (`load("numerics-optimize")` from
+/// `numerics/`).  Maxima's default search path covers `<userdir>/**/*.mac`
+/// and `.lisp` but not the notebook's folder, so a file beside the notebook
+/// cannot stand in for the package.  Only plain names qualify, so no path
+/// can point elsewhere.
+fn is_mxpm_package(name: &str, userdir: &Path) -> bool {
+    let plain = !name.is_empty()
+        && name.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'-' || b == b'_');
+    if !plain {
+        return false;
+    }
+    let Ok(entries) = std::fs::read_dir(userdir) else {
+        return false;
+    };
+    entries.flatten().map(|entry| entry.path()).any(|dir| {
+        dir.join(".mxpm.json").is_file()
+            && (dir.file_name().is_some_and(|n| n == name)
+                || dir.join(format!("{name}.mac")).is_file()
+                || dir.join(format!("{name}.lisp")).is_file())
+    })
 }
 
 /// Extract a string literal from the start of `s`, e.g. `"foo")...` → Some("foo").
@@ -305,6 +340,75 @@ mod tests {
     fn handles_whitespace_before_paren() {
         let calls = detect_dangerous_calls("system  (\"ls\")", None);
         assert_eq!(calls.len(), 1);
+    }
+
+    /// A Maxima user directory with one mxpm package, `numerics`, which
+    /// ships a `numerics-optimize.mac` companion, plus a plain folder and a
+    /// stray file that mxpm did not install.
+    fn userdir_with_mxpm_package() -> tempfile::TempDir {
+        let dir = tempfile::tempdir().unwrap();
+        let pkg = dir.path().join("numerics");
+        std::fs::create_dir(&pkg).unwrap();
+        std::fs::write(pkg.join(".mxpm.json"), "{}").unwrap();
+        std::fs::write(pkg.join("numerics.mac"), "").unwrap();
+        std::fs::write(pkg.join("numerics-optimize.mac"), "").unwrap();
+        let other = dir.path().join("scratch");
+        std::fs::create_dir(&other).unwrap();
+        std::fs::write(other.join("helpers.mac"), "").unwrap();
+        std::fs::write(dir.path().join("stray.mac"), "").unwrap();
+        dir
+    }
+
+    fn load_is_dangerous(input: &str, userdir: &Path) -> bool {
+        check_load_calls(input, Some(&PackageCatalog::load()), Some(userdir))
+    }
+
+    #[test]
+    fn load_mxpm_package_is_safe() {
+        let dir = userdir_with_mxpm_package();
+        assert!(!load_is_dangerous("load(\"numerics\")$", dir.path()));
+    }
+
+    #[test]
+    fn load_file_shipped_in_mxpm_package_is_safe() {
+        let dir = userdir_with_mxpm_package();
+        assert!(!load_is_dangerous("load(\"numerics-optimize\")$", dir.path()));
+    }
+
+    #[test]
+    fn load_mxpm_and_catalog_packages_together_is_safe() {
+        let dir = userdir_with_mxpm_package();
+        assert!(!load_is_dangerous("load(\"numerics\")$ load(\"distrib\")$", dir.path()));
+    }
+
+    #[test]
+    fn load_from_folder_without_mxpm_metadata_is_dangerous() {
+        let dir = userdir_with_mxpm_package();
+        assert!(load_is_dangerous("load(\"scratch\")$", dir.path()));
+        assert!(load_is_dangerous("load(\"helpers\")$", dir.path()));
+        assert!(load_is_dangerous("load(\"stray\")$", dir.path()));
+    }
+
+    #[test]
+    fn load_path_into_mxpm_package_is_dangerous() {
+        let dir = userdir_with_mxpm_package();
+        assert!(load_is_dangerous("load(\"numerics/numerics\")$", dir.path()));
+        assert!(load_is_dangerous("load(\"../numerics\")$", dir.path()));
+        assert!(load_is_dangerous("load(\"numerics.mac\")$", dir.path()));
+        assert!(load_is_dangerous("load(\"\")$", dir.path()));
+    }
+
+    #[test]
+    fn mxpm_package_does_not_excuse_other_dangerous_calls() {
+        let dir = userdir_with_mxpm_package();
+        assert!(load_is_dangerous("load(\"numerics\")$ load(\"/tmp/evil.mac\")$", dir.path()));
+    }
+
+    #[test]
+    fn missing_userdir_falls_back_to_catalog() {
+        let missing = Path::new("/nonexistent/maxima-userdir");
+        assert!(load_is_dangerous("load(\"numerics\")$", missing));
+        assert!(!load_is_dangerous("load(\"distrib\")$", missing));
     }
 
     #[test]

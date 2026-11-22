@@ -113,6 +113,8 @@ Code that calls `system`, `batch`, `writefile` and similar functions, or loads a
 - **Connected mode:** the notebook's trust flag decides. New notebooks are trusted; notebooks opened from a file are not until the user trusts them. A blocked cell returns `needs_notebook_trust` with its `dangerous_functions`, and the window shows its trust banner so the user can trust the notebook there. A blocked expression returns an error.
 - **Standalone mode:** dangerous calls are blocked unless the server was started with `--allow-dangerous`, whatever the notebook's trust flag.
 
+In both modes `load` of a Maxima share package (`load("distrib")`) or of a package installed with mxpm (`load("numerics")`, or a file it ships such as `load("numerics-optimize")`) is not a dangerous call, so `aximar-mcp run` handles notebooks that only load packages without `--allow-dangerous`.
+
 In `run_all_cells`, a blocked cell stops the run with status `needs_trust`.
 
 ## Available tools (24)
