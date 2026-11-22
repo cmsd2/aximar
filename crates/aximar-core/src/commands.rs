@@ -59,6 +59,9 @@ pub enum CommandEffect {
     CellInputUpdated { cell_id: String },
     CellStatusUpdated { cell_id: String },
     CellOutputUpdated { cell_id: String },
+    /// A run was blocked because the notebook is untrusted; the window asks
+    /// the user to trust it.  Changes nothing in the notebook.
+    TrustRequired { cell_id: String, functions: Vec<String> },
     NotebookTrusted,
     NotebookReplaced,
     Undone,
@@ -76,7 +79,8 @@ impl CommandEffect {
             | CommandEffect::CellTypeToggled { cell_id }
             | CommandEffect::CellInputUpdated { cell_id }
             | CommandEffect::CellStatusUpdated { cell_id }
-            | CommandEffect::CellOutputUpdated { cell_id } => Some(cell_id),
+            | CommandEffect::CellOutputUpdated { cell_id }
+            | CommandEffect::TrustRequired { cell_id, .. } => Some(cell_id),
             _ => None,
         }
     }
@@ -91,6 +95,7 @@ impl CommandEffect {
             CommandEffect::CellInputUpdated { .. } => "cell_input_updated",
             CommandEffect::CellStatusUpdated { .. } => "cell_status_updated",
             CommandEffect::CellOutputUpdated { .. } => "cell_output_updated",
+            CommandEffect::TrustRequired { .. } => "trust_required",
             CommandEffect::NotebookTrusted => "notebook_trusted",
             CommandEffect::NotebookReplaced => "notebook_replaced",
             CommandEffect::Undone => "undone",

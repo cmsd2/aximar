@@ -13,11 +13,11 @@ export function TrustBanner() {
 
   const handleTrust = async () => {
     await nbTrustNotebook(true);
-    setPendingTrustFunctions(null);
+    setPendingTrustFunctions(tab.id, null);
   };
 
   const handleDismiss = () => {
-    setPendingTrustFunctions(null);
+    setPendingTrustFunctions(tab.id, null);
   };
 
   return (

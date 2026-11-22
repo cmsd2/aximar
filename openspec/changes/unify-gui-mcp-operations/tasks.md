@@ -19,9 +19,9 @@ Each numbered group is one pull request. Every group updates the Unreleased sect
 
 ## 4. One trust check, with the banner for MCP runs (#39)
 
-- [ ] 4.1 Add `safety::check_trust(notebook, input, packages, mode)` with `Interactive` and `Headless { allow_dangerous }` modes; verify with core unit tests covering trusted and untrusted notebooks in each mode
-- [ ] 4.2 Use it in `nb_run_cell`, MCP `run_cell`, both `evaluate_expression` commands and `batch.rs`, deleting their own checks; verify with aximar-mcp tests: a trusted connected notebook runs an expression that calls `system`, an untrusted one blocks it, and standalone without `--allow-dangerous` blocks it
-- [ ] 4.3 Report a `TrustRequired { cell_id, functions }` effect when an interactive run is blocked; the frontend sets `pendingTrustFunctions` from it and `useMaxima.ts` stops setting it; verify with an aximar-mcp connected-mode test that records the effect, and a vitest test that the store shows the banner's functions
+- [x] 4.1 Add `safety::check_trust(notebook, input, packages, mode)` with `Interactive` and `Headless { allow_dangerous }` modes; verify with core unit tests covering trusted and untrusted notebooks in each mode
+- [x] 4.2 Use it in `nb_run_cell`, MCP `run_cell`, both `evaluate_expression` commands and `batch.rs`, deleting their own checks; verify with aximar-mcp tests: a trusted connected notebook runs an expression that calls `system`, an untrusted one blocks it, and standalone without `--allow-dangerous` blocks it
+- [x] 4.3 Report a `TrustRequired { cell_id, functions }` effect when an interactive run is blocked; the frontend sets `pendingTrustFunctions` from it and `useMaxima.ts` stops setting it; verify with an aximar-mcp connected-mode test that records the effect, and a vitest test that the store shows the banner's functions
 
 ## 5. Run-all in core (#41)
 

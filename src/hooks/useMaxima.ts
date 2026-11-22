@@ -79,8 +79,8 @@ export function useMaxima() {
         // The frontend receives status/output updates via notebook-state-changed events
         const result = await nbRunCell(cellId);
         if (result.type === "needs_notebook_trust") {
+          // The trust banner shows from the backend's trust_required event
           addLog("warning", `Notebook trust required: ${result.dangerous_functions.join(", ")}`, "eval");
-          useNotebookStore.getState().setPendingTrustFunctions(result.dangerous_functions);
           return false;
         }
         if (result.is_error) {

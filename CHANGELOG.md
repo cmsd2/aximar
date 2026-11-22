@@ -16,6 +16,15 @@ see the `v*` releases on GitHub.
   at the first such cell, as its description said, marks the remaining cells
   `not_run`, and adds top-level `success`, `stopped_at`, `stop_reason` and
   `message` fields. The unused `pending_approval` field is gone.
+- **One trust rule for cells and expressions** (#39):
+  - **Breaking, connected mode:** `evaluate_expression` follows the notebook's
+    trust flag, like `run_cell`. It used to block dangerous calls even in a
+    trusted notebook.
+  - In connected mode, a cell blocked because the notebook is untrusted now
+    shows the trust banner in the desktop window, so the user can trust the
+    notebook there. Before, only the MCP client heard about it.
+  - Blocked-call messages say what would allow the call: trusting the notebook
+    in connected mode, `--allow-dangerous` when standalone.
 - **Connected mode starts Maxima with the app's settings**: a session that an
   MCP client started in the desktop app used the local Maxima on the PATH and
   a 30-second timeout, whatever the app's settings said. It now uses the

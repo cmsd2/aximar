@@ -6,7 +6,7 @@ use rmcp::{tool, tool_handler, tool_router};
 use tokio::sync::Mutex;
 
 use aximar_core::commands::{CommandEffect, EffectSink, NotebookCommand};
-use aximar_core::safety;
+use aximar_core::safety::{self, TrustDecision, TrustMode};
 use aximar_core::catalog::packages::PackageCatalog;
 use aximar_core::catalog::search::Catalog;
 use aximar_core::maxima::output::OutputSink;
@@ -14,6 +14,7 @@ use aximar_core::maxima::unicode::unicode_to_maxima;
 use aximar_core::maxima::protocol;
 use aximar_core::notebooks::{data as notebook_data, io as notebook_io};
 use aximar_core::registry::{NotebookContextRef, NotebookRegistry};
+use aximar_core::evaluation::{check_cell_trust, evaluate_cell};
 use aximar_core::session_ops::{self, SessionSettings, SessionSettingsProvider, SessionStatusCallback};
 
 use crate::capture::CaptureOutputSink;
@@ -54,7 +55,9 @@ pub struct ServerCore {
     pub(crate) on_notebook_change: Option<Arc<dyn Fn(&str, CommandEffect) + Send + Sync>>,
     pub(crate) on_notebook_lifecycle: Option<Arc<dyn Fn(&str, &str) + Send + Sync>>,
     pub(crate) on_session_status: Option<SessionStatusCallback>,
-    pub(crate) allow_dangerous: bool,
+    /// Interactive in connected mode, where the notebook's trust flag
+    /// decides; headless when standalone.
+    pub(crate) trust_mode: TrustMode,
 }
 
 impl ServerCore {
@@ -77,7 +80,7 @@ impl ServerCore {
             on_notebook_change: None,
             on_notebook_lifecycle: None,
             on_session_status: None,
-            allow_dangerous,
+            trust_mode: TrustMode::Headless { allow_dangerous },
         }
     }
 
@@ -101,7 +104,7 @@ impl ServerCore {
             on_notebook_change: Some(on_notebook_change),
             on_notebook_lifecycle: Some(on_notebook_lifecycle),
             on_session_status: Some(on_session_status),
-            allow_dangerous: false, // connected mode: GUI handles approval
+            trust_mode: TrustMode::Interactive,
         }
     }
 
@@ -133,6 +136,19 @@ impl ServerCore {
     pub(crate) fn notify_lifecycle(&self, notebook_id: &str, event_type: &str) {
         if let Some(ref cb) = self.on_notebook_lifecycle {
             cb(notebook_id, event_type);
+        }
+    }
+
+    /// Why a run was blocked, and what would let it run.
+    pub(crate) fn blocked_message(&self, functions: &[String]) -> String {
+        let names = functions.join(", ");
+        match self.trust_mode {
+            TrustMode::Interactive => format!(
+                "Dangerous function(s) blocked: {names}. The notebook is untrusted; trust it in the Aximar window to run them."
+            ),
+            TrustMode::Headless { .. } => format!(
+                "Dangerous function(s) blocked: {names}. Start the server with --allow-dangerous to allow them."
+            ),
         }
     }
 
@@ -302,19 +318,15 @@ impl ServerCore {
         expression: &str,
         notebook_id: Option<&str>,
     ) -> Result<String, String> {
-        // Safety: evaluate_expression has no cell → no approval path → always block dangerous calls
-        if !self.allow_dangerous {
-            let dangerous = safety::detect_dangerous_calls(expression, Some(&self.packages));
-            if !dangerous.is_empty() {
-                let names: Vec<&str> = dangerous.iter().map(|d| d.function_name.as_str()).collect();
-                return error_result(format!(
-                    "Dangerous function(s) blocked: {}. Use a notebook cell for approval, or --allow-dangerous in headless mode.",
-                    names.join(", ")
-                ));
-            }
+        let ctx = self.resolve_context(notebook_id).await?;
+        let decision = {
+            let nb = ctx.notebook.lock().await;
+            safety::check_trust(&nb, expression, &self.packages, self.trust_mode)
+        };
+        if let TrustDecision::NeedsTrust { functions } = decision {
+            return error_result(self.blocked_message(&functions));
         }
 
-        let ctx = self.resolve_context(notebook_id).await?;
         if let Err(e) = self.ensure_session(&ctx).await {
             return error_result(format!("Failed to start session: {e}"));
         }
@@ -895,43 +907,27 @@ Best practice: run each cell immediately after creating it before moving on to t
     ) -> Result<String, String> {
         let ctx = self.core.resolve_context(params.notebook_id.as_deref()).await?;
 
-        // Safety check for dangerous functions
-        // - allow_dangerous: skip all checks
-        // - Connected mode (GUI): use notebook-level trust flag
-        // - Headless mode: always scan (MCP clients are programmatic)
-        if !self.core.allow_dangerous {
-            let nb = ctx.notebook.lock().await;
-            let cell = nb.get_cell(&params.cell_id)
-                .ok_or_else(|| format!("Cell '{}' not found", params.cell_id))?;
-            let input = cell.input.clone();
-            let notebook_trusted = nb.trusted();
-            let is_connected = self.core.on_notebook_change.is_some();
-            drop(nb);
-
-            // In connected mode, skip check if notebook is trusted (user approved in GUI).
-            // In headless mode, always scan.
-            let should_check = if is_connected { !notebook_trusted } else { true };
-
-            if should_check {
-                let dangerous = safety::detect_dangerous_calls(&input, Some(&self.core.packages));
-                if !dangerous.is_empty() {
-                    let func_names: Vec<String> = dangerous.iter().map(|d| d.function_name.clone()).collect();
-
-                    if is_connected {
-                        return success_json(&serde_json::json!({
-                            "cell_id": params.cell_id,
-                            "needs_notebook_trust": true,
-                            "dangerous_functions": func_names,
-                            "message": "Notebook is untrusted. Trust the notebook in the GUI to execute dangerous functions.",
-                        }));
-                    } else {
-                        return error_result(format!(
-                            "Dangerous function(s) blocked: {}. Use --allow-dangerous to allow.",
-                            func_names.join(", ")
-                        ));
-                    }
-                }
-            }
+        // The trust check; in connected mode a blocked cell also shows the
+        // window's trust banner
+        let decision = check_cell_trust(
+            &ctx,
+            &params.cell_id,
+            &self.core.packages,
+            self.core.trust_mode,
+            &self.core.effect_sink(),
+        )
+        .await
+        .map_err(|e| e.to_string())?;
+        if let TrustDecision::NeedsTrust { functions } = decision {
+            return match self.core.trust_mode {
+                TrustMode::Interactive => success_json(&serde_json::json!({
+                    "cell_id": params.cell_id,
+                    "needs_notebook_trust": true,
+                    "dangerous_functions": functions,
+                    "message": "Notebook is untrusted. Trust the notebook in the GUI to execute dangerous functions.",
+                })),
+                TrustMode::Headless { .. } => error_result(self.core.blocked_message(&functions)),
+            };
         }
 
         if let Err(e) = self.core.ensure_session(&ctx).await {
@@ -939,7 +935,6 @@ Best practice: run each cell immediately after creating it before moving on to t
         }
 
         use aximar_core::error::AppError;
-        use aximar_core::evaluation::evaluate_cell;
 
         match evaluate_cell(
             &ctx,
