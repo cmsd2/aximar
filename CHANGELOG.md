@@ -10,10 +10,12 @@ see the `v*` releases on GitHub.
 ### aximar-mcp
 
 - **Catalog tools cover functions that only a package provides**:
-  `search_functions` lists them after documented functions, marked
-  `undocumented: true`; `get_function_docs` answers for them with the package
-  and how to load it, instead of "not found"; and a misspelt name suggests
-  package functions as well as documented ones. The desktop app and MCP now
+  `search_functions` lists functions it finds by name after the catalog's
+  ranked results, without a score, marking those with no documentation
+  `undocumented: true`; `get_function_docs` answers for them with every
+  package that provides them and how to load it, instead of "not found";
+  completion names every such package; and a misspelt name suggests package
+  functions as well as documented ones. The desktop app and MCP now
   share one search, documentation and completion API in `aximar-core`.
 - **`run_all_cells` reports cells that did not succeed**: each result now has a
   `status` (`ok`, `empty`, `error`, `needs_trust`, `failed`, `not_run`). A cell

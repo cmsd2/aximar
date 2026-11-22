@@ -1461,3 +1461,35 @@ async fn search_includes_undocumented_package_functions() {
     let hit = v["results"].as_array().unwrap().iter().find(|r| r["name"] == "jcubic").cloned();
     assert_eq!(hit.expect("jcubic is found")["undocumented"], true);
 }
+
+#[tokio::test]
+async fn search_labels_hits_by_their_docs_and_scores_only_ranked_ones() {
+    let s = build_server();
+    let v = parse_ok(s.search_functions(Parameters(SearchFunctionsParams { query: "pdf_".into() })).await);
+    let results = v["results"].as_array().unwrap();
+    // Found by name after the ranking, but documented
+    let student = results.iter().find(|r| r["name"] == "pdf_student_t").expect("pdf_student_t is found");
+    assert!(student.get("undocumented").is_none(), "{student:#}");
+    // Scores only for the ranked hits, which come first
+    let first_unscored = results.iter().position(|r| r.get("score").is_none()).unwrap();
+    assert!(results[first_unscored..].iter().all(|r| r.get("score").is_none()), "{v:#}");
+}
+
+#[tokio::test]
+async fn completion_names_every_package_that_provides_a_function() {
+    let s = build_server();
+    let v = parse_ok(s.complete_function(Parameters(CompleteFunctionParams { prefix: "gradien".into() })).await);
+    let gradient = v["completions"].as_array().unwrap().iter().find(|c| c["name"] == "gradient").cloned().unwrap();
+    let description = gradient["description"].as_str().unwrap();
+    assert!(description.contains("calculus/optmiz") && description.contains("calculus/qual"), "{description}");
+}
+
+#[tokio::test]
+async fn undocumented_function_docs_read_cleanly() {
+    let s = build_server();
+    let v = parse_ok(s.get_function_docs(Parameters(GetFunctionDocsParams { name: "jcubic".into() })).await);
+    assert_eq!(
+        v["description"],
+        "From the affine/macbasic package. It has no documentation. Load it with load(\"affine/macbasic\")$."
+    );
+}
