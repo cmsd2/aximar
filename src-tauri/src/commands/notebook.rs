@@ -350,6 +350,7 @@ pub async fn nb_load_cells(
                 is_error: false,
                 duration_ms: 0,
                 output_label: None,
+                ..Default::default()
             });
             (c.id, ct, c.input, output)
         })

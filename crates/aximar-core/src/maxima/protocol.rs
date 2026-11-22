@@ -16,8 +16,12 @@ use crate::error::AppError;
 ///
 /// `sentinel = Some(s)` selects the legacy stdout-parsing path: the
 /// input adds three statements the parser depends on:
-///   - `tex(%);` so it can extract LaTeX from $$..$$ blocks and
-///     plot file paths from \mbox{} blocks;
+///   - a block that prints the result's one-line form between
+///     `__AXIMAR_PLAIN__` markers (with `printf`, which never wraps long
+///     lines as `print` does), then runs `tex` on it, so the parser can
+///     extract LaTeX from $$..$$ blocks and plot file paths from \mbox{}
+///     blocks.  It is one statement, so `%` inside it is still the user's
+///     result and the label arithmetic below is unchanged;
 ///   - `print("__AXIMAR_LABEL__", linenum)$` so it can correlate
 ///     the cell with Maxima's %oN output label;
 ///   - `print("<sentinel>")$` as the read terminator (per-eval
@@ -26,11 +30,14 @@ fn build_eval_input(expr: &str, sentinel: Option<&str>) -> String {
     match sentinel {
         None => format!("{}\n", expr),
         Some(s) => format!(
-            "{}\ntex(%);\nprint(\"__AXIMAR_LABEL__\", linenum)$\nprint(\"{}\")$\n",
-            expr, s
+            "{}\n{}\nprint(\"__AXIMAR_LABEL__\", linenum)$\nprint(\"{}\")$\n",
+            expr, PLAIN_AND_TEX, s
         ),
     }
 }
+
+/// Print the result's one-line form between markers, then its LaTeX.
+const PLAIN_AND_TEX: &str = "block([ax__r: %], printf(true, \"__AXIMAR_PLAIN__~a__AXIMAR_PLAIN_END__~%\", string(ax__r)), tex(ax__r));";
 
 /// Build the stdin write for an internal-protocol command (variables
 /// query, kill, kill-all).  On the wired path the action is the
@@ -168,10 +175,12 @@ pub async fn evaluate(
     apply_error_envelopes(&mut result, &envelopes, catalog, None)?;
     apply_display_envelopes(&mut result, &envelopes);
     apply_eval_result_envelopes(&mut result, &envelopes, emit_latex, process.backend());
-    // If user suppressed output with $, clear the LaTeX (but plot detection
-    // already happened in the parser using raw_latex).
+    // If user suppressed output with $, clear the LaTeX and its one-line
+    // form (but plot detection already happened in the parser using
+    // raw_latex).
     if !emit_latex {
         result.latex = None;
+        result.text_plain = None;
     }
     Ok(result)
 }
@@ -230,6 +239,7 @@ pub async fn evaluate_with_packages(
     apply_eval_result_envelopes(&mut result, &envelopes, emit_latex, process.backend());
     if !emit_latex {
         result.latex = None;
+        result.text_plain = None;
     }
     Ok(result)
 }

@@ -206,6 +206,15 @@ pub fn apply_eval_result_envelopes(
                 }
             }
         }
+
+        // mgrind's text/plain is the result's one-line form, as the legacy
+        // path's string(%) gives it.  Keep it with a value shown as LaTeX,
+        // not for plots or images
+        let shows_value = result.latex.is_some()
+            && result.plot_svg.is_none()
+            && result.plot_data.is_none()
+            && result.image_png.is_none();
+        result.text_plain = shows_value.then(|| text_plain.to_string());
     }
 }
 
