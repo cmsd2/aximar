@@ -80,9 +80,13 @@ New Tauri commands:
 
 The TypeScript conversion in `notebooks-client.ts`, the raw `save_notebook` and `open_notebook` commands, and `nb_load_cells` go. Opening Plotly JSON files stays in the frontend.
 
-### 8. Shared test notebooks and the TypeScript package
+### 8. One implementation, as a crate and as an npm package
 
-An npm workspace (`packages/*`) holds `packages/aximar-notebook-format`, published as the unscoped npm package `aximar-notebook-format`: a TypeScript implementation of the spec for the extension, and `fixtures/`, test notebooks covering each requirement (written by Aximar, by the extension, and by Jupyter). The Rust serializer's tests read the same fixtures from that folder. The extension depends on the published package and replaces its serializer with it.
+`packages/aximar-notebook-format` is a small MIT-licensed Rust crate holding the format: the file model (cells, IDs, outputs, stale outputs), `read` and `write`, and `fixtures/`, test notebooks covering each requirement (written by Aximar, by the extension, and by Jupyter). It depends only on `serde_json` and `getrandom`. aximar-core's `notebooks::format` converts between the crate's model and `Notebook`, and adds friendly explanations for loaded errors, which need the catalog.
+
+The same crate, built with `wasm-pack` and its `wasm` feature, is the unscoped npm package `aximar-notebook-format`: WebAssembly with `read`, `write`, `newId` and `validId`, and TypeScript types generated from the Rust structs (`tsify`). The extension depends on it and replaces its serializer with it, so a format change is made once. A Node smoke test checks that the npm build writes the same bytes as the Rust tests expect.
+
+*Alternative:* a TypeScript port of the serializer, checked against the same fixtures. That keeps two implementations of every rule in step by hand, the drift this change exists to end. The crate is MIT so the MIT-licensed extension can depend on it; the rest of Aximar stays GPL.
 
 ### 9. The round-trip check
 

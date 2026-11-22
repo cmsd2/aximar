@@ -644,7 +644,7 @@ impl Notebook {
 }
 
 pub(crate) fn new_cell_id() -> String {
-    nanoid::nanoid!()
+    aximar_notebook_format::new_id()
 }
 
 #[cfg(test)]

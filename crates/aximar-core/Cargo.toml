@@ -13,7 +13,7 @@ regex = "1"
 thiserror = "2"
 tempfile = "3"
 dirs = "6"
-nanoid = "0.4"
+aximar-notebook-format = { path = "../../packages/aximar-notebook-format" }
 probly-search = "2"
 base64 = "0.22"
 unicode-normalization = "0.1"

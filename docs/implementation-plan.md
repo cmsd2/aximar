@@ -214,7 +214,7 @@ Maxima's `tex()` output needs preprocessing for KaTeX compatibility:
 
 A GitHub Actions workflow (`.github/workflows/build.yml`) builds the app across macOS, Linux, and Windows using a matrix strategy. It runs:
 
-- **Nightly** on `master`, when anything the app is built from changed since the last successful build. A first job compares the two commits, leaving out docs, specs, the standalone tools and their crates, tests and the other workflows.
+- **Nightly** on `master`, when anything the app is built from changed since the last successful build. A first job compares the two commits, leaving out docs, specs, the standalone tools and their crates, tests, the notebook format's test notebooks and the other workflows.
 - **On a PR labelled `full-build`**, and again on each push while the label stays on.
 - **On demand** for any branch: `gh workflow run build.yml --ref <branch>`.
 

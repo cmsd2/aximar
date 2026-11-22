@@ -1,63 +1,39 @@
 {
- "nbformat": 4,
- "nbformat_minor": 5,
- "metadata": {
-  "kernelspec": {
-   "name": "maxima",
-   "display_name": "Maxima",
-   "language": "maxima"
-  },
-  "aximar": {
-   "title": "Integrals",
-   "future_key": {
-    "kept": true
-   }
-  },
-  "jupytext": {
-   "formats": "ipynb"
-  }
- },
  "cells": [
   {
-   "id": "intro",
    "cell_type": "markdown",
+   "id": "intro",
+   "metadata": {},
    "source": [
     "# Integrals"
-   ],
-   "metadata": {}
+   ]
   },
   {
-   "id": "note",
    "cell_type": "raw",
+   "id": "note",
+   "metadata": {},
    "source": [
     "Kept as is."
-   ],
-   "metadata": {}
+   ]
   },
   {
-   "id": "c1",
    "cell_type": "code",
-   "source": [
-    "print(\"working\")$\n",
-    "integrate(x, x);"
-   ],
+   "execution_count": 1,
+   "id": "c1",
    "metadata": {
     "tags": [
      "demo"
     ]
    },
-   "execution_count": 1,
    "outputs": [
     {
-     "output_type": "stream",
      "name": "stdout",
+     "output_type": "stream",
      "text": [
       "working"
      ]
     },
     {
-     "output_type": "execute_result",
-     "execution_count": 1,
      "data": {
       "text/latex": [
        "{{x^2}\\over{2}}"
@@ -66,21 +42,23 @@
        "x^2/2"
       ]
      },
-     "metadata": {}
+     "execution_count": 1,
+     "metadata": {},
+     "output_type": "execute_result"
     }
+   ],
+   "source": [
+    "print(\"working\")$\n",
+    "integrate(x, x);"
    ]
   },
   {
-   "id": "c2",
    "cell_type": "code",
-   "source": [
-    "plot2d(x^2, [x, 0, 1])$"
-   ],
-   "metadata": {},
    "execution_count": 2,
+   "id": "c2",
+   "metadata": {},
    "outputs": [
     {
-     "output_type": "display_data",
      "data": {
       "image/svg+xml": [
        "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"40\" height=\"20\"><path d=\"M0,20 L40,0\" stroke=\"blue\"/></svg>\n"
@@ -89,21 +67,21 @@
        "<SVG plot>"
       ]
      },
-     "metadata": {}
+     "metadata": {},
+     "output_type": "display_data"
     }
+   ],
+   "source": [
+    "plot2d(x^2, [x, 0, 1])$"
    ]
   },
   {
-   "id": "c3",
    "cell_type": "code",
-   "source": [
-    "plot2d(x, [x, 0, 1], [plot_format, plotly])$"
-   ],
-   "metadata": {},
    "execution_count": 3,
+   "id": "c3",
+   "metadata": {},
    "outputs": [
     {
-     "output_type": "display_data",
      "data": {
       "application/x-maxima-plotly": [
        "{\"data\":[{\"x\":[0,1],\"y\":[0,1],\"type\":\"scatter\"}],\"layout\":{}}"
@@ -112,47 +90,69 @@
        "<Plotly figure>"
       ]
      },
-     "metadata": {}
+     "metadata": {},
+     "output_type": "display_data"
     }
+   ],
+   "source": [
+    "plot2d(x, [x, 0, 1], [plot_format, plotly])$"
    ]
   },
   {
-   "id": "c4",
    "cell_type": "code",
-   "source": [
-    "/* a cell whose output is a PNG image */"
-   ],
-   "metadata": {},
    "execution_count": 4,
+   "id": "c4",
+   "metadata": {},
    "outputs": [
     {
-     "output_type": "display_data",
      "data": {
       "image/png": "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==",
       "text/plain": [
        "<PNG image>"
       ]
      },
-     "metadata": {}
+     "metadata": {},
+     "output_type": "display_data"
     }
+   ],
+   "source": [
+    "/* a cell whose output is a PNG image */"
    ]
   },
   {
-   "id": "c5",
    "cell_type": "code",
-   "source": [
-    "1/0;"
-   ],
-   "metadata": {},
    "execution_count": 5,
+   "id": "c5",
+   "metadata": {},
    "outputs": [
     {
-     "output_type": "error",
      "ename": "MaximaError",
      "evalue": "expt: undefined: 0 to a negative exponent.\n -- an error. To debug this try: debugmode(true);",
+     "output_type": "error",
      "traceback": []
     }
+   ],
+   "source": [
+    "1/0;"
    ]
   }
- ]
+ ],
+ "metadata": {
+  "aximar": {
+   "future_key": {
+    "kept": true
+   },
+   "title": "Integrals"
+  },
+  "jupytext": {
+   "formats": "ipynb"
+  },
+  "kernelspec": {
+   "display_name": "Maxima",
+   "language": "maxima",
+   "name": "maxima"
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 5
 }

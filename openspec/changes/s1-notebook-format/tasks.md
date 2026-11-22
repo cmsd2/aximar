@@ -25,10 +25,11 @@ Each numbered group is one pull request. Aximar groups run `cargo test --workspa
 - [x] 4.1 Loading resets the notebook's numbering to 1; stale outputs never record labels; verify with core tests for both scenarios of the numbering requirement
 - [x] 4.2 Simple-mode `evaluate_expression` takes an optional `cell_id` and `cells_above`, runs the expression as that client cell with the notebook's label rules, and returns its `execution_count`; the `labels` parameter from #85 goes; verify with core tests of the client-cell rules and aximar-mcp tests (with Maxima) for each scenario of the client-cell requirement
 
-## 5. npm workspace and TypeScript package (#17)
+## 5. The format crate and its npm package (#17)
 
-- [ ] 5.1 Add an npm workspace (`packages/*`) and `packages/aximar-notebook-format`, published unscoped as `aximar-notebook-format`, implementing the spec in TypeScript, tested against the fixtures with vitest
-- [ ] 5.2 Run the Rust serializer's fixture tests in CI from the same folder; publish the package
+- [x] 5.1 Move the format into the MIT crate `packages/aximar-notebook-format` (model, `read`, `write`, IDs), with aximar-core converting to and from `Notebook`; build it as WebAssembly with `wasm-pack` (feature `wasm`) as the npm package `aximar-notebook-format`, with generated TypeScript types; verify with the crate's tests against the fixtures, aximar-core's tests, and a Node smoke test that the npm build writes the same bytes
+- [x] 5.2 Build the npm package and run its smoke test in CI; add a release workflow that publishes it to npm on a `notebook-format-v*` tag
+- [ ] 5.3 Add the `NPM_TOKEN` secret and publish the first version (by hand: push the tag)
 
 ## 6. The VS Code extension (vscode-extension repository)
 
