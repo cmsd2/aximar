@@ -14,11 +14,16 @@ export interface CellOutput {
   outputLabel: string | null;
   /** Sequential execution number for display (like Jupyter's In [1] / Out[1]) */
   executionCount: number | null;
+  /** Maxima's one-line form of the result, as string() writes it */
+  textPlain: string | null;
+  /** Read from a file: from an earlier session, until the cell runs again */
+  stale: boolean;
 }
 
 export type CellStatus = "idle" | "running" | "queued" | "error" | "success";
 
-export type CellType = "code" | "markdown";
+/** Raw cells come from Jupyter files: read-only text, never run. */
+export type CellType = "code" | "markdown" | "raw";
 
 export interface Cell {
   id: string;

@@ -71,6 +71,16 @@ Running a cell, running all cells and evaluating an expression SHALL apply the s
 - **WHEN** standalone MCP without `--allow-dangerous` runs a cell that calls `system`, in a trusted notebook
 - **THEN** the cell SHALL NOT run
 
+#### Scenario: Package installed with mxpm
+
+- **WHEN** a batch run without `--allow-dangerous` reaches a cell that calls `load("numerics")` or `load("numerics-optimize")`, and mxpm installed `numerics` (which ships `numerics-optimize.mac`) in the Maxima user directory
+- **THEN** the cell SHALL run
+
+#### Scenario: Path into a package folder
+
+- **WHEN** an untrusted notebook's cell calls `load("numerics/numerics")` or `load("../numerics")`
+- **THEN** the cell SHALL NOT run, and the result SHALL list `load` as needing trust
+
 ### Requirement: A blocked cell asks for trust in the window
 
 When a cell is blocked by the trust check in the desktop app or connected MCP, the window SHALL show its trust banner listing the blocked functions, whichever front end ran the cell.

@@ -442,6 +442,56 @@ async fn save_and_open_notebook() {
     assert!(cells.iter().any(|c| c["input"] == "diff(x^3, x)"));
 }
 
+#[tokio::test]
+async fn an_error_output_survives_open_and_save() {
+    let s = build_server();
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("errors.macnb");
+    std::fs::write(
+        &path,
+        r#"{"nbformat": 4, "nbformat_minor": 5,
+            "metadata": {"kernelspec": {"name": "maxima", "display_name": "Maxima", "language": "maxima"}, "mine": 1},
+            "cells": [{"id": "bad-cell", "cell_type": "code", "source": "1/0;", "metadata": {"tag": "x"},
+              "execution_count": 1,
+              "outputs": [{"output_type": "error", "ename": "MaximaError", "traceback": [],
+                "evalue": "expt: undefined: 0 to a negative exponent."}]}]}"#,
+    )
+    .unwrap();
+    let at = |path: &std::path::Path| NotebookPathParams { path: path.to_str().unwrap().into(), notebook_id: None };
+
+    parse_ok(s.open_notebook(Parameters(at(&path))).await);
+    let cell = parse_ok(s.get_cell(Parameters(CellIdParams { cell_id: "bad-cell".into(), notebook_id: None })).await);
+    assert_eq!(cell["input"], "1/0;");
+    let output = &cell["output"];
+    assert_eq!(output["is_error"], true, "{cell:#}");
+    assert_eq!(output["stale"], true);
+    assert_eq!(output["error"], "expt: undefined: 0 to a negative exponent.");
+    assert_eq!(output["error_info"]["title"], "Division by Zero");
+
+    // Saving writes the same cell back, with what Aximar doesn't use
+    let copy = dir.path().join("copy.macnb");
+    parse_ok(s.save_notebook(Parameters(at(&copy))).await);
+    let saved: serde_json::Value = serde_json::from_str(&std::fs::read_to_string(&copy).unwrap()).unwrap();
+    assert_eq!(saved["metadata"]["mine"], 1);
+    let cell = &saved["cells"][0];
+    assert_eq!((&cell["id"], &cell["metadata"]["tag"]), (&serde_json::json!("bad-cell"), &serde_json::json!("x")));
+    assert_eq!(cell["outputs"][0]["output_type"], "error");
+    assert_eq!(cell["outputs"][0]["evalue"], "expt: undefined: 0 to a negative exponent.");
+}
+
+#[tokio::test]
+async fn opening_a_bad_file_names_it() {
+    let s = build_server();
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("old.ipynb");
+    std::fs::write(&path, r#"{"nbformat": 3, "worksheets": []}"#).unwrap();
+    let err = s
+        .open_notebook(Parameters(NotebookPathParams { path: path.to_str().unwrap().into(), notebook_id: None }))
+        .await
+        .unwrap_err();
+    assert!(err.contains("old.ipynb") && err.contains("nbformat 3"), "{err}");
+}
+
 // ── Session tools (no Maxima needed) ─────────────────────────────────
 
 #[tokio::test]

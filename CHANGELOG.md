@@ -18,6 +18,15 @@ see the `v*` releases on GitHub.
   new `share-files` command lists every `.mac` and `.lisp` file in Maxima's
   share directory (test scripts excluded), and a load that names one, by
   file name or path, passes the check.
+- **Packages installed with mxpm load without `--allow-dangerous`**: the
+  trust check treated `load("numerics")`, `load("ax-plots")` and other mxpm
+  packages as loading an unknown file, so `aximar-mcp run` stopped at the
+  first cell of any notebook that used one unless the whole check was off.
+  A plain name that is an mxpm package in the Maxima user directory, or a
+  `.mac` or `.lisp` file at the top of one (`load("numerics-optimize")`), now
+  counts as a known package, like Maxima's own share packages. The desktop
+  app's trust banner no longer appears for these loads either. Paths and
+  other files still need trust.
 
 - **Catalog tools cover functions that only a package provides**:
   `search_functions` lists functions it finds by name after the catalog's
@@ -44,6 +53,17 @@ see the `v*` releases on GitHub.
   expression refer to the cells' `Out[4]` and `In[4]`, as they do in cells, and
   a label with no value in the session is reported instead of reading an
   unrelated Maxima label. A bare `%` still means Maxima's last result.
+- **Simple mode runs a client's notebook cells by ID** (#8): `evaluate_expression`
+  takes optional `cell_id` and `cells_above` (the IDs of the code cells above,
+  in order), so a client that keeps its own notebook, such as the VS Code
+  extension, can send cell source unchanged. The server numbers the run,
+  returns it as `execution_count`, and resolves `%oN` and a bare `%` by the
+  desktop app's rules: a cell that failed, printed nothing, or hasn't run in
+  this session is never the output above.
+- **An opened notebook numbers its runs from 1** (#8): `open_notebook` and
+  `load_template` start the gutter numbers again at `In[1]`, whatever the
+  file's outputs show, as a new session does. Those outputs still have no
+  value as labels until their cells run.
 - **`run_all_cells` shares the desktop app's Run All** (#41): both run in
   `aximar-core` and stop at the same cells.
   - Stopping a run from the desktop window ends it after the current cell,

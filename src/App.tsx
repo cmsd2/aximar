@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import { listen } from "@tauri-apps/api/event";
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
+import { message } from "@tauri-apps/plugin-dialog";
 import { confirmClose, saveNotebookTab } from "./lib/unsaved-changes";
 import { TabBar } from "./components/TabBar";
 import { Toolbar } from "./components/Toolbar";
@@ -26,21 +27,18 @@ import {
   nbCreate,
   nbSetActive,
   nbGetState,
-  nbLoadCells,
-  nbSetPath,
+  nbLoadTemplate,
 } from "./lib/notebook-commands";
 import {
   getHasSeenWelcome,
   setHasSeenWelcome,
-  getTemplate,
   saveNotebookAs,
   openFile,
   savePlotFile,
-  parseNbformatOutputs,
 } from "./lib/notebooks-client";
 import { getConfig, markdownFontStack, applyPrintMargins } from "./lib/config-client";
 import { useNotebookStore, useActiveAnyTab, getActiveTabState } from "./store/notebookStore";
-import { mapSyncCells } from "./hooks/useNotebookEvents";
+import { mapSyncCells, openNotebookTab } from "./hooks/useNotebookEvents";
 import { PlotViewer } from "./components/PlotViewer";
 import { useLogStore } from "./store/logStore";
 import { useFindStore } from "./store/findStore";
@@ -189,43 +187,29 @@ function App() {
     getHasSeenWelcome()
       .then(async (seen) => {
         if (!seen) {
-          const welcome = await getTemplate("welcome");
-          if (welcome) {
-            const cells = welcome.cells
-              .filter((c) => c.cell_type !== "raw")
-              .map((c) => {
-                const parsed = c.cell_type === "code" ? parseNbformatOutputs(c) : null;
-                return {
-                  id: crypto.randomUUID(),
-                  cell_type: c.cell_type === "markdown" ? "markdown" : "code",
-                  input: typeof c.source === "string" ? c.source : (c.source as string[]).join(""),
-                  output: parsed ?? undefined,
-                };
-              });
-            await nbLoadCells(cells);
-            // Re-sync the frontend store with the post-load backend
-            // state.  useNotebookEvents runs nbList → addTab →
-            // nbGetState concurrently with this effect; if its
-            // applyBackendState lands before nbLoadCells, the store
-            // ends up with the pre-load nanoid empty cell instead of
-            // the welcome UUID cells.  Refetching here closes that
-            // race window.
-            const activeId = useNotebookStore.getState().activeNotebookId;
-            if (activeId) {
-              try {
-                const state = await nbGetState(activeId);
-                useNotebookStore.getState().applyBackendState(
-                  state.notebook_id,
-                  mapSyncCells(state.cells),
-                  state.effect,
-                  state.cell_id ?? undefined,
-                  state.can_undo,
-                  state.can_redo,
-                  state.trusted,
-                );
-              } catch (e) {
-                addLogEntry("error", `Failed to re-sync welcome notebook: ${e}`, "init");
-              }
+          // Load the welcome notebook into the first notebook
+          const activeId = useNotebookStore.getState().activeNotebookId;
+          await nbLoadTemplate("welcome", activeId ?? undefined);
+          // Re-sync the frontend store with the post-load backend
+          // state.  useNotebookEvents runs nbList → addTab →
+          // nbGetState concurrently with this effect; if its
+          // applyBackendState lands after the load's events, the store
+          // ends up with the pre-load empty cell instead of the welcome
+          // cells.  Refetching here closes that race window.
+          if (activeId) {
+            try {
+              const state = await nbGetState(activeId);
+              useNotebookStore.getState().applyBackendState(
+                state.notebook_id,
+                mapSyncCells(state.cells),
+                state.effect,
+                state.cell_id ?? undefined,
+                state.can_undo,
+                state.can_redo,
+                state.trusted,
+              );
+            } catch (e) {
+              addLogEntry("error", `Failed to re-sync welcome notebook: ${e}`, "init");
             }
           }
           await setHasSeenWelcome();
@@ -266,10 +250,10 @@ function App() {
     if (activeTab.type === "plot") {
       await savePlotFile(activeTab.plotData, null);
     } else {
-      const savedPath = await saveNotebookAs(activeTab.cells, activeTab.filePath);
+      // The path_changed event sets the tab's title and save path
+      const savedPath = await saveNotebookAs(id, activeTab.filePath);
       if (savedPath) {
-        await nbSetPath(id, savedPath);
-        state.markClean();
+        useNotebookStore.getState().markNotebookClean(id);
       }
     }
   }, []);
@@ -286,29 +270,13 @@ function App() {
       const id = `plot-${crypto.randomUUID()}`;
       addPlotTab(id, title, result.plotData, result.path);
     } else {
-      // Open notebook in a new tab
-      const title = result.path.split("/").pop()?.split("\\").pop() ?? "Untitled";
-      const { notebook_id } = await nbCreate();
-      addTab(notebook_id, title);
-      setActiveTab(notebook_id);
-      await nbSetActive(notebook_id);
-
-      const cells = result.notebook.cells
-        .filter((c) => c.cell_type !== "raw")
-        .map((c) => {
-          const parsed = c.cell_type === "code" ? parseNbformatOutputs(c) : null;
-          return {
-            id: crypto.randomUUID(),
-            cell_type: c.cell_type === "markdown" ? "markdown" : "code",
-            input: typeof c.source === "string" ? c.source : (c.source as string[]).join(""),
-            output: parsed ?? undefined,
-          };
-        });
-      await nbLoadCells(cells, notebook_id);
-      // The path_changed event sets the tab's title and save path
-      await nbSetPath(notebook_id, result.path);
+      try {
+        await openNotebookTab(result.path);
+      } catch (e) {
+        await message(String(e), { title: "Couldn't Open Notebook", kind: "error" });
+      }
     }
-  }, [addTab, setActiveTab, addPlotTab]);
+  }, [addPlotTab]);
 
   const handleNew = useCallback(async () => {
     const result = await nbCreate();

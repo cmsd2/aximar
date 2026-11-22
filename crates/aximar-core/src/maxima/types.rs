@@ -17,6 +17,9 @@ pub struct EvalResult {
     pub duration_ms: u64,
     /// Maxima output label (e.g. "%o6") for stable back-references
     pub output_label: Option<String>,
+    /// Maxima's one-line form of the final value, as `string(%)` gives it
+    #[serde(default)]
+    pub text_plain: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

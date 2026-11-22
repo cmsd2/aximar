@@ -16,7 +16,6 @@ export interface NotebookTab {
   sessionStatus: SessionStatus;
   activeCellId: string | null;
   selectedCellIds: string[];
-  executionCounter: number;
   filePath: string | null;
   isDirty: boolean;
   canUndo: boolean;
@@ -50,7 +49,6 @@ function createDefaultTab(id: string): NotebookTab {
     sessionStatus: "Stopped",
     activeCellId: null,
     selectedCellIds: [],
-    executionCounter: 0,
     filePath: null,
     isDirty: false,
     canUndo: false,
@@ -100,6 +98,7 @@ interface NotebookState {
   setPendingTrustFunctions: (notebookId: string, functions: string[] | null) => void;
   markClean: () => void;
   markNotebookClean: (notebookId: string) => void;
+  markNotebookDirty: (notebookId: string) => void;
   setPendingCursorMove: (move: { cellId: string; pos: number }) => void;
   clearPendingCursorMove: () => void;
 
@@ -345,6 +344,13 @@ export const useNotebookStore = create<NotebookState>((set) => ({
       })),
     })),
 
+  markNotebookDirty: (notebookId: string) =>
+    set((state) => ({
+      notebooks: updateNotebookTab(state.notebooks, notebookId, () => ({
+        isDirty: true,
+      })),
+    })),
+
   setPendingCursorMove: (move: { cellId: string; pos: number }) =>
     set((state) => {
       const nbId = state.activeNotebookId;
@@ -397,14 +403,6 @@ export const useNotebookStore = create<NotebookState>((set) => ({
         };
       });
 
-      // Determine execution counter from the highest execution count in cells
-      let maxExecCount = tab.executionCounter;
-      for (const cell of mergedCells) {
-        if (cell.output?.executionCount != null) {
-          maxExecCount = Math.max(maxExecCount, cell.output.executionCount);
-        }
-      }
-
       // Auto-activate newly added cells; on notebook replace, activate the first cell
       let newActiveCellId = tab.activeCellId;
       if (effect === "cell_added" && cellId) {
@@ -417,7 +415,6 @@ export const useNotebookStore = create<NotebookState>((set) => ({
         ...tab,
         cells: mergedCells,
         activeCellId: newActiveCellId,
-        executionCounter: maxExecCount,
         isDirty: isReplace ? false : true,
         canUndo: canUndo ?? tab.canUndo,
         canRedo: canRedo ?? tab.canRedo,

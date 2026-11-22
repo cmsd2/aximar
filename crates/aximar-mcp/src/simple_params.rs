@@ -16,6 +16,16 @@ pub(crate) struct SimpleEvaluateExpressionParams {
     pub expression: String,
     /// Session to target (defaults to the default session if omitted)
     pub session_id: Option<String>,
+    /// Run the expression as this cell of a notebook the client keeps
+    /// itself, such as an editor's notebook view: the result's
+    /// execution_count is its gutter number, %oN means that notebook's
+    /// Out[N], and a bare % at the start means the output of the nearest
+    /// cell above that has one in this session. Use an ID that stays the
+    /// same while the notebook is open
+    pub cell_id: Option<String>,
+    /// With cell_id: the IDs of the code cells above it, in order
+    #[serde(default)]
+    pub cells_above: Vec<String>,
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]

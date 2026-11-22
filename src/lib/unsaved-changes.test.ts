@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const dialog = vi.hoisted(() => ({ answer: "Cancel", calls: [] as unknown[][] }));
 const saved = vi.hoisted(() => ({ path: "/work/calc.macnb" as string | null, count: 0 }));
-const paths = vi.hoisted(() => [] as [string, string | null][]);
+const saves = vi.hoisted(() => [] as [string, string][]);
 
 vi.mock("@tauri-apps/api/core", () => ({ invoke: vi.fn() }));
 vi.mock("@tauri-apps/plugin-dialog", () => ({
@@ -12,15 +12,14 @@ vi.mock("@tauri-apps/plugin-dialog", () => ({
   }),
 }));
 vi.mock("./notebooks-client", () => ({
-  saveNotebook: vi.fn(async () => {
+  // Saving records the path in the backend, which titles the tab
+  saveNotebook: vi.fn(async (id: string) => {
     saved.count += 1;
+    if (saved.path) saves.push([id, saved.path]);
     return saved.path;
   }),
 }));
 vi.mock("./notebook-commands", () => ({
-  nbSetPath: vi.fn(async (id: string, path: string | null) => {
-    paths.push([id, path]);
-  }),
   nbUpdateCellInput: vi.fn(),
 }));
 
@@ -47,7 +46,7 @@ beforeEach(() => {
   dialog.calls.length = 0;
   saved.path = "/work/calc.macnb";
   saved.count = 0;
-  paths.length = 0;
+  saves.length = 0;
   setDirty("nb-a", false);
   setDirty("nb-b", false);
 });
@@ -89,7 +88,7 @@ describe("unsaved changes dialog", () => {
     dialog.answer = "Save";
     expect(await confirmClose(["nb-a"])).toBe(true);
     expect(saved.count).toBe(1);
-    expect(paths).toEqual([["nb-a", "/work/calc.macnb"]]);
+    expect(saves).toEqual([["nb-a", "/work/calc.macnb"]]);
     expect(isDirty("nb-a")).toBe(false);
   });
 
