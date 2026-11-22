@@ -32,6 +32,8 @@ export async function exportCellsAsLatex(
       body.push("");
       continue;
     }
+    // Raw cells hold text for other tools, not this document
+    if (cell.cellType === "raw") continue;
 
     // Code cell
     if (options.includeCode && cell.input.trim()) {

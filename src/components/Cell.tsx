@@ -156,7 +156,10 @@ export function Cell({ cell, onViewDocs, selectBracket }: CellProps) {
         </div>
       </div>
       {cell.output && !outputCollapsed && (
-        <div className="cell-output-area">
+        <div
+          className={`cell-output-area${cell.output.stale ? " stale" : ""}`}
+          title={cell.output.stale ? "From an earlier session. Run the cell to update it." : undefined}
+        >
           <div className="cell-gutter">
             <span className="cell-indicator">
               {execNum ? `Out [${execNum}]` : "Out"}

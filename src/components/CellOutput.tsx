@@ -32,6 +32,10 @@ export function CellOutput({ output, cellId }: CellOutputProps) {
   const hasPlot = !output.isError && output.plotSvg !== null && output.plotSvg !== undefined && output.plotSvg !== "";
   const hasPlotData = !output.isError && output.plotData !== null && output.plotData !== undefined && output.plotData !== "";
   const hasImage = !output.isError && output.imagePng !== null && output.imagePng !== undefined && output.imagePng !== "";
+  // A result with only its one-line form, as from a Jupyter file
+  const hasPlain = !output.isError && !hasLatex && !hasPlot && !hasPlotData && !hasImage && !!output.textPlain;
+  // The Copy button copies the result's Maxima expression when there is one
+  const copyText = output.textPlain || output.textOutput;
 
   const plotBlobUrl = useMemo(() => {
     if (!hasPlot) return "";
@@ -62,7 +66,7 @@ export function CellOutput({ output, cellId }: CellOutputProps) {
 
   return (
     <div className="cell-output">
-      {(hasLatex || hasText || hasPlot) && (
+      {(hasLatex || hasText || hasPlot || hasPlain) && (
         <div className="copy-actions">
           {hasLatex && (
             <button
@@ -73,10 +77,10 @@ export function CellOutput({ output, cellId }: CellOutputProps) {
               {copiedBtn === "tex" ? "Copied!" : "TeX"}
             </button>
           )}
-          {hasText && (
+          {(hasText || hasPlain || (hasLatex && !!output.textPlain)) && (
             <button
               className={`copy-btn${copiedBtn === "text" ? " copied" : ""}`}
-              onClick={() => handleCopy(output.textOutput, "text")}
+              onClick={() => handleCopy(copyText, "text")}
               title="Copy Maxima expression"
             >
               {copiedBtn === "text" ? "Copied!" : "Copy"}
@@ -106,7 +110,8 @@ export function CellOutput({ output, cellId }: CellOutputProps) {
       )}
       {hasText && <RichTextOutput text={output.textOutput} />}
       {hasLatex && <KatexOutput latex={output.latex!} />}
-      {!hasLatex && !hasText && !hasPlot && !hasPlotData && !hasImage && (
+      {hasPlain && <div className="text-output">{output.textPlain}</div>}
+      {!hasLatex && !hasText && !hasPlot && !hasPlotData && !hasImage && !hasPlain && (
         <span className="text-output empty-output">(no output)</span>
       )}
     </div>

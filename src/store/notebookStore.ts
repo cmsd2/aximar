@@ -100,6 +100,7 @@ interface NotebookState {
   setPendingTrustFunctions: (notebookId: string, functions: string[] | null) => void;
   markClean: () => void;
   markNotebookClean: (notebookId: string) => void;
+  markNotebookDirty: (notebookId: string) => void;
   setPendingCursorMove: (move: { cellId: string; pos: number }) => void;
   clearPendingCursorMove: () => void;
 
@@ -342,6 +343,13 @@ export const useNotebookStore = create<NotebookState>((set) => ({
     set((state) => ({
       notebooks: updateNotebookTab(state.notebooks, notebookId, () => ({
         isDirty: false,
+      })),
+    })),
+
+  markNotebookDirty: (notebookId: string) =>
+    set((state) => ({
+      notebooks: updateNotebookTab(state.notebooks, notebookId, () => ({
+        isDirty: true,
       })),
     })),
 

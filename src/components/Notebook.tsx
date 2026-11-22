@@ -2,6 +2,7 @@ import { useCallback, useEffect } from "react";
 import { useActiveTab, useNotebookStore } from "../store/notebookStore";
 import { Cell } from "./Cell";
 import { MarkdownCell } from "./MarkdownCell";
+import { RawCell } from "./RawCell";
 import { TrustBanner } from "./TrustBanner";
 import { nbAddCell } from "../lib/notebook-commands";
 
@@ -76,31 +77,21 @@ export function Notebook({ onViewDocs }: NotebookProps) {
       <InsertBar beforeId={cells[0]?.id} />
       {cells.map((cell) => {
         const isSelected = selectedCellIds.includes(cell.id);
+        const selectBracket = (
+          <div
+            className={`cell-select-bracket${isSelected ? " selected" : ""}`}
+            onClick={(e) => handleBracketClick(e, cell.id)}
+            title={isSelected ? "Deselect cell" : "Select cell (Shift+click for range)"}
+          />
+        );
         return (
           <div key={cell.id}>
             {cell.cellType === "markdown" ? (
-              <MarkdownCell
-                cell={cell}
-                selectBracket={
-                  <div
-                    className={`cell-select-bracket${isSelected ? " selected" : ""}`}
-                    onClick={(e) => handleBracketClick(e, cell.id)}
-                    title={isSelected ? "Deselect cell" : "Select cell (Shift+click for range)"}
-                  />
-                }
-              />
+              <MarkdownCell cell={cell} selectBracket={selectBracket} />
+            ) : cell.cellType === "raw" ? (
+              <RawCell cell={cell} selectBracket={selectBracket} />
             ) : (
-              <Cell
-                cell={cell}
-                onViewDocs={onViewDocs}
-                selectBracket={
-                  <div
-                    className={`cell-select-bracket${isSelected ? " selected" : ""}`}
-                    onClick={(e) => handleBracketClick(e, cell.id)}
-                    title={isSelected ? "Deselect cell" : "Select cell (Shift+click for range)"}
-                  />
-                }
-              />
+              <Cell cell={cell} onViewDocs={onViewDocs} selectBracket={selectBracket} />
             )}
             <InsertBar afterId={cell.id} />
           </div>

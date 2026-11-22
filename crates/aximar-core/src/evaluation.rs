@@ -186,7 +186,8 @@ pub async fn check_cell_trust(
     let cell = nb
         .get_cell(cell_id)
         .ok_or_else(|| AppError::CellNotFound(cell_id.to_string()))?;
-    if cell.cell_type == CellType::Markdown {
+    // Only code cells run, so only they need trust
+    if cell.cell_type != CellType::Code {
         return Ok(TrustDecision::Allowed);
     }
     let decision = check_trust(&nb, &cell.input, packages, mode);
@@ -673,6 +674,9 @@ mod tests {
             .apply(NotebookCommand::LoadNotebook { file: crate::notebooks::format::read(text).unwrap().into() })
             .unwrap();
         assert!(matches!(run(&ctx, "r", &sink).await, Err(AppError::CellIsRaw)));
+        // Nor does it ask for trust, whatever its text
+        let decision = check_cell_trust(&ctx, "r", &PackageCatalog::load(), TrustMode::Interactive, &sink).await.unwrap();
+        assert!(matches!(decision, TrustDecision::Allowed));
         assert!(sink.0.lock().unwrap().is_empty());
     }
 }
