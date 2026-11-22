@@ -3,7 +3,7 @@ Each numbered group is one pull request. Aximar groups run `cargo test --workspa
 ## 1. Format spec and test notebooks (#15)
 
 - [ ] 1.1 Write `docs/notebook-format.md`: nbformat 4.5 and cell IDs, kept metadata, the `metadata.aximar` keys, the output mapping and MIME preference, errors, stale outputs and numbering; verify it covers every requirement of the `notebook-format` spec
-- [ ] 1.2 Add `packages/notebook-format/fixtures/` with notebooks for each requirement: written by Aximar, by the extension (with `text/plain` copies and `error` outputs), and by Jupyter (4.0 without IDs, with tags and other metadata); each with a short README line saying what it tests
+- [ ] 1.2 Add `packages/aximar-notebook-format/fixtures/` with notebooks for each requirement: written by Aximar, by the extension (with `text/plain` copies and `error` outputs), and by Jupyter (4.0 without IDs, with tags and other metadata); each with a short README line saying what it tests
 
 ## 2. One serializer in aximar-core (#16, #7, #9, #10, #6)
 
@@ -24,7 +24,7 @@ Each numbered group is one pull request. Aximar groups run `cargo test --workspa
 
 ## 5. npm workspace and TypeScript package (#17)
 
-- [ ] 5.1 Decide the npm scope (open question 1); add an npm workspace (`packages/*`) and `packages/notebook-format` implementing the spec in TypeScript, tested against the fixtures with vitest
+- [ ] 5.1 Add an npm workspace (`packages/*`) and `packages/aximar-notebook-format`, published unscoped as `aximar-notebook-format`, implementing the spec in TypeScript, tested against the fixtures with vitest
 - [ ] 5.2 Run the Rust serializer's fixture tests in CI from the same folder; publish the package
 
 ## 6. The VS Code extension (vscode-extension repository)

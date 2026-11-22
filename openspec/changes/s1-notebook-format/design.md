@@ -76,7 +76,7 @@ The TypeScript conversion in `notebooks-client.ts`, the raw `save_notebook` and 
 
 ### 8. Shared test notebooks and the TypeScript package
 
-An npm workspace (`packages/*`) holds `packages/notebook-format`: a TypeScript implementation of the spec for the extension, and `fixtures/`, test notebooks covering each requirement (written by Aximar, by the extension, and by Jupyter). The Rust serializer's tests read the same fixtures from that folder. The extension depends on the published package and replaces its serializer with it.
+An npm workspace (`packages/*`) holds `packages/aximar-notebook-format`, published as the unscoped npm package `aximar-notebook-format`: a TypeScript implementation of the spec for the extension, and `fixtures/`, test notebooks covering each requirement (written by Aximar, by the extension, and by Jupyter). The Rust serializer's tests read the same fixtures from that folder. The extension depends on the published package and replaces its serializer with it.
 
 ### 9. The round-trip check
 

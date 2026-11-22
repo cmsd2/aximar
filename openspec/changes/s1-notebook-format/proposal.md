@@ -48,7 +48,10 @@ The project plan's S1 stream (#15, #16, #17) is the fix: one written format, one
 - Running the extension's cells through the server's notebook model. The label context is enough to share one resolver.
 - Migrating old files on disk. Readers accept old shapes; files change when saved.
 
+## Decisions
+
+- **npm package name (#17):** `aximar-notebook-format`, unscoped, so no npm organisation is needed.
+
 ## Open questions
 
-1. **npm scope for the TypeScript package (#17).** `@aximar/notebook-format` needs an npm org named `aximar`; an unscoped name or `@cmsd2/...` needs none.
-2. **`text/plain` copies.** Jupyter tools expect a `text/plain` fallback in each bundle. Writing one for LaTeX results (Maxima's 1D form) is friendly to Jupyter but needs the 1D text from Maxima, which Aximar doesn't keep today. The proposal writes none, and readers ignore `text/plain` when a richer type is present.
+1. **`text/plain` copies.** Jupyter tools expect a `text/plain` fallback in each bundle. Writing one for LaTeX results (Maxima's 1D form) is friendly to Jupyter but needs the 1D text from Maxima, which Aximar doesn't keep today. The proposal writes none, and readers ignore `text/plain` when a richer type is present.
