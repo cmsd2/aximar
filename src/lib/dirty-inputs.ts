@@ -59,6 +59,23 @@ export async function flushCell(notebookId: string, cellId: string): Promise<voi
   await send(edit);
 }
 
+/** Immediately sync every dirty input in one notebook, leaving other
+ *  notebooks' edits on the timer.  Run All calls this first. */
+export async function flushNotebook(notebookId: string): Promise<void> {
+  const edits: PendingEdit[] = [];
+  for (const [k, edit] of dirtyInputs) {
+    if (edit.notebookId === notebookId) {
+      edits.push(edit);
+      dirtyInputs.delete(k);
+    }
+  }
+  if (dirtyInputs.size === 0 && timer) {
+    clearTimeout(timer);
+    timer = null;
+  }
+  await Promise.all(edits.map(send));
+}
+
 /** Cancel the debounce timer (for hook teardown). */
 export function cleanup() {
   if (timer) {

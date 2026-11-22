@@ -2,7 +2,7 @@ use serde::Serialize;
 use tauri::{AppHandle, Emitter, State};
 
 use aximar_core::error::AppError;
-use aximar_core::evaluation::{check_cell_trust, evaluate_cell};
+use aximar_core::evaluation::{check_cell_trust, evaluate_cell, run_all, RunAllOptions, RunAllReport};
 use aximar_core::maxima::types::EvalResult;
 use aximar_core::safety::{TrustDecision, TrustMode};
 
@@ -369,6 +369,29 @@ pub async fn nb_run_cell(
     .await?;
 
     Ok(RunCellResult::Evaluated(result.eval_result))
+}
+
+/// Run every code cell in order, stopping at the first error, trust block
+/// or failure, as MCP's `run_all_cells` does.  Each cell's status reaches
+/// the window as it changes; `cancel_evaluation` stops the run after the
+/// cell running now.  The caller flushes pending edits first.
+#[tauri::command]
+pub async fn nb_run_all(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    notebook_id: Option<String>,
+) -> Result<RunAllReport, AppError> {
+    let ctx = resolve_context(&state, notebook_id).await?;
+    let settings = read_session_settings(&app);
+    ensure_session(&state, &ctx, &settings).await?;
+    let opts = RunAllOptions {
+        catalog: &state.catalog,
+        packages: &state.packages,
+        eval_timeout: settings.eval_timeout,
+        mode: TrustMode::Interactive,
+        effects: &WindowEffects(&app),
+    };
+    Ok(run_all(&ctx, &opts, &mut |_| {}).await)
 }
 
 /// Set the notebook-level trust flag.

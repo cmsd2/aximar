@@ -72,7 +72,8 @@ pub async fn evaluate_expression(
     result
 }
 
-/// Fire a cooperative cancel at the running Maxima process.  Writes
+/// Stop a running Run All after the current cell, and fire a cooperative
+/// cancel at the running Maxima process.  Writes
 /// one byte through the fd-4 cancel pipe; the in-kernel watcher sets
 /// `*cancel-flag*`, the next `check_cancel()` in user code raises
 /// `cancellation-requested`, and `protocol::evaluate` returns
@@ -92,5 +93,7 @@ pub async fn cancel_evaluation(
     notebook_id: Option<String>,
 ) -> Result<(), AppError> {
     let ctx = resolve_context(&state, notebook_id).await?;
+    // Stop a Run All after this cell, as well as the cell itself
+    ctx.cancel_run_all();
     ctx.session.request_cancel()
 }

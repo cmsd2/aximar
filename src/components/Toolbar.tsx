@@ -17,13 +17,12 @@ interface ToolbarProps {
 export function Toolbar({ onOpenTemplates, onOpenSettings, variablesOpen, onToggleVariables, logOpen, onToggleLog, logUnreadCount, docsOpen, onToggleDocs }: ToolbarProps) {
   const tab = useActiveTab();
   const activeCellId = tab.activeCellId;
-  const cells = tab.cells;
   const sessionStatus = tab.sessionStatus;
   const filePath = tab.filePath;
   const isDirty = tab.isDirty;
   const canUndo = tab.canUndo;
   const canRedo = tab.canRedo;
-  const { executeCell, restartSession } = useMaxima();
+  const { runAll: runAllCells, restartSession } = useMaxima();
 
   const handleAddCell = async (cellType?: string) => {
     await nbAddCell(cellType ?? "code", undefined, activeCellId ?? undefined);
@@ -31,14 +30,8 @@ export function Toolbar({ onOpenTemplates, onOpenSettings, variablesOpen, onTogg
     // and the CodeMirror hook auto-focuses when the cell becomes active.
   };
 
-  const runAll = async () => {
-    for (const cell of cells) {
-      if (cell.cellType === "code" && cell.input.trim()) {
-        const success = await executeCell(cell.id, cell.input);
-        if (!success) break;
-      }
-    }
-  };
+  // The backend runs the cells and decides where to stop
+  const runAll = () => runAllCells(tab.id);
 
   const statusText =
     typeof sessionStatus === "string"

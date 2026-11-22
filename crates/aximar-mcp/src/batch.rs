@@ -1,16 +1,14 @@
 use std::sync::Arc;
-use std::time::Instant;
 use tokio::sync::Mutex;
 
 use aximar_core::catalog::packages::PackageCatalog;
 use aximar_core::catalog::search::Catalog;
 use aximar_core::commands::{NoEffects, NotebookCommand};
-use aximar_core::error::AppError;
-use aximar_core::evaluation::{check_cell_trust, evaluate_cell};
+use aximar_core::evaluation::{run_all, CellRun, CellRunStatus, RunAllOptions, StopReason};
 use aximar_core::notebooks::io as notebook_io;
 use aximar_core::notebook::CellType;
 use aximar_core::registry::NotebookRegistry;
-use aximar_core::safety::{TrustDecision, TrustMode};
+use aximar_core::safety::TrustMode;
 
 use crate::convert::{ipynb_to_cell_tuples, notebook_to_ipynb};
 use crate::server::ServerCore;
@@ -73,67 +71,48 @@ pub async fn run(
         .await
         .map_err(|e| anyhow::anyhow!("Failed to start Maxima: {e}"))?;
 
-    // Collect code cell IDs
-    let cell_ids: Vec<String> = {
-        let nb = ctx.notebook.lock().await;
-        nb.cells()
-            .iter()
-            .filter(|c| c.cell_type == CellType::Code)
-            .map(|c| c.id.clone())
-            .collect()
+    // Run every code cell, printing each as it finishes
+    let opts = RunAllOptions {
+        catalog: &catalog,
+        packages: &packages,
+        eval_timeout,
+        mode: TrustMode::Headless { allow_dangerous },
+        effects: &NoEffects,
     };
-
-    // Execute cells
-    let mut code_idx = 0;
-    for cell_id in &cell_ids {
-        code_idx += 1;
-
-        let mode = TrustMode::Headless { allow_dangerous };
-        let decision = check_cell_trust(&ctx, cell_id, &packages, mode, &NoEffects)
-            .await
-            .map_err(|e| anyhow::anyhow!("{e}"))?;
-        if let TrustDecision::NeedsTrust { functions } = decision {
-            anyhow::bail!(
-                "Cell {} contains dangerous function(s): {}. Use --allow-dangerous to allow.",
-                cell_id,
-                functions.join(", ")
-            );
-        }
-
-        let start = Instant::now();
-        match evaluate_cell(&ctx, cell_id, &catalog, &packages, eval_timeout, &NoEffects).await {
-            Ok(result) => {
-                let elapsed = start.elapsed();
-                let status = if result.cell_output.is_error {
-                    "ERROR"
-                } else {
-                    "ok"
-                };
-                eprintln!(
-                    "[{}/{}] {} ({:.1}s)",
-                    code_idx,
-                    total_code_cells,
-                    status,
-                    elapsed.as_secs_f64()
-                );
-                if result.cell_output.is_error {
-                    if let Some(ref err) = result.cell_output.error {
-                        eprintln!("  Error: {}", err);
-                    }
-                    std::process::exit(1);
+    let mut done = 0;
+    let report = run_all(&ctx, &opts, &mut |run: &CellRun| {
+        done += 1;
+        let progress = format!("[{done}/{total_code_cells}]");
+        let seconds = run.duration_ms.unwrap_or(0) as f64 / 1000.0;
+        match run.status {
+            CellRunStatus::Ok => eprintln!("{progress} ok ({seconds:.1}s)"),
+            CellRunStatus::Empty => eprintln!("{progress} skipped (empty)"),
+            CellRunStatus::Error => {
+                eprintln!("{progress} ERROR ({seconds:.1}s)");
+                if let Some(ref err) = run.error {
+                    eprintln!("  Error: {err}");
                 }
             }
-            Err(AppError::EmptyInput) => {
-                eprintln!("[{}/{}] skipped (empty)", code_idx, total_code_cells);
+            CellRunStatus::Failed => {
+                eprintln!("{progress} FAILED: {}", run.error.as_deref().unwrap_or(""));
             }
-            Err(AppError::CellIsMarkdown) => {
-                eprintln!("[{}/{}] skipped (markdown)", code_idx, total_code_cells);
-            }
-            Err(e) => {
-                eprintln!("[{}/{}] FAILED: {}", code_idx, total_code_cells, e);
-                std::process::exit(1);
-            }
+            CellRunStatus::NeedsTrust | CellRunStatus::NotRun => {}
         }
+    })
+    .await;
+
+    match report.stop_reason {
+        None => {}
+        Some(StopReason::NeedsTrust) => {
+            let run = report.cells.iter().find(|c| c.status == CellRunStatus::NeedsTrust);
+            anyhow::bail!(
+                "Cell {} contains dangerous function(s): {}. Use --allow-dangerous to allow.",
+                report.stopped_at.as_deref().unwrap_or(""),
+                run.map(|r| r.dangerous_functions.join(", ")).unwrap_or_default()
+            );
+        }
+        // The cell's error is printed above; leave the notebook unsaved
+        Some(_) => std::process::exit(1),
     }
 
     // Convert back and save

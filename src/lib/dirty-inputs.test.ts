@@ -8,7 +8,7 @@ vi.mock("./notebook-commands", () => ({
   }),
 }));
 
-import { cleanup, flushCell, hasPendingSync, markDirty } from "./dirty-inputs";
+import { cleanup, flushCell, flushNotebook, hasPendingSync, markDirty } from "./dirty-inputs";
 
 beforeEach(() => {
   vi.useFakeTimers();
@@ -65,5 +65,21 @@ describe("dirty inputs", () => {
       ["nb-a", "cell-1", "one"],
       ["nb-a", "cell-2", "two"],
     ]);
+  });
+
+  it("flushes one notebook's edits now and leaves the others on the timer", async () => {
+    markDirty("nb-a", "cell-1", "a1");
+    markDirty("nb-a", "cell-2", "a2");
+    markDirty("nb-b", "cell-1", "b1");
+    await flushNotebook("nb-a");
+    expect(sent).toHaveLength(2);
+    expect(sent).toContainEqual(["nb-a", "cell-1", "a1"]);
+    expect(sent).toContainEqual(["nb-a", "cell-2", "a2"]);
+    expect(hasPendingSync("nb-a", "cell-1")).toBe(false);
+    expect(hasPendingSync("nb-b", "cell-1")).toBe(true);
+
+    vi.advanceTimersByTime(300);
+    expect(sent).toContainEqual(["nb-b", "cell-1", "b1"]);
+    expect(sent).toHaveLength(3);
   });
 });

@@ -789,7 +789,10 @@ async fn evaluate_expression_blocks_unknown_load() {
 
 // ── run_all_cells status reporting ───────────────────────────────────
 
-use crate::server::{run_all_summary, summarize_cell_run, CellRunStatus};
+use aximar_core::evaluation::{CellRun, CellRunStatus, RunAllReport, StopReason};
+use aximar_core::safety::TrustMode;
+
+use crate::server::{cell_run_entry, run_all_summary};
 
 fn build_server_connected() -> AximarMcpServer {
     let process_sink_factory: crate::server::ProcessSinkFactory =
@@ -819,97 +822,72 @@ async fn add_code_cell(s: &AximarMcpServer, input: &str) -> String {
     v["cell_id"].as_str().unwrap().to_string()
 }
 
-fn ok_json(v: serde_json::Value) -> Result<String, String> {
-    Ok(v.to_string())
+/// A cell's outcome, as core reports it.
+fn cell_run(cell_id: &str, status: CellRunStatus) -> CellRun {
+    CellRun::new(cell_id, status)
 }
 
 #[test]
-fn summarize_needs_trust_is_not_success() {
-    let (status, entry) = summarize_cell_run(
-        "c1",
-        &ok_json(serde_json::json!({
-            "cell_id": "c1",
-            "needs_notebook_trust": true,
-            "dangerous_functions": ["load"],
-            "message": "Notebook is untrusted.",
-        })),
-    );
-    assert_eq!(status, CellRunStatus::NeedsTrust);
-    assert!(status.stops_run());
+fn needs_trust_entry_is_not_success() {
+    let mut run = cell_run("c1", CellRunStatus::NeedsTrust);
+    run.dangerous_functions = vec!["load".into()];
+    let entry = cell_run_entry(&run, TrustMode::Interactive);
     assert_eq!(entry["status"], "needs_trust");
     assert_eq!(entry["success"], false);
     assert_eq!(entry["dangerous_functions"], serde_json::json!(["load"]));
+    assert!(entry["message"].as_str().unwrap().contains("untrusted"));
+
+    let entry = cell_run_entry(&run, TrustMode::Headless { allow_dangerous: false });
+    assert!(entry["message"].as_str().unwrap().contains("--allow-dangerous"));
 }
 
 #[test]
-fn summarize_is_error_is_not_success() {
-    let (status, entry) = summarize_cell_run(
-        "c2",
-        &ok_json(serde_json::json!({
-            "cell_id": "c2",
-            "execution_count": 3,
-            "text_output": "inpart: invalid index 4 of list or matrix.\n",
-            "error": null,
-            "is_error": true,
-        })),
-    );
-    assert_eq!(status, CellRunStatus::Error);
-    assert!(status.stops_run());
+fn error_entry_is_not_success() {
+    let mut run = cell_run("c2", CellRunStatus::Error);
+    run.execution_count = Some(3);
+    run.error = Some("inpart: invalid index 4 of list or matrix.".into());
+    let entry = cell_run_entry(&run, TrustMode::Interactive);
     assert_eq!(entry["status"], "error");
     assert_eq!(entry["success"], false);
+    assert_eq!(entry["execution_count"], 3);
     assert_eq!(entry["error"], "inpart: invalid index 4 of list or matrix.");
 }
 
 #[test]
-fn summarize_prefers_error_field_when_set() {
-    let (_, entry) = summarize_cell_run(
-        "c2",
-        &ok_json(serde_json::json!({
-            "execution_count": 1,
-            "text_output": "",
-            "error": "Evaluation timed out",
-            "is_error": true,
-        })),
-    );
-    assert_eq!(entry["error"], "Evaluation timed out");
-}
-
-#[test]
-fn summarize_clean_and_empty_cells_succeed() {
-    let (status, entry) = summarize_cell_run(
-        "c3",
-        &ok_json(serde_json::json!({ "execution_count": 4, "is_error": false, "error": null })),
-    );
-    assert_eq!(status, CellRunStatus::Ok);
+fn ok_and_empty_entries_succeed() {
+    let mut run = cell_run("c3", CellRunStatus::Ok);
+    run.execution_count = Some(4);
+    let entry = cell_run_entry(&run, TrustMode::Interactive);
     assert_eq!(entry["success"], true);
     assert_eq!(entry["execution_count"], 4);
 
-    let (status, entry) = summarize_cell_run(
-        "c4",
-        &ok_json(serde_json::json!({ "message": "Empty cell — nothing to execute" })),
-    );
-    assert_eq!(status, CellRunStatus::Empty);
-    assert!(!status.stops_run());
+    let entry = cell_run_entry(&cell_run("c4", CellRunStatus::Empty), TrustMode::Interactive);
+    assert_eq!(entry["status"], "empty");
     assert_eq!(entry["success"], true);
 }
 
 #[test]
-fn summarize_run_cell_err_is_failed() {
-    let (status, entry) = summarize_cell_run("c5", &Err("Dangerous function(s) blocked: system".into()));
-    assert_eq!(status, CellRunStatus::Failed);
-    assert!(status.stops_run());
+fn failed_entry_carries_the_error() {
+    let mut run = cell_run("c5", CellRunStatus::Failed);
+    run.error = Some("Maxima process is not running".into());
+    let entry = cell_run_entry(&run, TrustMode::Interactive);
+    assert_eq!(entry["status"], "failed");
     assert_eq!(entry["success"], false);
-    assert!(entry["error"].as_str().unwrap().contains("blocked"));
+    assert!(entry["error"].as_str().unwrap().contains("not running"));
 }
 
 #[test]
 fn run_all_summary_reports_stop() {
-    let results = vec![
-        serde_json::json!({ "cell_id": "a", "status": "ok", "success": true }),
-        serde_json::json!({ "cell_id": "b", "status": "needs_trust", "success": false }),
-        serde_json::json!({ "cell_id": "c", "status": "not_run", "success": false }),
-    ];
-    let v = run_all_summary(3, results, Some(("b".into(), CellRunStatus::NeedsTrust)));
+    let report = RunAllReport {
+        cells: vec![
+            cell_run("a", CellRunStatus::Ok),
+            cell_run("b", CellRunStatus::NeedsTrust),
+            cell_run("c", CellRunStatus::NotRun),
+        ],
+        stopped_at: Some("b".into()),
+        stop_reason: Some(StopReason::NeedsTrust),
+    };
+    let v = run_all_summary(&report, TrustMode::Interactive);
     assert_eq!(v["success"], false);
     assert_eq!(v["cells_total"], 3);
     assert_eq!(v["cells_run"], 1);
@@ -917,12 +895,30 @@ fn run_all_summary_reports_stop() {
     assert_eq!(v["stopped_at"], "b");
     assert_eq!(v["stop_reason"], "needs_trust");
     assert!(v["message"].as_str().unwrap().contains("untrusted"));
+    assert_eq!(v["results"][2]["status"], "not_run");
+}
+
+#[test]
+fn run_all_summary_reports_a_cancel() {
+    let report = RunAllReport {
+        cells: vec![cell_run("a", CellRunStatus::Ok), cell_run("b", CellRunStatus::NotRun)],
+        stopped_at: Some("b".into()),
+        stop_reason: Some(StopReason::Cancelled),
+    };
+    let v = run_all_summary(&report, TrustMode::Interactive);
+    assert_eq!(v["success"], false);
+    assert_eq!(v["stop_reason"], "cancelled");
+    assert!(v["message"].as_str().unwrap().contains("cancelled"));
 }
 
 #[test]
 fn run_all_summary_all_ok() {
-    let results = vec![serde_json::json!({ "cell_id": "a", "status": "ok", "success": true })];
-    let v = run_all_summary(1, results, None);
+    let report = RunAllReport {
+        cells: vec![cell_run("a", CellRunStatus::Ok)],
+        stopped_at: None,
+        stop_reason: None,
+    };
+    let v = run_all_summary(&report, TrustMode::Interactive);
     assert_eq!(v["success"], true);
     assert_eq!(v["cells_run"], 1);
     assert_eq!(v["cells_not_run"], 0);

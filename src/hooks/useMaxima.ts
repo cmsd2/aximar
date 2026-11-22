@@ -3,8 +3,8 @@ import { message } from "@tauri-apps/plugin-dialog";
 import { useNotebookStore } from "../store/notebookStore";
 import { useLogStore } from "../store/logStore";
 import { startSession, restartSession } from "../lib/maxima-client";
-import { nbRunCell } from "../lib/notebook-commands";
-import { flushCell } from "../lib/dirty-inputs";
+import { nbRunAll, nbRunCell, type RunAllReport } from "../lib/notebook-commands";
+import { flushCell, flushNotebook } from "../lib/dirty-inputs";
 
 function isMaximaNotFoundError(errorMsg: string): boolean {
   const lower = errorMsg.toLowerCase();
@@ -128,5 +128,30 @@ export function useMaxima() {
     }
   }, [setSessionStatus, addLog]);
 
-  return { executeCell, initSession, restartSession: doRestartSession };
+  const runAll = useCallback(
+    async (notebookId: string): Promise<RunAllReport | null> => {
+      addLog("info", "Running all cells", "eval");
+      try {
+        // The backend runs the cells as it holds them: send typed edits first
+        await flushNotebook(notebookId);
+        // Statuses, outputs and any trust banner arrive as events
+        const report = await nbRunAll(notebookId);
+        const ran = report.cells.filter((c) => c.status !== "not_run").length;
+        if (report.stop_reason === null) {
+          addLog("info", `Run All complete: ${ran} cell(s)`, "eval");
+        } else {
+          const stopped = report.cells.find((c) => c.cell_id === report.stopped_at);
+          const detail = stopped?.error?.split("\n")[0] ?? report.stop_reason;
+          addLog("warning", `Run All stopped (${report.stop_reason}): ${detail}`, "eval");
+        }
+        return report;
+      } catch (err) {
+        addLog("error", `Run All failed: ${String(err)}`, "eval");
+        return null;
+      }
+    },
+    [addLog]
+  );
+
+  return { executeCell, runAll, initSession, restartSession: doRestartSession };
 }

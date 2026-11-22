@@ -137,7 +137,10 @@ Replace `<token>` with the value shown in Settings.
   a `status`: `ok`, `empty`, `error` (with `error` text), `needs_trust` (with
   `dangerous_functions`), `failed` (with `error`), or `not_run`. Top-level
   `success` is true only when every code cell ran cleanly; `stopped_at` and
-  `stop_reason` name the cell that stopped the run.
+  `stop_reason` name the cell that stopped the run. `stop_reason` is `error`,
+  `needs_trust`, `failed`, or `cancelled` when the user stops the run from the
+  desktop window (then `stopped_at` is the first cell not run). The desktop
+  window's Run All follows the same rule.
 - **evaluate_expression(expression)** -- Quick evaluation without creating a cell.
 
 ### Session

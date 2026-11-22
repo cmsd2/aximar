@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::path::PathBuf;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 
 use tokio::sync::Mutex;
@@ -18,6 +19,8 @@ pub struct NotebookContext {
     pub capture_sink: Arc<CaptureOutputSink>,
     pub server_log: Arc<ServerLog>,
     pub path: Option<PathBuf>,
+    /// Set to stop a run of all cells after the cell running now.
+    pub run_all_cancel: Arc<AtomicBool>,
 }
 
 impl NotebookContext {
@@ -30,6 +33,7 @@ impl NotebookContext {
             capture_sink,
             server_log,
             path: None,
+            run_all_cancel: Arc::new(AtomicBool::new(false)),
         }
     }
 }
@@ -44,6 +48,14 @@ pub struct NotebookContextRef {
     pub capture_sink: Arc<CaptureOutputSink>,
     pub server_log: Arc<ServerLog>,
     pub path: Option<PathBuf>,
+    pub run_all_cancel: Arc<AtomicBool>,
+}
+
+impl NotebookContextRef {
+    /// Stop a run of all cells in this notebook after the cell running now.
+    pub fn cancel_run_all(&self) {
+        self.run_all_cancel.store(true, Ordering::SeqCst);
+    }
 }
 
 /// Summary info for listing notebooks.
@@ -89,6 +101,7 @@ impl NotebookRegistry {
             capture_sink: ctx.capture_sink.clone(),
             server_log: ctx.server_log.clone(),
             path: ctx.path.clone(),
+            run_all_cancel: ctx.run_all_cancel.clone(),
         })
     }
 

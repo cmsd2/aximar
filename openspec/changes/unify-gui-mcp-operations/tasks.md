@@ -25,8 +25,8 @@ Each numbered group is one pull request. Every group updates the Unreleased sect
 
 ## 5. Run-all in core (#41)
 
-- [ ] 5.1 Add `evaluation::run_all` returning a per-cell report (`ok`, `empty`, `error`, `needs_trust`, `failed`, `not_run`) that stops at the first error, trust block or failure, and checks a cancel flag between cells; verify with Maxima-backed core tests for an error in the middle, a trust block in the middle and a cancel
-- [ ] 5.2 Switch MCP `run_all_cells` and `batch.rs` to `run_all`, keeping the tool's result shape; verify the existing `run_all_cells` tests pass unchanged
+- [x] 5.1 Add `evaluation::run_all` returning a per-cell report (`ok`, `empty`, `error`, `needs_trust`, `failed`, `not_run`) that stops at the first error, trust block or failure, and checks a cancel flag between cells; verify with Maxima-backed core tests for an error in the middle, a trust block in the middle and a cancel
+- [x] 5.2 Switch MCP `run_all_cells` and `batch.rs` to `run_all`, keeping the tool's result shape; verify the existing `run_all_cells` tests pass unchanged
 - [ ] 5.3 Add a `nb_run_all` Tauri command; the toolbar calls it after `flushNotebook(notebookId)` (new in `dirty-inputs.ts`) and drops its own loop; `cancel_evaluation` sets the run-all cancel flag; verify with a vitest test that `flushNotebook` sends only that notebook's edits, and by hand that Run All stops at `1/0` and at a stopped cell
 
 ## 6. One input preparation

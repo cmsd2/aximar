@@ -1,3 +1,7 @@
+use std::sync::atomic::Ordering;
+
+use serde::Serialize;
+
 use crate::catalog::packages::PackageCatalog;
 use crate::catalog::search::Catalog;
 use crate::commands::{CommandEffect, EffectSink, NotebookCommand};
@@ -171,6 +175,231 @@ pub async fn check_cell_trust(
         effects.effect(&ctx.id, &nb, &effect);
     }
     Ok(decision)
+}
+
+/// How one code cell fared in a run of all cells.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum CellRunStatus {
+    /// Evaluated without error.
+    Ok,
+    /// Nothing to execute (blank input).
+    Empty,
+    /// Evaluated, but Maxima reported an error.
+    Error,
+    /// Not run: it calls dangerous functions the trust rule blocks.
+    NeedsTrust,
+    /// Couldn't run (session failure, timeout, cancellation, ...).
+    Failed,
+    /// Not attempted because the run stopped earlier.
+    NotRun,
+}
+
+impl CellRunStatus {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            CellRunStatus::Ok => "ok",
+            CellRunStatus::Empty => "empty",
+            CellRunStatus::Error => "error",
+            CellRunStatus::NeedsTrust => "needs_trust",
+            CellRunStatus::Failed => "failed",
+            CellRunStatus::NotRun => "not_run",
+        }
+    }
+
+    /// Whether this outcome stops the run.
+    pub fn stops_run(self) -> bool {
+        matches!(self, CellRunStatus::Error | CellRunStatus::NeedsTrust | CellRunStatus::Failed)
+    }
+}
+
+/// One code cell's outcome in a run of all cells.
+#[derive(Debug, Clone, Serialize)]
+pub struct CellRun {
+    pub cell_id: String,
+    pub status: CellRunStatus,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub execution_count: Option<u32>,
+    /// For `error` and `failed`: what went wrong.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub error: Option<String>,
+    /// For `needs_trust`: the functions that blocked the cell.
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub dangerous_functions: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub duration_ms: Option<u64>,
+}
+
+impl CellRun {
+    /// An outcome with no details yet.
+    pub fn new(cell_id: &str, status: CellRunStatus) -> Self {
+        CellRun {
+            cell_id: cell_id.to_string(),
+            status,
+            execution_count: None,
+            error: None,
+            dangerous_functions: Vec::new(),
+            duration_ms: None,
+        }
+    }
+}
+
+/// Why a run of all cells stopped early.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum StopReason {
+    Error,
+    NeedsTrust,
+    Failed,
+    /// The user stopped the run between cells.
+    Cancelled,
+}
+
+impl StopReason {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            StopReason::Error => "error",
+            StopReason::NeedsTrust => "needs_trust",
+            StopReason::Failed => "failed",
+            StopReason::Cancelled => "cancelled",
+        }
+    }
+}
+
+/// The outcome of a run of all cells: one entry per code cell, in order.
+#[derive(Debug, Clone, Serialize)]
+pub struct RunAllReport {
+    pub cells: Vec<CellRun>,
+    /// The cell that stopped the run; for a cancel, the first cell not run.
+    pub stopped_at: Option<String>,
+    pub stop_reason: Option<StopReason>,
+}
+
+impl RunAllReport {
+    pub fn success(&self) -> bool {
+        self.stop_reason.is_none()
+    }
+}
+
+/// What a run of all cells needs besides the notebook.
+pub struct RunAllOptions<'a> {
+    pub catalog: &'a Catalog,
+    pub packages: &'a PackageCatalog,
+    pub eval_timeout: u64,
+    pub mode: TrustMode,
+    pub effects: &'a dyn EffectSink,
+}
+
+/// Run every code cell in order, for the window's Run All, MCP's
+/// `run_all_cells` and batch runs.  Stops at the first cell that ends in an
+/// error, is blocked by the trust check or fails to run, and marks the cells
+/// after it `not_run`.  Blank cells are skipped.  Between cells it checks the
+/// notebook's run-all cancel flag (`NotebookContextRef::cancel_run_all`).
+///
+/// The session must already be running: starting it differs by front end.
+/// `on_cell` hears each cell's outcome as it finishes, for progress output.
+pub async fn run_all(
+    ctx: &NotebookContextRef,
+    opts: &RunAllOptions<'_>,
+    on_cell: &mut (dyn FnMut(&CellRun) + Send),
+) -> RunAllReport {
+    ctx.run_all_cancel.store(false, Ordering::SeqCst);
+    let cell_ids: Vec<String> = {
+        let nb = ctx.notebook.lock().await;
+        nb.cells()
+            .iter()
+            .filter(|c| c.cell_type == CellType::Code)
+            .map(|c| c.id.clone())
+            .collect()
+    };
+
+    let mut cells = Vec::with_capacity(cell_ids.len());
+    let mut stop: Option<(String, StopReason)> = None;
+    for cell_id in &cell_ids {
+        if stop.is_none() && ctx.run_all_cancel.swap(false, Ordering::SeqCst) {
+            stop = Some((cell_id.clone(), StopReason::Cancelled));
+        }
+        if stop.is_some() {
+            cells.push(CellRun::new(cell_id, CellRunStatus::NotRun));
+            continue;
+        }
+        let run = run_one(ctx, cell_id, opts).await;
+        on_cell(&run);
+        if run.status.stops_run() {
+            // A cancel during the cell usually ends it in a failure or an
+            // error; report the cancel, which is why it ended
+            let reason = if ctx.run_all_cancel.swap(false, Ordering::SeqCst) {
+                StopReason::Cancelled
+            } else {
+                match run.status {
+                    CellRunStatus::Error => StopReason::Error,
+                    CellRunStatus::NeedsTrust => StopReason::NeedsTrust,
+                    _ => StopReason::Failed,
+                }
+            };
+            stop = Some((cell_id.clone(), reason));
+        }
+        cells.push(run);
+    }
+
+    let (stopped_at, stop_reason) = match stop {
+        Some((cell_id, reason)) => (Some(cell_id), Some(reason)),
+        None => (None, None),
+    };
+    RunAllReport { cells, stopped_at, stop_reason }
+}
+
+/// Check and run one cell of a run of all cells.
+async fn run_one(ctx: &NotebookContextRef, cell_id: &str, opts: &RunAllOptions<'_>) -> CellRun {
+    match check_cell_trust(ctx, cell_id, opts.packages, opts.mode, opts.effects).await {
+        Ok(TrustDecision::Allowed) => {}
+        Ok(TrustDecision::NeedsTrust { functions }) => {
+            let mut run = CellRun::new(cell_id, CellRunStatus::NeedsTrust);
+            run.dangerous_functions = functions;
+            return run;
+        }
+        Err(e) => {
+            let mut run = CellRun::new(cell_id, CellRunStatus::Failed);
+            run.error = Some(e.to_string());
+            return run;
+        }
+    }
+
+    let result = evaluate_cell(
+        ctx,
+        cell_id,
+        opts.catalog,
+        opts.packages,
+        opts.eval_timeout,
+        opts.effects,
+    )
+    .await;
+    match result {
+        Ok(result) => {
+            let output = &result.cell_output;
+            let status = if output.is_error { CellRunStatus::Error } else { CellRunStatus::Ok };
+            let mut run = CellRun::new(cell_id, status);
+            run.execution_count = Some(result.execution_count);
+            run.duration_ms = Some(output.duration_ms);
+            if output.is_error {
+                // Maxima's error text usually lands in the text output; `error`
+                // is set for timeouts and label errors
+                let text = output
+                    .error
+                    .as_deref()
+                    .filter(|e| !e.is_empty())
+                    .unwrap_or(&output.text_output);
+                run.error = Some(text.trim().to_string());
+            }
+            run
+        }
+        Err(AppError::EmptyInput) => CellRun::new(cell_id, CellRunStatus::Empty),
+        Err(e) => {
+            let mut run = CellRun::new(cell_id, CellRunStatus::Failed);
+            run.error = Some(e.to_string());
+            run
+        }
+    }
 }
 
 /// Set a cell's status and report the change.
