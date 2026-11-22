@@ -16,6 +16,11 @@ see the `v*` releases on GitHub.
   at the first such cell, as its description said, marks the remaining cells
   `not_run`, and adds top-level `success`, `stopped_at`, `stop_reason` and
   `message` fields. The unused `pending_approval` field is gone.
+- **Connected mode starts Maxima with the app's settings**: a session that an
+  MCP client started in the desktop app used the local Maxima on the PATH and
+  a 30-second timeout, whatever the app's settings said. It now uses the
+  backend, Maxima path and timeout from Settings, read when the session starts,
+  so WSL, Docker and custom-path setups work over MCP.
 - **`list_cells` no longer fails on multi-byte output**: the 200-character
   preview was cut at a byte offset, which panicked inside a Greek letter or
   other non-ASCII character.

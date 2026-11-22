@@ -14,7 +14,7 @@ use aximar_core::registry::{NotebookContextRef, NotebookInfo};
 use crate::mcp::sync::{notebook_state_payload, SyncCell};
 use crate::state::AppState;
 
-use super::config::{read_backend, read_eval_timeout, read_maxima_path};
+use super::config::read_session_settings;
 use super::session::ensure_session;
 
 // ── Event types ──────────────────────────────────────────────────────
@@ -348,10 +348,9 @@ pub async fn nb_run_cell(
         }
     }
 
-    let eval_timeout = read_eval_timeout(&app);
-    let backend = read_backend(&app);
-    let maxima_path = read_maxima_path(&app);
-    ensure_session(&state, &ctx, backend, maxima_path, eval_timeout).await?;
+    let settings = read_session_settings(&app);
+    let eval_timeout = settings.eval_timeout;
+    ensure_session(&state, &ctx, &settings).await?;
 
     // evaluate_cell reports Running, the output and any error to the window
     // as each happens

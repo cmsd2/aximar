@@ -8,6 +8,7 @@ use tokio_util::sync::CancellationToken;
 use aximar_core::error::AppError;
 use aximar_core::maxima::backend::{decode_wsl_output, Backend, BackendKind, ContainerEngine};
 use aximar_core::maxima::noconsole::hide_console_window;
+use aximar_core::session_ops::SessionSettings;
 
 use crate::state::AppState;
 use crate::tauri_output::{emit_app_log, AppLogEvent};
@@ -526,13 +527,27 @@ pub async fn set_config(app: tauri::AppHandle, updates: ConfigUpdate) -> Result<
     Ok(())
 }
 
-/// Read a single config value by field name (for internal use by other commands)
-pub fn read_eval_timeout(app: &tauri::AppHandle) -> u64 {
-    read_config(app).map(|(c, _)| c.eval_timeout).unwrap_or(default_eval_timeout())
+impl AppConfig {
+    /// The Maxima a new session runs, and its evaluation timeout.
+    fn session_settings(&self) -> SessionSettings {
+        SessionSettings {
+            backend: Backend::from_config(
+                self.backend,
+                &self.docker_image,
+                &self.wsl_distro,
+                self.container_engine,
+            ),
+            maxima_path: self.maxima_path.clone(),
+            eval_timeout: self.eval_timeout,
+        }
+    }
 }
 
-pub fn read_maxima_path(app: &tauri::AppHandle) -> Option<String> {
-    read_config(app).ok().map(|(c, _)| c.maxima_path).flatten()
+/// The session settings in the settings file now, or the defaults when it
+/// can't be read.  Read each time a session starts or a cell runs, so changes
+/// in Settings apply without restarting the app.
+pub fn read_session_settings(app: &tauri::AppHandle) -> SessionSettings {
+    read_config(app).map(|(c, _)| c).unwrap_or_default().session_settings()
 }
 
 #[tauri::command]
@@ -843,11 +858,6 @@ pub async fn gemini_mcp_configure(url: String, token: String) -> Result<String, 
     Ok("Gemini CLI MCP configured successfully".to_string())
 }
 
-pub fn read_backend(app: &tauri::AppHandle) -> Backend {
-    let config = read_config(app).map(|(c, _)| c).unwrap_or_default();
-    Backend::from_config(config.backend, &config.docker_image, &config.wsl_distro, config.container_engine)
-}
-
 /// Drain all buffered app log entries. Called by the frontend on mount to
 /// replay any logs emitted before the event listener was ready.
 #[tauri::command]
@@ -883,6 +893,26 @@ mod tests {
         assert!(warnings.is_empty());
         let config = config_for_update(parse_config_file(path(), Some(text))).unwrap();
         assert_eq!(config.mcp_token, "kept");
+    }
+
+    #[test]
+    fn session_settings_come_from_the_file() {
+        let text = r#"{"backend": "wsl", "wsl_distro": "Ubuntu", "maxima_path": "/opt/maxima/bin/maxima", "eval_timeout": 120}"#;
+        let (config, _) = config_or_defaults(parse_config_file(path(), Some(text)));
+        let settings = config.session_settings();
+        assert!(matches!(settings.backend, Backend::Wsl { ref distro } if distro == "Ubuntu"));
+        assert_eq!(settings.maxima_path.as_deref(), Some("/opt/maxima/bin/maxima"));
+        assert_eq!(settings.eval_timeout, 120);
+    }
+
+    #[test]
+    fn session_settings_default_to_local_maxima() {
+        let text = r#"{"eval_timeout": 0,"#;
+        let (config, _) = config_or_defaults(parse_config_file(path(), Some(text)));
+        let settings = config.session_settings();
+        assert!(matches!(settings.backend, Backend::Local));
+        assert_eq!(settings.maxima_path, None);
+        assert_eq!(settings.eval_timeout, default_eval_timeout());
     }
 
     #[test]

@@ -32,9 +32,8 @@ pub async fn run(
     let packages = Arc::new(PackageCatalog::load());
 
     // Read configuration from environment
-    let backend = crate::config::backend_from_env();
-    let maxima_path = crate::config::maxima_path_from_env();
-    let eval_timeout = crate::config::eval_timeout_from_env();
+    let session_settings = crate::config::session_settings_from_env();
+    let eval_timeout = session_settings.eval_timeout;
 
     // Read notebook
     let notebook = notebook_io::read_notebook(input_path)
@@ -67,9 +66,7 @@ pub async fn run(
         registry,
         catalog.clone(),
         packages.clone(),
-        backend,
-        maxima_path,
-        eval_timeout,
+        session_settings.fixed(),
         allow_dangerous,
     );
     core.ensure_session(&ctx)

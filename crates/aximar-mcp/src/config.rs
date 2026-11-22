@@ -1,4 +1,5 @@
 use aximar_core::maxima::backend::{Backend, BackendKind, ContainerEngine};
+use aximar_core::session_ops::SessionSettings;
 
 /// Build a Backend from environment variables.
 pub fn backend_from_env() -> Backend {
@@ -28,4 +29,13 @@ pub fn eval_timeout_from_env() -> u64 {
         .ok()
         .and_then(|v| v.parse().ok())
         .unwrap_or(30)
+}
+
+/// Session settings from the environment, read once at startup.
+pub fn session_settings_from_env() -> SessionSettings {
+    SessionSettings {
+        backend: backend_from_env(),
+        maxima_path: maxima_path_from_env(),
+        eval_timeout: eval_timeout_from_env(),
+    }
 }

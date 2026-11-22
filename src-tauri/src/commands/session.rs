@@ -8,7 +8,7 @@ use aximar_core::maxima::output::{MultiOutputSink, OutputSink};
 use aximar_core::maxima::types::SessionStatus;
 use aximar_core::registry::NotebookContextRef;
 use aximar_core::session_ops::{self, SessionStatusCallback};
-use crate::commands::config::{read_backend, read_eval_timeout, read_maxima_path};
+use crate::commands::config::read_session_settings;
 use crate::state::AppState;
 use crate::tauri_output::{emit_app_log, TauriEnvelopeObserver, TauriOutputSink};
 
@@ -93,19 +93,15 @@ async fn resolve_context(
 pub async fn ensure_session(
     state: &AppState,
     ctx: &NotebookContextRef,
-    backend: aximar_core::maxima::backend::Backend,
-    maxima_path: Option<String>,
-    eval_timeout: u64,
+    settings: &session_ops::SessionSettings,
 ) -> Result<(), AppError> {
     let on_status = build_session_status_callback(state);
     session_ops::ensure_session(
         ctx,
-        backend,
-        maxima_path,
+        settings,
         |ctx| build_output_sink(state, ctx),
         |ctx| build_envelope_observer(state, ctx),
         &state.catalog,
-        eval_timeout,
         Some(&on_status),
     )
     .await
@@ -118,9 +114,7 @@ pub async fn start_session(
     notebook_id: Option<String>,
 ) -> Result<SessionStatus, AppError> {
     let ctx = resolve_context(&state, notebook_id).await?;
-    let maxima_path = read_maxima_path(&app);
-    let backend = read_backend(&app);
-    let eval_timeout = read_eval_timeout(&app);
+    let settings = read_session_settings(&app);
     let output_sink = build_output_sink(&state, &ctx);
     let envelope_observer = build_envelope_observer(&state, &ctx);
     let on_status = build_session_status_callback(&state);
@@ -130,12 +124,10 @@ pub async fn start_session(
 
     session_ops::spawn_and_init_session(
         &ctx,
-        backend,
-        maxima_path,
+        &settings,
         output_sink,
         envelope_observer,
         &state.catalog,
-        eval_timeout,
         Some(&on_status),
     )
     .await?;
@@ -161,9 +153,7 @@ pub async fn restart_session(
     notebook_id: Option<String>,
 ) -> Result<SessionStatus, AppError> {
     let ctx = resolve_context(&state, notebook_id).await?;
-    let maxima_path = read_maxima_path(&app);
-    let backend = read_backend(&app);
-    let eval_timeout = read_eval_timeout(&app);
+    let settings = read_session_settings(&app);
     let output_sink = build_output_sink(&state, &ctx);
     let envelope_observer = build_envelope_observer(&state, &ctx);
     let on_status = build_session_status_callback(&state);
@@ -174,12 +164,10 @@ pub async fn restart_session(
 
     session_ops::spawn_and_init_session(
         &ctx,
-        backend,
-        maxima_path,
+        &settings,
         output_sink,
         envelope_observer,
         &state.catalog,
-        eval_timeout,
         Some(&on_status),
     )
     .await?;

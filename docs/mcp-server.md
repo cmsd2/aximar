@@ -35,6 +35,8 @@ The `aximar-mcp` binary runs independently with its own Maxima session, using st
 
 When the Aximar desktop app is running, it can host an MCP streamable HTTP server that shares the GUI's Maxima session and notebook state, so MCP-triggered changes appear live in the app.
 
+A session that MCP starts uses the Maxima backend, Maxima path and evaluation timeout from Settings as they are when the session starts. The environment variables above apply only to standalone mode.
+
 **Enable the MCP server** in Settings by toggling the "MCP server" checkbox. The listen address defaults to `127.0.0.1:19542` and can be changed without restarting the app — the server restarts automatically.
 
 #### Authentication
