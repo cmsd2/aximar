@@ -1,6 +1,6 @@
 # Unicode in Maxima input
 
-Status: **accepted**, implemented by the OpenSpec change `unicode-input`. This is the reference for what Aximar does with each non-ASCII character in Maxima code, from the desktop window and from MCP. Notebooks depend on it, so a mapping, once released, is part of the public API. "Changes from current behaviour" at the end lists where this differs from today.
+Status: **in effect**. The requirements are in `openspec/specs/unicode-input/spec.md`. This is the reference for what Aximar does with each non-ASCII character in Maxima code, from the desktop window and from MCP. Notebooks depend on it, so a mapping, once released, is part of the public API. "Changes from earlier releases" at the end lists what changed when this table took effect.
 
 ## Principles
 
@@ -28,11 +28,11 @@ A rejected character is reported as the cell's error, like a label with no value
 
 "Shows as" is how the output renders. Maxima's own TeX output gives most Greek names their letters; Aximar adds a `texput` only where Maxima's default differs from the character typed.
 
-"Now" marks rows where today's behaviour differs (see the last section).
+"Before" shows what a row did in earlier releases, where that differs (see the last section).
 
 ## Greek, lowercase
 
-| Char | Code point | Outcome | Shows as | Notes | Now |
+| Char | Code point | Outcome | Shows as | Notes | Before |
 |---|---|---|---|---|---|
 | α | U+03B1 | `alpha` | α | | |
 | β | U+03B2 | `beta` | β | | |
@@ -62,7 +62,7 @@ A rejected character is reported as the cell's error, like a label with no value
 
 ## Greek, uppercase
 
-| Char | Code point | Outcome | Shows as | Notes | Now |
+| Char | Code point | Outcome | Shows as | Notes | Before |
 |---|---|---|---|---|---|
 | Γ | U+0393 | `Gamma`; `gamma` before `(` | Γ | `Γ(5)` gives 24, Maxima's gamma function, which displays as Γ. `Γ` alone is the variable `Gamma`. `Γ(x) := ...` redefines Maxima's gamma function, as `gamma(x) := ...` does. | `Γ(5)` stays `Gamma(5)` |
 | Δ | U+0394 | `Delta` | Δ | | |
@@ -78,7 +78,7 @@ A rejected character is reported as the cell's error, like a label with no value
 
 ## Greek variants and lookalike symbols
 
-| Char | Code point | Outcome | Shows as | Notes | Now |
+| Char | Code point | Outcome | Shows as | Notes | Before |
 |---|---|---|---|---|---|
 | ϐ | U+03D0 beta symbol | `beta` | β | | unchanged |
 | ϑ | U+03D1 theta symbol | `theta` | θ | | unchanged |
@@ -98,7 +98,7 @@ A rejected character is reported as the cell's error, like a label with no value
 
 ## Mathematical letters
 
-| Char | Code point | Outcome | Shows as | Notes | Now |
+| Char | Code point | Outcome | Shows as | Notes | Before |
 |---|---|---|---|---|---|
 | ⅈ | U+2148 double-struck italic i | `%i` | i | The imaginary unit. | unchanged |
 | ⅇ | U+2147 double-struck italic e | `%e` | e | | unchanged |
@@ -114,7 +114,7 @@ A rejected character is reported as the cell's error, like a label with no value
 
 ## Operators and relations
 
-| Char | Code point | Outcome | Notes | Now |
+| Char | Code point | Outcome | Notes | Before |
 |---|---|---|---|---|
 | − | U+2212 minus sign | `-` | Typeset minus, common in pasted text. | error |
 | × | U+00D7 | `*` | Multiplication. For vectors, `*` is element by element; the cross product is `~` in the `vect` package. | |
@@ -158,7 +158,7 @@ A rejected character is reported as the cell's error, like a label with no value
 
 ## Superscripts and subscripts
 
-| Chars | Outcome | Notes | Now |
+| Chars | Outcome | Notes | Before |
 |---|---|---|---|
 | ⁰ ¹ ² ³ ⁴ ⁵ ⁶ ⁷ ⁸ ⁹ ⁺ ⁻ ⁿ | a run becomes `^(...)` | `x²` is `x^(2)`, `x⁻¹` is `x^(-1)`, `2ⁿ⁺¹` is `2^(n+1)`. | |
 | Other superscript letters (ᵀ ⁱ ˣ …) | **rejected** | Hint: `^`; for a transpose, `transpose(M)`. | unchanged |
@@ -167,7 +167,7 @@ A rejected character is reported as the cell's error, like a label with no value
 
 ## Spaces, invisible characters and quotes
 
-| Chars | Outcome | Notes | Now |
+| Chars | Outcome | Notes | Before |
 |---|---|---|---|
 | U+00A0 no-break space, U+2000 … U+200A, U+202F, U+205F, U+3000 | space | Common in pasted text. | error |
 | U+200B zero-width space, U+200C, U+200D, U+2060, U+FEFF, U+00AD soft hyphen | removed | Invisible, so removing them matches what the user sees. | error |
@@ -200,15 +200,15 @@ These were open when the table was drafted:
 3. **√** works before a bracket, a number or a name, and is rejected before anything else.
 4. **Greek capitals that look like Latin letters**, and omicron, are rejected with a hint to type the Latin letter.
 
-## Changes from current behaviour
+## Changes from earlier releases
 
-- `ε` and `φ` display as typed (today they show `ϵ` and `ϕ`).
-- A Greek letter inside a longer name stays as typed. Today `αβ` becomes `alphabeta`, `Δx` becomes `Deltax`, and `xπ` becomes `x%pi`. Maxima's TeX shows such names literally, so `r_θ` displayed as "r_theta" and now displays as "r_θ"; only a trailing number becomes a subscript (`α_1` shows as α₁).
-- Variants (`ϕ ϑ ϵ ϱ ϰ ς ϐ ϴ ϒ µ`, ohm sign, increment) map to their letters; today they pass through as different names.
-- Omicron and the Greek capitals that look like Latin letters are rejected; today they pass through as different names. `Υ` is among them; `ϒ` is the mathematical capital upsilon.
+- `ε` and `φ` display as typed (they showed `ϵ` and `ϕ`).
+- A Greek letter inside a longer name stays as typed. Before, `αβ` became `alphabeta`, `Δx` became `Deltax`, and `xπ` became `x%pi`. Maxima's TeX shows such names literally, so `r_θ` displayed as "r_theta" and now displays as "r_θ"; only a trailing number becomes a subscript (`α_1` shows as α₁).
+- Variants (`ϕ ϑ ϵ ϱ ϰ ς ϐ ϴ ϒ µ`, ohm sign, increment) map to their letters; they passed through as different names.
+- Omicron and the Greek capitals that look like Latin letters are rejected; they passed through as different names. `Υ` is among them; `ϒ` is the mathematical capital upsilon.
 - New mappings: `−` and the other operator forms, `∧ ∨ ¬`, `√`, `Γ(`, `ⅈ ⅇ ℯ`, `ℏ ℓ ℎ`, mathematical italic letters, subscript letters, spaces, full-width forms and ligatures.
 - Characters Maxima can't read are reported with a hint instead of Maxima's "is not an infix operator".
-- Strings containing `\"` and comments are no longer translated. Today the translator doesn't know escapes, so the rest of a string after `\"` was translated as code, and so was text in comments.
+- Strings containing `\"` and comments are no longer translated. Before, the translator didn't know escapes, so the rest of a string after `\"` was translated as code, and so was text in comments.
 
 ## Implementation notes
 
