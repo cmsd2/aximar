@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import { listen } from "@tauri-apps/api/event";
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import { ask } from "@tauri-apps/plugin-dialog";
+import { confirmClose, saveNotebookTab } from "./lib/unsaved-changes";
 import { TabBar } from "./components/TabBar";
 import { Toolbar } from "./components/Toolbar";
 import { VariablePanel } from "./components/VariablePanel";
@@ -33,7 +33,6 @@ import {
   getHasSeenWelcome,
   setHasSeenWelcome,
   getTemplate,
-  saveNotebook,
   saveNotebookAs,
   openFile,
   savePlotFile,
@@ -253,11 +252,7 @@ function App() {
     if (activeTab.type === "plot") {
       await savePlotFile(activeTab.plotData, activeTab.filePath);
     } else {
-      const savedPath = await saveNotebook(activeTab.cells, activeTab.filePath);
-      if (savedPath) {
-        await nbSetPath(id, savedPath);
-        state.markClean();
-      }
+      await saveNotebookTab(id);
     }
   }, []);
 
@@ -373,11 +368,8 @@ function App() {
       const hasUnsaved = Object.values(notebooks).some((tab) => tab.isDirty);
       if (hasUnsaved) {
         event.preventDefault();
-        const confirmed = await ask(
-          "You have unsaved changes. Close without saving?",
-          { title: "Unsaved Changes", kind: "warning" }
-        );
-        if (confirmed) {
+        // One Save, Don't Save or Cancel for every notebook with changes
+        if (await confirmClose(Object.keys(notebooks))) {
           getCurrentWindow().destroy();
         }
       }
