@@ -34,6 +34,16 @@ see the `v*` releases on GitHub.
   expression refer to the cells' `Out[4]` and `In[4]`, as they do in cells, and
   a label with no value in the session is reported instead of reading an
   unrelated Maxima label. A bare `%` still means Maxima's last result.
+- **`evaluate_expression` takes the caller's labels** (#8): an optional
+  `labels` object (`label_map` from gutter number to Maxima output label, and
+  `previous_output_label`) lets a client that keeps its own notebook, such as
+  the VS Code extension, send cell source unchanged. `%oN` then means the
+  client's `Out[N]` and a bare `%` at the start means the cell above's output.
+  Labels other than `%o` and digits are refused. Both MCP modes take it.
+- **An opened notebook numbers its runs from 1** (#8): `open_notebook` and
+  `load_template` start the gutter numbers again at `In[1]`, whatever the
+  file's outputs show, as a new session does. Those outputs still have no
+  value as labels until their cells run.
 - **`run_all_cells` shares the desktop app's Run All** (#41): both run in
   `aximar-core` and stop at the same cells.
   - Stopping a run from the desktop window ends it after the current cell,

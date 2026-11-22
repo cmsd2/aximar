@@ -658,8 +658,8 @@ mod tests {
         let err = prepare_input("%o3 + 1;", &labels).unwrap_err();
         assert!(err.0.contains("Out[3] (%o3) has no value in this session"), "{err:?}");
         assert!(prepare_input("% + 1;", &labels).is_err());
-        // New runs continue the gutter numbers after the loaded ones
-        assert_eq!(nb.next_execution_count(), 4);
+        // New runs number from 1 again, as in a fresh session
+        assert_eq!(nb.next_execution_count(), 1);
     }
 
     #[tokio::test]

@@ -22,8 +22,8 @@ Each numbered group is one pull request. Aximar groups run `cargo test --workspa
 
 ## 4. Numbering and label contexts (#8)
 
-- [ ] 4.1 Loading resets the notebook's numbering to 1; stale outputs never record labels; verify with core tests for both scenarios of the numbering requirement
-- [ ] 4.2 `evaluate_expression` takes an optional `labels` context in MCP and the Tauri command; verify with aximar-mcp tests for both scenarios of the label-context requirement
+- [x] 4.1 Loading resets the notebook's numbering to 1; stale outputs never record labels; verify with core tests for both scenarios of the numbering requirement
+- [x] 4.2 `evaluate_expression` takes an optional `labels` context in MCP and the Tauri command; verify with aximar-mcp tests for both scenarios of the label-context requirement
 
 ## 5. npm workspace and TypeScript package (#17)
 

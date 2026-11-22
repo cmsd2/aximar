@@ -14,6 +14,7 @@ use aximar_core::maxima::output::OutputSink;
 use aximar_core::maxima::protocol;
 use aximar_core::notebooks::{data as notebook_data, io as notebook_io};
 use aximar_core::registry::{NotebookContextRef, NotebookRegistry};
+use aximar_core::maxima::labels::SuppliedLabels;
 use aximar_core::evaluation::{
     check_cell_trust, evaluate_cell, prepare_input, run_all, InputError, CellRun, CellRunStatus, RunAllOptions, RunAllReport,
     StopReason,
@@ -345,9 +346,10 @@ impl ServerCore {
         &self,
         expression: &str,
         notebook_id: Option<&str>,
+        supplied: Option<SuppliedLabels>,
     ) -> Result<String, String> {
         let ctx = self.resolve_context(notebook_id).await?;
-        let (decision, labels) = {
+        let (decision, own_labels) = {
             let nb = ctx.notebook.lock().await;
             let decision = safety::check_trust(&nb, expression, &self.packages, self.trust_mode);
             (decision, nb.expression_label_context())
@@ -355,6 +357,13 @@ impl ServerCore {
         if let TrustDecision::NeedsTrust { functions } = decision {
             return error_result(self.blocked_message(&functions));
         }
+        // A client that keeps its own notebook brings its labels; otherwise
+        // the server notebook's apply
+        let labels = match supplied.map(SuppliedLabels::into_context) {
+            None => own_labels,
+            Some(Ok(labels)) => labels,
+            Some(Err(e)) => return error_result(e.0),
+        };
         // Unicode and label references, as for cells
         let prepared = match prepare_input(expression, &labels) {
             Ok(prepared) => prepared,
@@ -1047,7 +1056,7 @@ Unicode Greek letters (α, β, γ, θ, π, etc.) are translated to Maxima symbol
         Parameters(params): Parameters<EvaluateExpressionParams>,
     ) -> Result<String, String> {
         self.core
-            .do_evaluate_expression(&params.expression, params.notebook_id.as_deref())
+            .do_evaluate_expression(&params.expression, params.notebook_id.as_deref(), params.labels.map(Into::into))
             .await
     }
 

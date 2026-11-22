@@ -561,15 +561,9 @@ impl Notebook {
         self.label_map.clear();
         self.label_cells.clear();
         self.trusted = false;
+        // Numbering starts at 1 whatever the loaded outputs show: they came
+        // from a session that no longer exists, and record no labels (#8)
         for LoadedCell { id, cell_type, input, metadata, extra, output } in incoming {
-            // Track the highest execution count from loaded outputs
-            if let Some(ref out) = output {
-                if let Some(ec) = out.execution_count {
-                    if ec > self.execution_counter {
-                        self.execution_counter = ec;
-                    }
-                }
-            }
             let status = match &output {
                 Some(out) if out.is_error => CellStatus::Error,
                 Some(_) => CellStatus::Success,
@@ -1025,5 +1019,28 @@ mod tests {
         n.apply(NotebookCommand::LoadNotebook { file: crate::notebooks::format::read(text).unwrap().into() }).unwrap();
         n.apply(NotebookCommand::ToggleCellType { cell_id: "r".into() }).unwrap();
         assert_eq!(n.cells()[0].cell_type, CellType::Code);
+    }
+
+    #[test]
+    fn a_loaded_notebook_numbers_its_runs_from_one() {
+        // The file's cells show Out[1] and Out[7] from an earlier session
+        let text = r#"{"nbformat": 4, "nbformat_minor": 5, "metadata": {}, "cells": [
+            {"id": "a", "cell_type": "code", "source": "x: 1;", "metadata": {}, "execution_count": 1,
+             "outputs": [{"output_type": "execute_result", "execution_count": 1, "data": {"text/latex": "1"}, "metadata": {}}]},
+            {"id": "b", "cell_type": "code", "source": "y: 2;", "metadata": {}, "execution_count": 7,
+             "outputs": [{"output_type": "execute_result", "execution_count": 7, "data": {"text/latex": "2"}, "metadata": {}}]},
+            {"id": "c", "cell_type": "code", "source": "%;", "metadata": {}, "execution_count": null, "outputs": []}]}"#;
+        let mut n = nb();
+        n.apply(NotebookCommand::LoadNotebook { file: crate::notebooks::format::read(text).unwrap().into() }).unwrap();
+        assert!(n.label_map().is_empty());
+
+        // The first run is In[1], whatever the file showed
+        run(&mut n, "b", Some("%o5"));
+        assert_eq!(n.get_cell("b").unwrap().output.as_ref().unwrap().execution_count, Some(1));
+        // %o1 now means that run, not a's stale Out[1]
+        assert_eq!(n.label_map().get(&1).map(String::as_str), Some("%o5"));
+        assert_eq!(n.previous_output_label("c").as_deref(), Some("%o5"));
+        // and a's stale Out[1] is never the output above b
+        assert_eq!(n.previous_output_label("b"), None);
     }
 }

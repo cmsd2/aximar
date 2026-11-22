@@ -626,6 +626,7 @@ async fn evaluate_expression_quick() {
         s.evaluate_expression(Parameters(EvaluateExpressionParams {
             expression: "factor(x^2 - 1)".into(),
             notebook_id: None,
+            labels: None,
         }))
         .await,
     );
@@ -633,6 +634,49 @@ async fn evaluate_expression_quick() {
     // Single expression: 1D display is suppressed, result is in LaTeX only
     let latex = v["latex"].as_str().unwrap();
     assert!(latex.contains("x-1") && latex.contains("x+1"), "latex should contain factored result: {}", latex);
+}
+
+/// Evaluate an expression with the labels a client brings from its own
+/// notebook.
+async fn evaluate_with(s: &AximarMcpServer, expression: &str, labels: Option<LabelsParam>) -> Result<String, String> {
+    s.evaluate_expression(Parameters(EvaluateExpressionParams { expression: expression.into(), notebook_id: None, labels }))
+        .await
+}
+
+fn labels(map: &[(u32, &str)], previous: Option<&str>) -> Option<LabelsParam> {
+    Some(LabelsParam {
+        label_map: map.iter().map(|(n, l)| (*n, l.to_string())).collect(),
+        previous_output_label: previous.map(String::from),
+    })
+}
+
+#[tokio::test]
+#[ignore = "requires Maxima to be installed"]
+async fn an_expression_brings_its_own_labels() {
+    let s = build_server();
+    // The client's In[1] made 10 and the cell above made 5
+    let ten = parse_ok(evaluate_with(&s, "10;", None).await);
+    let five = parse_ok(evaluate_with(&s, "5;", None).await);
+    let (ten, five) = (ten["output_label"].as_str().unwrap(), five["output_label"].as_str().unwrap());
+
+    let v = parse_ok(evaluate_with(&s, "%o1 + %;", labels(&[(1, ten)], Some(five))).await);
+    assert_eq!(v["latex"], "15", "{v:#}");
+}
+
+#[tokio::test]
+async fn a_label_missing_from_the_context_has_no_value() {
+    let s = build_server();
+    let err = evaluate_with(&s, "%o2 + 1;", labels(&[(1, "%o167")], None)).await.unwrap_err();
+    assert!(err.contains("Out[2] (%o2) has no value in this session"), "{err}");
+}
+
+#[tokio::test]
+async fn supplied_labels_must_be_maxima_output_labels() {
+    // Labels go into the code Maxima runs after the trust check, so only
+    // %oN passes
+    let s = build_server();
+    let err = evaluate_with(&s, "%o1;", labels(&[(1, "%o1)$ system(\"ls\")")], None)).await.unwrap_err();
+    assert!(err.contains("not a Maxima output label"), "{err}");
 }
 
 #[tokio::test]
@@ -645,6 +689,7 @@ async fn list_and_kill_variable() {
         s.evaluate_expression(Parameters(EvaluateExpressionParams {
             expression: "myvar: 42".into(),
             notebook_id: None,
+            labels: None,
         }))
         .await,
     );
@@ -689,6 +734,7 @@ async fn restart_session_works() {
         s.evaluate_expression(Parameters(EvaluateExpressionParams {
             expression: "1 + 1".into(),
             notebook_id: None,
+            labels: None,
         }))
         .await,
     );
@@ -711,6 +757,7 @@ async fn evaluate_expression_rejects_dangerous_input() {
         .evaluate_expression(Parameters(EvaluateExpressionParams {
             expression: "system(\"ls\")".into(),
             notebook_id: None,
+            labels: None,
         }))
         .await;
     assert!(result.is_err());
@@ -727,6 +774,7 @@ async fn evaluate_expression_allows_safe_input() {
         .evaluate_expression(Parameters(EvaluateExpressionParams {
             expression: "integrate(x^2, x)".into(),
             notebook_id: None,
+            labels: None,
         }))
         .await;
     // It will error due to no Maxima session, but NOT from safety gate
@@ -743,6 +791,7 @@ async fn evaluate_expression_allows_dangerous_with_flag() {
         .evaluate_expression(Parameters(EvaluateExpressionParams {
             expression: "system(\"ls\")".into(),
             notebook_id: None,
+            labels: None,
         }))
         .await;
     if let Err(msg) = &result {
@@ -815,6 +864,7 @@ async fn evaluate_expression_allows_known_package_load() {
         .evaluate_expression(Parameters(EvaluateExpressionParams {
             expression: "load(\"distrib\")".into(),
             notebook_id: None,
+            labels: None,
         }))
         .await;
     if let Err(msg) = &result {
@@ -829,6 +879,7 @@ async fn evaluate_expression_blocks_unknown_load() {
         .evaluate_expression(Parameters(EvaluateExpressionParams {
             expression: "load(\"/tmp/evil.mac\")".into(),
             notebook_id: None,
+            labels: None,
         }))
         .await;
     assert!(result.is_err());
@@ -1059,6 +1110,7 @@ async fn run_all_cells_stops_at_maxima_error() {
         s.evaluate_expression(Parameters(EvaluateExpressionParams {
             expression: "b;".into(),
             notebook_id: None,
+            labels: None,
         }))
         .await,
     );
@@ -1304,6 +1356,7 @@ async fn connected_expression_in_untrusted_notebook_is_blocked() {
         .evaluate_expression(Parameters(EvaluateExpressionParams {
             expression: "system(\"ls\")".into(),
             notebook_id: None,
+            labels: None,
         }))
         .await
         .expect_err("an untrusted notebook blocks system");
@@ -1319,6 +1372,7 @@ async fn connected_expression_in_trusted_notebook_runs_system() {
         s.evaluate_expression(Parameters(EvaluateExpressionParams {
             expression: "system(\"true\")$ 1 + 1;".into(),
             notebook_id: None,
+            labels: None,
         }))
         .await,
     );
@@ -1348,6 +1402,7 @@ async fn expression_with_a_label_from_no_cell_is_reported() {
         .evaluate_expression(Parameters(EvaluateExpressionParams {
             expression: "%o9 + 1".into(),
             notebook_id: None,
+            labels: None,
         }))
         .await
         .expect_err("no cell has Out[9]");
@@ -1365,6 +1420,7 @@ async fn expression_can_use_a_cells_output_label() {
         s.evaluate_expression(Parameters(EvaluateExpressionParams {
             expression: "%o1 + α - α;".into(),
             notebook_id: None,
+            labels: None,
         }))
         .await,
     );
@@ -1378,6 +1434,7 @@ async fn expression_with_a_rejected_character_gets_a_hint() {
         .evaluate_expression(Parameters(EvaluateExpressionParams {
             expression: "∑ k".into(),
             notebook_id: None,
+            labels: None,
         }))
         .await
         .expect_err("∑ is rejected");

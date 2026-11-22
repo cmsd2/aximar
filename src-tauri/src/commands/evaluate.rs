@@ -2,6 +2,7 @@ use tauri::State;
 
 use aximar_core::error::AppError;
 use aximar_core::evaluation::{prepare_input, InputError};
+use aximar_core::maxima::labels::SuppliedLabels;
 use aximar_core::maxima::protocol;
 use aximar_core::maxima::types::EvalResult;
 use aximar_core::registry::NotebookContextRef;
@@ -27,9 +28,10 @@ pub async fn evaluate_expression(
     notebook_id: Option<String>,
     cell_id: String,
     expression: String,
+    labels: Option<SuppliedLabels>,
 ) -> Result<EvalResult, AppError> {
     let ctx = resolve_context(&state, notebook_id).await?;
-    let (decision, labels) = {
+    let (decision, own_labels) = {
         let nb = ctx.notebook.lock().await;
         let decision = safety::check_trust(&nb, &expression, &state.packages, TrustMode::Interactive);
         (decision, nb.expression_label_context())
@@ -45,11 +47,17 @@ pub async fn evaluate_expression(
             ..Default::default()
         });
     }
+    // Labels the caller brings from its own notebook, or this notebook's
+    let labels = match labels.map(SuppliedLabels::into_context) {
+        None => Ok(own_labels),
+        Some(result) => result.map_err(|e| e.0),
+    };
     // Unicode and label references, as for cells; a label with no value is
     // reported as the result's error
-    let expression = match prepare_input(&expression, &labels) {
+    let prepared = labels.and_then(|labels| prepare_input(&expression, &labels).map_err(|InputError(m)| m));
+    let expression = match prepared {
         Ok(prepared) => prepared,
-        Err(InputError(message)) => {
+        Err(message) => {
             return Ok(EvalResult {
                 cell_id,
                 error: Some(message),

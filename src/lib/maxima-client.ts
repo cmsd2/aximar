@@ -7,13 +7,26 @@ function activeId(): string | null {
   return useNotebookStore.getState().activeNotebookId;
 }
 
+/** Labels an expression brings from a notebook the caller keeps itself:
+ *  gutter number to Maxima output label, and the cell above's label. */
+export interface SuppliedLabels {
+  label_map: Record<number, string>;
+  previous_output_label: string | null;
+}
+
 /** Evaluate an expression without a cell.  The backend prepares it as it
- *  does cells: Unicode names and label references. */
-export async function evaluateExpression(cellId: string, expression: string): Promise<EvalResult> {
+ *  does cells: Unicode names and label references, from the notebook's own
+ *  labels or the ones given. */
+export async function evaluateExpression(
+  cellId: string,
+  expression: string,
+  labels?: SuppliedLabels,
+): Promise<EvalResult> {
   return invoke<EvalResult>("evaluate_expression", {
     notebookId: activeId(),
     cellId,
     expression,
+    labels: labels ?? null,
   });
 }
 

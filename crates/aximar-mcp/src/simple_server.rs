@@ -74,7 +74,7 @@ Unicode Greek letters (α, β, γ, θ, π, etc.) are translated to Maxima symbol
         Parameters(params): Parameters<SimpleEvaluateExpressionParams>,
     ) -> Result<String, String> {
         self.core
-            .do_evaluate_expression(&params.expression, params.session_id.as_deref())
+            .do_evaluate_expression(&params.expression, params.session_id.as_deref(), params.labels.map(Into::into))
             .await
     }
 
@@ -248,5 +248,58 @@ impl rmcp::handler::server::ServerHandler for SimpleMcpServer {
                  `session_id` to target a specific session. When omitted, tools target \
                  the default session.",
             )
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::sync::Arc;
+
+    use rmcp::handler::server::wrapper::Parameters;
+    use tokio::sync::Mutex;
+
+    use aximar_core::catalog::packages::PackageCatalog;
+    use aximar_core::catalog::search::Catalog;
+    use aximar_core::maxima::backend::Backend;
+    use aximar_core::registry::NotebookRegistry;
+    use aximar_core::session_ops::SessionSettings;
+
+    use super::*;
+
+    fn server() -> SimpleMcpServer {
+        let settings = SessionSettings { backend: Backend::Local, maxima_path: None, eval_timeout: 30 };
+        SimpleMcpServer::new(ServerCore::new(
+            Arc::new(Mutex::new(NotebookRegistry::new())),
+            Arc::new(Catalog::load()),
+            Arc::new(PackageCatalog::load()),
+            settings.fixed(),
+            false,
+        ))
+    }
+
+    /// The arguments an editor's notebook view sends: gutter numbers are
+    /// JSON object keys, so they arrive as strings.
+    fn params(expression: &str, label: &str) -> SimpleEvaluateExpressionParams {
+        serde_json::from_value(serde_json::json!({
+            "expression": expression,
+            "labels": { "label_map": { "1": label }, "previous_output_label": "%o170" }
+        }))
+        .unwrap()
+    }
+
+    #[test]
+    fn labels_arrive_with_gutter_numbers_as_keys() {
+        let labels = params("%o1;", "%o167").labels.unwrap();
+        assert_eq!(labels.label_map.get(&1).map(String::as_str), Some("%o167"));
+        assert_eq!(labels.previous_output_label.as_deref(), Some("%o170"));
+    }
+
+    #[tokio::test]
+    async fn evaluate_expression_uses_the_labels() {
+        // Refused before Maxima runs, so this shows the labels got through
+        let err = server().evaluate_expression(Parameters(params("%o2 + 1;", "%o167"))).await.unwrap_err();
+        assert!(err.contains("Out[2] (%o2) has no value in this session"), "{err}");
+        let err = server().evaluate_expression(Parameters(params("%o1;", "x"))).await.unwrap_err();
+        assert!(err.contains("not a Maxima output label"), "{err}");
     }
 }
