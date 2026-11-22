@@ -1,0 +1,73 @@
+{
+  "nbformat": 4,
+  "nbformat_minor": 5,
+  "metadata": {
+    "kernelspec": {
+      "name": "maxima",
+      "display_name": "Maxima",
+      "language": "maxima"
+    },
+    "aximar": {}
+  },
+  "cells": [
+    {
+      "cell_type": "code",
+      "source": "",
+      "metadata": {}
+    },
+    {
+      "cell_type": "markdown",
+      "source": "# Integrals\n\nA notebook saved by Aximar before S1.",
+      "metadata": {}
+    },
+    {
+      "cell_type": "code",
+      "source": "print(\"working\")$\nintegrate(x, x);",
+      "metadata": {},
+      "execution_count": 1,
+      "outputs": [
+        {
+          "name": "stdout",
+          "output_type": "stream",
+          "text": [
+            "working"
+          ]
+        },
+        {
+          "data": {
+            "text/latex": [
+              "{{x^2}\\over{2}}"
+            ]
+          },
+          "execution_count": 1,
+          "metadata": {},
+          "output_type": "execute_result"
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": "plot2d(x^2, [x, 0, 1])$",
+      "metadata": {},
+      "execution_count": 2,
+      "outputs": [
+        {
+          "data": {
+            "image/svg+xml": [
+              "<?xml version=\"1.0\" encoding=\"utf-8\"  standalone=\"no\"?>\n<svg \n width=\"600\" height=\"480\"\n viewBox=\"0 0 600 480\"\n xmlns=\"http://www.w3.org/2000/svg\"\n xmlns:xlink=\"http://www.w3.org/1999/xlink\"\n>\n\n<title>Gnuplot</title>\n<desc>Produced by GNUPLOT 6.0 patchlevel 6 </desc>\n\n<g id=\"gnuplot_canvas\">\n\n<rect x=\"0\" y=\"0\" width=\"600\" height=\"480\" fill=\"none\"/>\n<defs>\n\n\t<circle id='gpDot' r='0.5' stroke-width='0.5' stroke='currentColor'/>\n\t<path id='gpPt0' stroke-width='0.222' stroke='currentColor' d='M-1,0 h2 M0,-1 v2'/>\n\t<path id='gpPt1' stroke-width='0.222' stroke='currentColor' d='M-1,-1 L1,1 M1,-1 L-1,1'/>\n\t<path id='gpPt2' stroke-width='0.222' stroke='currentColor' d='M-1,0 L1,0 M0,-1 L0,1 M-1,-1 L1,1 M-1,1 L1,-1'/>\n\t<rect id='gpPt3' stroke-width='0.222' stroke='currentColor' x='-1' y='-1' width='2' height='2'/>\n\t<rect id='gpPt4' stroke-width='0.222' stroke='currentColor' fill='currentColor' x='-1' y='-1' width='2' height='2'/>\n\t<circle id='gpPt5' stroke-width='0.222' stroke='currentColor' cx='0' cy='0' r='1'/>\n\t<use xlink:href='#gpPt5' id='gpPt6' fill='currentColor' stroke='none'/>\n\t<path id='gpPt7' stroke-width='0.222' stroke='currentColor' d='M0,-1.33 L-1.33,0.67 L1.33,0.67 z'/>\n\t<use xlink:href='#gpPt7' id='gpPt8' fill='currentColor' stroke='none'/>\n\t<use xlink:href='#gpPt7' id='gpPt9' stroke='currentColor' transform='rotate(180)'/>\n\t<use xlink:href='#gpPt9' id='gpPt10' fill='currentColor' stroke='none'/>\n\t<use xlink:href='#gpPt3' id='gpPt11' stroke='currentColor' transform='rotate(45)'/>\n\t<use xlink:href='#gpPt11' id='gpPt12' fill='currentColor' stroke='none'/>\n\t<path id='gpPt13' stroke-width='0.222' stroke='currentColor' d='M0,1.330 L1.265,0.411 L0.782,-1.067 L-0.782,-1.076 L-1.265,0.411 z'/>\n\t<use xlink:href='#gpPt13' id='gpPt14' fill='currentColor' stroke='none'/>\n\t<filter id='textbox' filterUnits='objectBoundingBox' x='0' y='0' height='1' width='1'>\n\t  <feFlood flood-color='white' flood-opacity='1' result='bgnd'/>\n\t  <feComposite in='SourceGraphic' in2='bgnd' operator='atop'/>\n\t</filter>\n\t<filter id='greybox' filterUnits='objectBoundingBox' x='0' y='0' height='1' width='1'>\n\t  <feFlood flood-color='lightgrey' flood-opacity='1' result='grey'/>\n\t  <feComposite in='SourceGraphic' in2='grey' operator='atop'/>\n\t</filter>\n</defs>\n<g fill=\"none\" color=\"white\" stroke=\"currentColor\" stroke-width=\"1.00\" stroke-linecap=\"butt\" stroke-linejoin=\"miter\">\n</g>\n<g fill=\"none\" color=\"black\" stroke=\"currentColor\" stroke-width=\"1.00\" stroke-linecap=\"butt\" stroke-linejoin=\"miter\">\n\t<g stroke='none' shape-rendering='crispEdges'>\n\t\t<polygon fill = 'rgb(255, 255, 255)' points = '0.00,480.00 599.99,480.00 599.99,0.01 0.00,0.01 '/>\n\t</g>\n</g>\n<g fill=\"none\" color=\"gray\" stroke=\"currentColor\" stroke-width=\"1.00\" stroke-linecap=\"butt\" stroke-linejoin=\"miter\">\n\t<path stroke='black' stroke-dasharray='2,4'  d='M72.53,391.44 L574.82,391.44  '/></g>\n<g fill=\"none\" color=\"gray\" stroke=\"currentColor\" stroke-width=\"1.00\" stroke-linecap=\"butt\" stroke-linejoin=\"miter\">\n\t<path stroke='black' stroke-dasharray='2,4'  d='M72.53,408.56 L72.53,31.85  '/></g>\n<g fill=\"none\" color=\"black\" stroke=\"currentColor\" stroke-width=\"1.00\" stroke-linecap=\"butt\" stroke-linejoin=\"miter\">\n\t<path stroke='black'  d='M72.53,31.85 L72.53,408.56 L574.82,408.56 L574.82,31.85 L72.53,31.85 Z  '/></g>\n<g fill=\"none\" color=\"black\" stroke=\"currentColor\" stroke-width=\"1.00\" stroke-linecap=\"butt\" stroke-linejoin=\"miter\">\n</g>\n\t<g id=\"gnuplot_plot_1\"  fill=\"none\"><title>gnuplot_plot_1</title>\n<g fill=\"none\" color=\"black\" stroke=\"currentColor\" stroke-width=\"1.00\" stroke-linecap=\"butt\" stroke-linejoin=\"miter\">\n\t<path stroke='rgb(  0,   0, 255)'  d='M72.53,391.44 L76.86,391.41 L81.19,391.34 L85.52,391.21 L89.85,391.03 L94.18,390.80 L98.51,390.52 L102.84,390.19\n\t\tL107.17,389.81 L111.50,389.38 L115.83,388.89 L120.16,388.36 L124.49,387.77 L128.82,387.14 L133.15,386.45 L137.48,385.71\n\t\tL141.81,384.92 L146.14,384.08 L150.47,383.19 L154.80,382.25 L159.13,381.26 L163.46,380.21 L167.79,379.12 L172.12,377.97\n\t\tL176.45,376.78 L180.78,375.53 L185.11,374.23 L189.44,372.88 L193.77,371.48 L198.10,370.03 L202.43,368.53 L206.76,366.98\n\t\tL211.09,365.38 L215.42,363.72 L219.75,362.02 L224.08,360.26 L228.41,358.45 L232.74,356.59 L237.07,354.69 L241.40,352.73\n\t\tL245.73,350.72 L250.06,348.65 L254.39,346.54 L258.72,344.38 L263.05,342.16 L267.38,339.90 L271.71,337.58 L276.04,335.22\n\t\tL280.37,332.80 L284.70,330.33 L289.03,327.81 L293.36,325.24 L297.69,322.62 L302.02,319.95 L306.35,317.22 L310.68,314.45\n\t\tL315.01,311.62 L319.34,308.75 L323.68,305.82 L328.01,302.84 L332.34,299.81 L336.67,296.74 L341.00,293.60 L345.33,290.42\n\t\tL349.66,287.19 L353.99,283.91 L358.32,280.57 L362.65,277.19 L366.98,273.75 L371.31,270.27 L375.64,266.73 L379.97,263.14\n\t\tL384.30,259.50 L388.63,255.81 L392.96,252.07 L397.29,248.28 L401.62,244.43 L405.95,240.54 L410.28,236.60 L414.61,232.60\n\t\tL418.94,228.55 L423.27,224.46 L427.60,220.31 L431.93,216.11 L436.26,211.86 L440.59,207.56 L444.92,203.20 L449.25,198.80\n\t\tL453.58,194.35 L457.91,189.84 L462.24,185.29 L466.57,180.68 L470.90,176.02 L475.23,171.31 L479.56,166.56 L483.89,161.74\n\t\tL488.22,156.88 L492.55,151.97 L496.88,147.01 L501.21,142.00 L505.54,136.93 L509.87,131.81 L514.20,126.65 L518.53,121.43\n\t\tL522.86,116.16 L527.19,110.84 L531.52,105.47 L535.85,100.05 L540.18,94.58 L544.51,89.06 L548.84,83.48 L553.17,77.86\n\t\tL557.50,72.18 L561.83,66.46 L566.16,60.68 L570.49,54.85 L574.82,48.97  '/></g>\n\t</g>\n<g fill=\"none\" color=\"black\" stroke=\"currentColor\" stroke-width=\"1.00\" stroke-linecap=\"butt\" stroke-linejoin=\"miter\">\n\t<path stroke='black'  d='M72.53,391.44 L81.53,391.44 M574.82,391.44 L565.82,391.44  '/>\t<g transform=\"translate(64.14,395.34)\" stroke=\"none\" fill=\"black\" font-family=\"Arial\" font-size=\"12.00\"  text-anchor=\"end\">\n\t\t<text><tspan font-family=\"Arial\" > 0</tspan></text>\n\t</g>\n</g>\n<g fill=\"none\" color=\"black\" stroke=\"currentColor\" stroke-width=\"1.00\" stroke-linecap=\"butt\" stroke-linejoin=\"miter\">\n\t<path stroke='black'  d='M72.53,322.94 L81.53,322.94 M574.82,322.94 L565.82,322.94  '/>\t<g transform=\"translate(64.14,326.84)\" stroke=\"none\" fill=\"black\" font-family=\"Arial\" font-size=\"12.00\"  text-anchor=\"end\">\n\t\t<text><tspan font-family=\"Arial\" > 0.2</tspan></text>\n\t</g>\n</g>\n<g fill=\"none\" color=\"black\" stroke=\"currentColor\" stroke-width=\"1.00\" stroke-linecap=\"butt\" stroke-linejoin=\"miter\">\n\t<path stroke='black'  d='M72.53,254.45 L81.53,254.45 M574.82,254.45 L565.82,254.45  '/>\t<g transform=\"translate(64.14,258.35)\" stroke=\"none\" fill=\"black\" font-family=\"Arial\" font-size=\"12.00\"  text-anchor=\"end\">\n\t\t<text><tspan font-family=\"Arial\" > 0.4</tspan></text>\n\t</g>\n</g>\n<g fill=\"none\" color=\"black\" stroke=\"currentColor\" stroke-width=\"1.00\" stroke-linecap=\"butt\" stroke-linejoin=\"miter\">\n\t<path stroke='black'  d='M72.53,185.96 L81.53,185.96 M574.82,185.96 L565.82,185.96  '/>\t<g transform=\"translate(64.14,189.86)\" stroke=\"none\" fill=\"black\" font-family=\"Arial\" font-size=\"12.00\"  text-anchor=\"end\">\n\t\t<text><tspan font-family=\"Arial\" > 0.6</tspan></text>\n\t</g>\n</g>\n<g fill=\"none\" color=\"black\" stroke=\"currentColor\" stroke-width=\"1.00\" stroke-linecap=\"butt\" stroke-linejoin=\"miter\">\n\t<path stroke='black'  d='M72.53,117.47 L81.53,117.47 M574.82,117.47 L565.82,117.47  '/>\t<g transform=\"translate(64.14,121.37)\" stroke=\"none\" fill=\"black\" font-family=\"Arial\" font-size=\"12.00\"  text-anchor=\"end\">\n\t\t<text><tspan font-family=\"Arial\" > 0.8</tspan></text>\n\t</g>\n</g>\n<g fill=\"none\" color=\"black\" stroke=\"currentColor\" stroke-width=\"1.00\" stroke-linecap=\"butt\" stroke-linejoin=\"miter\">\n\t<path stroke='black'  d='M72.53,48.97 L81.53,48.97 M574.82,48.97 L565.82,48.97  '/>\t<g transform=\"translate(64.14,52.87)\" stroke=\"none\" fill=\"black\" font-family=\"Arial\" font-size=\"12.00\"  text-anchor=\"end\">\n\t\t<text><tspan font-family=\"Arial\" > 1</tspan></text>\n\t</g>\n</g>\n<g fill=\"none\" color=\"black\" stroke=\"currentColor\" stroke-width=\"1.00\" stroke-linecap=\"butt\" stroke-linejoin=\"miter\">\n\t<path stroke='black'  d='M72.53,408.56 L72.53,399.56 M72.53,31.85 L72.53,40.85  '/>\t<g transform=\"translate(72.53,430.46)\" stroke=\"none\" fill=\"black\" font-family=\"Arial\" font-size=\"12.00\"  text-anchor=\"middle\">\n\t\t<text><tspan font-family=\"Arial\" > 0</tspan></text>\n\t</g>\n</g>\n<g fill=\"none\" color=\"black\" stroke=\"currentColor\" stroke-width=\"1.00\" stroke-linecap=\"butt\" stroke-linejoin=\"miter\">\n\t<path stroke='black'  d='M172.99,408.56 L172.99,399.56 M172.99,31.85 L172.99,40.85  '/>\t<g transform=\"translate(172.99,430.46)\" stroke=\"none\" fill=\"black\" font-family=\"Arial\" font-size=\"12.00\"  text-anchor=\"middle\">\n\t\t<text><tspan font-family=\"Arial\" > 0.2</tspan></text>\n\t</g>\n</g>\n<g fill=\"none\" color=\"black\" stroke=\"currentColor\" stroke-width=\"1.00\" stroke-linecap=\"butt\" stroke-linejoin=\"miter\">\n\t<path stroke='black'  d='M273.45,408.56 L273.45,399.56 M273.45,31.85 L273.45,40.85  '/>\t<g transform=\"translate(273.45,430.46)\" stroke=\"none\" fill=\"black\" font-family=\"Arial\" font-size=\"12.00\"  text-anchor=\"middle\">\n\t\t<text><tspan font-family=\"Arial\" > 0.4</tspan></text>\n\t</g>\n</g>\n<g fill=\"none\" color=\"black\" stroke=\"currentColor\" stroke-width=\"1.00\" stroke-linecap=\"butt\" stroke-linejoin=\"miter\">\n\t<path stroke='black'  d='M373.90,408.56 L373.90,399.56 M373.90,31.85 L373.90,40.85  '/>\t<g transform=\"translate(373.90,430.46)\" stroke=\"none\" fill=\"black\" font-family=\"Arial\" font-size=\"12.00\"  text-anchor=\"middle\">\n\t\t<text><tspan font-family=\"Arial\" > 0.6</tspan></text>\n\t</g>\n</g>\n<g fill=\"none\" color=\"black\" stroke=\"currentColor\" stroke-width=\"1.00\" stroke-linecap=\"butt\" stroke-linejoin=\"miter\">\n\t<path stroke='black'  d='M474.36,408.56 L474.36,399.56 M474.36,31.85 L474.36,40.85  '/>\t<g transform=\"translate(474.36,430.46)\" stroke=\"none\" fill=\"black\" font-family=\"Arial\" font-size=\"12.00\"  text-anchor=\"middle\">\n\t\t<text><tspan font-family=\"Arial\" > 0.8</tspan></text>\n\t</g>\n</g>\n<g fill=\"none\" color=\"black\" stroke=\"currentColor\" stroke-width=\"1.00\" stroke-linecap=\"butt\" stroke-linejoin=\"miter\">\n\t<path stroke='black'  d='M574.82,408.56 L574.82,399.56 M574.82,31.85 L574.82,40.85  '/>\t<g transform=\"translate(574.82,430.46)\" stroke=\"none\" fill=\"black\" font-family=\"Arial\" font-size=\"12.00\"  text-anchor=\"middle\">\n\t\t<text><tspan font-family=\"Arial\" > 1</tspan></text>\n\t</g>\n</g>\n<g fill=\"none\" color=\"black\" stroke=\"currentColor\" stroke-width=\"1.00\" stroke-linecap=\"butt\" stroke-linejoin=\"miter\">\n</g>\n<g fill=\"none\" color=\"gray\" stroke=\"currentColor\" stroke-width=\"1.00\" stroke-linecap=\"butt\" stroke-linejoin=\"miter\">\n\t<path stroke='black' stroke-dasharray='2,4'  d='M72.53,391.44 L574.82,391.44  '/></g>\n<g fill=\"none\" color=\"gray\" stroke=\"currentColor\" stroke-width=\"1.00\" stroke-linecap=\"butt\" stroke-linejoin=\"miter\">\n\t<path stroke='black' stroke-dasharray='2,4'  d='M72.53,408.56 L72.53,31.85  '/></g>\n<g fill=\"none\" color=\"gray\" stroke=\"black\" stroke-width=\"2.00\" stroke-linecap=\"butt\" stroke-linejoin=\"miter\">\n</g>\n<g fill=\"none\" color=\"black\" stroke=\"currentColor\" stroke-width=\"2.00\" stroke-linecap=\"butt\" stroke-linejoin=\"miter\">\n</g>\n<g fill=\"none\" color=\"black\" stroke=\"black\" stroke-width=\"1.00\" stroke-linecap=\"butt\" stroke-linejoin=\"miter\">\n</g>\n<g fill=\"none\" color=\"black\" stroke=\"currentColor\" stroke-width=\"1.00\" stroke-linecap=\"butt\" stroke-linejoin=\"miter\">\n\t<path stroke='black'  d='M72.53,31.85 L72.53,408.56 L574.82,408.56 L574.82,31.85 L72.53,31.85 Z  '/>\t<g transform=\"translate(19.18,220.21) rotate(270.00)\" stroke=\"none\" fill=\"black\" font-family=\"Arial\" font-size=\"12.00\"  text-anchor=\"middle\">\n\t\t<text><tspan font-family=\"Arial\" >x</tspan><tspan font-family=\"Arial\"  font-size=\"9.6\" dy=\"-6.00px\">2</tspan><tspan font-size=\"12.0\" dy=\"6.00\"></tspan></text>\n\t</g>\n</g>\n<g fill=\"none\" color=\"black\" stroke=\"currentColor\" stroke-width=\"1.00\" stroke-linecap=\"butt\" stroke-linejoin=\"miter\">\n\t<g transform=\"translate(323.67,457.46)\" stroke=\"none\" fill=\"black\" font-family=\"Arial\" font-size=\"12.00\"  text-anchor=\"middle\">\n\t\t<text><tspan font-family=\"Arial\" >x</tspan></text>\n\t</g>\n</g>\n<g fill=\"none\" color=\"black\" stroke=\"currentColor\" stroke-width=\"1.00\" stroke-linecap=\"butt\" stroke-linejoin=\"miter\">\n</g>\n<g fill=\"none\" color=\"black\" stroke=\"currentColor\" stroke-width=\"1.00\" stroke-linecap=\"butt\" stroke-linejoin=\"miter\">\n</g>\n</g>\n</svg>\n\n"
+            ]
+          },
+          "metadata": {},
+          "output_type": "display_data"
+        }
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": "1/0;",
+      "metadata": {},
+      "execution_count": 3,
+      "outputs": []
+    }
+  ]
+}

@@ -16,7 +16,7 @@ The project plan's S1 stream (#15, #16, #17) is the fix: one written format, one
 
 - **A format spec**, `docs/notebook-format.md`, with the requirements in a new `notebook-format` capability: nbformat 4.5 with stable cell IDs; unknown notebook and cell metadata kept; the `metadata.aximar` keys; which output types hold what (`stream`, `execute_result`, `display_data`, `error`); the MIME preference for reading a bundle, with `text/plain` ignored when a richer type is present.
 - **One serializer in aximar-core** (`notebooks::format`), used by the desktop app, aximar-mcp and batch runs. The window opens and saves through new Tauri commands that read and write the file in the backend; the TypeScript serializer, `nb_load_cells` and aximar-mcp's `convert.rs` go.
-- **Cells keep their metadata and IDs** in the core model, and outputs keep their errors and friendly explanations.
+- **Cells keep their metadata and IDs** in the core model, raw cells are kept (read-only), and outputs keep their errors and friendly explanations.
 - **Results carry a plain-text form.** Evaluation captures Maxima's one-line form of each final value (`string(%)`) next to its LaTeX, on both the legacy and kernel-events paths, and files carry it as the result's `text/plain` copy for Jupyter tools.
 - **One numbering rule** in both apps: a session numbers its runs from 1; outputs loaded from a file keep their numbers but are marked stale, and the window shows them as such; `%oN` resolves only to a run in the current session.
 - **One label resolver.** `evaluate_expression` takes an optional label context (gutter number → Maxima label, and the previous output's label), so the extension sends cell source unchanged and stops rewriting labels itself.

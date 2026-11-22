@@ -1,0 +1,80 @@
+{
+ "nbformat": 4,
+ "nbformat_minor": 5,
+ "metadata": {
+  "kernelspec": {
+   "name": "maxima",
+   "display_name": "Maxima",
+   "language": "maxima"
+  }
+ },
+ "cells": [
+  {
+   "id": "a1",
+   "cell_type": "code",
+   "source": [
+    "1;"
+   ],
+   "metadata": {},
+   "execution_count": null,
+   "outputs": []
+  },
+  {
+   "id": "a1",
+   "cell_type": "code",
+   "source": [
+    "2;"
+   ],
+   "metadata": {},
+   "execution_count": null,
+   "outputs": []
+  },
+  {
+   "id": "b-2_c",
+   "cell_type": "code",
+   "source": [
+    "3;"
+   ],
+   "metadata": {},
+   "execution_count": null,
+   "outputs": []
+  },
+  {
+   "id": "bad id!",
+   "cell_type": "code",
+   "source": [
+    "4;"
+   ],
+   "metadata": {},
+   "execution_count": null,
+   "outputs": []
+  },
+  {
+   "id": "",
+   "cell_type": "code",
+   "source": [
+    "5;"
+   ],
+   "metadata": {},
+   "execution_count": null,
+   "outputs": []
+  },
+  {
+   "id": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+   "cell_type": "code",
+   "source": [
+    "6;"
+   ],
+   "metadata": {},
+   "execution_count": null,
+   "outputs": []
+  },
+  {
+   "cell_type": "markdown",
+   "source": [
+    "No id at all"
+   ],
+   "metadata": {}
+  }
+ ]
+}

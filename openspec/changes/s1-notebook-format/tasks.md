@@ -2,12 +2,12 @@ Each numbered group is one pull request. Aximar groups run `cargo test --workspa
 
 ## 1. Format spec and test notebooks (#15)
 
-- [ ] 1.1 Write `docs/notebook-format.md`: nbformat 4.5 and cell IDs, kept metadata, the `metadata.aximar` keys, the output mapping and MIME preference, errors, stale outputs and numbering; verify it covers every requirement of the `notebook-format` spec
-- [ ] 1.2 Add `packages/aximar-notebook-format/fixtures/` with notebooks for each requirement: written by Aximar, by the extension (with `text/plain` copies and `error` outputs), and by Jupyter (4.0 without IDs, with tags and other metadata); each with a short README line saying what it tests
+- [x] 1.1 Write `docs/notebook-format.md`: nbformat 4.5 and cell IDs, kept metadata, the `metadata.aximar` keys, the output mapping and MIME preference, errors, stale outputs and numbering; verify it covers every requirement of the `notebook-format` spec
+- [x] 1.2 Add `packages/aximar-notebook-format/fixtures/` with notebooks for each requirement: written by Aximar, by the extension (with `text/plain` copies and `error` outputs), and by Jupyter (4.0 without IDs, with tags and other metadata); each with a short README line saying what it tests
 
 ## 2. One serializer in aximar-core (#16, #7, #9, #10, #6)
 
-- [ ] 2.1 Add `metadata` to `Notebook` and `Cell`, kept through undo; let `NotebookMetadata` keep unknown keys; verify with unit tests that metadata survives undo and redo
+- [ ] 2.1 Add `metadata` to `Notebook` and `Cell`, kept through undo; add a raw cell type that the window shows read-only and never runs; let `NotebookMetadata` keep unknown keys; verify with unit tests that metadata and raw cells survive undo and redo, and that running a raw cell is refused
 - [ ] 2.2 Add `notebooks::format::{read, write}` with the ID rule, the output mapping, the MIME preference and `error` outputs; `CellOutput` gains `stale` and `error_info`; verify with unit tests per requirement, and by reading and writing every fixture
 - [ ] 2.3 Capture Maxima's one-line form of each final value as `CellOutput.text_plain`: on the legacy path next to the injected `tex(%)`, on the kernel-events path from the result envelope or by the same request; write it as the result's `text/plain` copy and a description for plots; verify with legacy parser tests for the new housekeeping output, and a Maxima-backed test that `x^2/2;` saves `text/plain` `x^2/2` on both paths
 - [ ] 2.4 Recompute `error_info` for loaded error outputs with `errors::enhance_error_with_packages`; verify with a test that a loaded "0 to a negative exponent" error has the "Division by Zero" explanation

@@ -43,6 +43,15 @@ Notebook metadata and cell metadata that Aximar doesn't use SHALL be written bac
 - **WHEN** a file has notebook metadata `{"jupytext": {"formats": "ipynb"}}` and a cell with metadata `{"tags": ["setup"]}`, and it is opened and saved without changes
 - **THEN** the saved file SHALL have the same notebook and cell metadata
 
+### Requirement: Raw cells are kept
+
+A `raw` cell SHALL be kept, shown as read-only text, and written back with its source and metadata unchanged.
+
+#### Scenario: Raw cell from Jupyter
+
+- **WHEN** a Jupyter notebook with a raw cell is opened and saved
+- **THEN** the saved file SHALL have the raw cell, in the same place, with the same source and metadata
+
 ### Requirement: Outputs map to nbformat output types
 
 A cell's output SHALL be written as: print output as a `stream` named `stdout`; the final value as an `execute_result` with `text/latex`, a `text/plain` copy holding Maxima's one-line form of the value when it is known, and the execution count; each plot as a `display_data` with `application/x-maxima-plotly`, `image/svg+xml` or `image/png`, and a `text/plain` copy that describes the plot without its source; and an error as an `error` output with `ename` `MaximaError` and the error text as `evalue`. Reading SHALL give back the same output.
