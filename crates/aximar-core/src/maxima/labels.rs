@@ -1,5 +1,4 @@
 use regex::Regex;
-use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::LazyLock;
 
@@ -7,12 +6,16 @@ use super::code_spans::{spans, Span};
 
 /// Maps display execution counts to real Maxima labels, and tracks
 /// the previous cell's output label for bare `%` resolution.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
 pub struct LabelContext {
     /// Display execution count → real Maxima output label (e.g. 1 → "%o6")
     pub label_map: HashMap<u32, String>,
     /// The real output label of the most recent previous cell (for bare `%`)
     pub previous_output_label: Option<String>,
+    /// Whether a bare `%` in the first statement means the previous cell's
+    /// output.  True for cells.  False for expressions, which have no cell
+    /// above: there `%` keeps Maxima's meaning, the last result.
+    pub bare_percent: bool,
 }
 
 /// A label reference with no value in the current Maxima session.  The
@@ -40,7 +43,7 @@ static DISPLAY_LABEL_RE: LazyLock<Regex> =
 /// labels, which hold unrelated values.
 pub fn rewrite_labels(input: &str, ctx: &LabelContext) -> Result<String, UnresolvedLabel> {
     let mut result = String::with_capacity(input.len());
-    let mut first_statement = true;
+    let mut first_statement = ctx.bare_percent;
     for span in spans(input) {
         match span {
             Span::Text(text) => result.push_str(text),
@@ -159,6 +162,7 @@ mod tests {
         LabelContext {
             label_map: HashMap::new(),
             previous_output_label: prev.map(String::from),
+            bare_percent: true,
         }
     }
 
@@ -166,6 +170,7 @@ mod tests {
         LabelContext {
             label_map: map.iter().map(|(k, v)| (*k, v.to_string())).collect(),
             previous_output_label: None,
+            bare_percent: true,
         }
     }
 
@@ -173,7 +178,15 @@ mod tests {
         LabelContext {
             label_map: map.iter().map(|(k, v)| (*k, v.to_string())).collect(),
             previous_output_label: prev.map(String::from),
+            bare_percent: true,
         }
+    }
+
+    #[test]
+    fn expressions_leave_bare_percent_to_maxima() {
+        let mut ctx = ctx_map(&[(1, "%o6")]);
+        ctx.bare_percent = false;
+        assert_eq!(rewrite_labels("% + %o1;", &ctx), Ok("% + %o6;".to_string()));
     }
 
     /// Rewrite and expect success.

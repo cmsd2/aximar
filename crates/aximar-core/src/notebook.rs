@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
+use crate::maxima::labels::LabelContext;
 use crate::maxima::output::OutputEvent;
 use crate::maxima::types::EvalResult;
 
@@ -241,6 +242,25 @@ impl Notebook {
     /// nearest cell above whose output was produced in this session.  Going
     /// through the label map skips cells that errored and outputs left from
     /// an earlier session, even when a new run has reused their count.
+    /// Labels for preparing a cell's input: a bare `%` at its start means
+    /// the output of the nearest cell above that has one.
+    pub fn cell_label_context(&self, cell_id: &str) -> LabelContext {
+        LabelContext {
+            label_map: self.label_map.clone(),
+            previous_output_label: self.previous_output_label(cell_id),
+            bare_percent: true,
+        }
+    }
+
+    /// Labels for preparing an expression, which has no cell above it.
+    pub fn expression_label_context(&self) -> LabelContext {
+        LabelContext {
+            label_map: self.label_map.clone(),
+            previous_output_label: None,
+            bare_percent: false,
+        }
+    }
+
     pub fn previous_output_label(&self, cell_id: &str) -> Option<String> {
         let pos = self.cells.iter().position(|c| c.id == cell_id)?;
         // Walk backwards from the cell before this one

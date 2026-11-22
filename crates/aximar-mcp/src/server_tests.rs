@@ -1288,3 +1288,35 @@ async fn connected_cell_blocked_by_trust_shows_the_banner() {
     // The window hears about the block, and the cell never starts running
     assert_eq!(*seen.lock().unwrap(), vec!["trust_required"]);
 }
+
+// ── Expressions are prepared like cells ───────────────────────────────
+
+#[tokio::test]
+async fn expression_with_a_label_from_no_cell_is_reported() {
+    let s = build_server();
+    let msg = s
+        .evaluate_expression(Parameters(EvaluateExpressionParams {
+            expression: "%o9 + 1".into(),
+            notebook_id: None,
+        }))
+        .await
+        .expect_err("no cell has Out[9]");
+    assert!(msg.contains("Out[9]"), "{msg}");
+}
+
+#[tokio::test]
+#[ignore = "requires Maxima to be installed"]
+async fn expression_can_use_a_cells_output_label() {
+    let s = build_server();
+    let cell_id = add_code_cell(&s, "6 * 7;").await;
+    let v = parse_ok(s.run_cell(Parameters(CellIdParams { cell_id, notebook_id: None })).await);
+    assert_eq!(v["execution_count"], 1);
+    let v = parse_ok(
+        s.evaluate_expression(Parameters(EvaluateExpressionParams {
+            expression: "%o1 + α - α;".into(),
+            notebook_id: None,
+        }))
+        .await,
+    );
+    assert_eq!(v["latex"], "42", "{v:#}");
+}
