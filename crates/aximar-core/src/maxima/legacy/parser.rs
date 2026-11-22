@@ -260,6 +260,8 @@ fn parse_output_inner(
     let mut skip_next_false = false;
     let mut in_error = false;
     let mut output_label: Option<String> = None;
+    // The result's one-line form, printed by the protocol before its tex()
+    let mut plain: Option<String> = None;
     // Accumulator for multi-line LaTeX (tex() wraps long output)
     let mut latex_buf: Option<String> = None;
     // Track \begin{verbatim}...\end{verbatim} blocks from tex() on function defs
@@ -333,6 +335,15 @@ fn parse_output_inner(
                     output_label = Some(format!("%o{}", n - 2));
                 }
             }
+            continue;
+        }
+
+        // The result's one-line form, from the protocol's printf
+        if let Some(inner) = trimmed
+            .strip_prefix("__AXIMAR_PLAIN__")
+            .and_then(|rest| rest.strip_suffix("__AXIMAR_PLAIN_END__"))
+        {
+            plain = Some(inner.to_string());
             continue;
         }
 
@@ -593,6 +604,11 @@ fn parse_output_inner(
     // Don't expose an output label for errors (no %oN was assigned)
     let output_label = if has_error { None } else { output_label };
 
+    // The one-line form belongs to the final value: keep it only when that
+    // value is shown as LaTeX, not for plots, images or errors
+    let shows_value = latex.is_some() && plot_svg.is_none() && plot_data.is_none() && image_png.is_none();
+    let text_plain = if shows_value { plain } else { None };
+
     EvalResult {
         cell_id: cell_id.to_string(),
         text_output,
@@ -605,6 +621,7 @@ fn parse_output_inner(
         is_error: has_error,
         duration_ms,
         output_label,
+        text_plain,
     }
 }
 
@@ -990,6 +1007,40 @@ mod tests {
         assert!(!result.is_error);
         assert_eq!(result.latex, Some("{{x^3}\\over{3}}".to_string()));
         assert!(result.text_output.is_empty());
+    }
+
+    #[test]
+    fn test_plain_form_is_kept_with_the_final_value() {
+        // The protocol prints the result's one-line form before its tex()
+        let lines = vec![
+            "working".to_string(),
+            "__AXIMAR_PLAIN__x^2/2__AXIMAR_PLAIN_END__".to_string(),
+            "$${{x^2}\\over{2}}$$".to_string(),
+            "false".to_string(),
+            "__AXIMAR_LABEL__ 5".to_string(),
+            "__AXIMAR_EVAL_END__".to_string(),
+        ];
+        let result = parse_output("cell-1", &lines, 100, &catalog(), &Backend::Local);
+        assert_eq!(result.text_plain.as_deref(), Some("x^2/2"));
+        assert_eq!(result.latex.as_deref(), Some("{{x^2}\\over{2}}"));
+        // The marker line is never print output
+        assert_eq!(result.text_output, "working");
+    }
+
+    #[test]
+    fn test_plain_form_is_dropped_without_a_shown_value() {
+        // An error: no final value, so no plain form either
+        let lines = vec![
+            "expt: undefined: 0 to a negative exponent.".to_string(),
+            " -- an error. To debug this try: debugmode(true);".to_string(),
+            "__AXIMAR_PLAIN__5__AXIMAR_PLAIN_END__".to_string(),
+            "$$5$$".to_string(),
+            "false".to_string(),
+            "__AXIMAR_EVAL_END__".to_string(),
+        ];
+        let result = parse_output("cell-1", &lines, 100, &catalog(), &Backend::Local);
+        assert!(result.is_error);
+        assert_eq!(result.text_plain, None);
     }
 
     #[test]

@@ -29,6 +29,9 @@ pub enum AppError {
     #[error("Cannot run a markdown cell")]
     CellIsMarkdown,
 
+    #[error("Cannot run a raw cell")]
+    CellIsRaw,
+
     #[error("Cell input is empty")]
     EmptyInput,
 
@@ -37,6 +40,10 @@ pub enum AppError {
 
     #[error("{0}")]
     InvalidConfig(String),
+
+    /// Opening or saving a notebook file failed; the message names the file.
+    #[error("{0}")]
+    NotebookFile(String),
 }
 
 impl Serialize for AppError {

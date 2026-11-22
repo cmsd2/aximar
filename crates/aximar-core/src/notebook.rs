@@ -1,9 +1,11 @@
 use serde::{Deserialize, Serialize};
+use serde_json::{Map, Value};
 use std::collections::HashMap;
 
 use crate::maxima::labels::LabelContext;
 use crate::maxima::output::OutputEvent;
-use crate::maxima::types::EvalResult;
+use crate::maxima::types::{ErrorInfo, EvalResult};
+use crate::notebooks::format::LoadedCell;
 
 use crate::commands::{CommandEffect, NotebookCommand};
 
@@ -12,6 +14,9 @@ use crate::commands::{CommandEffect, NotebookCommand};
 pub enum CellType {
     Code,
     Markdown,
+    /// Text kept from a file (nbformat raw cells): shown read-only, never
+    /// run, written back unchanged.
+    Raw,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
@@ -23,7 +28,7 @@ pub enum CellStatus {
     Error,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct CellOutput {
     pub text_output: String,
     pub latex: Option<String>,
@@ -35,6 +40,21 @@ pub struct CellOutput {
     pub duration_ms: u64,
     pub output_label: Option<String>,
     pub execution_count: Option<u32>,
+    /// Maxima's one-line form of the final value, as `string(%)` gives it.
+    /// Written as the result's `text/plain` copy in files.
+    #[serde(default)]
+    pub text_plain: Option<String>,
+    /// A friendly explanation of the error, for the window.
+    #[serde(default)]
+    pub error_info: Option<ErrorInfo>,
+    /// Read from a file: the output of a session that no longer exists.
+    #[serde(default)]
+    pub stale: bool,
+    /// Outputs read from a file that Aximar doesn't show, such as other
+    /// output types or bundles of unknown MIME types.  Written back
+    /// unchanged; never sent to the window.
+    #[serde(skip)]
+    pub other_outputs: Vec<Value>,
 }
 
 impl CellOutput {
@@ -50,6 +70,10 @@ impl CellOutput {
             duration_ms: result.duration_ms,
             output_label: result.output_label.clone(),
             execution_count: Some(execution_count),
+            text_plain: result.text_plain.clone(),
+            error_info: result.error_info.clone(),
+            stale: false,
+            other_outputs: Vec::new(),
         }
     }
 }
@@ -62,6 +86,13 @@ pub struct Cell {
     pub output: Option<CellOutput>,
     pub status: CellStatus,
     pub raw_output: Vec<OutputEvent>,
+    /// Cell metadata from the file, kept and written back unchanged.
+    #[serde(skip_serializing_if = "Map::is_empty")]
+    pub metadata: Map<String, Value>,
+    /// Other fields of the cell in the file, such as Jupyter's
+    /// `attachments`, kept and written back unchanged.
+    #[serde(skip)]
+    pub extra: Map<String, Value>,
 }
 
 const MAX_UNDO: usize = 50;
@@ -71,16 +102,22 @@ const MAX_UNDO: usize = 50;
 struct NotebookSnapshot {
     cells: Vec<Cell>,
     execution_counter: u32,
+    metadata: Map<String, Value>,
 }
 
 pub struct Notebook {
     cells: Vec<Cell>,
+    /// Notebook metadata from the file, kept and written back.
+    metadata: Map<String, Value>,
     execution_counter: u32,
     /// Maps display count → real Maxima %oN label
     label_map: HashMap<u32, String>,
     /// Maps display count → the cell whose run recorded that label.  After a
     /// restart a cell can still show an old count that a new run reuses.
     label_cells: HashMap<u32, String>,
+    /// Cells a client keeps itself (the VS Code extension), which run here
+    /// by ID: each cell's latest run in this session.
+    client_runs: HashMap<String, u32>,
     undo_past: Vec<NotebookSnapshot>,
     undo_future: Vec<NotebookSnapshot>,
     /// Whether the notebook is trusted for execution of dangerous functions.
@@ -97,12 +134,16 @@ impl Notebook {
             output: None,
             status: CellStatus::Idle,
             raw_output: Vec::new(),
+            metadata: Map::new(),
+            extra: Map::new(),
         };
         Notebook {
             cells: vec![initial_cell],
+            metadata: Map::new(),
             execution_counter: 0,
             label_map: HashMap::new(),
             label_cells: HashMap::new(),
+            client_runs: HashMap::new(),
             undo_past: Vec::new(),
             undo_future: Vec::new(),
             trusted: true,
@@ -111,6 +152,11 @@ impl Notebook {
 
     pub fn cells(&self) -> &[Cell] {
         &self.cells
+    }
+
+    /// Notebook metadata, as read from the file.
+    pub fn metadata(&self) -> &Map<String, Value> {
+        &self.metadata
     }
 
     pub fn get_cell(&self, id: &str) -> Option<&Cell> {
@@ -150,6 +196,8 @@ impl Notebook {
             output: None,
             status: CellStatus::Idle,
             raw_output: Vec::new(),
+            metadata: Map::new(),
+            extra: Map::new(),
         };
 
         if let Some(before_id) = before_cell_id {
@@ -235,13 +283,10 @@ impl Notebook {
     pub fn start_new_session(&mut self) {
         self.label_map.clear();
         self.label_cells.clear();
+        self.client_runs.clear();
         self.execution_counter = 0;
     }
 
-    /// Get the previous output label for bare % resolution: the label of the
-    /// nearest cell above whose output was produced in this session.  Going
-    /// through the label map skips cells that errored and outputs left from
-    /// an earlier session, even when a new run has reused their count.
     /// Labels for preparing a cell's input: a bare `%` at its start means
     /// the output of the nearest cell above that has one.
     pub fn cell_label_context(&self, cell_id: &str) -> LabelContext {
@@ -261,16 +306,52 @@ impl Notebook {
         }
     }
 
+    /// The previous output label for a bare `%`: the label of the nearest
+    /// cell above whose output was produced in this session.  Going through
+    /// the label map skips cells that errored and outputs left from an
+    /// earlier session, even when a new run has reused their count.
     pub fn previous_output_label(&self, cell_id: &str) -> Option<String> {
         let pos = self.cells.iter().position(|c| c.id == cell_id)?;
         // Walk backwards from the cell before this one
         self.cells[..pos].iter().rev().find_map(|cell| {
             let count = cell.output.as_ref()?.execution_count?;
-            if self.label_cells.get(&count) != Some(&cell.id) {
-                return None;
-            }
-            self.label_map.get(&count).cloned()
+            self.output_label_of(&cell.id, count)
         })
+    }
+
+    /// The label a cell's run recorded, if that run is the one with this
+    /// count in this session.
+    fn output_label_of(&self, cell_id: &str, count: u32) -> Option<String> {
+        if self.label_cells.get(&count).map(String::as_str) != Some(cell_id) {
+            return None;
+        }
+        self.label_map.get(&count).cloned()
+    }
+
+    /// Labels for a cell a client keeps itself, given the IDs of the code
+    /// cells above it in order.  The same rules as for this notebook's own
+    /// cells: a bare `%` means the nearest cell above whose latest run in
+    /// this session produced an output.
+    pub fn client_cell_label_context(&self, cells_above: &[String]) -> LabelContext {
+        let previous = cells_above.iter().rev().find_map(|id| {
+            let count = *self.client_runs.get(id)?;
+            self.output_label_of(id, count)
+        });
+        LabelContext {
+            label_map: self.label_map.clone(),
+            previous_output_label: previous,
+            bare_percent: true,
+        }
+    }
+
+    /// Record a run of a client's cell: its count, and its label when it
+    /// produced an output.  A run without one hides the cell's earlier
+    /// output from a bare `%`, as an error output does in this notebook.
+    pub fn record_client_run(&mut self, cell_id: &str, count: u32, label: Option<String>) {
+        self.client_runs.insert(cell_id.to_string(), count);
+        if let Some(label) = label {
+            self.record_label(count, label, cell_id);
+        }
     }
 
     pub fn clear(&mut self) {
@@ -278,6 +359,7 @@ impl Notebook {
         self.execution_counter = 0;
         self.label_map.clear();
         self.label_cells.clear();
+        self.client_runs.clear();
         self.undo_past.clear();
         self.undo_future.clear();
         self.cells.push(Cell {
@@ -287,6 +369,8 @@ impl Notebook {
             output: None,
             status: CellStatus::Idle,
             raw_output: Vec::new(),
+            metadata: Map::new(),
+            extra: Map::new(),
         });
     }
 
@@ -351,7 +435,7 @@ impl Notebook {
                 let cell = self.get_cell_mut(&cell_id).unwrap();
                 cell.cell_type = match cell.cell_type {
                     CellType::Code => CellType::Markdown,
-                    CellType::Markdown => CellType::Code,
+                    CellType::Markdown | CellType::Raw => CellType::Code,
                 };
                 cell.output = None;
                 cell.status = CellStatus::Idle;
@@ -411,9 +495,11 @@ impl Notebook {
             NotebookCommand::NewNotebook => {
                 self.push_undo_snapshot();
                 self.cells.clear();
+                self.metadata = Map::new();
                 self.execution_counter = 0;
                 self.label_map.clear();
                 self.label_cells.clear();
+                self.client_runs.clear();
                 self.trusted = true;
                 self.cells.push(Cell {
                     id: new_cell_id(),
@@ -422,13 +508,35 @@ impl Notebook {
                     output: None,
                     status: CellStatus::Idle,
                     raw_output: Vec::new(),
+                    metadata: Map::new(),
+                    extra: Map::new(),
                 });
                 Ok(CommandEffect::NotebookReplaced)
             }
 
             NotebookCommand::LoadCells { cells } => {
                 self.push_undo_snapshot();
+                self.metadata = Map::new();
+                let cells = cells
+                    .into_iter()
+                    .map(|(id, cell_type, input, output)| LoadedCell {
+                        id,
+                        cell_type,
+                        input,
+                        metadata: Map::new(),
+                        extra: Map::new(),
+                        output,
+                    })
+                    .collect();
                 self.load_cells_from_list(cells);
+                Ok(CommandEffect::NotebookReplaced)
+            }
+
+            NotebookCommand::LoadNotebook { file } => {
+                let file = *file;
+                self.push_undo_snapshot();
+                self.metadata = file.metadata;
+                self.load_cells_from_list(file.cells);
                 Ok(CommandEffect::NotebookReplaced)
             }
 
@@ -437,10 +545,12 @@ impl Notebook {
                     let current = NotebookSnapshot {
                         cells: self.cells.clone(),
                         execution_counter: self.execution_counter,
+                        metadata: self.metadata.clone(),
                     };
                     self.undo_future.push(current);
                     self.cells = snapshot.cells;
                     self.execution_counter = snapshot.execution_counter;
+                    self.metadata = snapshot.metadata;
                     Ok(CommandEffect::Undone)
                 } else {
                     Ok(CommandEffect::NoOp {
@@ -454,10 +564,12 @@ impl Notebook {
                     let current = NotebookSnapshot {
                         cells: self.cells.clone(),
                         execution_counter: self.execution_counter,
+                        metadata: self.metadata.clone(),
                     };
                     self.undo_past.push(current);
                     self.cells = snapshot.cells;
                     self.execution_counter = snapshot.execution_counter;
+                    self.metadata = snapshot.metadata;
                     Ok(CommandEffect::Redone)
                 } else {
                     Ok(CommandEffect::NoOp {
@@ -473,6 +585,7 @@ impl Notebook {
         self.undo_past.push(NotebookSnapshot {
             cells: self.cells.clone(),
             execution_counter: self.execution_counter,
+            metadata: self.metadata.clone(),
         });
         if self.undo_past.len() > MAX_UNDO {
             self.undo_past.remove(0);
@@ -480,24 +593,22 @@ impl Notebook {
         self.undo_future.clear();
     }
 
-    /// Replace cells from a list of (id, cell_type, input, output) tuples.
-    /// Used by LoadCells command.
-    fn load_cells_from_list(&mut self, incoming: Vec<(String, CellType, String, Option<CellOutput>)>) {
+    /// Replace the cells with ones read from a file.
+    fn load_cells_from_list(&mut self, incoming: Vec<LoadedCell>) {
         self.cells.clear();
         self.execution_counter = 0;
         self.label_map.clear();
         self.label_cells.clear();
+        self.client_runs.clear();
         self.trusted = false;
-        for (id, cell_type, input, output) in incoming {
-            // Track the highest execution count from loaded outputs
-            if let Some(ref out) = output {
-                if let Some(ec) = out.execution_count {
-                    if ec > self.execution_counter {
-                        self.execution_counter = ec;
-                    }
-                }
-            }
-            let status = if output.is_some() { CellStatus::Success } else { CellStatus::Idle };
+        // Numbering starts at 1 whatever the loaded outputs show: they came
+        // from a session that no longer exists, and record no labels (#8)
+        for LoadedCell { id, cell_type, input, metadata, extra, output } in incoming {
+            let status = match &output {
+                Some(out) if out.is_error => CellStatus::Error,
+                Some(_) => CellStatus::Success,
+                None => CellStatus::Idle,
+            };
             self.cells.push(Cell {
                 id,
                 cell_type,
@@ -505,6 +616,8 @@ impl Notebook {
                 output,
                 status,
                 raw_output: Vec::new(),
+                metadata,
+                extra,
             });
         }
         if self.cells.is_empty() {
@@ -515,6 +628,8 @@ impl Notebook {
                 output: None,
                 status: CellStatus::Idle,
                 raw_output: Vec::new(),
+                metadata: Map::new(),
+                extra: Map::new(),
             });
         }
     }
@@ -526,6 +641,10 @@ impl Notebook {
     pub fn can_redo(&self) -> bool {
         !self.undo_future.is_empty()
     }
+}
+
+pub(crate) fn new_cell_id() -> String {
+    nanoid::nanoid!()
 }
 
 #[cfg(test)]
@@ -902,8 +1021,117 @@ mod tests {
         // For b, the cell above is a, whose [1] belongs to the old session
         assert_eq!(n.previous_output_label(&b), None);
     }
-}
 
-fn new_cell_id() -> String {
-    nanoid::nanoid!()
+    #[test]
+    fn metadata_and_raw_cells_survive_undo_and_redo() {
+        let text = r#"{"nbformat": 4, "nbformat_minor": 5, "metadata": {"jupytext": {"formats": "ipynb"}}, "cells": [
+            {"id": "r", "cell_type": "raw", "source": "kept", "metadata": {"format": "text/plain"}},
+            {"id": "c", "cell_type": "code", "source": "1;", "metadata": {"tags": ["t"]}, "execution_count": null, "outputs": []}]}"#;
+        let file = crate::notebooks::format::read(text).unwrap();
+        let mut n = nb();
+        n.apply(NotebookCommand::LoadNotebook { file: file.into() }).unwrap();
+        let check = |n: &Notebook| {
+            assert_eq!(n.metadata()["jupytext"]["formats"], "ipynb");
+            assert_eq!(n.cells()[0].cell_type, CellType::Raw);
+            assert_eq!(n.cells()[0].metadata["format"], "text/plain");
+            assert_eq!(n.cells()[1].metadata["tags"][0], "t");
+        };
+        check(&n);
+        // An undoable edit, undone and redone
+        n.apply(NotebookCommand::UpdateCellInput { cell_id: "c".into(), input: "2;".into() }).unwrap();
+        n.apply(NotebookCommand::Undo).unwrap();
+        check(&n);
+        n.apply(NotebookCommand::Redo).unwrap();
+        check(&n);
+        // Undoing the load itself restores the empty notebook's metadata
+        n.apply(NotebookCommand::Undo).unwrap();
+        n.apply(NotebookCommand::Undo).unwrap();
+        assert!(n.metadata().is_empty());
+        n.apply(NotebookCommand::Redo).unwrap();
+        check(&n);
+    }
+
+    #[test]
+    fn toggling_a_raw_cell_makes_it_code() {
+        let text = r#"{"nbformat": 4, "nbformat_minor": 5, "metadata": {}, "cells": [
+            {"id": "r", "cell_type": "raw", "source": "x;", "metadata": {}}]}"#;
+        let mut n = nb();
+        n.apply(NotebookCommand::LoadNotebook { file: crate::notebooks::format::read(text).unwrap().into() }).unwrap();
+        n.apply(NotebookCommand::ToggleCellType { cell_id: "r".into() }).unwrap();
+        assert_eq!(n.cells()[0].cell_type, CellType::Code);
+    }
+
+    #[test]
+    fn a_loaded_notebook_numbers_its_runs_from_one() {
+        // The file's cells show Out[1] and Out[7] from an earlier session
+        let text = r#"{"nbformat": 4, "nbformat_minor": 5, "metadata": {}, "cells": [
+            {"id": "a", "cell_type": "code", "source": "x: 1;", "metadata": {}, "execution_count": 1,
+             "outputs": [{"output_type": "execute_result", "execution_count": 1, "data": {"text/latex": "1"}, "metadata": {}}]},
+            {"id": "b", "cell_type": "code", "source": "y: 2;", "metadata": {}, "execution_count": 7,
+             "outputs": [{"output_type": "execute_result", "execution_count": 7, "data": {"text/latex": "2"}, "metadata": {}}]},
+            {"id": "c", "cell_type": "code", "source": "%;", "metadata": {}, "execution_count": null, "outputs": []}]}"#;
+        let mut n = nb();
+        n.apply(NotebookCommand::LoadNotebook { file: crate::notebooks::format::read(text).unwrap().into() }).unwrap();
+        assert!(n.label_map().is_empty());
+
+        // The first run is In[1], whatever the file showed
+        run(&mut n, "b", Some("%o5"));
+        assert_eq!(n.get_cell("b").unwrap().output.as_ref().unwrap().execution_count, Some(1));
+        // %o1 now means that run, not a's stale Out[1]
+        assert_eq!(n.label_map().get(&1).map(String::as_str), Some("%o5"));
+        assert_eq!(n.previous_output_label("c").as_deref(), Some("%o5"));
+        // and a's stale Out[1] is never the output above b
+        assert_eq!(n.previous_output_label("b"), None);
+    }
+
+    fn ids(list: &[&str]) -> Vec<String> {
+        list.iter().map(|s| s.to_string()).collect()
+    }
+
+    #[test]
+    fn a_client_cell_sees_the_nearest_output_above() {
+        let mut n = nb();
+        let a = n.next_execution_count();
+        n.record_client_run("a", a, Some("%o10".into()));
+        let b = n.next_execution_count();
+        // b failed: it hides nothing above and records no label
+        n.record_client_run("b", b, None);
+        let ctx = n.client_cell_label_context(&ids(&["a", "b"]));
+        assert_eq!(ctx.previous_output_label.as_deref(), Some("%o10"));
+        assert_eq!(ctx.label_map.get(&1).map(String::as_str), Some("%o10"));
+        assert!(ctx.bare_percent);
+    }
+
+    #[test]
+    fn a_client_cell_never_sees_a_cell_that_has_not_run() {
+        // "old" shows an output from the file, but no run here made it
+        let mut n = nb();
+        let ctx = n.client_cell_label_context(&ids(&["old"]));
+        assert_eq!(ctx.previous_output_label, None);
+        let a = n.next_execution_count();
+        n.record_client_run("a", a, Some("%o4".into()));
+        assert_eq!(n.client_cell_label_context(&ids(&["a", "old"])).previous_output_label.as_deref(), Some("%o4"));
+    }
+
+    #[test]
+    fn a_failed_rerun_hides_the_cells_earlier_output() {
+        let mut n = nb();
+        let first = n.next_execution_count();
+        n.record_client_run("a", first, Some("%o4".into()));
+        let second = n.next_execution_count();
+        n.record_client_run("a", second, None);
+        assert_eq!(n.client_cell_label_context(&ids(&["a"])).previous_output_label, None);
+        // %o1 still names the first run, as in the window
+        assert_eq!(n.label_map().get(&1).map(String::as_str), Some("%o4"));
+    }
+
+    #[test]
+    fn a_new_session_forgets_client_runs() {
+        let mut n = nb();
+        let a = n.next_execution_count();
+        n.record_client_run("a", a, Some("%o4".into()));
+        n.start_new_session();
+        assert_eq!(n.client_cell_label_context(&ids(&["a"])).previous_output_label, None);
+        assert_eq!(n.next_execution_count(), 1);
+    }
 }

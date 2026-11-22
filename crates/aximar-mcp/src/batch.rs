@@ -10,7 +10,6 @@ use aximar_core::notebook::CellType;
 use aximar_core::registry::NotebookRegistry;
 use aximar_core::safety::TrustMode;
 
-use crate::convert::{ipynb_to_cell_tuples, notebook_to_ipynb};
 use crate::server::ServerCore;
 
 /// Run a notebook from the command line: load, execute all cells, save with outputs.
@@ -31,15 +30,12 @@ pub async fn run(input_path: &str, output_path: Option<&str>) -> anyhow::Result<
     let eval_timeout = session_settings.eval_timeout;
 
     // Read notebook
-    let notebook = notebook_io::read_notebook(input_path)
+    let file = notebook_io::open(std::path::Path::new(input_path), &catalog, &packages)
         .map_err(|e| anyhow::anyhow!("{e}"))?;
-    let cell_tuples = ipynb_to_cell_tuples(&notebook);
-    let total_code_cells = cell_tuples
-        .iter()
-        .filter(|(_, ct, _, _)| *ct == CellType::Code)
-        .count();
+    let cell_count = file.cells.len();
+    let total_code_cells = file.cells.iter().filter(|c| c.cell_type == CellType::Code).count();
 
-    eprintln!("Loaded {} cells ({} code) from {}", cell_tuples.len(), total_code_cells, input_path);
+    eprintln!("Loaded {cell_count} cells ({total_code_cells} code) from {input_path}");
 
     // Create registry with one notebook, set path so Maxima CWD is the notebook dir
     let notebook_path = std::path::Path::new(input_path).canonicalize()?;
@@ -52,7 +48,7 @@ pub async fn run(input_path: &str, output_path: Option<&str>) -> anyhow::Result<
     };
     {
         let mut nb = ctx.notebook.lock().await;
-        nb.apply(NotebookCommand::LoadCells { cells: cell_tuples })
+        nb.apply(NotebookCommand::LoadNotebook { file: file.into() })
             .map_err(|e| anyhow::anyhow!("{e}"))?;
     }
 
@@ -103,13 +99,11 @@ pub async fn run(input_path: &str, output_path: Option<&str>) -> anyhow::Result<
         std::process::exit(1);
     }
 
-    // Convert back and save
-    let ipynb = {
+    // Save with the new outputs
+    {
         let nb = ctx.notebook.lock().await;
-        notebook_to_ipynb(&nb)
-    };
-    notebook_io::write_notebook(output_path, &ipynb)
-        .map_err(|e| anyhow::anyhow!("{e}"))?;
+        notebook_io::save(std::path::Path::new(output_path), &nb).map_err(|e| anyhow::anyhow!("{e}"))?;
+    }
 
     eprintln!("Saved to {}", output_path);
     Ok(())

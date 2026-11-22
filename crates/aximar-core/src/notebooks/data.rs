@@ -1,3 +1,4 @@
+use crate::notebooks::format::{self, NotebookFile};
 use crate::notebooks::types::{Notebook, TemplateSummary};
 
 const WELCOME: &str = include_str!("welcome.json");
@@ -13,8 +14,10 @@ const INTERACTIVE_PLOTTING: &str = include_str!("interactive-plotting.json");
 const THREE_D_PLOTTING: &str = include_str!("3d-plotting.json");
 const STATISTICAL_PLOTTING: &str = include_str!("statistical-plotting.json");
 
+const TEMPLATES: [&str; 12] = [WELCOME, CALCULUS, LINEAR_ALGEBRA, EQUATIONS, PROGRAMMING, PLOTTING, INTERACTIVE_PLOTTING, THREE_D_PLOTTING, STATISTICAL_PLOTTING, VECTOR_CALCULUS, COMPLEX_NUMBERS, OUTPUT_DISPLAY];
+
 fn load_all() -> Vec<Notebook> {
-    [WELCOME, CALCULUS, LINEAR_ALGEBRA, EQUATIONS, PROGRAMMING, PLOTTING, INTERACTIVE_PLOTTING, THREE_D_PLOTTING, STATISTICAL_PLOTTING, VECTOR_CALCULUS, COMPLEX_NUMBERS, OUTPUT_DISPLAY]
+    TEMPLATES
         .iter()
         .map(|json| serde_json::from_str(json).expect("embedded notebook template must be valid JSON"))
         .collect()
@@ -56,8 +59,14 @@ pub fn list_templates() -> Vec<TemplateSummary> {
         .collect()
 }
 
-pub fn get_template(id: &str) -> Option<Notebook> {
-    load_all().into_iter().find(|nb| template_id(nb) == id)
+/// A template read as a notebook file, ready for
+/// `NotebookCommand::LoadNotebook`.  Its cells get new IDs each time.
+pub fn template_file(id: &str) -> Option<NotebookFile> {
+    TEMPLATES
+        .iter()
+        .zip(load_all())
+        .find(|(_, nb)| template_id(nb) == id)
+        .map(|(json, _)| format::read(json).expect("embedded notebook template must be a notebook"))
 }
 
 #[cfg(test)]
@@ -96,30 +105,23 @@ mod tests {
     }
 
     #[test]
-    fn test_get_template() {
-        let t = get_template("calculus");
-        assert!(t.is_some());
-        let nb = t.unwrap();
-        assert_eq!(nb.nbformat, 4);
-        assert!(!nb.cells.is_empty());
-    }
-
-    #[test]
-    fn test_missing_template() {
-        assert!(get_template("nonexistent").is_none());
+    fn every_template_reads_as_a_notebook_file() {
+        for t in list_templates() {
+            let file = template_file(&t.id).unwrap();
+            assert_eq!(file.cells.len(), t.cell_count, "{}", t.id);
+            assert_eq!(file.metadata["aximar"]["template_id"], t.id.as_str());
+        }
+        assert!(template_file("nonexistent").is_none());
     }
 
     #[test]
     fn test_notebook_format() {
-        let nb = get_template("welcome").unwrap();
-        assert_eq!(nb.metadata.kernelspec.name, "maxima");
-        assert!(nb.metadata.aximar.is_some());
+        let file = template_file("welcome").unwrap();
+        assert_eq!(file.metadata["kernelspec"]["name"], "maxima");
+        assert!(file.metadata["aximar"].is_object());
         // Cells should be code or markdown
-        for cell in &nb.cells {
-            assert!(
-                cell.cell_type == crate::notebooks::types::CellType::Code
-                    || cell.cell_type == crate::notebooks::types::CellType::Markdown,
-            );
+        for cell in &file.cells {
+            assert!(matches!(cell.cell_type, crate::notebook::CellType::Code | crate::notebook::CellType::Markdown));
         }
     }
 }

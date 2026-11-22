@@ -1,5 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
-import type { EvalResult } from "../types/maxima";
+import type { ErrorInfo, EvalResult } from "../types/maxima";
 import { useNotebookStore } from "../store/notebookStore";
 
 /** Get the currently active notebook ID for passing to backend commands. */
@@ -7,22 +7,31 @@ function activeId(): string | null {
   return useNotebookStore.getState().activeNotebookId;
 }
 
-interface NbStateSyncCell {
+/** A cell's output as the backend sends it (aximar-core's CellOutput). */
+export interface SyncCellOutput {
+  text_output: string;
+  latex: string | null;
+  plot_svg: string | null;
+  plot_data: string | null;
+  image_png: string | null;
+  error: string | null;
+  is_error: boolean;
+  duration_ms: number;
+  output_label: string | null;
+  execution_count: number | null;
+  /** Maxima's one-line form of the result */
+  text_plain: string | null;
+  error_info: ErrorInfo | null;
+  /** Read from a file, from an earlier session */
+  stale: boolean;
+}
+
+/** A cell as the backend sends it in state events and nb_get_state. */
+export interface SyncCell {
   id: string;
   cell_type: string;
   input: string;
-  output?: {
-    text_output: string;
-    latex: string | null;
-    plot_svg: string | null;
-    plot_data: string | null;
-    image_png: string | null;
-    error: string | null;
-    is_error: boolean;
-    duration_ms: number;
-    output_label: string | null;
-    execution_count: number | null;
-  } | null;
+  output?: SyncCellOutput | null;
   status?: string | null;
 }
 
@@ -30,7 +39,7 @@ interface NbStateResult {
   notebook_id: string;
   effect: string;
   cell_id: string | null;
-  cells: NbStateSyncCell[];
+  cells: SyncCell[];
   can_undo: boolean;
   can_redo: boolean;
   trusted: boolean;
@@ -98,11 +107,20 @@ export async function nbNewNotebook(): Promise<void> {
   return invoke<void>("nb_new_notebook", { notebookId: activeId() });
 }
 
-export async function nbLoadCells(
-  cells: { id: string; cell_type: string; input: string; output?: { text_output: string; latex: string | null; plot_data: string | null; plot_svg: string | null; image_png: string | null; execution_count: number | null } | null }[],
-  notebookId?: string,
-): Promise<void> {
-  return invoke<void>("nb_load_cells", { notebookId: notebookId ?? activeId(), cells });
+/** Open a notebook file into a notebook.  The backend reads the file, loads
+ *  the cells and records the path; events then update the tab. */
+export async function nbOpen(path: string, notebookId?: string): Promise<void> {
+  return invoke<void>("nb_open", { notebookId: notebookId ?? activeId(), path });
+}
+
+/** Save a notebook to a file and record the path. */
+export async function nbSave(path: string, notebookId?: string): Promise<void> {
+  return invoke<void>("nb_save", { notebookId: notebookId ?? activeId(), path });
+}
+
+/** Load a built-in template into a notebook. */
+export async function nbLoadTemplate(templateId: string, notebookId?: string): Promise<void> {
+  return invoke<void>("nb_load_template", { notebookId: notebookId ?? activeId(), templateId });
 }
 
 export type RunCellResult =

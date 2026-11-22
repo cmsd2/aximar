@@ -76,8 +76,10 @@ pub async fn evaluate_cell(
             .get_cell(cell_id)
             .ok_or_else(|| AppError::CellNotFound(cell_id.to_string()))?;
 
-        if cell.cell_type == CellType::Markdown {
-            return Err(AppError::CellIsMarkdown);
+        match cell.cell_type {
+            CellType::Markdown => return Err(AppError::CellIsMarkdown),
+            CellType::Raw => return Err(AppError::CellIsRaw),
+            CellType::Code => {}
         }
 
         let input = cell.input.clone();
@@ -184,7 +186,8 @@ pub async fn check_cell_trust(
     let cell = nb
         .get_cell(cell_id)
         .ok_or_else(|| AppError::CellNotFound(cell_id.to_string()))?;
-    if cell.cell_type == CellType::Markdown {
+    // Only code cells run, so only they need trust
+    if cell.cell_type != CellType::Code {
         return Ok(TrustDecision::Allowed);
     }
     let decision = check_trust(&nb, &cell.input, packages, mode);
@@ -642,6 +645,7 @@ mod tests {
             duration_ms: 0,
             output_label: Some("%o7".into()),
             execution_count: Some(3),
+            ..Default::default()
         };
         nb.apply(NotebookCommand::LoadCells {
             cells: vec![
@@ -654,7 +658,25 @@ mod tests {
         let err = prepare_input("%o3 + 1;", &labels).unwrap_err();
         assert!(err.0.contains("Out[3] (%o3) has no value in this session"), "{err:?}");
         assert!(prepare_input("% + 1;", &labels).is_err());
-        // New runs continue the gutter numbers after the loaded ones
-        assert_eq!(nb.next_execution_count(), 4);
+        // New runs number from 1 again, as in a fresh session
+        assert_eq!(nb.next_execution_count(), 1);
+    }
+
+    #[tokio::test]
+    async fn a_raw_cell_is_never_run() {
+        let sink = Recorder::default();
+        let (ctx, _) = notebook_with("", CellType::Code).await;
+        let text = r#"{"nbformat": 4, "nbformat_minor": 5, "metadata": {}, "cells": [
+            {"id": "r", "cell_type": "raw", "source": "system(\"ls\");", "metadata": {}}]}"#;
+        ctx.notebook
+            .lock()
+            .await
+            .apply(NotebookCommand::LoadNotebook { file: crate::notebooks::format::read(text).unwrap().into() })
+            .unwrap();
+        assert!(matches!(run(&ctx, "r", &sink).await, Err(AppError::CellIsRaw)));
+        // Nor does it ask for trust, whatever its text
+        let decision = check_cell_trust(&ctx, "r", &PackageCatalog::load(), TrustMode::Interactive, &sink).await.unwrap();
+        assert!(matches!(decision, TrustDecision::Allowed));
+        assert!(sink.0.lock().unwrap().is_empty());
     }
 }

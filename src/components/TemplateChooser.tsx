@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
-import { listTemplates, getTemplate, parseNbformatOutputs } from "../lib/notebooks-client";
-import { nbCreate, nbSetActive, nbLoadCells } from "../lib/notebook-commands";
+import { listTemplates } from "../lib/notebooks-client";
+import { nbCreate, nbSetActive, nbLoadTemplate } from "../lib/notebook-commands";
 import { useNotebookStore } from "../store/notebookStore";
 import type { TemplateSummary } from "../types/notebooks";
 
@@ -19,28 +19,14 @@ export function TemplateChooser({ onClose }: TemplateChooserProps) {
 
   const handleSelect = useCallback(
     async (id: string) => {
-      const template = await getTemplate(id);
-      if (template) {
-        const cells = template.cells
-          .filter((c) => c.cell_type !== "raw")
-          .map((c) => {
-            const parsed = c.cell_type === "code" ? parseNbformatOutputs(c) : null;
-            return {
-              id: crypto.randomUUID(),
-              cell_type: c.cell_type === "markdown" ? "markdown" : "code",
-              input: typeof c.source === "string" ? c.source : (c.source as string[]).join(""),
-              output: parsed ?? undefined,
-            };
-          });
-        // Create a new notebook and load the template into it
-        const result = await nbCreate();
-        const nbId = result.notebook_id;
-        const store = useNotebookStore.getState();
-        store.addTab(nbId);
-        store.setActiveTab(nbId);
-        await nbSetActive(nbId);
-        await nbLoadCells(cells, nbId);
-      }
+      // Create a new notebook and load the template into it
+      const result = await nbCreate();
+      const nbId = result.notebook_id;
+      const store = useNotebookStore.getState();
+      store.addTab(nbId);
+      store.setActiveTab(nbId);
+      await nbSetActive(nbId);
+      await nbLoadTemplate(id, nbId);
       onClose();
     },
     [onClose]

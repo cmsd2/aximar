@@ -7,7 +7,6 @@ pub use aximar_core::registry;
 
 pub mod batch;
 pub mod config;
-mod convert;
 pub mod http;
 mod params;
 pub mod server;

@@ -58,11 +58,15 @@ Friendly explanations (`error_info`, #56) are not stored in the file. They come 
 
 A session numbers its runs from 1, as Jupyter and the extension do. Loading a notebook resets the notebook's numbering, so its first run is `In[1]` whatever the loaded outputs show. A stale output never records a label, so `%oN` for it fails as #59 made it; the label-references spec gets a scenario for it.
 
-### 6. One label resolver: a label context on expressions
+### 6. One set of label rules: the server records a client's cell runs
 
-`evaluate_expression` takes an optional `labels` object: `label_map` (gutter number → Maxima label) and `previous_output_label`. When it is given, the expression is prepared as a cell with that context, a bare `%` included; when it isn't, the expression uses the notebook's own labels, as now.
+In simple mode, `evaluate_expression` takes an optional `cell_id` and `cells_above` (the IDs of the code cells above it, in order). With them the expression runs as that cell: the server gives the run the next gutter number, prepares the input as a cell with the session's labels, takes a bare `%` from the nearest cell in `cells_above` whose latest run in this session produced an output, records the run's label against the cell, and returns the number as `execution_count`. Without them the expression runs as now.
 
-The extension then sends a cell's source unchanged with its label map, and deletes its port of the rewriter (`labels.ts`). This restores its label references, broken since #70, and leaves one rewriter, which already handles strings, comments and labels with no value.
+These are the window's rules, in the same `Notebook` methods: a cell that failed, printed nothing, or hasn't run in this session (one reopened from a file) is never "the output above", a restart or a new MCP process starts numbering at 1, and `%oN` for a number not run in this session fails. The cells stay in the client; the server keeps only, per cell ID, its latest run.
+
+The extension then sends a cell's source unchanged with its ID (VS Code's cell URI, fixed while the notebook is open) and the IDs above it, shows the returned number, and deletes its numbering, its label map and its port of the rewriter (`labels.ts`). This restores its label references, broken since #70.
+
+*Alternative, shipped briefly in #85:* the client sends its own label map and previous output label. That shared the rewriter but left numbering and the choice of "the output above" in the extension, whose rules already differed from the window's (it reused labels saved in the file, stopped at a failed cell, and kept counting across MCP restarts). It also put client-supplied labels into the code Maxima runs, after the trust check.
 
 *Alternative:* run the extension's cells through the server's notebook model (`add_cell`, `run_cell`). It removes the extension's own state too, but it is a much larger change to the extension.
 
@@ -90,7 +94,7 @@ Core: the serializer, the output mapping, IDs, metadata, stale outputs, numberin
 
 ## What changes for MCP clients and saved notebooks
 
-- `evaluate_expression`: a new optional `labels` parameter.
+- `evaluate_expression` in simple mode: new optional `cell_id` and `cells_above` parameters, and an `execution_count` in the result.
 - `open_notebook`, `save_notebook`, `load_template`: same parameters and results; files gain IDs, errors and kept metadata.
 - `list_cells` and `get_cell`: cell IDs are the file's IDs after opening a file.
 - Files: see the proposal's BREAKING notes.
@@ -98,7 +102,7 @@ Core: the serializer, the output mapping, IDs, metadata, stale outputs, numberin
 ## Risks / Trade-offs
 
 - [Older Aximar versions reading new files] → They ignore `id`, `error` outputs and unknown metadata, so they open the file and lose those parts on save, as today.
-- [The extension stays broken until it adopts the label context] → The extension's group lands with this change's core groups; the changelog and the extension's release notes say so.
+- [The extension stays broken until it sends its cell IDs] → The extension's group lands with this change's core groups; the changelog and the extension's release notes say so.
 - [Files with duplicate or invalid IDs] → The reader makes new IDs and the notebook counts as changed, so the next save fixes the file.
 - [`stale` must not outlive a run] → `SetCellOutput` always writes a fresh output; a test covers it.
 - [Capturing `string(%)` adds a housekeeping statement to each run] → It runs only after the user's input succeeds, like `tex(%)`, its output is filtered like `tex(%)`'s, and the legacy parser's tests gain cases for it. A huge result doubles in size in the file, which is the cost of Jupyter compatibility.
