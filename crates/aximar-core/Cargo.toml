@@ -16,6 +16,7 @@ dirs = "6"
 nanoid = "0.4"
 probly-search = "2"
 base64 = "0.22"
+unicode-normalization = "0.1"
 
 [target.'cfg(unix)'.dependencies]
 libc = "0.2"
