@@ -16,6 +16,10 @@ pub(crate) struct SimpleEvaluateExpressionParams {
     pub expression: String,
     /// Session to target (defaults to the default session if omitted)
     pub session_id: Option<String>,
+    /// Labels from a notebook the client keeps itself, such as an editor's
+    /// notebook view. With them, %oN means the client's gutter number N and a
+    /// bare % at the start means the output of the cell above
+    pub labels: Option<crate::params::LabelsParam>,
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]
