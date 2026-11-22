@@ -623,4 +623,38 @@ mod tests {
             vec!["cell_status_updated Running", "cell_output_updated Error"]
         );
     }
+
+    #[tokio::test]
+    async fn labels_on_loaded_cells_have_no_value() {
+        // A notebook from a file shows [3] on a cell, but no run in this
+        // session made it: %o3 and a bare % must not read whatever Maxima's
+        // own %o3 holds now (#8)
+        let (ctx, _) = notebook_with("", CellType::Code).await;
+        let mut nb = ctx.notebook.lock().await;
+        let output = CellOutput {
+            text_output: String::new(),
+            latex: Some("42".into()),
+            plot_svg: None,
+            plot_data: None,
+            image_png: None,
+            error: None,
+            is_error: false,
+            duration_ms: 0,
+            output_label: Some("%o7".into()),
+            execution_count: Some(3),
+        };
+        nb.apply(NotebookCommand::LoadCells {
+            cells: vec![
+                ("loaded".into(), CellType::Code, "6 * 7;".into(), Some(output)),
+                ("next".into(), CellType::Code, String::new(), None),
+            ],
+        })
+        .unwrap();
+        let labels = nb.cell_label_context("next");
+        let err = prepare_input("%o3 + 1;", &labels).unwrap_err();
+        assert!(err.0.contains("Out[3] (%o3) has no value in this session"), "{err:?}");
+        assert!(prepare_input("% + 1;", &labels).is_err());
+        // New runs continue the gutter numbers after the loaded ones
+        assert_eq!(nb.next_execution_count(), 4);
+    }
 }
