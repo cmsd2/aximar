@@ -114,3 +114,57 @@ fn inline_comment_preserved() {
     let outputs = saved["cells"][0]["outputs"].as_array().unwrap();
     assert!(!outputs.is_empty(), "cell should have outputs");
 }
+
+/// Write `helpers.mac` beside a notebook whose cell loads it, a call the
+/// dangerous-call check flags (loading an unknown file).
+fn write_notebook_loading_helper(dir: &tempfile::TempDir) -> PathBuf {
+    fs::write(dir.path().join("helpers.mac"), "helper_value : 7$\n").unwrap();
+    write_notebook(dir, "loads_helper.macnb", "load(\"helpers.mac\")$ helper_value;")
+}
+
+/// `aximar-mcp run` is the decision to run the notebook, so a call the
+/// dangerous-call check flags runs without `--allow-dangerous`.
+#[test]
+#[ignore]
+fn batch_run_executes_dangerous_calls_without_flag() {
+    let dir = tempfile::tempdir().unwrap();
+    let input = write_notebook_loading_helper(&dir);
+    let output = dir.path().join("out.macnb");
+
+    let result = Command::new(binary_path())
+        .args(["run", input.to_str().unwrap(), "-o", output.to_str().unwrap()])
+        .output()
+        .expect("failed to run aximar-mcp");
+
+    let stderr = String::from_utf8_lossy(&result.stderr);
+    assert!(result.status.success(), "batch run should succeed.\nstderr: {stderr}");
+    assert!(!stderr.contains("dangerous"), "no trust message expected.\nstderr: {stderr}");
+
+    let saved = fs::read_to_string(&output).unwrap();
+    assert!(saved.contains('7'), "helper_value should be in the outputs: {saved}");
+}
+
+/// The old flag still parses, so existing scripts keep working, and says it
+/// is no longer needed.
+#[test]
+#[ignore]
+fn batch_run_accepts_deprecated_allow_dangerous_flag() {
+    let dir = tempfile::tempdir().unwrap();
+    let input = write_notebook_loading_helper(&dir);
+    let output = dir.path().join("out.macnb");
+
+    let result = Command::new(binary_path())
+        .args([
+            "run",
+            "--allow-dangerous",
+            input.to_str().unwrap(),
+            "-o",
+            output.to_str().unwrap(),
+        ])
+        .output()
+        .expect("failed to run aximar-mcp");
+
+    let stderr = String::from_utf8_lossy(&result.stderr);
+    assert!(result.status.success(), "batch run should succeed.\nstderr: {stderr}");
+    assert!(stderr.contains("no longer needed"), "deprecation warning expected.\nstderr: {stderr}");
+}

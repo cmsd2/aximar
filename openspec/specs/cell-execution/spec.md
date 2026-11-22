@@ -49,7 +49,7 @@ A cell run SHALL report Running when evaluation starts and Success or Error when
 
 ### Requirement: One trust check before dangerous calls
 
-Running a cell, running all cells and evaluating an expression SHALL apply the same check for dangerous calls (such as `system` or loading an unknown file). In the desktop app and in MCP connected to it, a dangerous call SHALL be blocked only while the notebook is untrusted. In standalone MCP and batch runs, it SHALL be blocked unless the server was started with `--allow-dangerous`.
+Running a cell, running all cells and evaluating an expression SHALL apply the same check for dangerous calls (such as `system` or loading an unknown file). In the desktop app and in MCP connected to it, a dangerous call SHALL be blocked only while the notebook is untrusted. In standalone MCP, it SHALL be blocked unless the server was started with `--allow-dangerous`. Batch runs (`aximar-mcp run`) SHALL NOT apply the check, since running the command is the decision to run the notebook.
 
 #### Scenario: Expression in a trusted notebook over connected MCP
 
@@ -65,6 +65,11 @@ Running a cell, running all cells and evaluating an expression SHALL apply the s
 
 - **WHEN** the notebook is untrusted and a cell calls `load("orthopoly")`, `load("draw")` or `load("ctensor")`, packages shipped in Maxima's share directory
 - **THEN** the cell SHALL run
+
+#### Scenario: Batch run
+
+- **WHEN** `aximar-mcp run` runs a notebook whose cell calls `load("helpers.mac")`, without `--allow-dangerous`
+- **THEN** the cell SHALL run (needs Maxima)
 
 #### Scenario: Standalone MCP
 

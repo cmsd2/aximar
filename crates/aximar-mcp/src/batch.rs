@@ -4,7 +4,7 @@ use tokio::sync::Mutex;
 use aximar_core::catalog::packages::PackageCatalog;
 use aximar_core::catalog::search::Catalog;
 use aximar_core::commands::{NoEffects, NotebookCommand};
-use aximar_core::evaluation::{run_all, CellRun, CellRunStatus, RunAllOptions, StopReason};
+use aximar_core::evaluation::{run_all, CellRun, CellRunStatus, RunAllOptions};
 use aximar_core::notebooks::io as notebook_io;
 use aximar_core::notebook::CellType;
 use aximar_core::registry::NotebookRegistry;
@@ -13,16 +13,13 @@ use aximar_core::safety::TrustMode;
 use crate::server::ServerCore;
 
 /// Run a notebook from the command line: load, execute all cells, save with outputs.
-pub async fn run(
-    input_path: &str,
-    output_path: Option<&str>,
-    allow_dangerous: bool,
-) -> anyhow::Result<()> {
+///
+/// Running `aximar-mcp run` on a notebook is the decision to run it, as with
+/// `maxima -b` or `jupyter nbconvert --execute`, so every cell runs: the
+/// dangerous-call check does not apply.  The check matches names in the cell
+/// text, so it could not stop a notebook written to get past it anyway.
+pub async fn run(input_path: &str, output_path: Option<&str>) -> anyhow::Result<()> {
     let output_path = output_path.unwrap_or(input_path);
-
-    if allow_dangerous {
-        eprintln!("Warning: --allow-dangerous enabled");
-    }
 
     // Load catalog and packages
     let catalog = Arc::new(Catalog::load());
@@ -61,7 +58,7 @@ pub async fn run(
         catalog.clone(),
         packages.clone(),
         session_settings.fixed(),
-        allow_dangerous,
+        true,
     );
     core.ensure_session(&ctx)
         .await
@@ -72,7 +69,7 @@ pub async fn run(
         catalog: &catalog,
         packages: &packages,
         eval_timeout,
-        mode: TrustMode::Headless { allow_dangerous },
+        mode: TrustMode::Headless { allow_dangerous: true },
         effects: &NoEffects,
     };
     let mut done = 0;
@@ -97,18 +94,9 @@ pub async fn run(
     })
     .await;
 
-    match report.stop_reason {
-        None => {}
-        Some(StopReason::NeedsTrust) => {
-            let run = report.cells.iter().find(|c| c.status == CellRunStatus::NeedsTrust);
-            anyhow::bail!(
-                "Cell {} contains dangerous function(s): {}. Use --allow-dangerous to allow.",
-                report.stopped_at.as_deref().unwrap_or(""),
-                run.map(|r| r.dangerous_functions.join(", ")).unwrap_or_default()
-            );
-        }
+    if report.stop_reason.is_some() {
         // The cell's error is printed above; leave the notebook unsaved
-        Some(_) => std::process::exit(1),
+        std::process::exit(1);
     }
 
     // Save with the new outputs

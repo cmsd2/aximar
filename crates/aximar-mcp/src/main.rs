@@ -59,8 +59,8 @@ enum Command {
         #[arg(short)]
         o: Option<String>,
 
-        /// Allow dangerous functions (system, batch, etc.).
-        #[arg(long)]
+        /// Deprecated and ignored: `run` executes every cell.
+        #[arg(long, hide = true)]
         allow_dangerous: bool,
     },
 }
@@ -82,7 +82,13 @@ async fn main() -> anyhow::Result<()> {
 
     // Subcommand: `run` for batch execution
     if let Some(Command::Run { path, o, allow_dangerous }) = cli.command {
-        return aximar_mcp::batch::run(&path, o.as_deref(), allow_dangerous).await;
+        if allow_dangerous || cli.allow_dangerous {
+            eprintln!(
+                "Warning: --allow-dangerous is no longer needed: `aximar-mcp run` executes every cell. \
+                 The flag will be removed in a future release."
+            );
+        }
+        return aximar_mcp::batch::run(&path, o.as_deref()).await;
     }
 
     if cli.allow_dangerous {
