@@ -46,5 +46,5 @@ Each numbered group is one pull request. Every group updates the Unreleased sect
 
 ## 9. Documentation and close-out
 
-- [ ] 9.1 Update `docs/mcp-server.md` (trust rule, path behaviour), `docs/core-tauri-data-transfer.md` (the channel and the sink) and the status of the affected bugs in `docs/code-audit.md`; verify the docs name no removed function
+- [x] 9.1 Update `docs/mcp-server.md` (trust rule, path behaviour), `docs/core-tauri-data-transfer.md` (the channel and the sink) and the status of the affected bugs in `docs/code-audit.md`; verify the docs name no removed function
 - [ ] 9.2 Archive this change with `openspec archive unify-gui-mcp-operations` once groups 1 to 8 have merged, and check that `openspec/specs/` gains `cell-execution`, `notebook-files` and `gui-updates`
