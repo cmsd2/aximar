@@ -18,39 +18,6 @@ pub struct LabelContext {
     pub bare_percent: bool,
 }
 
-/// Labels an expression brings from its own notebook, for a front end that
-/// keeps its notebook itself (the VS Code extension): its gutter numbers
-/// and the output of the cell above.  The expression is then prepared as a
-/// cell with these labels, a bare `%` at its start included.
-#[derive(Debug, Clone, Default, serde::Deserialize)]
-pub struct SuppliedLabels {
-    /// Gutter number → Maxima output label, e.g. 1 → "%o167"
-    #[serde(default)]
-    pub label_map: HashMap<u32, String>,
-    /// Maxima's label for the output of the cell above, if it has one
-    #[serde(default)]
-    pub previous_output_label: Option<String>,
-}
-
-static OUTPUT_LABEL_RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^%o\d+$").unwrap());
-
-impl SuppliedLabels {
-    /// The context to prepare the expression with.  Every label must be a
-    /// Maxima output label (`%o` and digits): the labels go into the code
-    /// Maxima runs, after the trust check has read the expression.
-    pub fn into_context(self) -> Result<LabelContext, UnresolvedLabel> {
-        let labels = self.label_map.values().chain(self.previous_output_label.iter());
-        if let Some(bad) = labels.into_iter().find(|l| !OUTPUT_LABEL_RE.is_match(l)) {
-            return Err(UnresolvedLabel(format!("{bad:?} is not a Maxima output label such as %o12")));
-        }
-        Ok(LabelContext {
-            label_map: self.label_map,
-            previous_output_label: self.previous_output_label,
-            bare_percent: true,
-        })
-    }
-}
-
 /// A label reference with no value in the current Maxima session.  The
 /// message is shown to the user as the cell's error.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -190,34 +157,6 @@ fn replace_bare_percent(input: &str, replacement: &str) -> Option<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    fn supplied(map: &[(u32, &str)], prev: Option<&str>) -> Result<LabelContext, UnresolvedLabel> {
-        SuppliedLabels {
-            label_map: map.iter().map(|(k, v)| (*k, v.to_string())).collect(),
-            previous_output_label: prev.map(String::from),
-        }
-        .into_context()
-    }
-
-    #[test]
-    fn supplied_labels_resolve_gutter_numbers_and_a_bare_percent() {
-        let ctx = supplied(&[(1, "%o167")], Some("%o170")).unwrap();
-        assert_eq!(rw("%o1 + %", &ctx), "%o167 + %o170");
-    }
-
-    #[test]
-    fn a_supplied_context_has_no_other_labels() {
-        let ctx = supplied(&[(1, "%o167")], None).unwrap();
-        assert!(rw_err("%o2 + 1", &ctx).contains("Out[2] (%o2) has no value in this session"));
-    }
-
-    #[test]
-    fn supplied_labels_must_be_output_labels() {
-        for bad in ["%o1); system(\"ls\")", "x", "%i3", "%o"] {
-            assert!(supplied(&[(1, bad)], None).is_err(), "{bad}");
-            assert!(supplied(&[], Some(bad)).is_err(), "{bad}");
-        }
-    }
 
     fn ctx_bare(prev: Option<&str>) -> LabelContext {
         LabelContext {

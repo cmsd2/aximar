@@ -115,6 +115,9 @@ pub struct Notebook {
     /// Maps display count → the cell whose run recorded that label.  After a
     /// restart a cell can still show an old count that a new run reuses.
     label_cells: HashMap<u32, String>,
+    /// Cells a client keeps itself (the VS Code extension), which run here
+    /// by ID: each cell's latest run in this session.
+    client_runs: HashMap<String, u32>,
     undo_past: Vec<NotebookSnapshot>,
     undo_future: Vec<NotebookSnapshot>,
     /// Whether the notebook is trusted for execution of dangerous functions.
@@ -140,6 +143,7 @@ impl Notebook {
             execution_counter: 0,
             label_map: HashMap::new(),
             label_cells: HashMap::new(),
+            client_runs: HashMap::new(),
             undo_past: Vec::new(),
             undo_future: Vec::new(),
             trusted: true,
@@ -279,13 +283,10 @@ impl Notebook {
     pub fn start_new_session(&mut self) {
         self.label_map.clear();
         self.label_cells.clear();
+        self.client_runs.clear();
         self.execution_counter = 0;
     }
 
-    /// Get the previous output label for bare % resolution: the label of the
-    /// nearest cell above whose output was produced in this session.  Going
-    /// through the label map skips cells that errored and outputs left from
-    /// an earlier session, even when a new run has reused their count.
     /// Labels for preparing a cell's input: a bare `%` at its start means
     /// the output of the nearest cell above that has one.
     pub fn cell_label_context(&self, cell_id: &str) -> LabelContext {
@@ -305,16 +306,52 @@ impl Notebook {
         }
     }
 
+    /// The previous output label for a bare `%`: the label of the nearest
+    /// cell above whose output was produced in this session.  Going through
+    /// the label map skips cells that errored and outputs left from an
+    /// earlier session, even when a new run has reused their count.
     pub fn previous_output_label(&self, cell_id: &str) -> Option<String> {
         let pos = self.cells.iter().position(|c| c.id == cell_id)?;
         // Walk backwards from the cell before this one
         self.cells[..pos].iter().rev().find_map(|cell| {
             let count = cell.output.as_ref()?.execution_count?;
-            if self.label_cells.get(&count) != Some(&cell.id) {
-                return None;
-            }
-            self.label_map.get(&count).cloned()
+            self.output_label_of(&cell.id, count)
         })
+    }
+
+    /// The label a cell's run recorded, if that run is the one with this
+    /// count in this session.
+    fn output_label_of(&self, cell_id: &str, count: u32) -> Option<String> {
+        if self.label_cells.get(&count).map(String::as_str) != Some(cell_id) {
+            return None;
+        }
+        self.label_map.get(&count).cloned()
+    }
+
+    /// Labels for a cell a client keeps itself, given the IDs of the code
+    /// cells above it in order.  The same rules as for this notebook's own
+    /// cells: a bare `%` means the nearest cell above whose latest run in
+    /// this session produced an output.
+    pub fn client_cell_label_context(&self, cells_above: &[String]) -> LabelContext {
+        let previous = cells_above.iter().rev().find_map(|id| {
+            let count = *self.client_runs.get(id)?;
+            self.output_label_of(id, count)
+        });
+        LabelContext {
+            label_map: self.label_map.clone(),
+            previous_output_label: previous,
+            bare_percent: true,
+        }
+    }
+
+    /// Record a run of a client's cell: its count, and its label when it
+    /// produced an output.  A run without one hides the cell's earlier
+    /// output from a bare `%`, as an error output does in this notebook.
+    pub fn record_client_run(&mut self, cell_id: &str, count: u32, label: Option<String>) {
+        self.client_runs.insert(cell_id.to_string(), count);
+        if let Some(label) = label {
+            self.record_label(count, label, cell_id);
+        }
     }
 
     pub fn clear(&mut self) {
@@ -322,6 +359,7 @@ impl Notebook {
         self.execution_counter = 0;
         self.label_map.clear();
         self.label_cells.clear();
+        self.client_runs.clear();
         self.undo_past.clear();
         self.undo_future.clear();
         self.cells.push(Cell {
@@ -461,6 +499,7 @@ impl Notebook {
                 self.execution_counter = 0;
                 self.label_map.clear();
                 self.label_cells.clear();
+                self.client_runs.clear();
                 self.trusted = true;
                 self.cells.push(Cell {
                     id: new_cell_id(),
@@ -560,6 +599,7 @@ impl Notebook {
         self.execution_counter = 0;
         self.label_map.clear();
         self.label_cells.clear();
+        self.client_runs.clear();
         self.trusted = false;
         // Numbering starts at 1 whatever the loaded outputs show: they came
         // from a session that no longer exists, and record no labels (#8)
@@ -1042,5 +1082,56 @@ mod tests {
         assert_eq!(n.previous_output_label("c").as_deref(), Some("%o5"));
         // and a's stale Out[1] is never the output above b
         assert_eq!(n.previous_output_label("b"), None);
+    }
+
+    fn ids(list: &[&str]) -> Vec<String> {
+        list.iter().map(|s| s.to_string()).collect()
+    }
+
+    #[test]
+    fn a_client_cell_sees_the_nearest_output_above() {
+        let mut n = nb();
+        let a = n.next_execution_count();
+        n.record_client_run("a", a, Some("%o10".into()));
+        let b = n.next_execution_count();
+        // b failed: it hides nothing above and records no label
+        n.record_client_run("b", b, None);
+        let ctx = n.client_cell_label_context(&ids(&["a", "b"]));
+        assert_eq!(ctx.previous_output_label.as_deref(), Some("%o10"));
+        assert_eq!(ctx.label_map.get(&1).map(String::as_str), Some("%o10"));
+        assert!(ctx.bare_percent);
+    }
+
+    #[test]
+    fn a_client_cell_never_sees_a_cell_that_has_not_run() {
+        // "old" shows an output from the file, but no run here made it
+        let mut n = nb();
+        let ctx = n.client_cell_label_context(&ids(&["old"]));
+        assert_eq!(ctx.previous_output_label, None);
+        let a = n.next_execution_count();
+        n.record_client_run("a", a, Some("%o4".into()));
+        assert_eq!(n.client_cell_label_context(&ids(&["a", "old"])).previous_output_label.as_deref(), Some("%o4"));
+    }
+
+    #[test]
+    fn a_failed_rerun_hides_the_cells_earlier_output() {
+        let mut n = nb();
+        let first = n.next_execution_count();
+        n.record_client_run("a", first, Some("%o4".into()));
+        let second = n.next_execution_count();
+        n.record_client_run("a", second, None);
+        assert_eq!(n.client_cell_label_context(&ids(&["a"])).previous_output_label, None);
+        // %o1 still names the first run, as in the window
+        assert_eq!(n.label_map().get(&1).map(String::as_str), Some("%o4"));
+    }
+
+    #[test]
+    fn a_new_session_forgets_client_runs() {
+        let mut n = nb();
+        let a = n.next_execution_count();
+        n.record_client_run("a", a, Some("%o4".into()));
+        n.start_new_session();
+        assert_eq!(n.client_cell_label_context(&ids(&["a"])).previous_output_label, None);
+        assert_eq!(n.next_execution_count(), 1);
     }
 }

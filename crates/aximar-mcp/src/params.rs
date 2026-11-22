@@ -90,27 +90,6 @@ pub(crate) struct EvaluateExpressionParams {
     pub expression: String,
     /// Notebook to target (defaults to active notebook if omitted)
     pub notebook_id: Option<String>,
-    /// Labels from a notebook the client keeps itself. With them, %oN means
-    /// the client's gutter number N and a bare % at the start means the
-    /// output of the cell above; without them, the server notebook's labels
-    /// apply and a bare % keeps Maxima's meaning
-    pub labels: Option<LabelsParam>,
-}
-
-/// Labels a client brings from its own notebook.
-#[derive(Debug, Deserialize, JsonSchema)]
-pub(crate) struct LabelsParam {
-    /// Gutter number to Maxima output label, e.g. {"1": "%o167"}
-    #[serde(default)]
-    pub label_map: std::collections::HashMap<u32, String>,
-    /// Maxima's output label for the cell above, e.g. "%o170"
-    pub previous_output_label: Option<String>,
-}
-
-impl From<LabelsParam> for aximar_core::maxima::labels::SuppliedLabels {
-    fn from(p: LabelsParam) -> Self {
-        Self { label_map: p.label_map, previous_output_label: p.previous_output_label }
-    }
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]

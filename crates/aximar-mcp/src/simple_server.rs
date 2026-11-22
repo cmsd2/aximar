@@ -7,7 +7,7 @@ use crate::params::{
     SearchPackagesParams,
 };
 use crate::simple_params::*;
-use crate::server::ServerCore;
+use crate::server::{ClientCell, ServerCore};
 
 // ── SimpleMcpServer (simple/session mode) ─────────────────────────────
 
@@ -74,7 +74,11 @@ Unicode Greek letters (α, β, γ, θ, π, etc.) are translated to Maxima symbol
         Parameters(params): Parameters<SimpleEvaluateExpressionParams>,
     ) -> Result<String, String> {
         self.core
-            .do_evaluate_expression(&params.expression, params.session_id.as_deref(), params.labels.map(Into::into))
+            .do_evaluate_expression(
+                &params.expression,
+                params.session_id.as_deref(),
+                params.cell_id.map(|id| ClientCell { id, cells_above: params.cells_above }),
+            )
             .await
     }
 
@@ -277,29 +281,56 @@ mod tests {
         ))
     }
 
-    /// The arguments an editor's notebook view sends: gutter numbers are
-    /// JSON object keys, so they arrive as strings.
-    fn params(expression: &str, label: &str) -> SimpleEvaluateExpressionParams {
-        serde_json::from_value(serde_json::json!({
-            "expression": expression,
-            "labels": { "label_map": { "1": label }, "previous_output_label": "%o170" }
+    /// Run `expression` as cell `id` below `above`, as an editor's
+    /// notebook view does.
+    async fn run(s: &SimpleMcpServer, expression: &str, id: &str, above: &[&str]) -> Result<serde_json::Value, String> {
+        let params: SimpleEvaluateExpressionParams = serde_json::from_value(serde_json::json!({
+            "expression": expression, "cell_id": id, "cells_above": above,
         }))
-        .unwrap()
-    }
-
-    #[test]
-    fn labels_arrive_with_gutter_numbers_as_keys() {
-        let labels = params("%o1;", "%o167").labels.unwrap();
-        assert_eq!(labels.label_map.get(&1).map(String::as_str), Some("%o167"));
-        assert_eq!(labels.previous_output_label.as_deref(), Some("%o170"));
+        .unwrap();
+        s.evaluate_expression(Parameters(params)).await.map(|r| serde_json::from_str(&r).unwrap())
     }
 
     #[tokio::test]
-    async fn evaluate_expression_uses_the_labels() {
-        // Refused before Maxima runs, so this shows the labels got through
-        let err = server().evaluate_expression(Parameters(params("%o2 + 1;", "%o167"))).await.unwrap_err();
-        assert!(err.contains("Out[2] (%o2) has no value in this session"), "{err}");
-        let err = server().evaluate_expression(Parameters(params("%o1;", "x"))).await.unwrap_err();
-        assert!(err.contains("not a Maxima output label"), "{err}");
+    #[ignore = "requires Maxima to be installed"]
+    async fn a_client_cell_with_an_unknown_label_fails_in_its_cell() {
+        // Refused before Maxima evaluates it; the cell still gets its number
+        let s = server();
+        let v = run(&s, "%o2 + 1;", "c1", &[]).await.unwrap();
+        assert_eq!(v["is_error"], true);
+        assert_eq!(v["execution_count"], 1);
+        assert!(v["error"].as_str().unwrap().contains("Out[2] (%o2) has no value in this session"), "{v}");
+        // A bare % with nothing above has no value either
+        let v = run(&s, "% + 1;", "c2", &["c1"]).await.unwrap();
+        assert_eq!((v["is_error"].as_bool(), v["execution_count"].as_u64()), (Some(true), Some(2)), "{v}");
+    }
+
+    #[tokio::test]
+    #[ignore = "requires Maxima to be installed"]
+    async fn client_cells_follow_the_windows_label_rules() {
+        let s = server();
+        let a = run(&s, "10;", "a", &[]).await.unwrap();
+        assert_eq!(a["execution_count"], 1);
+        let b = run(&s, "5;", "b", &["a"]).await.unwrap();
+        assert_eq!(b["execution_count"], 2);
+        // A cell that fails is skipped by a bare % below it
+        let c = run(&s, "1/0;", "c", &["a", "b"]).await.unwrap();
+        assert_eq!(c["is_error"], true);
+        let d = run(&s, "%o1 + %;", "d", &["a", "b", "c"]).await.unwrap();
+        assert_eq!((d["execution_count"].as_u64(), d["latex"].as_str()), (Some(4), Some("15")), "{d}");
+        // A cell this session never ran, such as one reopened from a file,
+        // isn't an output above
+        let e = run(&s, "%;", "e", &["from-file"]).await.unwrap();
+        assert_eq!(e["is_error"], true, "{e}");
+    }
+
+    #[tokio::test]
+    #[ignore = "requires Maxima to be installed"]
+    async fn an_expression_without_a_cell_takes_no_number() {
+        let s = server();
+        let params: SimpleEvaluateExpressionParams = serde_json::from_value(serde_json::json!({ "expression": "7;" })).unwrap();
+        let v: serde_json::Value = serde_json::from_str(&s.evaluate_expression(Parameters(params)).await.unwrap()).unwrap();
+        assert!(v["execution_count"].is_null(), "{v}");
+        assert_eq!(run(&s, "1;", "a", &[]).await.unwrap()["execution_count"], 1);
     }
 }

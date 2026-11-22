@@ -19,10 +19,10 @@ The project plan's S1 stream (#15, #16, #17) is the fix: one written format, one
 - **Cells keep their metadata and IDs** in the core model, raw cells are kept (read-only), and outputs keep their errors and friendly explanations.
 - **Results carry a plain-text form.** Evaluation captures Maxima's one-line form of each final value (`string(%)`) next to its LaTeX, on both the legacy and kernel-events paths, and files carry it as the result's `text/plain` copy for Jupyter tools.
 - **One numbering rule** in both apps: a session numbers its runs from 1; outputs loaded from a file keep their numbers but are marked stale, and the window shows them as such; `%oN` resolves only to a run in the current session.
-- **One label resolver.** `evaluate_expression` takes an optional label context (gutter number → Maxima label, and the previous output's label), so the extension sends cell source unchanged and stops rewriting labels itself.
+- **One set of label rules.** In simple mode, `evaluate_expression` can run an expression as a cell of a notebook the client keeps itself: the client sends the cell's ID and the IDs of the code cells above it, and the server numbers the run and resolves `%oN` and a bare `%` by the same rules as the window's cells. The extension sends cell source unchanged and drops its own numbering and label rewriting.
 - **Shared test notebooks** that the Rust serializer and the extension's serializer both run against, published with a TypeScript implementation of the spec for the extension (#17).
 - **BREAKING (files):** files written by Aximar change shape: cell IDs, error outputs and kept metadata are added; `nbformat_minor` becomes 5 in the desktop app (it wrote 0). Older Aximar versions and Jupyter read them; older Aximar versions ignore the new parts.
-- **BREAKING (MCP, VS Code):** the extension must send cell source unchanged with a label context; its current rewriting stays broken until it does.
+- **BREAKING (MCP, VS Code):** the extension must send cell source unchanged with its cell IDs; its current rewriting stays broken until it does.
 
 ## Capabilities
 
@@ -32,7 +32,7 @@ The project plan's S1 stream (#15, #16, #17) is the fix: one written format, one
 
 ### Modified Capabilities
 
-- `label-references`: numbering per session, stale loaded outputs, and label contexts supplied with an expression.
+- `label-references`: numbering per session, stale loaded outputs, and cells of a notebook a client keeps itself.
 - `notebook-files`: the window opens and saves through the backend, which records the path itself.
 
 ## Impact
@@ -46,7 +46,7 @@ The project plan's S1 stream (#15, #16, #17) is the fix: one written format, one
 
 - New output types (Plotly controls, animations) beyond those Aximar stores today.
 - Package requirements (`metadata.aximar.requires`) themselves; this change only keeps the metadata, which S2 needs.
-- Running the extension's cells through the server's notebook model. The label context is enough to share one resolver.
+- Mirroring the extension's notebook on the server. The server records only the runs of the client's cells, by ID; the cells themselves stay in the client.
 - Migrating old files on disk. Readers accept old shapes; files change when saved.
 
 ## Decisions

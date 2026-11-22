@@ -18,16 +18,26 @@ A `%oN` or `%iN` that names a number shown only on a stale output SHALL fail as 
 - **WHEN** a notebook whose cell shows `Out[3]` from the file is opened, and a new cell runs `%o3 + 1;` before any cell has run
 - **THEN** the cell SHALL fail with "Out[3] (%o3) has no value in this session"
 
-### Requirement: An expression can bring its own label context
+### Requirement: A client's cells follow the window's label rules
 
-`evaluate_expression` SHALL accept an optional label context, a map from gutter numbers to Maxima labels and the previous output's label. With it, the expression SHALL be prepared as a cell with that context, bare `%` included; without it, the expression SHALL use the notebook's labels and leave a bare `%` to Maxima.
+In simple mode, `evaluate_expression` SHALL accept an optional cell ID and the IDs of the code cells above it, for a client that keeps its notebook itself. With them, the expression SHALL run as that cell: it SHALL get the session's next gutter number, returned as `execution_count`; `%oN` SHALL mean the run numbered N in this session; and a bare `%` at its start SHALL mean the output of the nearest cell above whose latest run in this session produced one. Without them, the expression SHALL take no number and leave a bare `%` to Maxima.
 
-#### Scenario: The VS Code extension resolves labels on the server
+#### Scenario: Labels and the output above (needs Maxima)
 
-- **WHEN** an expression `%o1 + %` is evaluated with the context `{1: "%o167"}` and previous output `%o170`
-- **THEN** Maxima SHALL receive `%o167 + %o170`
+- **WHEN** client cells `a` (`10;`), `b` (`5;`) and `c` (`1/0;`) run in order, then cell `d` runs `%o1 + %;` with `a`, `b` and `c` above it
+- **THEN** `d` SHALL get `execution_count` 4 and the result 15
 
-#### Scenario: Unknown label in the context
+#### Scenario: A cell that hasn't run in this session (needs Maxima)
 
-- **WHEN** an expression `%o2 + 1` is evaluated with the context `{1: "%o167"}`
-- **THEN** it SHALL fail with "Out[2] (%o2) has no value in this session"
+- **WHEN** a client cell runs `%;` with only a cell above it that this session never ran, such as one reopened from a file
+- **THEN** it SHALL fail as a label with no value
+
+#### Scenario: Unknown label (needs Maxima)
+
+- **WHEN** a client cell runs `%o2 + 1;` and no run numbered 2 exists in this session
+- **THEN** the result SHALL be an error "Out[2] (%o2) has no value in this session", with the cell's `execution_count`
+
+#### Scenario: A new session numbers from 1
+
+- **WHEN** the session restarts
+- **THEN** the next client cell SHALL get `execution_count` 1, and no cell from before the restart SHALL be an output above
