@@ -57,10 +57,13 @@ see the `v*` releases on GitHub.
   folder from the session's next start. `load_template` clears it. In
   connected mode the window's tab follows: it shows the file name and saves
   to that file.
-- **`evaluate_expression` understands cell labels**: `%o4` and `%i4` in an
-  expression refer to the cells' `Out[4]` and `In[4]`, as they do in cells, and
-  a label with no value in the session is reported instead of reading an
-  unrelated Maxima label. A bare `%` still means Maxima's last result.
+- **`evaluate_expression` understands cell labels in notebook mode**: `%o4`
+  and `%i4` in an expression refer to the notebook cells' `Out[4]` and `In[4]`,
+  as they do in cells, and a label with no value in the session is reported
+  instead of reading an unrelated Maxima label. A bare `%` still means
+  Maxima's last result. Simple mode (sessions, no notebook) keeps Maxima's own
+  labels unless the call names a client cell, so clients that resolve labels
+  themselves keep working.
 - **Simple mode runs a client's notebook cells by ID** (#8): `evaluate_expression`
   takes optional `cell_id` and `cells_above` (the IDs of the code cells above,
   in order), so a client that keeps its own notebook, such as the VS Code

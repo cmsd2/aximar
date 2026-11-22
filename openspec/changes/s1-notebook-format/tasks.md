@@ -24,17 +24,19 @@ Each numbered group is one pull request. Aximar groups run `cargo test --workspa
 
 - [x] 4.1 Loading resets the notebook's numbering to 1; stale outputs never record labels; verify with core tests for both scenarios of the numbering requirement
 - [x] 4.2 Simple-mode `evaluate_expression` takes an optional `cell_id` and `cells_above`, runs the expression as that client cell with the notebook's label rules, and returns its `execution_count`; the `labels` parameter from #85 goes; verify with core tests of the client-cell rules and aximar-mcp tests (with Maxima) for each scenario of the client-cell requirement
+- [x] 4.3 Simple-mode `evaluate_expression` without `cell_id` keeps Maxima's own labels, so clients that resolve labels themselves (the extension up to v0.3.0) keep working; its input schema shows `cell_id` and `cells_above` for clients to detect; verify with simple-mode tests (with Maxima) for the plain-expression and schema scenarios
 
 ## 5. The format crate and its npm package (#17)
 
 - [x] 5.1 Move the format into the MIT crate `packages/aximar-notebook-format` (model, `read`, `write`, IDs), with aximar-core converting to and from `Notebook`; build it as WebAssembly with `wasm-pack` (feature `wasm`) as the npm package `aximar-notebook-format`, with generated TypeScript types; verify with the crate's tests against the fixtures, aximar-core's tests, and a Node smoke test that the npm build writes the same bytes
 - [x] 5.2 Build the npm package and run its smoke test in CI; add a release workflow that publishes it to npm on a `notebook-format-v*` tag, through npm trusted publishing
-- [ ] 5.3 Publish the first version by hand, then make `release-notebook-format.yml` the package's trusted publisher on npmjs.com (by hand; see the package README)
+- [x] 5.3 Publish the first version by hand, then make `release-notebook-format.yml` the package's trusted publisher on npmjs.com (by hand; see the package README)
 
 ## 6. The VS Code extension (vscode-extension repository)
 
 - [ ] 6.1 Replace the extension's serializer with the package; write IDs, keep errors, and write `text/plain` copies by the spec's rule (the one-line result, or a plot description) instead of copying the first MIME type; verify with the extension's tests against the fixtures
 - [ ] 6.2 Send cell source unchanged with the cell's ID and the IDs of the code cells above to `evaluate_expression`, show the returned `execution_count`, and delete `labels.ts` and the extension's own numbering and label map; verify with the extension's tests and by hand that `%o1` and `%` work in a VS Code notebook again
+- [ ] 6.3 Check the server's `tools/list` for `cell_id` on `evaluate_expression`; when it's missing, say aximar-mcp needs updating, offer the download, and don't run cells; make the download pick a release with the features the extension needs; verify with the extension's tests of the check
 
 ## 7. Round trip and close-out
 

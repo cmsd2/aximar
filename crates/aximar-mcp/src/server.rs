@@ -17,7 +17,7 @@ use aximar_core::registry::{NotebookContextRef, NotebookRegistry};
 use aximar_core::maxima::labels::LabelContext;
 use aximar_core::maxima::types::EvalResult;
 use aximar_core::evaluation::{
-    check_cell_trust, evaluate_cell, prepare_input, run_all, InputError, CellRun, CellRunStatus, RunAllOptions, RunAllReport,
+    check_cell_trust, evaluate_cell, prepare_input, run_all, translate_input, InputError, CellRun, CellRunStatus, RunAllOptions, RunAllReport,
     StopReason,
 };
 use aximar_core::session_ops::{self, SessionSettings, SessionSettingsProvider, SessionStatusCallback};
@@ -45,6 +45,18 @@ impl EffectSink for ClientEffects<'_> {
     fn effect(&self, notebook_id: &str, _notebook: &aximar_core::notebook::Notebook, effect: &CommandEffect) {
         self.0.notify_notebook_change(notebook_id, effect.clone());
     }
+}
+
+/// Whose labels an expression's `%oN` and bare `%` refer to.
+pub(crate) enum ExpressionLabels {
+    /// The server notebook's (notebook mode): `%o4` is its cell's `Out[4]`.
+    Notebook,
+    /// Maxima's own (simple mode): a simple session is a plain Maxima
+    /// session, so the expression goes as typed, apart from Unicode.
+    /// Clients that resolve labels themselves rely on this.
+    Maxima,
+    /// A cell of a notebook the client keeps itself.
+    ClientCell(ClientCell),
 }
 
 /// A cell of a notebook an MCP client keeps itself (the VS Code
@@ -358,15 +370,20 @@ impl ServerCore {
         }
     }
 
-    /// Evaluate an expression.  With `cell`, it runs as a cell of a
-    /// notebook the client keeps itself: it gets the next gutter number, and
-    /// its labels follow the same rules as this notebook's own cells.
+    /// Evaluate an expression.  As a client's cell it gets the next gutter
+    /// number, and its labels follow the same rules as this notebook's own
+    /// cells.
     pub(crate) async fn do_evaluate_expression(
         &self,
         expression: &str,
         notebook_id: Option<&str>,
-        cell: Option<ClientCell>,
+        labels: ExpressionLabels,
     ) -> Result<String, String> {
+        let maxima_labels = matches!(labels, ExpressionLabels::Maxima);
+        let cell = match labels {
+            ExpressionLabels::ClientCell(cell) => Some(cell),
+            _ => None,
+        };
         let ctx = self.resolve_context(notebook_id).await?;
         // A client cell starts the session before it takes a number: a new
         // session numbers runs from 1, so a count taken before would repeat
@@ -390,7 +407,7 @@ impl ServerCore {
             return error_result(self.blocked_message(&functions));
         }
 
-        let outcome = self.evaluate_prepared(&ctx, expression, &labels).await;
+        let outcome = self.evaluate_prepared(&ctx, expression, (!maxima_labels).then_some(&labels)).await;
 
         // Record the client cell's run, with its label when it has an output
         if let (Some(cell), Some(count)) = (&cell, count) {
@@ -430,10 +447,15 @@ impl ServerCore {
         &self,
         ctx: &NotebookContextRef,
         expression: &str,
-        labels: &LabelContext,
+        labels: Option<&LabelContext>,
     ) -> Result<EvalResult, EvalFailure> {
-        // Unicode and label references, as for cells
-        let prepared = prepare_input(expression, labels).map_err(|InputError(m)| EvalFailure::Input(m))?;
+        // Unicode, and label references as for cells unless the expression
+        // keeps Maxima's own labels
+        let prepared = match labels {
+            Some(labels) => prepare_input(expression, labels),
+            None => translate_input(expression),
+        }
+        .map_err(|InputError(m)| EvalFailure::Input(m))?;
 
         self.ensure_session(ctx)
             .await
@@ -1106,7 +1128,7 @@ Unicode Greek letters (α, β, γ, θ, π, etc.) are translated to Maxima symbol
         Parameters(params): Parameters<EvaluateExpressionParams>,
     ) -> Result<String, String> {
         self.core
-            .do_evaluate_expression(&params.expression, params.notebook_id.as_deref(), None)
+            .do_evaluate_expression(&params.expression, params.notebook_id.as_deref(), ExpressionLabels::Notebook)
             .await
     }
 
