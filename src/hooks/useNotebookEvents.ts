@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { listen } from "@tauri-apps/api/event";
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import { ask } from "@tauri-apps/plugin-dialog";
+import { confirmClose } from "../lib/unsaved-changes";
 import { useNotebookStore } from "../store/notebookStore";
 import { nbCreate, nbGetState, nbList, nbClose, nbLoadCells, nbSetPath, getInitialFileArgs } from "../lib/notebook-commands";
 import { openFilePath, parseNbformatOutputs } from "../lib/notebooks-client";
@@ -92,12 +92,9 @@ export function handleLifecycleEvent(notebook_id: string, eventType: string) {
         useNotebookStore.getState().removeTab(notebook_id);
       }).catch((e) => console.warn("Failed to close notebook:", e));
     } else {
-      // Dirty tab — prompt user
+      // Dirty tab — Save, Don't Save or Cancel
       store.setClosePending(notebook_id, true);
-      ask("You have unsaved changes. Close without saving?", {
-        title: "Unsaved Changes",
-        kind: "warning",
-      }).then((confirmed) => {
+      confirmClose([notebook_id]).then((confirmed) => {
         // Re-read store state after await to handle races (e.g. user saved while dialog was showing)
         const current = useNotebookStore.getState();
         const currentTab = current.notebooks[notebook_id];

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState, useRef } from "react";
-import { ask } from "@tauri-apps/plugin-dialog";
+import { confirmClose } from "../lib/unsaved-changes";
 import { useNotebookStore } from "../store/notebookStore";
 import type { NotebookTab } from "../store/notebookStore";
 import { nbCreate, nbClose, nbSetActive, nbGetState, createWindow } from "../lib/notebook-commands";
@@ -54,13 +54,8 @@ export function TabBar() {
   const handleCloseTab = useCallback(async (id: string) => {
     if (tabs.length <= 1) return;
     const tab = notebooks[id];
-    if (tab?.isDirty) {
-      const confirmed = await ask("You have unsaved changes. Close without saving?", {
-        title: "Unsaved Changes",
-        kind: "warning",
-      });
-      if (!confirmed) return;
-    }
+    // Save, Don't Save or Cancel when it has unsaved changes
+    if (!(await confirmClose([id]))) return;
     try {
       // Only close the backend notebook for notebook tabs
       if (!tab || tab.type === "notebook") {
