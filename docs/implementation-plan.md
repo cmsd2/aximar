@@ -210,9 +210,15 @@ Maxima's `tex()` output needs preprocessing for KaTeX compatibility:
 
 ### CI/CD ✅
 
-**Goal**: Automated builds on every push to `master`.
+**Goal**: Automated builds of `master`, without rebuilding six platforms for every merge.
 
-A GitHub Actions workflow (`.github/workflows/build.yml`) builds the app across macOS, Linux, and Windows using a matrix strategy. Each job:
+A GitHub Actions workflow (`.github/workflows/build.yml`) builds the app across macOS, Linux, and Windows using a matrix strategy. It runs:
+
+- **Nightly** on `master`, when anything the app is built from changed since the last successful build. A first job compares the two commits, leaving out docs, specs, the standalone tools and their crates, tests and the other workflows.
+- **On a PR labelled `full-build`**, and again on each push while the label stays on.
+- **On demand** for any branch: `gh workflow run build.yml --ref <branch>`.
+
+`ci.yml` runs the tests on every push and PR. Each build job:
 
 1. Checks out the repo
 2. Installs Rust stable + cargo cache (`Swatinem/rust-cache`)
