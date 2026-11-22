@@ -20,7 +20,7 @@ A `%oN` or `%iN` that names a number shown only on a stale output SHALL fail as 
 
 ### Requirement: A client's cells follow the window's label rules
 
-In simple mode, `evaluate_expression` SHALL accept an optional cell ID and the IDs of the code cells above it, for a client that keeps its notebook itself. With them, the expression SHALL run as that cell: it SHALL get the session's next gutter number, returned as `execution_count`; `%oN` SHALL mean the run numbered N in this session; and a bare `%` at its start SHALL mean the output of the nearest cell above whose latest run in this session produced one. Without them, the expression SHALL take no number and leave a bare `%` to Maxima.
+In simple mode, `evaluate_expression` SHALL accept an optional cell ID and the IDs of the code cells above it, for a client that keeps its notebook itself. With them, the expression SHALL run as that cell: it SHALL get the session's next gutter number, returned as `execution_count`; `%oN` SHALL mean the run numbered N in this session; and a bare `%` at its start SHALL mean the output of the nearest cell above whose latest run in this session produced one. Without them, the expression SHALL take no number and keep Maxima's own labels: `%oN` and a bare `%` SHALL reach Maxima as typed, as in a plain Maxima session.
 
 #### Scenario: Labels and the output above (needs Maxima)
 
@@ -41,3 +41,13 @@ In simple mode, `evaluate_expression` SHALL accept an optional cell ID and the I
 
 - **WHEN** the session restarts
 - **THEN** the next client cell SHALL get `execution_count` 1, and no cell from before the restart SHALL be an output above
+
+#### Scenario: A plain expression in simple mode (needs Maxima)
+
+- **WHEN** a client evaluates `10;` and then `%oK + 1;`, where `%oK` is the output label the first result reported, both without a cell ID
+- **THEN** the second result SHALL be 11
+
+#### Scenario: Clients can tell whether the server runs client cells
+
+- **WHEN** a client lists the server's tools
+- **THEN** simple mode's `evaluate_expression` input schema SHALL include `cell_id` and `cells_above`

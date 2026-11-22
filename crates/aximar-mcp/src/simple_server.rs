@@ -7,7 +7,7 @@ use crate::params::{
     SearchPackagesParams,
 };
 use crate::simple_params::*;
-use crate::server::{ClientCell, ServerCore};
+use crate::server::{ClientCell, ExpressionLabels, ServerCore};
 
 // ── SimpleMcpServer (simple/session mode) ─────────────────────────────
 
@@ -77,7 +77,11 @@ Unicode Greek letters (α, β, γ, θ, π, etc.) are translated to Maxima symbol
             .do_evaluate_expression(
                 &params.expression,
                 params.session_id.as_deref(),
-                params.cell_id.map(|id| ClientCell { id, cells_above: params.cells_above }),
+                match params.cell_id {
+                    Some(id) => ExpressionLabels::ClientCell(ClientCell { id, cells_above: params.cells_above }),
+                    // A plain Maxima session: %oN means Maxima's own label
+                    None => ExpressionLabels::Maxima,
+                },
             )
             .await
     }
@@ -332,5 +336,33 @@ mod tests {
         let v: serde_json::Value = serde_json::from_str(&s.evaluate_expression(Parameters(params)).await.unwrap()).unwrap();
         assert!(v["execution_count"].is_null(), "{v}");
         assert_eq!(run(&s, "1;", "a", &[]).await.unwrap()["execution_count"], 1);
+    }
+
+    #[tokio::test]
+    #[ignore = "requires Maxima to be installed"]
+    async fn a_plain_expression_keeps_maxima_s_labels() {
+        // As in a plain Maxima session, and as tools-v0.5.0 did: clients
+        // that resolve labels themselves send Maxima's real labels
+        let s = server();
+        let plain = |e: &str| -> SimpleEvaluateExpressionParams {
+            serde_json::from_value(serde_json::json!({ "expression": e })).unwrap()
+        };
+        let v: serde_json::Value = serde_json::from_str(&s.evaluate_expression(Parameters(plain("10;"))).await.unwrap()).unwrap();
+        let label = v["output_label"].as_str().unwrap().to_string();
+        let v: serde_json::Value =
+            serde_json::from_str(&s.evaluate_expression(Parameters(plain(&format!("{label} + 1;")))).await.unwrap()).unwrap();
+        assert_eq!(v["latex"], "11", "{v}");
+        // Unicode is still translated
+        let v: serde_json::Value = serde_json::from_str(&s.evaluate_expression(Parameters(plain("α: 2$ α + 1;"))).await.unwrap()).unwrap();
+        assert_eq!(v["latex"], "3", "{v}");
+    }
+
+    #[test]
+    fn the_published_parameters_offer_client_cells() {
+        // Clients detect support for client cells from the tool's input
+        // schema, which works for builds of any version number
+        let schema = serde_json::to_value(schemars::schema_for!(SimpleEvaluateExpressionParams)).unwrap();
+        let properties = &schema["properties"];
+        assert!(properties.get("cell_id").is_some() && properties.get("cells_above").is_some(), "{schema}");
     }
 }

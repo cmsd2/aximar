@@ -44,8 +44,13 @@ impl From<UnresolvedLabel> for InputError {
 /// out (`α` becomes `alpha`), then label references such as `%o4` become
 /// the session's labels.
 pub fn prepare_input(input: &str, labels: &LabelContext) -> Result<String, InputError> {
-    let translated = unicode_to_maxima(input)?;
-    Ok(rewrite_labels(&translated, labels)?)
+    Ok(rewrite_labels(&translate_input(input)?, labels)?)
+}
+
+/// Prepare input that keeps Maxima's own labels, as in a plain Maxima
+/// session: only Unicode is translated, and `%o4` means Maxima's `%o4`.
+pub fn translate_input(input: &str) -> Result<String, InputError> {
+    Ok(unicode_to_maxima(input)?)
 }
 
 /// Shared cell evaluation logic used by both Tauri and MCP transports.

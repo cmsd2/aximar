@@ -66,6 +66,16 @@ These are the window's rules, in the same `Notebook` methods: a cell that failed
 
 The extension then sends a cell's source unchanged with its ID (VS Code's cell URI, fixed while the notebook is open) and the IDs above it, shows the returned number, and deletes its numbering, its label map and its port of the rewriter (`labels.ts`). This restores its label references, broken since #70.
 
+Without `cell_id`, simple mode keeps Maxima's own labels: a simple session is a plain Maxima session, so `%o4` means Maxima's `%o4`. Notebook mode's expressions keep #70's rule (the server notebook's labels), since there the server owns the cells.
+
+### 6a. Mixed versions of the extension and aximar-mcp
+
+The extension updates from the Marketplace; aximar-mcp comes from a `tools-v*` release the extension downloads and offers to update, from a path the user sets, or from a source build. Any pairing can meet, so changes stay additive and each side checks the other:
+
+- **Current extension (v0.3.0), new aximar-mcp.** It resolves labels itself and sends Maxima's real labels without a `cell_id`. Simple mode keeps Maxima's labels for such calls, so it works as it does with tools-v0.5.0. (Applying #70's notebook rule here would have failed every label reference: a simple session's label map is empty.)
+- **New extension, older aximar-mcp.** tools-v0.5.0 ignores unknown parameters, so `cell_id` would be dropped silently and `%o1` would reach Maxima unchanged. The extension checks the server's `tools/list`: when `evaluate_expression` doesn't take `cell_id`, it says aximar-mcp needs updating and offers its download, and it doesn't run cells until then. The check reads the schema, not version numbers, so builds from source work too.
+- **The download** picks the newest release with the features the extension needs.
+
 *Alternative, shipped briefly in #85:* the client sends its own label map and previous output label. That shared the rewriter but left numbering and the choice of "the output above" in the extension, whose rules already differed from the window's (it reused labels saved in the file, stopped at a failed cell, and kept counting across MCP restarts). It also put client-supplied labels into the code Maxima runs, after the trust check.
 
 *Alternative:* run the extension's cells through the server's notebook model (`add_cell`, `run_cell`). It removes the extension's own state too, but it is a much larger change to the extension.
@@ -98,7 +108,7 @@ Core: the serializer, the output mapping, IDs, metadata, stale outputs, numberin
 
 ## What changes for MCP clients and saved notebooks
 
-- `evaluate_expression` in simple mode: new optional `cell_id` and `cells_above` parameters, and an `execution_count` in the result.
+- `evaluate_expression` in simple mode: new optional `cell_id` and `cells_above` parameters, and an `execution_count` in the result. Without `cell_id`, `%oN` and `%` keep Maxima's meaning, as in tools-v0.5.0.
 - `open_notebook`, `save_notebook`, `load_template`: same parameters and results; files gain IDs, errors and kept metadata.
 - `list_cells` and `get_cell`: cell IDs are the file's IDs after opening a file.
 - Files: see the proposal's BREAKING notes.
