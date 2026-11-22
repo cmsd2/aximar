@@ -9,7 +9,8 @@ Each numbered group is one pull request. Aximar groups run `cargo test --workspa
 
 - [ ] 2.1 Add `metadata` to `Notebook` and `Cell`, kept through undo; let `NotebookMetadata` keep unknown keys; verify with unit tests that metadata survives undo and redo
 - [ ] 2.2 Add `notebooks::format::{read, write}` with the ID rule, the output mapping, the MIME preference and `error` outputs; `CellOutput` gains `stale` and `error_info`; verify with unit tests per requirement, and by reading and writing every fixture
-- [ ] 2.3 Recompute `error_info` for loaded error outputs with `errors::enhance_error_with_packages`; verify with a test that a loaded "0 to a negative exponent" error has the "Division by Zero" explanation
+- [ ] 2.3 Capture Maxima's one-line form of each final value as `CellOutput.text_plain`: on the legacy path next to the injected `tex(%)`, on the kernel-events path from the result envelope or by the same request; write it as the result's `text/plain` copy and a description for plots; verify with legacy parser tests for the new housekeeping output, and a Maxima-backed test that `x^2/2;` saves `text/plain` `x^2/2` on both paths
+- [ ] 2.4 Recompute `error_info` for loaded error outputs with `errors::enhance_error_with_packages`; verify with a test that a loaded "0 to a negative exponent" error has the "Division by Zero" explanation
 
 ## 3. Aximar's callers use the serializer (#16)
 
@@ -29,7 +30,7 @@ Each numbered group is one pull request. Aximar groups run `cargo test --workspa
 
 ## 6. The VS Code extension (vscode-extension repository)
 
-- [ ] 6.1 Replace the extension's serializer with the package; write IDs, keep errors, stop adding `text/plain` copies; verify with the extension's tests against the fixtures
+- [ ] 6.1 Replace the extension's serializer with the package; write IDs, keep errors, and write `text/plain` copies by the spec's rule (the one-line result, or a plot description) instead of copying the first MIME type; verify with the extension's tests against the fixtures
 - [ ] 6.2 Send cell source unchanged with a `labels` context to `evaluate_expression`, delete `labels.ts`, and number runs from 1 per session with stale loaded outputs; verify with the extension's tests and by hand that `%o1` and `%` work in a VS Code notebook again
 
 ## 7. Round trip and close-out

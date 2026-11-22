@@ -45,7 +45,7 @@ Notebook metadata and cell metadata that Aximar doesn't use SHALL be written bac
 
 ### Requirement: Outputs map to nbformat output types
 
-A cell's output SHALL be written as: print output as a `stream` named `stdout`; the final value as an `execute_result` with `text/latex` and the execution count; each plot as a `display_data` with `application/x-maxima-plotly`, `image/svg+xml` or `image/png`; and an error as an `error` output with `ename` `MaximaError` and the error text as `evalue`. Reading SHALL give back the same output.
+A cell's output SHALL be written as: print output as a `stream` named `stdout`; the final value as an `execute_result` with `text/latex`, a `text/plain` copy holding Maxima's one-line form of the value when it is known, and the execution count; each plot as a `display_data` with `application/x-maxima-plotly`, `image/svg+xml` or `image/png`, and a `text/plain` copy that describes the plot without its source; and an error as an `error` output with `ename` `MaximaError` and the error text as `evalue`. Reading SHALL give back the same output.
 
 #### Scenario: Round trip of every kind of output
 
@@ -56,6 +56,16 @@ A cell's output SHALL be written as: print output as a `stream` named `stdout`; 
 
 - **WHEN** a cell that failed with `expt: undefined: 0 to a negative exponent.` is saved and opened again
 - **THEN** the cell SHALL show that error, and the window SHALL show the friendly explanation for it
+
+#### Scenario: Plain-text copy for Jupyter tools
+
+- **WHEN** a cell runs `x^2/2;` and the notebook is saved
+- **THEN** its `execute_result` SHALL hold `text/latex` and `text/plain` `x^2/2`, and a tool that reads only `text/plain` SHALL show `x^2/2` (needs Maxima)
+
+#### Scenario: Plot has no source in its plain-text copy
+
+- **WHEN** a cell with an SVG plot is saved
+- **THEN** the plot's `display_data` SHALL have a `text/plain` copy that doesn't contain the SVG source
 
 ### Requirement: Readers prefer the richest type in a bundle
 

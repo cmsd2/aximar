@@ -40,13 +40,15 @@ One cell output in the core model maps to several nbformat outputs, in this orde
 | Core field | nbformat output |
 |---|---|
 | `text_output` | `stream`, name `stdout` |
-| `latex` | `execute_result` with `text/latex` and the execution count |
-| `plot_data` | `display_data` with `application/x-maxima-plotly` |
-| `plot_svg` | `display_data` with `image/svg+xml` |
-| `image_png` | `display_data` with `image/png` |
+| `latex`, `text_plain` | `execute_result` with `text/latex`, a `text/plain` copy when `text_plain` is known, and the execution count |
+| `plot_data` | `display_data` with `application/x-maxima-plotly`, and `text/plain` `<Plotly figure>` |
+| `plot_svg` | `display_data` with `image/svg+xml`, and `text/plain` `<SVG plot>` |
+| `image_png` | `display_data` with `image/png`, and `text/plain` `<PNG image>` |
 | `is_error` | `error`, `ename` `MaximaError`, `evalue` the error text |
 
 Reading takes one value from each `execute_result` or `display_data` bundle, preferring Plotly, then SVG, then PNG, then LaTeX, and `text/plain` only when the bundle has nothing richer (#6). `stream` text appends to `text_output`; an `error` output sets `is_error` and `error`.
+
+`CellOutput` gains `text_plain`: Maxima's one-line form of the final value, as `string(%)` gives it. The legacy path captures it next to the `tex(%)` it already injects; the kernel-events path takes it from the result envelope, or asks for it the same way when the envelope lacks it. It is shown nowhere in the window; it exists for files, so Jupyter and other tools that only read `text/plain` see each result. Outputs without it (older files, results with no value) write no `text/plain` copy.
 
 Friendly explanations (`error_info`, #56) are not stored in the file. They come from the error text and the catalog, so the backend computes them again when it loads an error output, and `CellOutput` carries them to the window.
 
@@ -99,6 +101,7 @@ Core: the serializer, the output mapping, IDs, metadata, stale outputs, numberin
 - [The extension stays broken until it adopts the label context] → The extension's group lands with this change's core groups; the changelog and the extension's release notes say so.
 - [Files with duplicate or invalid IDs] → The reader makes new IDs and the notebook counts as changed, so the next save fixes the file.
 - [`stale` must not outlive a run] → `SetCellOutput` always writes a fresh output; a test covers it.
+- [Capturing `string(%)` adds a housekeeping statement to each run] → It runs only after the user's input succeeds, like `tex(%)`, its output is filtered like `tex(%)`'s, and the legacy parser's tests gain cases for it. A huge result doubles in size in the file, which is the cost of Jupyter compatibility.
 
 ## Migration Plan
 

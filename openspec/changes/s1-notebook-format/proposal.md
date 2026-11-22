@@ -17,6 +17,7 @@ The project plan's S1 stream (#15, #16, #17) is the fix: one written format, one
 - **A format spec**, `docs/notebook-format.md`, with the requirements in a new `notebook-format` capability: nbformat 4.5 with stable cell IDs; unknown notebook and cell metadata kept; the `metadata.aximar` keys; which output types hold what (`stream`, `execute_result`, `display_data`, `error`); the MIME preference for reading a bundle, with `text/plain` ignored when a richer type is present.
 - **One serializer in aximar-core** (`notebooks::format`), used by the desktop app, aximar-mcp and batch runs. The window opens and saves through new Tauri commands that read and write the file in the backend; the TypeScript serializer, `nb_load_cells` and aximar-mcp's `convert.rs` go.
 - **Cells keep their metadata and IDs** in the core model, and outputs keep their errors and friendly explanations.
+- **Results carry a plain-text form.** Evaluation captures Maxima's one-line form of each final value (`string(%)`) next to its LaTeX, on both the legacy and kernel-events paths, and files carry it as the result's `text/plain` copy for Jupyter tools.
 - **One numbering rule** in both apps: a session numbers its runs from 1; outputs loaded from a file keep their numbers but are marked stale, and the window shows them as such; `%oN` resolves only to a run in the current session.
 - **One label resolver.** `evaluate_expression` takes an optional label context (gutter number → Maxima label, and the previous output's label), so the extension sends cell source unchanged and stops rewriting labels itself.
 - **Shared test notebooks** that the Rust serializer and the extension's serializer both run against, published with a TypeScript implementation of the spec for the extension (#17).
@@ -51,7 +52,4 @@ The project plan's S1 stream (#15, #16, #17) is the fix: one written format, one
 ## Decisions
 
 - **npm package name (#17):** `aximar-notebook-format`, unscoped, so no npm organisation is needed.
-
-## Open questions
-
-1. **`text/plain` copies.** Jupyter tools expect a `text/plain` fallback in each bundle. Writing one for LaTeX results (Maxima's 1D form) is friendly to Jupyter but needs the 1D text from Maxima, which Aximar doesn't keep today. The proposal writes none, and readers ignore `text/plain` when a richer type is present.
+- **`text/plain` copies:** written, as Jupyter tools expect. A result's copy is Maxima's one-line form of it, which evaluation now captures; a plot's copy is a short description, never its source. Readers still ignore `text/plain` when a richer type is present.
