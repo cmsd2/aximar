@@ -26,15 +26,23 @@ use crate::error::AppError;
 ///     the cell with Maxima's %oN output label;
 ///   - `print("<sentinel>")$` as the read terminator (per-eval
 ///     unique so user content can't accidentally trigger it).
+///
+/// Each of those sets Maxima's `%`, so a last `%th(4)$`, after the
+/// sentinel, sets it back to the result before them: the expression's
+/// own, or after an error whatever `%` held before, as in plain Maxima.
+/// It prints nothing and runs before the next input is read.
 fn build_eval_input(expr: &str, sentinel: Option<&str>) -> String {
     match sentinel {
         None => format!("{}\n", expr),
         Some(s) => format!(
-            "{}\n{}\nprint(\"__AXIMAR_LABEL__\", linenum)$\nprint(\"{}\")$\n",
-            expr, PLAIN_AND_TEX, s
+            "{}\n{}\nprint(\"__AXIMAR_LABEL__\", linenum)$\nprint(\"{}\")$\n{}\n",
+            expr, PLAIN_AND_TEX, s, RESTORE_PERCENT
         ),
     }
 }
+
+/// Set `%` back to the result before the three housekeeping statements.
+const RESTORE_PERCENT: &str = "%th(4)$";
 
 /// Print the result's one-line form between markers, then its LaTeX.
 const PLAIN_AND_TEX: &str = "block([ax__r: %], printf(true, \"__AXIMAR_PLAIN__~a__AXIMAR_PLAIN_END__~%\", string(ax__r)), tex(ax__r));";
