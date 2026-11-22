@@ -203,10 +203,13 @@ impl ServerCore {
                     "name": hit.name,
                     "signatures": [hit.signature],
                     "description": hit.summary,
-                    "score": hit.score,
                     "package": hit.package,
                 });
-                if hit.undocumented {
+                // Only the catalog's ranking has scores; the rest follow it
+                if let Some(score) = hit.score {
+                    item["score"] = score.into();
+                }
+                if !hit.documented {
                     item["undocumented"] = true.into();
                 }
                 item
@@ -229,16 +232,13 @@ impl ServerCore {
                     "package": package,
                 }))
             }
-            FunctionDocs::InPackage { package, signature } => {
-                let load = if package.builtin {
-                    String::new()
-                } else {
-                    format!(" Load it with load(\"{}\")$.", package.name)
-                };
+            FunctionDocs::InPackages { packages, signature } => {
                 let description = format!(
-                    "Provided by the {} package ({}). It has no documentation.{load}",
-                    package.name, package.description
+                    "{} It has no documentation. {}",
+                    catalog_queries::provided_by(&packages),
+                    catalog_queries::load_hint(&packages)
                 );
+                let names: Vec<&str> = packages.iter().map(|p| p.name.as_str()).collect();
                 success_json(&serde_json::json!({
                     "name": name,
                     "signatures": signature.into_iter().collect::<Vec<_>>(),
@@ -246,7 +246,8 @@ impl ServerCore {
                     "examples": [],
                     "see_also": [],
                     "full_docs": description,
-                    "package": package.name,
+                    "package": names.join(" or "),
+                    "packages": names,
                     "undocumented": true,
                 }))
             }

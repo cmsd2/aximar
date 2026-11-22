@@ -49,11 +49,12 @@ fn symbol_to_function(name: &str, entry: &SymbolEntry) -> MaximaFunction {
 pub fn search_functions(state: State<AppState>, query: String) -> Vec<SearchResult> {
     queries::search(&state.catalog, &state.packages, &query)
         .into_iter()
-        .filter(|hit| !hit.undocumented)
         .filter_map(|hit| {
+            // The catalog's ranked hits only
+            let score = hit.score?;
             documented(&state, &hit.name).map(|entry| SearchResult {
                 function: symbol_to_function(&hit.name, entry),
-                score: hit.score,
+                score,
             })
         })
         .collect()
