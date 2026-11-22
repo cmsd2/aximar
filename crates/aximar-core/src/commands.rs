@@ -62,6 +62,9 @@ pub enum CommandEffect {
     /// A run was blocked because the notebook is untrusted; the window asks
     /// the user to trust it.  Changes nothing in the notebook.
     TrustRequired { cell_id: String, functions: Vec<String> },
+    /// The notebook's file path was set by opening or saving, or cleared
+    /// (`None`) because its cells no longer match the file.
+    PathChanged { path: Option<String> },
     NotebookTrusted,
     NotebookReplaced,
     Undone,
@@ -96,6 +99,7 @@ impl CommandEffect {
             CommandEffect::CellStatusUpdated { .. } => "cell_status_updated",
             CommandEffect::CellOutputUpdated { .. } => "cell_output_updated",
             CommandEffect::TrustRequired { .. } => "trust_required",
+            CommandEffect::PathChanged { .. } => "path_changed",
             CommandEffect::NotebookTrusted => "notebook_trusted",
             CommandEffect::NotebookReplaced => "notebook_replaced",
             CommandEffect::Undone => "undone",

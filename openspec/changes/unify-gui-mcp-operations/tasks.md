@@ -35,9 +35,9 @@ Each numbered group is one pull request. Every group updates the Unreleased sect
 
 ## 7. Notebook paths (#40)
 
-- [ ] 7.1 Add a `PathChanged { path }` effect for `NotebookRegistry::set_path`, with `path` optional; MCP `open_notebook` and `save_notebook` set it and `load_template` clears it; verify with aximar-mcp tests (no Maxima) that `list_notebooks` reports the path and title after open and save, and none after a template load
-- [ ] 7.2 Add a `nb_set_path` Tauri command; the window's open, save and save-as call it, the store takes `filePath` and the title from `PathChanged`, and `applyBackendState` no longer clears the path on `notebook_replaced`; verify with vitest tests that a `PathChanged` event sets the title and that `notebook_replaced` keeps it
-- [ ] 7.3 Check that a session started after opening `work/calc.macnb` runs in `work/`; verify with a Maxima-backed aximar-mcp test that loads `helpers.mac` from beside the notebook
+- [x] 7.1 Add a `PathChanged { path }` effect for `NotebookRegistry::set_path`, with `path` optional; MCP `open_notebook` and `save_notebook` set it and `load_template` clears it; verify with aximar-mcp tests (no Maxima) that `list_notebooks` reports the path and title after open and save, and none after a template load
+- [x] 7.2 Add a `nb_set_path` Tauri command; the window's open, save and save-as call it, the store takes `filePath` and the title from `PathChanged`, and `applyBackendState` no longer clears the path on `notebook_replaced`; verify with vitest tests that a `PathChanged` event sets the title and that `notebook_replaced` keeps it
+- [x] 7.3 Check that a session started after opening `work/calc.macnb` runs in `work/`; verify with a Maxima-backed aximar-mcp test that loads `helpers.mac` from beside the notebook
 
 ## 8. Catalog queries in core
 

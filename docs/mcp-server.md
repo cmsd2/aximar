@@ -157,10 +157,12 @@ Replace `<token>` with the value shown in Settings.
 
 ### Notebook I/O
 
-- **save_notebook(path)** -- Save as Jupyter .ipynb.
-- **open_notebook(path)** -- Open a .ipynb file.
+- **save_notebook(path)** -- Save as Jupyter .ipynb, and record `path` as the notebook's file.
+- **open_notebook(path)** -- Open a .ipynb file, and record `path` as the notebook's file.
+
+  The recorded path shows in `list_notebooks` and, in connected mode, as the window's tab title and save path. Maxima runs in the file's folder, so `load("helpers.mac")` finds a file next to the notebook. A session already running keeps its folder until `restart_session`.
 - **list_templates()** -- List available notebook templates.
-- **load_template(template_id)** -- Load a template into the notebook.
+- **load_template(template_id)** -- Load a template into the notebook. Clears the recorded path, since the notebook no longer matches the file.
 
 ## Architecture
 

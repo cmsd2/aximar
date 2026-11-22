@@ -32,6 +32,9 @@ pub struct NotebookStateEvent {
     /// With `trust_required`: the dangerous functions that blocked the run.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub trust_functions: Option<Vec<String>>,
+    /// With `path_changed`: the notebook's file path, absent when cleared.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub path: Option<String>,
 }
 
 /// Emit a `notebook-state-changed` event with the current notebook state.
@@ -52,6 +55,10 @@ pub fn emit_notebook_state(
         trusted: nb.trusted(),
         trust_functions: match effect {
             CommandEffect::TrustRequired { functions, .. } => Some(functions.clone()),
+            _ => None,
+        },
+        path: match effect {
+            CommandEffect::PathChanged { path } => path.clone(),
             _ => None,
         },
     };
@@ -100,6 +107,7 @@ pub async fn nb_get_state(
         can_redo: nb.can_redo(),
         trusted: nb.trusted(),
         trust_functions: None,
+        path: None,
     })
 }
 
@@ -258,6 +266,42 @@ pub async fn nb_new_notebook(
         .apply(NotebookCommand::NewNotebook)
         .map_err(|e| AppError::CommunicationError(e))?;
     emit_notebook_state(&app, &ctx.id, &nb, &effect);
+    drop(nb);
+    // A new notebook belongs to no file
+    set_path(&app, &state, &ctx.id, None).await
+}
+
+/// Record the file a notebook was opened from or saved to, or clear it
+/// (`None`).  The window calls this after its own file operations; the
+/// `path_changed` event then sets the tab's title and save path, as it does
+/// when MCP opens or saves.  Maxima's working directory follows from the
+/// session's next start.
+#[tauri::command]
+pub async fn nb_set_path(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    notebook_id: Option<String>,
+    path: Option<String>,
+) -> Result<(), AppError> {
+    let ctx = resolve_context(&state, notebook_id).await?;
+    set_path(&app, &state, &ctx.id, path).await
+}
+
+async fn set_path(
+    app: &AppHandle,
+    state: &AppState,
+    notebook_id: &str,
+    path: Option<String>,
+) -> Result<(), AppError> {
+    let effect = state
+        .registry
+        .lock()
+        .await
+        .set_path(notebook_id, path.map(std::path::PathBuf::from))
+        .map_err(AppError::CommunicationError)?;
+    let ctx = resolve_context(state, Some(notebook_id.to_string())).await?;
+    let nb = ctx.notebook.lock().await;
+    emit_notebook_state(app, notebook_id, &nb, &effect);
     Ok(())
 }
 

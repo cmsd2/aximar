@@ -1333,3 +1333,83 @@ async fn expression_with_a_rejected_character_gets_a_hint() {
         .expect_err("∑ is rejected");
     assert!(msg.contains("U+2211") && msg.contains("sum("), "{msg}");
 }
+
+// ── Notebook paths ────────────────────────────────────────────────────
+
+/// The active notebook's path and title, as `list_notebooks` reports them.
+async fn listed_path(s: &AximarMcpServer) -> (serde_json::Value, serde_json::Value) {
+    let v = parse_ok(s.list_notebooks().await);
+    let active = v["active_notebook_id"].clone();
+    let nb = v["notebooks"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|nb| nb["id"] == active)
+        .unwrap()
+        .clone();
+    (nb["path"].clone(), nb["title"].clone())
+}
+
+fn path_params(path: &std::path::Path) -> Parameters<NotebookPathParams> {
+    Parameters(NotebookPathParams { path: path.to_string_lossy().to_string(), notebook_id: None })
+}
+
+#[tokio::test]
+async fn open_save_and_template_record_the_path() {
+    let dir = tempfile::tempdir().unwrap();
+    let a = dir.path().join("a.macnb");
+    let b = dir.path().join("b.macnb");
+    let s = build_server();
+    assert_eq!(listed_path(&s).await, (serde_json::Value::Null, "Untitled".into()));
+
+    parse_ok(s.save_notebook(path_params(&a)).await);
+    assert_eq!(listed_path(&s).await, (a.to_string_lossy().into(), "a.macnb".into()));
+
+    // A template no longer matches the file
+    parse_ok(
+        s.load_template(Parameters(LoadTemplateParams {
+            template_id: "calculus".into(),
+            notebook_id: None,
+        }))
+        .await,
+    );
+    assert_eq!(listed_path(&s).await, (serde_json::Value::Null, "Untitled".into()));
+
+    parse_ok(s.open_notebook(path_params(&a)).await);
+    assert_eq!(listed_path(&s).await, (a.to_string_lossy().into(), "a.macnb".into()));
+
+    // Save as a new file
+    parse_ok(s.save_notebook(path_params(&b)).await);
+    assert_eq!(listed_path(&s).await, (b.to_string_lossy().into(), "b.macnb".into()));
+}
+
+#[tokio::test]
+async fn connected_open_tells_the_window_the_path_after_the_cells() {
+    let dir = tempfile::tempdir().unwrap();
+    let a = dir.path().join("a.macnb");
+    let (s, seen) = build_server_recording_effects();
+    parse_ok(s.save_notebook(path_params(&a)).await);
+    seen.lock().unwrap().clear();
+
+    parse_ok(s.open_notebook(path_params(&a)).await);
+    assert_eq!(*seen.lock().unwrap(), vec!["notebook_replaced", "path_changed"]);
+}
+
+#[tokio::test]
+#[ignore = "requires Maxima to be installed"]
+async fn session_runs_in_the_notebooks_folder() {
+    // work/calc.macnb and work/helpers.mac, opened from elsewhere
+    let dir = tempfile::tempdir().unwrap();
+    let work = dir.path().join("work");
+    std::fs::create_dir(&work).unwrap();
+    std::fs::write(work.join("helpers.mac"), "h(x) := x + 1$\n").unwrap();
+    let notebook = work.join("calc.macnb");
+    parse_ok(build_server().save_notebook(path_params(&notebook)).await);
+
+    // Standalone mode blocks loading an unknown file unless allowed
+    let s = build_server_allow_dangerous();
+    parse_ok(s.open_notebook(path_params(&notebook)).await);
+    let cell_id = add_code_cell(&s, "load(\"helpers.mac\")$ h(1);").await;
+    let v = parse_ok(s.run_cell(Parameters(CellIdParams { cell_id, notebook_id: None })).await);
+    assert_eq!(v["latex"], "2", "{v:#}");
+}

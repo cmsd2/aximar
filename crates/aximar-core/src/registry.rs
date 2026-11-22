@@ -6,6 +6,7 @@ use std::sync::Arc;
 use tokio::sync::Mutex;
 
 use crate::capture::CaptureOutputSink;
+use crate::commands::CommandEffect;
 use crate::log::ServerLog;
 use crate::notebook::Notebook;
 use crate::session::SessionManager;
@@ -165,14 +166,18 @@ impl NotebookRegistry {
             .collect()
     }
 
-    /// Set the file path for a notebook.
-    pub fn set_path(&mut self, id: &str, path: Option<PathBuf>) -> Result<(), String> {
+    /// Record the file a notebook was opened from or saved to, or clear it
+    /// (`None`) when its cells no longer match a file.  Returns the effect
+    /// for front ends to report, so the window can follow the path.  A
+    /// running Maxima session keeps its working directory until it restarts.
+    pub fn set_path(&mut self, id: &str, path: Option<PathBuf>) -> Result<CommandEffect, String> {
         let ctx = self
             .notebooks
             .get_mut(id)
             .ok_or_else(|| format!("Notebook '{}' not found", id))?;
+        let reported = path.as_ref().map(|p| p.to_string_lossy().to_string());
         ctx.path = path;
-        Ok(())
+        Ok(CommandEffect::PathChanged { path: reported })
     }
 
     /// Get a context ref for the active notebook.
