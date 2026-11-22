@@ -1,8 +1,7 @@
-use std::collections::HashSet;
-
 use tauri::State;
 
 use aximar_core::catalog::doc_index::SymbolEntry;
+use aximar_core::catalog::queries::{self, FunctionDocs};
 use aximar_core::catalog::types::*;
 use crate::state::AppState;
 
@@ -44,16 +43,17 @@ fn symbol_to_function(name: &str, entry: &SymbolEntry) -> MaximaFunction {
     }
 }
 
+/// Documented functions only: the window lists package functions in a
+/// section of their own, from `search_package_functions`.
 #[tauri::command]
 pub fn search_functions(state: State<AppState>, query: String) -> Vec<SearchResult> {
-    state
-        .catalog
-        .search(&query)
+    queries::search(&state.catalog, &state.packages, &query)
         .into_iter()
-        .filter_map(|dr| {
-            state.catalog.get(&dr.name).map(|(_, entry)| SearchResult {
-                function: symbol_to_function(&dr.name, entry),
-                score: dr.score,
+        .filter(|hit| !hit.undocumented)
+        .filter_map(|hit| {
+            documented(&state, &hit.name).map(|entry| SearchResult {
+                function: symbol_to_function(&hit.name, entry),
+                score: hit.score,
             })
         })
         .collect()
@@ -61,25 +61,21 @@ pub fn search_functions(state: State<AppState>, query: String) -> Vec<SearchResu
 
 #[tauri::command]
 pub fn complete_function(state: State<AppState>, prefix: String) -> Vec<CompletionResult> {
-    let mut results = state.catalog.complete(&prefix);
-    let existing: HashSet<String> = results.iter().map(|r| r.name.to_lowercase()).collect();
-
-    // Also include package functions (lower priority, deduped)
-    for r in state.packages.complete_functions(&prefix) {
-        if !existing.contains(&r.name.to_lowercase()) {
-            results.push(r);
-        }
-    }
-
-    results
+    queries::complete(&state.catalog, &state.packages, &prefix)
 }
 
+/// Documented functions only: the window shows a package's page for a
+/// function only a package provides (`package_for_function`).
 #[tauri::command]
 pub fn get_function(state: State<AppState>, name: String) -> Option<MaximaFunction> {
-    state
-        .catalog
-        .get(&name)
-        .map(|(_, entry)| symbol_to_function(&name, entry))
+    documented(&state, &name).map(|entry| symbol_to_function(&name, entry))
+}
+
+fn documented<'a>(state: &'a AppState, name: &str) -> Option<&'a SymbolEntry> {
+    match queries::docs(&state.catalog, &state.packages, name) {
+        FunctionDocs::Documented { entry, .. } => Some(entry),
+        _ => None,
+    }
 }
 
 #[tauri::command]
@@ -116,16 +112,9 @@ pub fn list_categories(state: State<AppState>) -> Vec<CategoryGroup> {
 
 #[tauri::command]
 pub fn get_function_docs(state: State<AppState>, name: String) -> Option<String> {
-    state
-        .catalog
-        .get(&name)
-        .and_then(|(_, entry)| {
-            if entry.body_md.is_empty() {
-                None
-            } else {
-                Some(entry.body_md.clone())
-            }
-        })
+    documented(&state, &name)
+        .filter(|entry| !entry.body_md.is_empty())
+        .map(|entry| entry.body_md.clone())
 }
 
 // ── Package commands ─────────────────────────────────────────────────

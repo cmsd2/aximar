@@ -1413,3 +1413,51 @@ async fn session_runs_in_the_notebooks_folder() {
     let v = parse_ok(s.run_cell(Parameters(CellIdParams { cell_id, notebook_id: None })).await);
     assert_eq!(v["latex"], "2", "{v:#}");
 }
+
+// ── Catalog queries from both sources ─────────────────────────────────
+
+#[tokio::test]
+async fn completion_lists_a_name_from_several_packages_once() {
+    let s = build_server();
+    let v = parse_ok(
+        s.complete_function(Parameters(CompleteFunctionParams { prefix: "gradien".into() })).await,
+    );
+    let gradients = v["completions"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|c| c["name"] == "gradient")
+        .count();
+    assert_eq!(gradients, 1, "{v:#}");
+}
+
+#[tokio::test]
+async fn docs_for_a_function_only_a_package_provides() {
+    let s = build_server();
+    let v = parse_ok(
+        s.get_function_docs(Parameters(GetFunctionDocsParams { name: "jcubic".into() })).await,
+    );
+    assert_eq!(v["undocumented"], true);
+    let description = v["description"].as_str().unwrap();
+    assert!(description.contains(&format!("load(\"{}\")", v["package"].as_str().unwrap())), "{description}");
+}
+
+#[tokio::test]
+async fn a_misspelt_package_function_suggests_it() {
+    let s = build_server();
+    let msg = s
+        .get_function_docs(Parameters(GetFunctionDocsParams { name: "jcubik".into() }))
+        .await
+        .expect_err("jcubik is not a function");
+    assert!(msg.contains("Did you mean") && msg.contains("jcubic"), "{msg}");
+}
+
+#[tokio::test]
+async fn search_includes_undocumented_package_functions() {
+    let s = build_server();
+    let v = parse_ok(
+        s.search_functions(Parameters(SearchFunctionsParams { query: "jcubic".into() })).await,
+    );
+    let hit = v["results"].as_array().unwrap().iter().find(|r| r["name"] == "jcubic").cloned();
+    assert_eq!(hit.expect("jcubic is found")["undocumented"], true);
+}

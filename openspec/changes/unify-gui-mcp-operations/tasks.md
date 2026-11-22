@@ -41,8 +41,8 @@ Each numbered group is one pull request. Every group updates the Unreleased sect
 
 ## 8. Catalog queries in core
 
-- [ ] 8.1 Add `catalog::queries` with `search`, `docs` and `complete` that merge the catalog and installed packages, deduplicate names and suggest near matches; verify with core unit tests for a name in both sources and for a miss
-- [ ] 8.2 Use it in the Tauri catalog commands and the MCP catalog tools, which only format results; verify the existing MCP catalog tests pass and Tauri `complete_function` no longer returns a package name twice
+- [x] 8.1 Add `catalog::queries` with `search`, `docs` and `complete` that merge the catalog and installed packages, deduplicate names and suggest near matches; verify with core unit tests for a name in both sources and for a miss
+- [x] 8.2 Use it in the Tauri catalog commands and the MCP catalog tools, which only format results; verify the existing MCP catalog tests pass and Tauri `complete_function` no longer returns a package name twice
 
 ## 9. Documentation and close-out
 

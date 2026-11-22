@@ -74,7 +74,7 @@ Core operations take an `&dyn EffectSink` (one method, `effect(notebook_id, Comm
 
 ### 8. Catalog queries in one core API
 
-`catalog::queries` offers `search`, `docs` and `complete`, merging the built-in catalog and installed packages, deduplicating names and suggesting near matches for misses. Tauri and MCP serialise the results. The LSP keeps its own code for now (proposal non-goals).
+`catalog::queries` offers `search`, `docs` and `complete`, merging the built-in catalog and installed packages, deduplicating names and suggesting near matches for misses. `docs` says whether a name is documented, provided only by a package, or unknown with suggestions. Tauri and MCP serialise the results. The window keeps listing package functions in a section of their own, so its `search_functions` takes only the documented hits. The LSP keeps its own code for now (proposal non-goals).
 
 ## Risks / Trade-offs
 
