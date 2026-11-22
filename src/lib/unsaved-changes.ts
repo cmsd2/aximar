@@ -1,7 +1,6 @@
 import { message } from "@tauri-apps/plugin-dialog";
 import { useNotebookStore } from "../store/notebookStore";
 import { saveNotebook } from "./notebooks-client";
-import { nbSetPath } from "./notebook-commands";
 
 const SAVE = "Save";
 const DONT_SAVE = "Don't Save";
@@ -45,10 +44,9 @@ export function choiceFor(result: string): UnsavedChoice {
 export async function saveNotebookTab(notebookId: string): Promise<boolean> {
   const tab = useNotebookStore.getState().notebooks[notebookId];
   if (!tab || tab.type !== "notebook") return true;
-  const savedPath = await saveNotebook(tab.cells, tab.filePath);
-  if (!savedPath) return false;
   // The path_changed event sets the tab's title and save path
-  await nbSetPath(notebookId, savedPath);
+  const savedPath = await saveNotebook(notebookId, tab.filePath);
+  if (!savedPath) return false;
   useNotebookStore.getState().markNotebookClean(notebookId);
   return true;
 }

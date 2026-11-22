@@ -1,3 +1,5 @@
+use std::path::Path;
+
 use serde::Serialize;
 use tauri::{AppHandle, Emitter, State};
 
@@ -8,6 +10,7 @@ use aximar_core::safety::{TrustDecision, TrustMode};
 
 use aximar_core::commands::{CommandEffect, EffectSink, NotebookCommand};
 use aximar_core::notebook::CellType;
+use aximar_core::notebooks::{data as notebook_data, io as notebook_io};
 use aximar_core::notebook::Notebook;
 use aximar_core::registry::{NotebookContextRef, NotebookInfo};
 
@@ -44,8 +47,13 @@ pub fn emit_notebook_state(
     nb: &Notebook,
     effect: &CommandEffect,
 ) {
+    let _ = app_handle.emit("notebook-state-changed", notebook_state_event(notebook_id, nb, effect));
+}
+
+/// The event payload for an effect on a notebook.
+fn notebook_state_event(notebook_id: &str, nb: &Notebook, effect: &CommandEffect) -> NotebookStateEvent {
     let payload = notebook_state_payload(nb);
-    let event = NotebookStateEvent {
+    NotebookStateEvent {
         notebook_id: notebook_id.to_string(),
         effect: effect.effect_name().to_string(),
         cell_id: effect.cell_id().map(|s| s.to_string()),
@@ -61,8 +69,7 @@ pub fn emit_notebook_state(
             CommandEffect::PathChanged { path } => path.clone(),
             _ => None,
         },
-    };
-    let _ = app_handle.emit("notebook-state-changed", event);
+    }
 }
 
 /// Emits each effect to the window as the operation produces it.
@@ -305,64 +312,73 @@ async fn set_path(
     Ok(())
 }
 
-#[derive(Debug, serde::Deserialize)]
-pub struct LoadCellOutput {
-    pub text_output: String,
-    pub latex: Option<String>,
-    pub plot_data: Option<String>,
-    pub plot_svg: Option<String>,
-    pub image_png: Option<String>,
-    pub execution_count: Option<u32>,
-}
-
-#[derive(Debug, serde::Deserialize)]
-pub struct LoadCell {
-    pub id: String,
-    pub cell_type: String,
-    pub input: String,
-    #[serde(default)]
-    pub output: Option<LoadCellOutput>,
-}
-
+/// Open a notebook file into a notebook: read it, load its cells and record
+/// its path, in one command.  The `path_changed` event then titles the tab.
+/// When some cells had no usable ID and got new ones, an `ids_replaced`
+/// event follows: the notebook no longer matches its file, so the window
+/// marks it changed and the next save writes good IDs.
 #[tauri::command]
-pub async fn nb_load_cells(
+pub async fn nb_open(
     app: AppHandle,
     state: State<'_, AppState>,
     notebook_id: Option<String>,
-    cells: Vec<LoadCell>,
+    path: String,
 ) -> Result<(), AppError> {
     let ctx = resolve_context(&state, notebook_id).await?;
-    let cell_tuples: Vec<(String, CellType, String, Option<aximar_core::notebook::CellOutput>)> = cells
-        .into_iter()
-        .map(|c| {
-            let ct = match c.cell_type.as_str() {
-                "markdown" => CellType::Markdown,
-                _ => CellType::Code,
-            };
-            let output = c.output.map(|o| aximar_core::notebook::CellOutput {
-                text_output: o.text_output,
-                latex: o.latex,
-                execution_count: o.execution_count,
-                plot_svg: o.plot_svg,
-                plot_data: o.plot_data,
-                image_png: o.image_png,
-                error: None,
-                is_error: false,
-                duration_ms: 0,
-                output_label: None,
-                ..Default::default()
-            });
-            (c.id, ct, c.input, output)
-        })
-        .collect();
+    let file = notebook_io::open(Path::new(&path), &state.catalog, &state.packages)
+        .map_err(AppError::NotebookFile)?;
+    let ids_replaced = file.ids_replaced;
     let mut nb = ctx.notebook.lock().await;
     let effect = nb
-        .apply(NotebookCommand::LoadCells {
-            cells: cell_tuples,
-        })
-        .map_err(|e| AppError::CommunicationError(e))?;
+        .apply(NotebookCommand::LoadNotebook { file: file.into() })
+        .map_err(AppError::CommunicationError)?;
     emit_notebook_state(&app, &ctx.id, &nb, &effect);
+    drop(nb);
+    set_path(&app, &state, &ctx.id, Some(path)).await?;
+    if ids_replaced {
+        let nb = ctx.notebook.lock().await;
+        let mut event = notebook_state_event(&ctx.id, &nb, &effect);
+        event.effect = "ids_replaced".to_string();
+        let _ = app.emit("notebook-state-changed", event);
+    }
     Ok(())
+}
+
+/// Save a notebook to a file and record the path.  The window flushes its
+/// pending input edits first, so the backend's notebook is the one saved.
+#[tauri::command]
+pub async fn nb_save(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    notebook_id: Option<String>,
+    path: String,
+) -> Result<(), AppError> {
+    let ctx = resolve_context(&state, notebook_id).await?;
+    let nb = ctx.notebook.lock().await;
+    notebook_io::save(Path::new(&path), &nb).map_err(AppError::NotebookFile)?;
+    drop(nb);
+    set_path(&app, &state, &ctx.id, Some(path)).await
+}
+
+/// Load a built-in template into a notebook.  The notebook then belongs to
+/// no file.
+#[tauri::command]
+pub async fn nb_load_template(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    notebook_id: Option<String>,
+    template_id: String,
+) -> Result<(), AppError> {
+    let ctx = resolve_context(&state, notebook_id).await?;
+    let file = notebook_data::template_file(&template_id)
+        .ok_or_else(|| AppError::NotebookFile(format!("No template named '{template_id}'")))?;
+    let mut nb = ctx.notebook.lock().await;
+    let effect = nb
+        .apply(NotebookCommand::LoadNotebook { file: file.into() })
+        .map_err(AppError::CommunicationError)?;
+    emit_notebook_state(&app, &ctx.id, &nb, &effect);
+    drop(nb);
+    set_path(&app, &state, &ctx.id, None).await
 }
 
 /// Result of running a cell — either evaluated or needs notebook trust.

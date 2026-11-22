@@ -3,8 +3,9 @@ import { listen } from "@tauri-apps/api/event";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { confirmClose } from "../lib/unsaved-changes";
 import { useNotebookStore } from "../store/notebookStore";
-import { nbCreate, nbGetState, nbList, nbClose, nbLoadCells, nbSetPath, getInitialFileArgs } from "../lib/notebook-commands";
-import { openFilePath, parseNbformatOutputs } from "../lib/notebooks-client";
+import { nbCreate, nbGetState, nbList, nbClose, nbOpen, nbSetActive, getInitialFileArgs } from "../lib/notebook-commands";
+import type { SyncCell } from "../lib/notebook-commands";
+import { openFilePath } from "../lib/notebooks-client";
 import { markDirty, cleanup } from "../lib/dirty-inputs";
 import type { CellOutput, CellStatus, CellType } from "../types/notebook";
 import type { SessionStatus } from "../types/maxima";
@@ -32,6 +33,13 @@ export function handleNotebookStateEvent(payload: NotebookStateEvent) {
   // Nothing in the notebook changed.
   if (effect === "trust_required") {
     store.setPendingTrustFunctions(notebook_id, payload.trust_functions ?? []);
+    return;
+  }
+
+  // Opening gave some cells new IDs: the notebook no longer matches its
+  // file, so the next save writes good ones
+  if (effect === "ids_replaced") {
+    store.markNotebookDirty(notebook_id);
     return;
   }
 
@@ -112,27 +120,6 @@ export function handleLifecycleEvent(notebook_id: string, eventType: string) {
   }
 }
 
-interface SyncCellOutput {
-  text_output: string;
-  latex: string | null;
-  plot_svg: string | null;
-  plot_data: string | null;
-  image_png: string | null;
-  error: string | null;
-  is_error: boolean;
-  duration_ms: number;
-  output_label: string | null;
-  execution_count: number | null;
-}
-
-interface SyncCell {
-  id: string;
-  cell_type: string;
-  input: string;
-  output?: SyncCellOutput | null;
-  status?: string | null;
-}
-
 export interface NotebookStateEvent {
   notebook_id: string;
   effect: string;
@@ -172,11 +159,13 @@ export function mapSyncCells(syncCells: SyncCell[]) {
         plotData: sc.output.plot_data,
         imagePng: sc.output.image_png,
         error: sc.output.error,
-        errorInfo: null,
+        errorInfo: sc.output.error_info,
         isError: sc.output.is_error,
         durationMs: sc.output.duration_ms,
         outputLabel: sc.output.output_label,
         executionCount: sc.output.execution_count,
+        textPlain: sc.output.text_plain,
+        stale: sc.output.stale,
       };
     }
     return {
@@ -189,40 +178,41 @@ export function mapSyncCells(syncCells: SyncCell[]) {
   });
 }
 
+function fileName(path: string): string {
+  return path.split("/").pop()?.split("\\").pop() ?? path;
+}
+
 /**
- * Open a file from a path into the appropriate tab type.
- * For notebooks (.macnb/.ipynb), creates a backend notebook and loads cells.
- * For JSON files, creates a frontend-only plot tab.
+ * Open a notebook file in a new tab.  The backend reads the file, loads the
+ * cells and records the path; its events fill the tab.  If the file can't be
+ * opened, the tab goes again and the error is thrown.
+ */
+export async function openNotebookTab(path: string): Promise<void> {
+  const { notebook_id } = await nbCreate();
+  const store = useNotebookStore.getState();
+  store.addTab(notebook_id, fileName(path));
+  store.setActiveTab(notebook_id);
+  await nbSetActive(notebook_id);
+  try {
+    await nbOpen(path, notebook_id);
+  } catch (e) {
+    await nbClose(notebook_id).catch(() => {});
+    useNotebookStore.getState().removeTab(notebook_id);
+    throw e;
+  }
+}
+
+/**
+ * Open a file from a path into the appropriate tab type: a notebook
+ * (.macnb/.ipynb) in a backend notebook, a JSON file in a plot tab.
  */
 async function openFileAsTab(path: string): Promise<void> {
   const result = await openFilePath(path);
-  const store = useNotebookStore.getState();
-
   if (result.type === "plot") {
-    const title = path.split("/").pop()?.split("\\").pop() ?? "Plot";
     const id = `plot-${crypto.randomUUID()}`;
-    store.addPlotTab(id, title, result.plotData, result.path);
+    useNotebookStore.getState().addPlotTab(id, fileName(path), result.plotData, result.path);
   } else {
-    // Create a backend notebook and load cells into it
-    const { notebook_id } = await nbCreate();
-    const title = path.split("/").pop()?.split("\\").pop() ?? "Untitled";
-    store.addTab(notebook_id, title);
-    store.setActiveTab(notebook_id);
-
-    const cells = result.notebook.cells
-      .filter((c) => c.cell_type !== "raw")
-      .map((c) => {
-        const parsed = c.cell_type === "code" ? parseNbformatOutputs(c) : null;
-        return {
-          id: crypto.randomUUID(),
-          cell_type: c.cell_type === "markdown" ? "markdown" : "code",
-          input: typeof c.source === "string" ? c.source : (c.source as string[]).join(""),
-          output: parsed ?? undefined,
-        };
-      });
-    await nbLoadCells(cells, notebook_id);
-    // The path_changed event sets the tab's title and save path
-    await nbSetPath(notebook_id, path);
+    await openNotebookTab(path);
   }
 }
 

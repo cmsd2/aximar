@@ -541,6 +541,11 @@
   background: rgba(0, 0, 0, 0.15);
 }
 
+/* Outputs read from a file, from an earlier session, until the cell runs */
+.cell-output-area.stale > * {
+  opacity: 0.55;
+}
+
 .cell-output {
   position: relative;
   flex: 1;
@@ -1432,6 +1437,21 @@
 }
 
 /* Markdown Cell */
+/* Raw cells: text from a Jupyter file, kept as it is and never run */
+.raw-cell-text {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  padding: 6px 12px;
+  font-family: "JetBrains Mono", "Fira Code", "SF Mono", Menlo, Consolas,
+    monospace;
+  font-size: calc(var(--font-size-mono) - 1px);
+  line-height: 1.5;
+  color: var(--text-secondary);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
 .markdown-cell {
   position: relative;
   display: flex;

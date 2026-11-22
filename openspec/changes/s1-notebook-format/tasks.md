@@ -15,10 +15,10 @@ Each numbered group is one pull request. Aximar groups run `cargo test --workspa
 
 ## 3. Aximar's callers use the serializer (#16)
 
-- [ ] 3.1 aximar-mcp `open_notebook`, `save_notebook`, `load_template` and batch runs use `notebooks::format`; delete `convert.rs`; verify the existing MCP file tests pass, plus a test that a saved error output reopens with its error and the cell IDs are kept
-- [ ] 3.2 Add Tauri `nb_open`, `nb_save` and `nb_load_template`; the window's open, save, save-as, command-line open, template chooser and welcome notebook use them; delete the TypeScript conversion in `notebooks-client.ts`, the raw `save_notebook` and `open_notebook` commands and `nb_load_cells`; verify with vitest tests of the new client calls, and by hand that opening, saving and templates work and the tab titles follow the file
-- [ ] 3.3 Send `stale` and `error_info` to the window; show stale outputs as from an earlier session, and friendly explanations for errors (#56); verify with vitest tests that a stale output and an `error_info` reach the cell, and by hand that both show
-- [ ] 3.4 Show raw cells read-only in the window, with no run control; show a result's `text_plain` when it has no LaTeX (a Jupyter result with only `text/plain`); verify with vitest tests of both, and by hand with `fixtures/jupyter-4.0.ipynb`
+- [x] 3.1 aximar-mcp `open_notebook`, `save_notebook`, `load_template` and batch runs use `notebooks::format`; delete `convert.rs`; verify the existing MCP file tests pass, plus a test that a saved error output reopens with its error and the cell IDs are kept
+- [x] 3.2 Add Tauri `nb_open`, `nb_save` and `nb_load_template`; the window's open, save, save-as, command-line open, template chooser and welcome notebook use them; delete the TypeScript conversion in `notebooks-client.ts`, the raw `save_notebook` and `open_notebook` commands and `nb_load_cells`; verify with vitest tests of the new client calls, and by hand that opening, saving and templates work and the tab titles follow the file
+- [x] 3.3 Send `stale` and `error_info` to the window; show stale outputs as from an earlier session, and friendly explanations for errors (#56); verify with vitest tests that a stale output and an `error_info` reach the cell, and by hand that both show
+- [x] 3.4 Show raw cells read-only in the window, with no run control; show a result's `text_plain` when it has no LaTeX (a Jupyter result with only `text/plain`); verify with vitest tests of both, and by hand with `fixtures/jupyter-4.0.ipynb`
 
 ## 4. Numbering and label contexts (#8)
 

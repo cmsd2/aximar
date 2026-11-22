@@ -21,7 +21,6 @@ use aximar_core::evaluation::{
 use aximar_core::session_ops::{self, SessionSettings, SessionSettingsProvider, SessionStatusCallback};
 
 use crate::capture::CaptureOutputSink;
-use crate::convert::{ipynb_to_cell_tuples, notebook_to_ipynb};
 use crate::notebook::CellType;
 use crate::params::*;
 
@@ -1145,10 +1144,10 @@ Unicode Greek letters (α, β, γ, θ, π, etc.) are translated to Maxima symbol
     ) -> Result<String, String> {
         let ctx = self.core.resolve_context(params.notebook_id.as_deref()).await?;
         let nb = ctx.notebook.lock().await;
-        let notebook = notebook_to_ipynb(&nb);
+        let saved = notebook_io::save(std::path::Path::new(&params.path), &nb);
         drop(nb);
 
-        match notebook_io::write_notebook(&params.path, &notebook) {
+        match saved {
             Ok(()) => {
                 // The notebook now belongs to this file
                 self.core.record_path(&ctx.id, Some(&params.path)).await?;
@@ -1157,7 +1156,7 @@ Unicode Greek letters (α, β, γ, θ, π, etc.) are translated to Maxima symbol
                     "path": params.path,
                 }))
             }
-            Err(e) => error_result(format!("Failed to save: {e}")),
+            Err(e) => error_result(e),
         }
     }
 
@@ -1167,11 +1166,11 @@ Unicode Greek letters (α, β, γ, θ, π, etc.) are translated to Maxima symbol
         Parameters(params): Parameters<NotebookPathParams>,
     ) -> Result<String, String> {
         let ctx = self.core.resolve_context(params.notebook_id.as_deref()).await?;
-        match notebook_io::read_notebook(&params.path) {
-            Ok(notebook) => {
-                let cells = ipynb_to_cell_tuples(&notebook);
+        let path = std::path::Path::new(&params.path);
+        match notebook_io::open(path, &self.core.catalog, &self.core.packages) {
+            Ok(file) => {
                 let mut nb = ctx.notebook.lock().await;
-                let effect = nb.apply(NotebookCommand::LoadCells { cells })?;
+                let effect = nb.apply(NotebookCommand::LoadNotebook { file: file.into() })?;
                 let cell_count = nb.cells().len();
                 drop(nb);
                 self.core.notify_notebook_change(&ctx.id, effect);
@@ -1182,7 +1181,7 @@ Unicode Greek letters (α, β, γ, θ, π, etc.) are translated to Maxima symbol
                     "cell_count": cell_count,
                 }))
             }
-            Err(e) => error_result(format!("Failed to open: {e}")),
+            Err(e) => error_result(e),
         }
     }
 
@@ -1209,11 +1208,10 @@ Unicode Greek letters (α, β, γ, θ, π, etc.) are translated to Maxima symbol
         Parameters(params): Parameters<LoadTemplateParams>,
     ) -> Result<String, String> {
         let ctx = self.core.resolve_context(params.notebook_id.as_deref()).await?;
-        match notebook_data::get_template(&params.template_id) {
-            Some(notebook) => {
-                let cells = ipynb_to_cell_tuples(&notebook);
+        match notebook_data::template_file(&params.template_id) {
+            Some(file) => {
                 let mut nb = ctx.notebook.lock().await;
-                let effect = nb.apply(NotebookCommand::LoadCells { cells })?;
+                let effect = nb.apply(NotebookCommand::LoadNotebook { file: file.into() })?;
                 let cell_count = nb.cells().len();
                 drop(nb);
                 self.core.notify_notebook_change(&ctx.id, effect);
