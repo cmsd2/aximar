@@ -1,15 +1,14 @@
 name: Build
 
 on:
-  push:
-    branches: [master]
-    paths-ignore:
-      - 'docs/**'
-      - '**/*.md'
-      - 'LICENSE*'
-  # PRs build the full matrix only when labelled full-build (see the job's
-  # `if`). Adding the label starts a build; later pushes rebuild while it
-  # stays on. ci.yml runs the tests on every PR.
+  # Master builds nightly, and only when something the app is built from
+  # changed since master's last successful build (see the changes job).
+  # ci.yml runs the tests on every push and PR.
+  schedule:
+    - cron: '0 3 * * *'
+  # PRs build the full matrix only when labelled full-build (see the build
+  # job's `if`). Adding the label starts a build; later pushes rebuild while
+  # it stays on.
   pull_request:
     branches: [master]
     types: [opened, synchronize, reopened, labeled]
@@ -17,20 +16,69 @@ on:
       - 'docs/**'
       - '**/*.md'
       - 'LICENSE*'
-  # Any branch, on demand: gh workflow run build.yml --ref <branch>
+  # Any branch, on demand, always building:
+  # gh workflow run build.yml --ref <branch>
   workflow_dispatch:
 
-jobs:
-  build:
-    # On PRs: only with the full-build label, and for a labeled event only
-    # when that label is the one just added, so other labels don't rebuild.
-    if: >-
-      github.event_name != 'pull_request' ||
-      (contains(github.event.pull_request.labels.*.name, 'full-build') &&
-       (github.event.action != 'labeled' || github.event.label.name == 'full-build'))
+permissions:
+  contents: read
+  # The changes job reads earlier runs of this workflow
+  actions: read
 
-    # A new push to a PR supersedes its build in progress. Master builds
-    # queue instead of cancelling the running one. Set on the job, not the
+jobs:
+  # Nightly only: whether master changed anything the app is built from
+  # since the last successful build of master.  Paths below never reach
+  # the app: docs, specs, the standalone tools and their crates, tests,
+  # and the other workflows.
+  changes:
+    if: github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    outputs:
+      build: ${{ steps.check.outputs.build }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          last=$(gh run list --workflow build.yml --branch master --status success \
+            --limit 1 --json headSha --jq '.[0].headSha // empty')
+          if [ -z "$last" ] || ! git cat-file -e "$last^{commit}" 2>/dev/null; then
+            echo "No earlier successful build of master to compare with"
+            build=true
+          elif git diff --quiet "$last" HEAD -- . \
+              ':(exclude)docs' ':(exclude,glob)**/*.md' ':(exclude,glob)LICENSE*' \
+              ':(exclude)openspec' ':(exclude)packages' ':(exclude)tools' \
+              ':(exclude)crates/maxima-lsp' ':(exclude)crates/maxima-dap' \
+              ':(exclude)crates/maxima-mac-parser' ':(exclude,glob)crates/*/tests/**' \
+              ':(exclude).github/workflows/ci.yml' ':(exclude).github/workflows/notify-tap.yml' \
+              ':(exclude,glob).github/workflows/release*.yml'; then
+            echo "Nothing the app is built from changed since $last"
+            build=false
+          else
+            echo "App changes since $last:"
+            git diff --stat "$last" HEAD | tail -1
+            build=true
+          fi
+          echo "build=$build" >> "$GITHUB_OUTPUT"
+
+  build:
+    needs: changes
+    # Nightly: when the changes job says so.  On demand: always.  On PRs:
+    # only with the full-build label, and for a labeled event only when that
+    # label is the one just added, so other labels don't rebuild.
+    if: >-
+      !cancelled() && (
+        github.event_name == 'workflow_dispatch' ||
+        (github.event_name == 'schedule' && needs.changes.outputs.build == 'true') ||
+        (github.event_name == 'pull_request' &&
+         contains(github.event.pull_request.labels.*.name, 'full-build') &&
+         (github.event.action != 'labeled' || github.event.label.name == 'full-build')))
+
+    # A new push to a PR supersedes its build in progress. Set on the job, not the
     # workflow, so a skipped run can't cancel a real one. The group includes
     # the target: a group holds one running and one waiting job, and GitHub
     # cancels any other waiting job, so a group shared by the whole matrix
