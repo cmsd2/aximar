@@ -16,6 +16,14 @@ see the `v*` releases on GitHub.
   at the first such cell, as its description said, marks the remaining cells
   `not_run`, and adds top-level `success`, `stopped_at`, `stop_reason` and
   `message` fields. The unused `pending_approval` field is gone.
+- **`run_all_cells` shares the desktop app's Run All** (#41): both run in
+  `aximar-core` and stop at the same cells.
+  - Stopping a run from the desktop window ends it after the current cell,
+    with `stop_reason` `cancelled`.
+  - Standalone, a cell blocked by the trust rule is reported as `needs_trust`
+    (with `dangerous_functions`) instead of `failed`.
+  - Batch runs (`aximar-mcp run`) use the same code; output and exit codes are
+    unchanged.
 - **One trust rule for cells and expressions** (#39):
   - **Breaking, connected mode:** `evaluate_expression` follows the notebook's
     trust flag, like `run_cell`. It used to block dangerous calls even in a

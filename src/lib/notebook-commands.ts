@@ -113,6 +113,30 @@ export async function nbRunCell(cellId: string): Promise<RunCellResult> {
   return invoke<RunCellResult>("nb_run_cell", { notebookId: activeId(), cellId });
 }
 
+export type CellRunStatus = "ok" | "empty" | "error" | "needs_trust" | "failed" | "not_run";
+
+/** One code cell's outcome in a run of all cells. */
+export interface CellRun {
+  cell_id: string;
+  status: CellRunStatus;
+  execution_count?: number;
+  error?: string;
+  dangerous_functions?: string[];
+  duration_ms?: number;
+}
+
+/** What `nb_run_all` reports: one entry per code cell, in order. */
+export interface RunAllReport {
+  cells: CellRun[];
+  stopped_at: string | null;
+  stop_reason: "error" | "needs_trust" | "failed" | "cancelled" | null;
+}
+
+/** Run every code cell, stopping at the first that doesn't succeed. */
+export async function nbRunAll(notebookId: string): Promise<RunAllReport> {
+  return invoke<RunAllReport>("nb_run_all", { notebookId });
+}
+
 export async function nbTrustNotebook(trusted: boolean): Promise<void> {
   return invoke<void>("nb_trust_notebook", { notebookId: activeId(), trusted });
 }

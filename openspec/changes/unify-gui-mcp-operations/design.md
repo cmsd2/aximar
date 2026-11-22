@@ -54,11 +54,11 @@ Core operations take an `&dyn EffectSink` (one method, `effect(notebook_id, Comm
 
 ### 5. Run-all lives in core
 
-`evaluation::run_all(ctx, sink, settings, mode, cancel) -> RunAllReport` runs code cells in order and stops at the first error, trust block or failure. It reports each cell's outcome with the statuses MCP already uses (`ok`, `empty`, `error`, `needs_trust`, `failed`, `not_run`).
+`evaluation::run_all(ctx, options, on_cell) -> RunAllReport` runs code cells in order. `RunAllOptions` holds the catalogs, timeout, trust mode and effect sink; `on_cell` hears each outcome as it finishes, for batch's progress lines. The caller starts the session first, since that differs by front end. It stops at the first error, trust block or failure. It reports each cell's outcome with the statuses MCP already uses (`ok`, `empty`, `error`, `needs_trust`, `failed`, `not_run`).
 
 - MCP `run_all_cells` serialises the report as today. Batch maps it to its exit code.
 - The window gets a `nb_run_all` command. Before calling it, the frontend flushes the notebook's pending edits; `dirty-inputs.ts` gains `flushNotebook(notebookId)`.
-- Cancel stops the run after the current cell: `run_all` checks a flag between cells, and `cancel_evaluation` sets it.
+- Cancel stops the run after the current cell: `run_all` checks a per-notebook flag (`NotebookContextRef::cancel_run_all`) between cells, and `cancel_evaluation` sets it. The report's `stop_reason` is then `cancelled`, and `stopped_at` is the first cell not run.
 - *Alternative:* keep the frontend loop and call core per cell. The loop would still decide when to stop on its own, which is the drift this change removes.
 
 ### 6. Input preparation in one function
