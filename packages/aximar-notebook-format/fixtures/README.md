@@ -1,6 +1,6 @@
 # Notebook format test notebooks
 
-Shared test notebooks for the notebook format (`docs/notebook-format.md`). The Rust serializer in aximar-core and the TypeScript package `aximar-notebook-format` both read and write these, so the desktop app, aximar-mcp and the VS Code extension handle the same files the same way.
+Test notebooks for the notebook format (`docs/notebook-format.md`). The crate in the folder above reads and writes them in its tests, and its npm build (used by the VS Code extension) is checked against them too, so the desktop app, aximar-mcp and the extension handle the same files the same way.
 
 | File | Written by | What it tests |
 |---|---|---|

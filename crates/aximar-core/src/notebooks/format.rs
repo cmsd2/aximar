@@ -1,10 +1,19 @@
-//! The `.macnb` notebook format: one reader and writer for the desktop app,
-//! MCP and batch runs.  `docs/notebook-format.md` describes the format;
-//! the `notebook-format` spec states the rules this follows.
+//! The `.macnb` notebook format for Aximar's own notebook model.  The
+//! format itself (reading, writing, cell IDs, the output mapping) lives in
+//! the `aximar-notebook-format` crate, which the VS Code extension also uses
+//! as WebAssembly; this module converts between that crate's file model and
+//! `Notebook`, and works out friendly explanations for loaded errors.
+//! `docs/notebook-format.md` describes the format.
 
 use serde_json::{Map, Value};
 
-use crate::notebook::{CellOutput, CellType};
+use aximar_notebook_format as file;
+pub use aximar_notebook_format::FormatError;
+
+use crate::catalog::packages::PackageCatalog;
+use crate::catalog::search::Catalog;
+use crate::maxima::errors::enhance_error_with_packages;
+use crate::notebook::{CellOutput, CellType, Notebook};
 
 /// A notebook read from a file, ready for `NotebookCommand::LoadNotebook`.
 #[derive(Debug, Clone)]
@@ -28,177 +37,74 @@ pub struct LoadedCell {
     pub output: Option<CellOutput>,
 }
 
-use std::collections::HashSet;
-
-use serde_json::json;
-
-use crate::catalog::packages::PackageCatalog;
-use crate::catalog::search::Catalog;
-use crate::maxima::errors::enhance_error_with_packages;
-use crate::notebook::{new_cell_id, Notebook};
-
-/// Why a file couldn't be read as a notebook.
-#[derive(Debug, thiserror::Error)]
-pub enum FormatError {
-    #[error("not valid JSON: {0}")]
-    Json(#[from] serde_json::Error),
-    #[error("not a notebook: {0}")]
-    Shape(String),
-    #[error("nbformat {0} isn't supported; Aximar reads nbformat 4")]
-    Version(u64),
-}
-
-const PLOTLY: &str = "application/x-maxima-plotly";
-const SVG: &str = "image/svg+xml";
-const PNG: &str = "image/png";
-const LATEX: &str = "text/latex";
-const PLAIN: &str = "text/plain";
-
-/// Fields of a cell this module reads; anything else is kept as is.
-const CELL_FIELDS: &[&str] = &["id", "cell_type", "source", "metadata", "execution_count", "outputs"];
-
 // ── Reading ──────────────────────────────────────────────────────────
 
 /// Read a notebook file.  Outputs come back stale: they belong to a
 /// session that no longer exists.
 pub fn read(json: &str) -> Result<NotebookFile, FormatError> {
-    let root: Value = serde_json::from_str(json)?;
-    let root = root
-        .as_object()
-        .ok_or_else(|| FormatError::Shape("the top level isn't an object".into()))?;
-    match root.get("nbformat").and_then(Value::as_u64) {
-        Some(4) => {}
-        Some(other) => return Err(FormatError::Version(other)),
-        None => return Err(FormatError::Shape("no nbformat version".into())),
-    }
-    let metadata = root.get("metadata").and_then(Value::as_object).cloned().unwrap_or_default();
-
-    let mut seen = HashSet::new();
-    let mut ids_replaced = false;
-    let mut cells = Vec::new();
-    for raw in root.get("cells").and_then(Value::as_array).into_iter().flatten() {
-        let Some(cell) = raw.as_object() else {
-            return Err(FormatError::Shape("a cell isn't an object".into()));
-        };
-        let id = match cell.get("id").and_then(Value::as_str) {
-            Some(id) if valid_id(id) && seen.insert(id.to_string()) => id.to_string(),
-            _ => {
-                ids_replaced = true;
-                let id = new_cell_id();
-                seen.insert(id.clone());
-                id
-            }
-        };
-        let cell_type = match cell.get("cell_type").and_then(Value::as_str) {
-            Some("code") => CellType::Code,
-            Some("markdown") => CellType::Markdown,
-            // Raw cells, and any type a later nbformat adds, are kept as raw
-            _ => CellType::Raw,
-        };
-        let output = match cell_type {
-            CellType::Code => read_outputs(
-                cell.get("outputs").and_then(Value::as_array).map(Vec::as_slice).unwrap_or_default(),
-                cell.get("execution_count").and_then(Value::as_u64).map(|n| n as u32),
-            ),
-            _ => None,
-        };
-        let extra = cell
-            .iter()
-            .filter(|(key, _)| !CELL_FIELDS.contains(&key.as_str()))
-            .map(|(key, value)| (key.clone(), value.clone()))
-            .collect();
-        cells.push(LoadedCell {
-            id,
-            cell_type,
-            input: text(cell.get("source")),
-            metadata: cell.get("metadata").and_then(Value::as_object).cloned().unwrap_or_default(),
-            extra,
-            output,
-        });
-    }
-    Ok(NotebookFile { metadata, cells, ids_replaced })
+    let f = file::read(json)?;
+    let cells = f
+        .cells
+        .into_iter()
+        .map(|c| LoadedCell {
+            id: c.id,
+            cell_type: cell_type_from(c.cell_type),
+            input: c.input,
+            metadata: c.metadata,
+            extra: c.extra,
+            output: c.output.map(output_from),
+        })
+        .collect();
+    Ok(NotebookFile { metadata: f.metadata, cells, ids_replaced: f.ids_replaced })
 }
 
-/// nbformat 4.5's rule: 1 to 64 letters, digits, `-` or `_`.
-fn valid_id(id: &str) -> bool {
-    (1..=64).contains(&id.len())
-        && id.chars().all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_')
-}
-
-/// A string, or a list of strings joined (nbformat's multiline text).
-fn text(value: Option<&Value>) -> String {
-    match value {
-        Some(Value::String(s)) => s.clone(),
-        Some(Value::Array(parts)) => parts.iter().filter_map(Value::as_str).collect(),
-        _ => String::new(),
+fn cell_type_from(t: file::CellType) -> CellType {
+    match t {
+        file::CellType::Code => CellType::Code,
+        file::CellType::Markdown => CellType::Markdown,
+        file::CellType::Raw => CellType::Raw,
     }
 }
 
-/// Fill `slot` with `value`, or keep `output` for writing back if a value
-/// of that kind came first: one cell shows one of each.
-fn take(slot: &mut Option<String>, value: String, output: &Value, others: &mut Vec<Value>) {
-    if slot.is_none() {
-        *slot = Some(value);
-    } else {
-        others.push(output.clone());
+fn cell_type_to(t: CellType) -> file::CellType {
+    match t {
+        CellType::Code => file::CellType::Code,
+        CellType::Markdown => file::CellType::Markdown,
+        CellType::Raw => file::CellType::Raw,
     }
 }
 
-fn read_outputs(outputs: &[Value], execution_count: Option<u32>) -> Option<CellOutput> {
-    if outputs.is_empty() {
-        return None;
+fn output_from(o: file::Output) -> CellOutput {
+    CellOutput {
+        text_output: o.text_output,
+        latex: o.latex,
+        text_plain: o.text_plain,
+        plot_svg: o.plot_svg,
+        plot_data: o.plot_data,
+        image_png: o.image_png,
+        error: o.error,
+        is_error: o.is_error,
+        execution_count: o.execution_count,
+        stale: o.stale,
+        other_outputs: o.other_outputs,
+        ..Default::default()
     }
-    let mut out = CellOutput { execution_count, stale: true, ..Default::default() };
-    let mut others = Vec::new();
-    for output in outputs {
-        match output.get("output_type").and_then(Value::as_str) {
-            Some("stream") => out.text_output.push_str(&text(output.get("text"))),
-            Some("error") => {
-                out.is_error = true;
-                let message = text(output.get("evalue"));
-                out.error = Some(if message.is_empty() { text(output.get("ename")) } else { message });
-            }
-            Some(kind @ ("execute_result" | "display_data")) => {
-                let data = output.get("data").and_then(Value::as_object);
-                let get = |mime: &str| data.and_then(|d| d.get(mime)).map(|v| text(Some(v)));
-                // One value per bundle, the richest; text/plain only when
-                // nothing richer is there
-                if let Some(v) = get(PLOTLY) {
-                    take(&mut out.plot_data, v, output, &mut others);
-                } else if let Some(v) = get(SVG) {
-                    take(&mut out.plot_svg, v, output, &mut others);
-                } else if let Some(v) = get(PNG) {
-                    take(&mut out.image_png, v, output, &mut others);
-                } else if let Some(v) = get(LATEX) {
-                    if out.latex.is_some() {
-                        others.push(output.clone());
-                    } else {
-                        out.latex = Some(v);
-                        out.text_plain = get(PLAIN);
-                    }
-                } else if let Some(v) = get(PLAIN) {
-                    let counted = output.get("execution_count").is_some_and(|n| !n.is_null());
-                    if kind == "execute_result" && counted && out.text_plain.is_none() {
-                        // A result with only a plain form, as Jupyter writes it
-                        out.text_plain = Some(v);
-                    } else {
-                        // Print text that a writer put in a bundle
-                        out.text_output.push_str(&v);
-                    }
-                } else {
-                    others.push(output.clone());
-                }
-                if kind == "execute_result" {
-                    if let Some(n) = output.get("execution_count").and_then(Value::as_u64) {
-                        out.execution_count = Some(n as u32);
-                    }
-                }
-            }
-            _ => others.push(output.clone()),
-        }
+}
+
+fn output_to(o: &CellOutput) -> file::Output {
+    file::Output {
+        text_output: o.text_output.clone(),
+        latex: o.latex.clone(),
+        text_plain: o.text_plain.clone(),
+        plot_svg: o.plot_svg.clone(),
+        plot_data: o.plot_data.clone(),
+        image_png: o.image_png.clone(),
+        error: o.error.clone(),
+        is_error: o.is_error,
+        execution_count: o.execution_count,
+        stale: o.stale,
+        other_outputs: o.other_outputs.clone(),
     }
-    out.other_outputs = others;
-    Some(out)
 }
 
 /// Work out the friendly explanation for each error read from a file.
@@ -216,109 +122,29 @@ pub fn explain_errors(file: &mut NotebookFile, catalog: &Catalog, packages: &Pac
 
 /// Write a notebook as nbformat 4.5 JSON.
 pub fn write(notebook: &Notebook) -> String {
-    let mut metadata = notebook.metadata().clone();
-    metadata.insert(
-        "kernelspec".into(),
-        json!({ "name": "maxima", "display_name": "Maxima", "language": "maxima" }),
-    );
-    let cells: Vec<Value> = notebook
-        .cells()
-        .iter()
-        .map(|cell| {
-            let mut out = cell.extra.clone();
-            out.insert("id".into(), json!(cell.id));
-            out.insert(
-                "cell_type".into(),
-                json!(match cell.cell_type {
-                    CellType::Code => "code",
-                    CellType::Markdown => "markdown",
-                    CellType::Raw => "raw",
-                }),
-            );
-            out.insert("source".into(), lines(&cell.input));
-            out.insert("metadata".into(), Value::Object(cell.metadata.clone()));
-            if cell.cell_type == CellType::Code {
-                let count = cell.output.as_ref().and_then(|o| o.execution_count);
-                out.insert("execution_count".into(), json!(count));
-                out.insert("outputs".into(), Value::Array(cell.output.as_ref().map(write_outputs).unwrap_or_default()));
-            }
-            Value::Object(out)
-        })
-        .collect();
-    let file = json!({
-        "nbformat": 4,
-        "nbformat_minor": 5,
-        "metadata": metadata,
-        "cells": cells,
-    });
-    // One-space indent and a final newline, as Jupyter writes
-    let mut bytes = Vec::new();
-    let formatter = serde_json::ser::PrettyFormatter::with_indent(b" ");
-    let mut serializer = serde_json::Serializer::with_formatter(&mut bytes, formatter);
-    serde::Serialize::serialize(&file, &mut serializer).expect("a JSON value always serializes");
-    let mut text = String::from_utf8(bytes).expect("serde_json writes UTF-8");
-    text.push('\n');
-    text
-}
-
-/// nbformat's multiline text: one string per line, each keeping its `\n`.
-fn lines(text: &str) -> Value {
-    json!(text.split_inclusive('\n').collect::<Vec<_>>())
-}
-
-fn write_outputs(output: &CellOutput) -> Vec<Value> {
-    let mut outputs = Vec::new();
-    // A Maxima error with no separate message is in the print text: write
-    // it once, as the error
-    let error_text = match (&output.error, output.is_error) {
-        (Some(message), true) => Some(message.clone()),
-        (None, true) => Some(output.text_output.trim().to_string()),
-        _ => None,
-    };
-    let print_is_error = output.is_error && output.error.is_none();
-    if !output.text_output.is_empty() && !print_is_error {
-        outputs.push(json!({ "output_type": "stream", "name": "stdout", "text": lines(&output.text_output) }));
-    }
-    if output.latex.is_some() || output.text_plain.is_some() {
-        let mut data = Map::new();
-        if let Some(latex) = &output.latex {
-            data.insert(LATEX.into(), lines(latex));
-        }
-        if let Some(plain) = &output.text_plain {
-            data.insert(PLAIN.into(), lines(plain));
-        }
-        outputs.push(json!({
-            "output_type": "execute_result",
-            "execution_count": output.execution_count,
-            "data": data,
-            "metadata": {},
-        }));
-    }
-    for (value, mime, description) in [
-        (&output.plot_data, PLOTLY, "<Plotly figure>"),
-        (&output.plot_svg, SVG, "<SVG plot>"),
-        (&output.image_png, PNG, "<PNG image>"),
-    ] {
-        if let Some(value) = value {
-            // PNG is base64: one string, as Jupyter writes it
-            let content = if mime == PNG { json!(value) } else { lines(value) };
-            outputs.push(json!({
-                "output_type": "display_data",
-                "data": { mime: content, PLAIN: [description] },
-                "metadata": {},
-            }));
-        }
-    }
-    if let Some(message) = error_text {
-        outputs.push(json!({ "output_type": "error", "ename": "MaximaError", "evalue": message, "traceback": [] }));
-    }
-    outputs.extend(output.other_outputs.iter().cloned());
-    outputs
+    file::write(&file::NotebookFile {
+        metadata: notebook.metadata().clone(),
+        cells: notebook
+            .cells()
+            .iter()
+            .map(|cell| file::Cell {
+                id: cell.id.clone(),
+                cell_type: cell_type_to(cell.cell_type),
+                input: cell.input.clone(),
+                metadata: cell.metadata.clone(),
+                extra: cell.extra.clone(),
+                output: cell.output.as_ref().map(output_to),
+            })
+            .collect(),
+        ids_replaced: false,
+    })
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use aximar_notebook_format::text;
+    use serde_json::json;
     use crate::commands::NotebookCommand;
 
     fn fixture(name: &str) -> String {
@@ -350,41 +176,6 @@ mod tests {
         let (file, nb) = load("spec-example.macnb");
         assert!(!file.ids_replaced);
         assert_eq!(json(&write(&nb)), json(&fixture("spec-example.macnb")));
-    }
-
-    #[test]
-    fn written_files_are_nbformat_4_5_and_end_with_a_newline() {
-        let (_, nb) = load("aximar-window-before-s1.macnb");
-        let text = write(&nb);
-        assert!(text.ends_with("}\n"));
-        let v = json(&text);
-        assert_eq!((v["nbformat"].as_u64(), v["nbformat_minor"].as_u64()), (Some(4), Some(5)));
-        assert!(v["cells"].as_array().unwrap().iter().all(|c| c["id"].is_string()));
-    }
-
-    #[test]
-    fn cell_ids_follow_the_rule() {
-        let file = read(&fixture("cell-ids.macnb")).unwrap();
-        let ids: Vec<&str> = file.cells.iter().map(|c| c.id.as_str()).collect();
-        assert_eq!(ids[0], "a1");
-        assert_ne!(ids[1], "a1", "a duplicate gets a new ID");
-        assert_eq!(ids[2], "b-2_c");
-        for replaced in &ids[3..] {
-            assert!(valid_id(replaced) && replaced.len() == 21, "{replaced}");
-        }
-        assert!(file.ids_replaced);
-        let unique: HashSet<_> = ids.iter().collect();
-        assert_eq!(unique.len(), ids.len());
-    }
-
-    #[test]
-    fn every_loaded_output_is_stale() {
-        for name in ["spec-example.macnb", "vscode-extension-before-s1.macnb", "aximar-mcp-before-s1.macnb"] {
-            let file = read(&fixture(name)).unwrap();
-            for out in file.cells.iter().filter_map(|c| c.output.as_ref()) {
-                assert!(out.stale, "{name}");
-            }
-        }
     }
 
     #[test]
@@ -490,13 +281,6 @@ mod tests {
         nb.apply(NotebookCommand::LoadNotebook { file: file.into() }).unwrap();
         let v = json(&write(&nb));
         assert_eq!(v["cells"][0]["attachments"]["x.png"]["image/png"], "iVBORw0KGgo=");
-    }
-
-    #[test]
-    fn other_versions_are_refused() {
-        assert!(matches!(read(r#"{"nbformat": 3, "cells": []}"#), Err(FormatError::Version(3))));
-        assert!(matches!(read("not json"), Err(FormatError::Json(_))));
-        assert!(matches!(read("[]"), Err(FormatError::Shape(_))));
     }
 
     #[test]

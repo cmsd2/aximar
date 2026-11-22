@@ -62,3 +62,19 @@ jobs:
       # AXIMAR_RUN_LIVE_TESTS, so this runs without Maxima installed.
       - name: Run tests
         run: cargo test --workspace
+
+      # The notebook format's npm package: the same crate as WebAssembly,
+      # checked against the shared test notebooks
+      - name: Add the wasm target
+        run: rustup target add wasm32-unknown-unknown
+
+      - name: Install wasm-pack
+        uses: taiki-e/install-action@v2
+        with:
+          tool: wasm-pack
+
+      - name: Build and test the notebook format's npm package
+        working-directory: packages/aximar-notebook-format
+        run: |
+          wasm-pack build --release --target nodejs --out-dir pkg -- --features wasm
+          node --test js/smoke.mjs

@@ -51,7 +51,8 @@ jobs:
             build=true
           elif git diff --quiet "$last" HEAD -- . \
               ':(exclude)docs' ':(exclude,glob)**/*.md' ':(exclude,glob)LICENSE*' \
-              ':(exclude)openspec' ':(exclude)packages' ':(exclude)tools' \
+              ':(exclude)openspec' ':(exclude)tools' \
+              ':(exclude)packages/aximar-notebook-format/fixtures' ':(exclude)packages/aximar-notebook-format/js' \
               ':(exclude)crates/maxima-lsp' ':(exclude)crates/maxima-dap' \
               ':(exclude)crates/maxima-mac-parser' ':(exclude,glob)crates/*/tests/**' \
               ':(exclude).github/workflows/ci.yml' ':(exclude).github/workflows/notify-tap.yml' \

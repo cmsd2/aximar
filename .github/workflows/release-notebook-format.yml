@@ -1,0 +1,70 @@
+name: Release notebook format
+
+# Publishes packages/aximar-notebook-format to npm as aximar-notebook-format.
+# Push a tag matching the crate's version: notebook-format-v0.1.0.
+#
+# Uses npm trusted publishing: npm accepts this workflow through GitHub's
+# OIDC token, so no npm token is stored anywhere. The package's settings on
+# npmjs.com name this repository and this workflow file as its trusted
+# publisher. npm sets that up only for a package that exists, so the first
+# version is published by hand (see the package's README).
+
+on:
+  push:
+    tags:
+      - "notebook-format-v*"
+
+permissions:
+  contents: read
+  # Trusted publishing and provenance: npm checks this run's OIDC token
+  id-token: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: packages/aximar-notebook-format
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      - name: Install wasm-pack
+        uses: taiki-e/install-action@v2
+        with:
+          tool: wasm-pack
+
+      - name: Setup Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+
+      # Trusted publishing needs npm 11.5.1 or later; Node 22 ships npm 10
+      - name: Update npm
+        run: npm install -g npm@latest
+
+      - name: Check the tag matches the crate's version
+        run: |
+          version=$(cargo metadata --no-deps --format-version 1 \
+            | jq -r '.packages[] | select(.name == "aximar-notebook-format") | .version')
+          if [ "notebook-format-v$version" != "$GITHUB_REF_NAME" ]; then
+            echo "Tag $GITHUB_REF_NAME doesn't match the crate's version $version"
+            exit 1
+          fi
+
+      - name: Test the crate
+        run: cargo test -p aximar-notebook-format
+
+      - name: Build the npm package
+        run: wasm-pack build --release --target nodejs --out-dir pkg -- --features wasm
+
+      - name: Test the npm package
+        run: node --test js/smoke.mjs
+
+      - name: Publish
+        run: npm publish ./pkg --access public --provenance
