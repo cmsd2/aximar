@@ -1,9 +1,11 @@
 use serde::{Deserialize, Serialize};
+use serde_json::{Map, Value};
 use std::collections::HashMap;
 
 use crate::maxima::labels::LabelContext;
 use crate::maxima::output::OutputEvent;
-use crate::maxima::types::EvalResult;
+use crate::maxima::types::{ErrorInfo, EvalResult};
+use crate::notebooks::format::LoadedCell;
 
 use crate::commands::{CommandEffect, NotebookCommand};
 
@@ -12,6 +14,9 @@ use crate::commands::{CommandEffect, NotebookCommand};
 pub enum CellType {
     Code,
     Markdown,
+    /// Text kept from a file (nbformat raw cells): shown read-only, never
+    /// run, written back unchanged.
+    Raw,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
@@ -23,7 +28,7 @@ pub enum CellStatus {
     Error,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct CellOutput {
     pub text_output: String,
     pub latex: Option<String>,
@@ -35,6 +40,21 @@ pub struct CellOutput {
     pub duration_ms: u64,
     pub output_label: Option<String>,
     pub execution_count: Option<u32>,
+    /// Maxima's one-line form of the final value, as `string(%)` gives it.
+    /// Written as the result's `text/plain` copy in files.
+    #[serde(default)]
+    pub text_plain: Option<String>,
+    /// A friendly explanation of the error, for the window.
+    #[serde(default)]
+    pub error_info: Option<ErrorInfo>,
+    /// Read from a file: the output of a session that no longer exists.
+    #[serde(default)]
+    pub stale: bool,
+    /// Outputs read from a file that Aximar doesn't show, such as other
+    /// output types or bundles of unknown MIME types.  Written back
+    /// unchanged; never sent to the window.
+    #[serde(skip)]
+    pub other_outputs: Vec<Value>,
 }
 
 impl CellOutput {
@@ -50,6 +70,10 @@ impl CellOutput {
             duration_ms: result.duration_ms,
             output_label: result.output_label.clone(),
             execution_count: Some(execution_count),
+            text_plain: result.text_plain.clone(),
+            error_info: result.error_info.clone(),
+            stale: false,
+            other_outputs: Vec::new(),
         }
     }
 }
@@ -62,6 +86,13 @@ pub struct Cell {
     pub output: Option<CellOutput>,
     pub status: CellStatus,
     pub raw_output: Vec<OutputEvent>,
+    /// Cell metadata from the file, kept and written back unchanged.
+    #[serde(skip_serializing_if = "Map::is_empty")]
+    pub metadata: Map<String, Value>,
+    /// Other fields of the cell in the file, such as Jupyter's
+    /// `attachments`, kept and written back unchanged.
+    #[serde(skip)]
+    pub extra: Map<String, Value>,
 }
 
 const MAX_UNDO: usize = 50;
@@ -71,10 +102,13 @@ const MAX_UNDO: usize = 50;
 struct NotebookSnapshot {
     cells: Vec<Cell>,
     execution_counter: u32,
+    metadata: Map<String, Value>,
 }
 
 pub struct Notebook {
     cells: Vec<Cell>,
+    /// Notebook metadata from the file, kept and written back.
+    metadata: Map<String, Value>,
     execution_counter: u32,
     /// Maps display count → real Maxima %oN label
     label_map: HashMap<u32, String>,
@@ -97,9 +131,12 @@ impl Notebook {
             output: None,
             status: CellStatus::Idle,
             raw_output: Vec::new(),
+            metadata: Map::new(),
+            extra: Map::new(),
         };
         Notebook {
             cells: vec![initial_cell],
+            metadata: Map::new(),
             execution_counter: 0,
             label_map: HashMap::new(),
             label_cells: HashMap::new(),
@@ -111,6 +148,11 @@ impl Notebook {
 
     pub fn cells(&self) -> &[Cell] {
         &self.cells
+    }
+
+    /// Notebook metadata, as read from the file.
+    pub fn metadata(&self) -> &Map<String, Value> {
+        &self.metadata
     }
 
     pub fn get_cell(&self, id: &str) -> Option<&Cell> {
@@ -150,6 +192,8 @@ impl Notebook {
             output: None,
             status: CellStatus::Idle,
             raw_output: Vec::new(),
+            metadata: Map::new(),
+            extra: Map::new(),
         };
 
         if let Some(before_id) = before_cell_id {
@@ -287,6 +331,8 @@ impl Notebook {
             output: None,
             status: CellStatus::Idle,
             raw_output: Vec::new(),
+            metadata: Map::new(),
+            extra: Map::new(),
         });
     }
 
@@ -351,7 +397,7 @@ impl Notebook {
                 let cell = self.get_cell_mut(&cell_id).unwrap();
                 cell.cell_type = match cell.cell_type {
                     CellType::Code => CellType::Markdown,
-                    CellType::Markdown => CellType::Code,
+                    CellType::Markdown | CellType::Raw => CellType::Code,
                 };
                 cell.output = None;
                 cell.status = CellStatus::Idle;
@@ -411,6 +457,7 @@ impl Notebook {
             NotebookCommand::NewNotebook => {
                 self.push_undo_snapshot();
                 self.cells.clear();
+                self.metadata = Map::new();
                 self.execution_counter = 0;
                 self.label_map.clear();
                 self.label_cells.clear();
@@ -422,13 +469,35 @@ impl Notebook {
                     output: None,
                     status: CellStatus::Idle,
                     raw_output: Vec::new(),
+                    metadata: Map::new(),
+                    extra: Map::new(),
                 });
                 Ok(CommandEffect::NotebookReplaced)
             }
 
             NotebookCommand::LoadCells { cells } => {
                 self.push_undo_snapshot();
+                self.metadata = Map::new();
+                let cells = cells
+                    .into_iter()
+                    .map(|(id, cell_type, input, output)| LoadedCell {
+                        id,
+                        cell_type,
+                        input,
+                        metadata: Map::new(),
+                        extra: Map::new(),
+                        output,
+                    })
+                    .collect();
                 self.load_cells_from_list(cells);
+                Ok(CommandEffect::NotebookReplaced)
+            }
+
+            NotebookCommand::LoadNotebook { file } => {
+                let file = *file;
+                self.push_undo_snapshot();
+                self.metadata = file.metadata;
+                self.load_cells_from_list(file.cells);
                 Ok(CommandEffect::NotebookReplaced)
             }
 
@@ -437,10 +506,12 @@ impl Notebook {
                     let current = NotebookSnapshot {
                         cells: self.cells.clone(),
                         execution_counter: self.execution_counter,
+                        metadata: self.metadata.clone(),
                     };
                     self.undo_future.push(current);
                     self.cells = snapshot.cells;
                     self.execution_counter = snapshot.execution_counter;
+                    self.metadata = snapshot.metadata;
                     Ok(CommandEffect::Undone)
                 } else {
                     Ok(CommandEffect::NoOp {
@@ -454,10 +525,12 @@ impl Notebook {
                     let current = NotebookSnapshot {
                         cells: self.cells.clone(),
                         execution_counter: self.execution_counter,
+                        metadata: self.metadata.clone(),
                     };
                     self.undo_past.push(current);
                     self.cells = snapshot.cells;
                     self.execution_counter = snapshot.execution_counter;
+                    self.metadata = snapshot.metadata;
                     Ok(CommandEffect::Redone)
                 } else {
                     Ok(CommandEffect::NoOp {
@@ -473,6 +546,7 @@ impl Notebook {
         self.undo_past.push(NotebookSnapshot {
             cells: self.cells.clone(),
             execution_counter: self.execution_counter,
+            metadata: self.metadata.clone(),
         });
         if self.undo_past.len() > MAX_UNDO {
             self.undo_past.remove(0);
@@ -480,15 +554,14 @@ impl Notebook {
         self.undo_future.clear();
     }
 
-    /// Replace cells from a list of (id, cell_type, input, output) tuples.
-    /// Used by LoadCells command.
-    fn load_cells_from_list(&mut self, incoming: Vec<(String, CellType, String, Option<CellOutput>)>) {
+    /// Replace the cells with ones read from a file.
+    fn load_cells_from_list(&mut self, incoming: Vec<LoadedCell>) {
         self.cells.clear();
         self.execution_counter = 0;
         self.label_map.clear();
         self.label_cells.clear();
         self.trusted = false;
-        for (id, cell_type, input, output) in incoming {
+        for LoadedCell { id, cell_type, input, metadata, extra, output } in incoming {
             // Track the highest execution count from loaded outputs
             if let Some(ref out) = output {
                 if let Some(ec) = out.execution_count {
@@ -497,7 +570,11 @@ impl Notebook {
                     }
                 }
             }
-            let status = if output.is_some() { CellStatus::Success } else { CellStatus::Idle };
+            let status = match &output {
+                Some(out) if out.is_error => CellStatus::Error,
+                Some(_) => CellStatus::Success,
+                None => CellStatus::Idle,
+            };
             self.cells.push(Cell {
                 id,
                 cell_type,
@@ -505,6 +582,8 @@ impl Notebook {
                 output,
                 status,
                 raw_output: Vec::new(),
+                metadata,
+                extra,
             });
         }
         if self.cells.is_empty() {
@@ -515,6 +594,8 @@ impl Notebook {
                 output: None,
                 status: CellStatus::Idle,
                 raw_output: Vec::new(),
+                metadata: Map::new(),
+                extra: Map::new(),
             });
         }
     }
@@ -526,6 +607,10 @@ impl Notebook {
     pub fn can_redo(&self) -> bool {
         !self.undo_future.is_empty()
     }
+}
+
+pub(crate) fn new_cell_id() -> String {
+    nanoid::nanoid!()
 }
 
 #[cfg(test)]
@@ -902,8 +987,43 @@ mod tests {
         // For b, the cell above is a, whose [1] belongs to the old session
         assert_eq!(n.previous_output_label(&b), None);
     }
-}
 
-fn new_cell_id() -> String {
-    nanoid::nanoid!()
+    #[test]
+    fn metadata_and_raw_cells_survive_undo_and_redo() {
+        let text = r#"{"nbformat": 4, "nbformat_minor": 5, "metadata": {"jupytext": {"formats": "ipynb"}}, "cells": [
+            {"id": "r", "cell_type": "raw", "source": "kept", "metadata": {"format": "text/plain"}},
+            {"id": "c", "cell_type": "code", "source": "1;", "metadata": {"tags": ["t"]}, "execution_count": null, "outputs": []}]}"#;
+        let file = crate::notebooks::format::read(text).unwrap();
+        let mut n = nb();
+        n.apply(NotebookCommand::LoadNotebook { file: file.into() }).unwrap();
+        let check = |n: &Notebook| {
+            assert_eq!(n.metadata()["jupytext"]["formats"], "ipynb");
+            assert_eq!(n.cells()[0].cell_type, CellType::Raw);
+            assert_eq!(n.cells()[0].metadata["format"], "text/plain");
+            assert_eq!(n.cells()[1].metadata["tags"][0], "t");
+        };
+        check(&n);
+        // An undoable edit, undone and redone
+        n.apply(NotebookCommand::UpdateCellInput { cell_id: "c".into(), input: "2;".into() }).unwrap();
+        n.apply(NotebookCommand::Undo).unwrap();
+        check(&n);
+        n.apply(NotebookCommand::Redo).unwrap();
+        check(&n);
+        // Undoing the load itself restores the empty notebook's metadata
+        n.apply(NotebookCommand::Undo).unwrap();
+        n.apply(NotebookCommand::Undo).unwrap();
+        assert!(n.metadata().is_empty());
+        n.apply(NotebookCommand::Redo).unwrap();
+        check(&n);
+    }
+
+    #[test]
+    fn toggling_a_raw_cell_makes_it_code() {
+        let text = r#"{"nbformat": 4, "nbformat_minor": 5, "metadata": {}, "cells": [
+            {"id": "r", "cell_type": "raw", "source": "x;", "metadata": {}}]}"#;
+        let mut n = nb();
+        n.apply(NotebookCommand::LoadNotebook { file: crate::notebooks::format::read(text).unwrap().into() }).unwrap();
+        n.apply(NotebookCommand::ToggleCellType { cell_id: "r".into() }).unwrap();
+        assert_eq!(n.cells()[0].cell_type, CellType::Code);
+    }
 }

@@ -995,6 +995,12 @@ Best practice: run each cell immediately after creating it before moving on to t
                     "output_label": result.cell_output.output_label,
                 }))
             }
+            Err(AppError::CellIsRaw) => {
+                success_json(&serde_json::json!({
+                    "cell_id": params.cell_id,
+                    "message": "Raw cell: nothing to execute"
+                }))
+            }
             Err(AppError::CellIsMarkdown) => {
                 success_json(&serde_json::json!({
                     "cell_id": params.cell_id,

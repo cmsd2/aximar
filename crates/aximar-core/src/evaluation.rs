@@ -76,8 +76,10 @@ pub async fn evaluate_cell(
             .get_cell(cell_id)
             .ok_or_else(|| AppError::CellNotFound(cell_id.to_string()))?;
 
-        if cell.cell_type == CellType::Markdown {
-            return Err(AppError::CellIsMarkdown);
+        match cell.cell_type {
+            CellType::Markdown => return Err(AppError::CellIsMarkdown),
+            CellType::Raw => return Err(AppError::CellIsRaw),
+            CellType::Code => {}
         }
 
         let input = cell.input.clone();
@@ -642,6 +644,7 @@ mod tests {
             duration_ms: 0,
             output_label: Some("%o7".into()),
             execution_count: Some(3),
+            ..Default::default()
         };
         nb.apply(NotebookCommand::LoadCells {
             cells: vec![
@@ -656,5 +659,20 @@ mod tests {
         assert!(prepare_input("% + 1;", &labels).is_err());
         // New runs continue the gutter numbers after the loaded ones
         assert_eq!(nb.next_execution_count(), 4);
+    }
+
+    #[tokio::test]
+    async fn a_raw_cell_is_never_run() {
+        let sink = Recorder::default();
+        let (ctx, _) = notebook_with("", CellType::Code).await;
+        let text = r#"{"nbformat": 4, "nbformat_minor": 5, "metadata": {}, "cells": [
+            {"id": "r", "cell_type": "raw", "source": "system(\"ls\");", "metadata": {}}]}"#;
+        ctx.notebook
+            .lock()
+            .await
+            .apply(NotebookCommand::LoadNotebook { file: crate::notebooks::format::read(text).unwrap().into() })
+            .unwrap();
+        assert!(matches!(run(&ctx, "r", &sink).await, Err(AppError::CellIsRaw)));
+        assert!(sink.0.lock().unwrap().is_empty());
     }
 }

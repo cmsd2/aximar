@@ -2,6 +2,7 @@ use serde::Serialize;
 
 use crate::maxima::output::OutputEvent;
 use crate::notebook::{CellOutput, CellStatus, CellType, Notebook};
+use crate::notebooks::format::NotebookFile;
 
 /// A command representing a structural mutation to the notebook.
 /// All notebook state changes flow through commands for consistency.
@@ -44,6 +45,9 @@ pub enum NotebookCommand {
     LoadCells {
         cells: Vec<(String, CellType, String, Option<CellOutput>)>,
     },
+    /// Replace the notebook with one read from a file
+    /// (`notebooks::format::read`), keeping its metadata.
+    LoadNotebook { file: Box<NotebookFile> },
     Undo,
     Redo,
 }

@@ -32,6 +32,7 @@ pub fn notebook_state_payload(nb: &Notebook) -> NotebookSyncPayload {
             cell_type: match c.cell_type {
                 CellType::Code => "code".to_string(),
                 CellType::Markdown => "markdown".to_string(),
+                CellType::Raw => "raw".to_string(),
             },
             input: c.input.clone(),
             output: c.output.clone(),

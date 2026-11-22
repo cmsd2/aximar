@@ -29,6 +29,9 @@ pub enum AppError {
     #[error("Cannot run a markdown cell")]
     CellIsMarkdown,
 
+    #[error("Cannot run a raw cell")]
+    CellIsRaw,
+
     #[error("Cell input is empty")]
     EmptyInput,
 

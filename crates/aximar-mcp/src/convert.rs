@@ -12,6 +12,7 @@ pub(crate) fn notebook_to_ipynb(nb: &Notebook) -> notebook_types::Notebook {
             let cell_type = match cell.cell_type {
                 CellType::Code => notebook_types::CellType::Code,
                 CellType::Markdown => notebook_types::CellType::Markdown,
+                CellType::Raw => notebook_types::CellType::Raw,
             };
             let execution_count = cell
                 .output
@@ -198,6 +199,7 @@ fn parse_nbformat_outputs(cell: &notebook_types::NotebookCell) -> Option<CellOut
         duration_ms: 0,
         output_label: None,
         execution_count,
+        ..Default::default()
     })
 }
 
