@@ -10,12 +10,11 @@ use aximar_core::safety::{self, TrustDecision, TrustMode};
 use aximar_core::catalog::packages::PackageCatalog;
 use aximar_core::catalog::search::Catalog;
 use aximar_core::maxima::output::OutputSink;
-use aximar_core::maxima::labels::UnresolvedLabel;
 use aximar_core::maxima::protocol;
 use aximar_core::notebooks::{data as notebook_data, io as notebook_io};
 use aximar_core::registry::{NotebookContextRef, NotebookRegistry};
 use aximar_core::evaluation::{
-    check_cell_trust, evaluate_cell, prepare_input, run_all, CellRun, CellRunStatus, RunAllOptions, RunAllReport,
+    check_cell_trust, evaluate_cell, prepare_input, run_all, InputError, CellRun, CellRunStatus, RunAllOptions, RunAllReport,
     StopReason,
 };
 use aximar_core::session_ops::{self, SessionSettings, SessionSettingsProvider, SessionStatusCallback};
@@ -344,7 +343,7 @@ impl ServerCore {
         // Unicode and label references, as for cells
         let prepared = match prepare_input(expression, &labels) {
             Ok(prepared) => prepared,
-            Err(UnresolvedLabel(message)) => return error_result(message),
+            Err(InputError(message)) => return error_result(message),
         };
 
         if let Err(e) = self.ensure_session(&ctx).await {
@@ -1239,7 +1238,8 @@ impl rmcp::handler::server::ServerHandler for AximarMcpServer {
                  everywhere — in Maxima code, markdown cells, comments, and when presenting \
                  results. Write π rather than %pi, ∞ rather than inf, etc. The Aximar \
                  protocol translates Unicode Greek to the corresponding Maxima symbols \
-                 automatically, so % forms are not required.\n\n\
+                 automatically, so % forms are not required. Notation that isn't Maxima syntax, such as ∑, ∫, ∂, ≈, ° or 2π, is \
+                 rejected with a hint: write sum(...), integrate(...), diff(...), 2*π.\n\n\
                  When building a notebook, run each code cell immediately after creating it \
                  before moving on to the next cell. This ensures earlier definitions are \
                  available to later cells and lets you catch errors early.\n\n\

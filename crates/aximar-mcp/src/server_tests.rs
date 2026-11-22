@@ -1321,6 +1321,19 @@ async fn expression_can_use_a_cells_output_label() {
     assert_eq!(v["latex"], "42", "{v:#}");
 }
 
+#[tokio::test]
+async fn expression_with_a_rejected_character_gets_a_hint() {
+    let s = build_server();
+    let msg = s
+        .evaluate_expression(Parameters(EvaluateExpressionParams {
+            expression: "∑ k".into(),
+            notebook_id: None,
+        }))
+        .await
+        .expect_err("∑ is rejected");
+    assert!(msg.contains("U+2211") && msg.contains("sum("), "{msg}");
+}
+
 // ── Notebook paths ────────────────────────────────────────────────────
 
 /// The active notebook's path and title, as `list_notebooks` reports them.
