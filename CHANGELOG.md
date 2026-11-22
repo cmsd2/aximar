@@ -9,6 +9,16 @@ see the `v*` releases on GitHub.
 
 ### aximar-mcp
 
+- **Every Maxima share package loads without trust**: the trust check only
+  knew packages with `.mac` functions, under their folder names, so
+  `load("orthopoly")`, `load("draw")` and other packages written in Lisp, and
+  the usual `load("ctensor")` (rather than `load("tensor/ctensor")`), counted
+  as loading an unknown file. That stopped `aximar-mcp run` without
+  `--allow-dangerous` and showed the desktop app's trust banner. catalog-gen's
+  new `share-files` command lists every `.mac` and `.lisp` file in Maxima's
+  share directory (test scripts excluded), and a load that names one, by
+  file name or path, passes the check.
+
 - **Catalog tools cover functions that only a package provides**:
   `search_functions` lists functions it finds by name after the catalog's
   ranked results, without a score, marking those with no documentation

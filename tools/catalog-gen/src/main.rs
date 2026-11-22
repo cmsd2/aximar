@@ -3,6 +3,7 @@ mod mapping;
 mod markdown;
 mod package_scanner;
 mod parser;
+mod share_files;
 
 use std::collections::HashMap;
 use std::fs;
@@ -17,6 +18,7 @@ const MAXIMA_GIT_URL: &str = "https://git.code.sf.net/p/maxima/code";
 const MAXIMA_TEXI_REL: &str = "doc/info/maxima.texi";
 const CATALOG_REL: &str = "crates/aximar-core/src/catalog/catalog.json";
 const PACKAGES_REL: &str = "crates/aximar-core/src/catalog/packages.json";
+const SHARE_FILES_REL: &str = "crates/aximar-core/src/catalog/share-files.json";
 const FIGURES_REL: &str = "public/figures";
 const SECCOMP_REL: &str = "docker/seccomp.json";
 const AX_DRAW_CONTEXT_REL: &str = "crates/aximar-core/src/maxima/ax_draw_context.json";
@@ -123,6 +125,28 @@ enum Commands {
         output: Option<PathBuf>,
     },
 
+    /// List the .mac and .lisp files under the Maxima share directory, which
+    /// the trust check treats as safe `load()` targets.
+    ShareFiles {
+        /// Path to an existing Maxima source checkout. If omitted, clones/updates /tmp/maxima-src.
+        /// Mutually exclusive with --share-dir.
+        #[arg(long, conflicts_with = "share_dir")]
+        maxima_src: Option<PathBuf>,
+
+        /// Path to an installed Maxima share directory (e.g. /opt/homebrew/share/maxima/5.50.0/share).
+        /// Mutually exclusive with --maxima-src.
+        #[arg(long, conflicts_with = "maxima_src")]
+        share_dir: Option<PathBuf>,
+
+        /// Git ref (branch, tag, commit) to checkout. Only used when cloning/fetching.
+        #[arg(long, default_value = "master")]
+        git_ref: String,
+
+        /// Output path for share-files.json [default: <workspace>/crates/aximar-core/src/catalog/share-files.json]
+        #[arg(short, long)]
+        output: Option<PathBuf>,
+    },
+
     /// Generate ax_plotting catalog, docs, and TypeScript completions from ax_draw_context.json.
     AxPlotting {
         /// Input ax_draw_context.json [default: <workspace>/crates/aximar-core/src/maxima/ax_draw_context.json]
@@ -218,9 +242,10 @@ fn main() {
                     packages.len(),
                     packages_output.display()
                 );
+                write_share_files(&share_dir, &resolve_output(None, SHARE_FILES_REL));
             } else {
                 eprintln!(
-                    "Warning: share directory not found at {}, skipping packages.json",
+                    "Warning: share directory not found at {}, skipping packages.json and share-files.json",
                     share_dir.display()
                 );
             }
@@ -317,6 +342,27 @@ fn main() {
                 packages.len(),
                 output.display()
             );
+        }
+
+        Commands::ShareFiles {
+            maxima_src,
+            share_dir,
+            git_ref,
+            output,
+        } => {
+            let resolved_share_dir = if let Some(sd) = share_dir {
+                sd
+            } else {
+                let src_dir = resolve_maxima_source(maxima_src.as_deref(), &git_ref);
+                src_dir.join("share")
+            };
+            if !resolved_share_dir.is_dir() {
+                fatal(&format!(
+                    "Share directory does not exist: {}",
+                    resolved_share_dir.display()
+                ));
+            }
+            write_share_files(&resolved_share_dir, &resolve_output(output, SHARE_FILES_REL));
         }
 
         Commands::AxPlotting { input } => {
@@ -891,6 +937,16 @@ fn merge_catalogs(
 }
 
 /// Resolve the output path, defaulting to `<workspace_root>/<default_rel>`.
+/// Scan `share_dir` for loadable files and write the list as JSON.
+fn write_share_files(share_dir: &Path, output: &Path) {
+    let files = share_files::scan_share_files(share_dir);
+    let json = serde_json::to_string_pretty(&files).expect("failed to serialize share files");
+    fs::write(output, json + "\n").unwrap_or_else(|e| {
+        fatal(&format!("Error writing {}: {e}", output.display()));
+    });
+    eprintln!("Wrote {} share files to {}", files.len(), output.display());
+}
+
 fn resolve_output(explicit: Option<PathBuf>, default_rel: &str) -> PathBuf {
     if let Some(path) = explicit {
         return path;

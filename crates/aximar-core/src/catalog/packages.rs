@@ -1,5 +1,5 @@
 use std::borrow::Cow;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use probly_search::score::bm25;
 use probly_search::Index;
@@ -13,6 +13,10 @@ pub struct PackageCatalog {
     func_to_package: HashMap<String, String>,
     /// function_name (original case) → signature string
     func_to_signature: HashMap<String, String>,
+    /// Every name `load()` can use to reach a file in Maxima's share
+    /// directory: each file's path from `share-files.json` and each tail of
+    /// it, e.g. `tensor/ctensor` and `ctensor`.
+    share_load_names: HashSet<String>,
 }
 
 fn tokenizer(s: &str) -> Vec<Cow<'_, str>> {
@@ -68,12 +72,36 @@ impl PackageCatalog {
             }
         }
 
+        let share_files: Vec<String> = serde_json::from_str(include_str!("share-files.json"))
+            .expect("embedded share-files.json must be valid");
+        let mut share_load_names = HashSet::new();
+        for path in &share_files {
+            let mut rest = path.as_str();
+            loop {
+                share_load_names.insert(rest.to_string());
+                match rest.split_once('/') {
+                    Some((_, tail)) => rest = tail,
+                    None => break,
+                }
+            }
+        }
+
         PackageCatalog {
             packages,
             index,
             func_to_package,
             func_to_signature,
+            share_load_names,
         }
+    }
+
+    /// Whether `load(name)` finds a file shipped in Maxima's share
+    /// directory, as Maxima's `share/**/*.mac` and `share/**/*.lisp` search
+    /// patterns do: `orthopoly` (`orthopoly/orthopoly.lisp`), `ctensor` or
+    /// `tensor/ctensor` (`tensor/ctensor.mac`).  Exact names only: no
+    /// extension, no `..`, case as on disk.
+    pub fn is_share_file(&self, name: &str) -> bool {
+        self.share_load_names.contains(name)
     }
 
     pub fn search(&self, query: &str) -> Vec<PackageSearchResult> {
@@ -289,6 +317,39 @@ mod tests {
         let catalog = PackageCatalog::load();
         let pkg = catalog.package_for_function("pdf_normal");
         assert_eq!(pkg, Some("distrib"));
+    }
+
+    #[test]
+    fn share_files_cover_lisp_only_packages() {
+        let catalog = PackageCatalog::load();
+        assert!(catalog.is_share_file("orthopoly"));
+        assert!(catalog.is_share_file("draw"));
+        assert!(catalog.get("orthopoly").is_none(), "orthopoly has no .mac functions");
+    }
+
+    #[test]
+    fn share_files_match_bare_and_folder_names() {
+        let catalog = PackageCatalog::load();
+        assert!(catalog.is_share_file("ctensor"));
+        assert!(catalog.is_share_file("tensor/ctensor"));
+        assert!(catalog.is_share_file("functs"));
+        assert!(catalog.is_share_file("orthopoly/orthopoly"));
+    }
+
+    #[test]
+    fn share_files_reject_other_names() {
+        let catalog = PackageCatalog::load();
+        for name in [
+            "orthopoly.lisp",
+            "/orthopoly",
+            "../orthopoly",
+            "ensor/ctensor",
+            "nosuchpackage",
+            "",
+            "rtest_orthopoly",
+        ] {
+            assert!(!catalog.is_share_file(name), "{name:?}");
+        }
     }
 
     #[test]
