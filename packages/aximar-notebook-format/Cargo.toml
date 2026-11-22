@@ -1,10 +1,10 @@
 [package]
 name = "aximar-notebook-format"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 license = "MIT"
 description = "Reads and writes Maxima notebook files (.macnb, nbformat 4.5) the way Aximar does"
-repository = "https://github.com/cmsd2/aximar"
+repository = "git+https://github.com/cmsd2/aximar.git"
 readme = "README.md"
 
 [lib]
