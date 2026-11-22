@@ -74,9 +74,10 @@ const DANGEROUS_FUNCTIONS: &[(&str, &str)] = &[
 /// Detect dangerous function calls in Maxima input.
 ///
 /// When `packages` is provided, `load("known_package")` calls are considered
-/// safe and not flagged.  So are packages installed with mxpm in the Maxima
-/// user directory (see [`is_mxpm_package`]).  Other `load()` arguments are
-/// flagged.
+/// safe and not flagged, and so are loads of files shipped in Maxima's share
+/// directory (`load("orthopoly")`, `load("ctensor")`) and packages installed
+/// with mxpm in the Maxima user directory (see [`is_mxpm_package`]).  Other
+/// `load()` arguments are flagged.
 pub fn detect_dangerous_calls(
     input: &str,
     packages: Option<&PackageCatalog>,
@@ -168,9 +169,11 @@ fn check_load_calls(
         // Found load( — extract string argument
         let after_paren = trimmed[1..].trim_start();
         if let Some(arg) = extract_string_arg(after_paren) {
-            let in_catalog = packages.is_some_and(|catalog| catalog.get(&arg).is_some());
+            let known = packages.is_some_and(|catalog| {
+                catalog.get(&arg).is_some() || catalog.is_share_file(&arg)
+            });
             let from_mxpm = userdir.is_some_and(|dir| is_mxpm_package(&arg, dir));
-            if !in_catalog && !from_mxpm {
+            if !known && !from_mxpm {
                 return true;
             }
         } else {
@@ -303,6 +306,32 @@ mod tests {
         let packages = PackageCatalog::load();
         let calls = detect_dangerous_calls("load(\"distrib\")", Some(&packages));
         assert!(calls.is_empty());
+    }
+
+    #[test]
+    fn load_share_packages_written_in_lisp_is_safe() {
+        let packages = PackageCatalog::load();
+        for input in ["load(\"orthopoly\")$", "load(\"draw\")$", "load(\"ctensor\")$"] {
+            assert!(detect_dangerous_calls(input, Some(&packages)).is_empty(), "{input}");
+        }
+    }
+
+    #[test]
+    fn load_share_file_by_path_or_with_extension_is_dangerous() {
+        let packages = PackageCatalog::load();
+        for input in ["load(\"../orthopoly\")$", "load(\"orthopoly.lisp\")$"] {
+            let calls = detect_dangerous_calls(input, Some(&packages));
+            assert_eq!(calls.len(), 1, "{input}");
+            assert_eq!(calls[0].function_name, "load");
+        }
+    }
+
+    #[test]
+    fn untrusted_notebook_runs_share_package_loads() {
+        assert_eq!(
+            check(false, "load(\"orthopoly\")$ load(\"distrib\")$", TrustMode::Interactive),
+            TrustDecision::Allowed
+        );
     }
 
     #[test]

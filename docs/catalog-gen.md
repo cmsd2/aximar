@@ -93,7 +93,25 @@ Options:
 
 The scanner discovers packages by examining subdirectories of the share directory. It extracts function definitions and signatures from `.mac` files using regex, and generates descriptions from well-known package metadata, file header comments, or the function catalog. When `--catalog` is provided (or when run as part of `generate`), Texinfo-derived signatures from the catalog take priority over regex-extracted ones.
 
-Note: The `generate` command automatically produces `packages.json` alongside `catalog.json` and `docs.json` when a share directory is available (always the case when using `--maxima-src` or the default clone).
+Note: The `generate` command automatically produces `packages.json` and `share-files.json` alongside `catalog.json` and `docs.json` when a share directory is available (always the case when using `--maxima-src` or the default clone).
+
+### `catalog-gen share-files`
+
+List every `.mac` and `.lisp` file under the Maxima share directory, the files Maxima's `share/**/*.mac` and `share/**/*.lisp` search patterns reach. Produces `share-files.json`, which the trust check uses so `load("orthopoly")` or `load("ctensor")` counts as loading part of Maxima. Unlike `packages`, it keeps packages written only in Lisp (`orthopoly`, `draw`) and files in multi-package folders under their own names.
+
+It leaves out test scripts (names containing `test`, and `test` or `tests` folders, since some batch other files as soon as they load), the `test_batch_encodings` folder, and names with characters other than letters, digits, `-` and `_`.
+
+```bash
+cargo run -p catalog-gen -- share-files --share-dir /opt/homebrew/share/maxima/5.50.0/share
+```
+
+```
+Options:
+  --maxima-src <PATH>      Path to existing Maxima source checkout (skips clone/fetch; conflicts with --share-dir)
+  --share-dir <PATH>       Path to an installed Maxima share directory (conflicts with --maxima-src)
+  --git-ref <REF>          Git ref to checkout when cloning/fetching [default: master]
+  -o, --output <PATH>      Output path for share-files.json [default: crates/aximar-core/src/catalog/share-files.json]
+```
 
 ### `catalog-gen from-xml`
 
@@ -121,11 +139,12 @@ Maxima uses fine-grained categories (e.g., "Differential calculus", "Integral ca
 
 ## Outputs
 
-The tool produces three JSON files and optionally copies figure images:
+The tool produces four JSON files and optionally copies figure images:
 
 - **`catalog.json`** — Lean function catalog with short descriptions, signatures, categories, and examples. Used for autocomplete, hover tooltips, and search.
 - **`docs.json`** — Full Markdown documentation per function (2000+ entries). Maps function names to Markdown strings with code blocks, math, cross-references, lists, tables, and figure images. Used by the Docs panel.
 - **`packages.json`** — Loadable package catalog (100+ packages). Lists each package's load path, description, exported functions, and function signatures. Used for `load()` autocomplete, command palette package browsing, docs panel signature display, and "did you mean to load X?" error suggestions.
+- **`share-files.json`** — Every loadable file under Maxima's share directory, as a sorted list of paths relative to it without extensions (`"orthopoly/orthopoly"`, `"tensor/ctensor"`). `load()` of a path's file name or any tail of it (`"ctensor"`, `"tensor/ctensor"`) passes the trust check.
 - **`figures/`** — PNG figures from Maxima's documentation, copied during `generate`.
 
 ### docs.json format

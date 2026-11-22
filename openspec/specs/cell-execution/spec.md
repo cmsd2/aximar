@@ -61,6 +61,11 @@ Running a cell, running all cells and evaluating an expression SHALL apply the s
 - **WHEN** the notebook is untrusted and a cell calls `load("helpers.mac")` with no such package installed, from either front end
 - **THEN** the cell SHALL NOT run, and the result SHALL list `load` as needing trust
 
+#### Scenario: Share package written in Lisp
+
+- **WHEN** the notebook is untrusted and a cell calls `load("orthopoly")`, `load("draw")` or `load("ctensor")`, packages shipped in Maxima's share directory
+- **THEN** the cell SHALL run
+
 #### Scenario: Standalone MCP
 
 - **WHEN** standalone MCP without `--allow-dangerous` runs a cell that calls `system`, in a trusted notebook
