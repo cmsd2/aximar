@@ -14,7 +14,8 @@ use aximar_core::maxima::output::OutputSink;
 use aximar_core::maxima::protocol;
 use aximar_core::notebooks::{data as notebook_data, io as notebook_io};
 use aximar_core::registry::{NotebookContextRef, NotebookRegistry};
-use aximar_core::maxima::labels::SuppliedLabels;
+use aximar_core::maxima::labels::LabelContext;
+use aximar_core::maxima::types::EvalResult;
 use aximar_core::evaluation::{
     check_cell_trust, evaluate_cell, prepare_input, run_all, InputError, CellRun, CellRunStatus, RunAllOptions, RunAllReport,
     StopReason,
@@ -44,6 +45,21 @@ impl EffectSink for ClientEffects<'_> {
     fn effect(&self, notebook_id: &str, _notebook: &aximar_core::notebook::Notebook, effect: &CommandEffect) {
         self.0.notify_notebook_change(notebook_id, effect.clone());
     }
+}
+
+/// A cell of a notebook an MCP client keeps itself (the VS Code
+/// extension), run through `evaluate_expression`.
+pub(crate) struct ClientCell {
+    pub id: String,
+    /// IDs of the code cells above it, in order
+    pub cells_above: Vec<String>,
+}
+
+/// Why an expression didn't evaluate.
+enum EvalFailure {
+    /// Its input was refused: a label with no value, or a rejected character
+    Input(String),
+    Other(String),
 }
 
 /// Shared state and logic used by both `AximarMcpServer` (notebook mode)
@@ -342,43 +358,91 @@ impl ServerCore {
         }
     }
 
+    /// Evaluate an expression.  With `cell`, it runs as a cell of a
+    /// notebook the client keeps itself: it gets the next gutter number, and
+    /// its labels follow the same rules as this notebook's own cells.
     pub(crate) async fn do_evaluate_expression(
         &self,
         expression: &str,
         notebook_id: Option<&str>,
-        supplied: Option<SuppliedLabels>,
+        cell: Option<ClientCell>,
     ) -> Result<String, String> {
         let ctx = self.resolve_context(notebook_id).await?;
-        let (decision, own_labels) = {
-            let nb = ctx.notebook.lock().await;
+        // A client cell starts the session before it takes a number: a new
+        // session numbers runs from 1, so a count taken before would repeat
+        if cell.is_some() {
+            if let Err(e) = self.ensure_session(&ctx).await {
+                return error_result(format!("Failed to start session: {e}"));
+            }
+        }
+        let (decision, labels, count) = {
+            let mut nb = ctx.notebook.lock().await;
             let decision = safety::check_trust(&nb, expression, &self.packages, self.trust_mode);
-            (decision, nb.expression_label_context())
+            match &cell {
+                Some(cell) if !matches!(decision, TrustDecision::NeedsTrust { .. }) => {
+                    let labels = nb.client_cell_label_context(&cell.cells_above);
+                    (decision, labels, Some(nb.next_execution_count()))
+                }
+                _ => (decision, nb.expression_label_context(), None),
+            }
         };
         if let TrustDecision::NeedsTrust { functions } = decision {
             return error_result(self.blocked_message(&functions));
         }
-        // A client that keeps its own notebook brings its labels; otherwise
-        // the server notebook's apply
-        let labels = match supplied.map(SuppliedLabels::into_context) {
-            None => own_labels,
-            Some(Ok(labels)) => labels,
-            Some(Err(e)) => return error_result(e.0),
-        };
-        // Unicode and label references, as for cells
-        let prepared = match prepare_input(expression, &labels) {
-            Ok(prepared) => prepared,
-            Err(InputError(message)) => return error_result(message),
-        };
 
-        if let Err(e) = self.ensure_session(&ctx).await {
-            return error_result(format!("Failed to start session: {e}"));
+        let outcome = self.evaluate_prepared(&ctx, expression, &labels).await;
+
+        // Record the client cell's run, with its label when it has an output
+        if let (Some(cell), Some(count)) = (&cell, count) {
+            let label = match &outcome {
+                Ok(result) if !result.is_error => result.output_label.clone(),
+                _ => None,
+            };
+            ctx.notebook.lock().await.record_client_run(&cell.id, count, label);
         }
 
+        match outcome {
+            Ok(eval_result) => success_json(&serde_json::json!({
+                "text_output": eval_result.text_output,
+                "latex": eval_result.latex,
+                "plot_svg": eval_result.plot_svg,
+                "plot_data": eval_result.plot_data,
+                "image_png": eval_result.image_png,
+                "error": eval_result.error,
+                "is_error": eval_result.is_error,
+                "duration_ms": eval_result.duration_ms,
+                "output_label": eval_result.output_label,
+                "execution_count": count,
+            })),
+            // A client cell shows a label with no value as its own error
+            Err(EvalFailure::Input(message)) if count.is_some() => success_json(&serde_json::json!({
+                "error": message,
+                "is_error": true,
+                "execution_count": count,
+            })),
+            Err(EvalFailure::Input(message)) => error_result(message),
+            Err(EvalFailure::Other(message)) => error_result(message),
+        }
+    }
+
+    /// Prepare an expression with these labels and evaluate it.
+    async fn evaluate_prepared(
+        &self,
+        ctx: &NotebookContextRef,
+        expression: &str,
+        labels: &LabelContext,
+    ) -> Result<EvalResult, EvalFailure> {
+        // Unicode and label references, as for cells
+        let prepared = prepare_input(expression, labels).map_err(|InputError(m)| EvalFailure::Input(m))?;
+
+        self.ensure_session(ctx)
+            .await
+            .map_err(|e| EvalFailure::Other(format!("Failed to start session: {e}")))?;
+
         let mut guard = ctx.session.lock().await;
-        let process = match guard.try_begin_eval() {
-            Ok(p) => p,
-            Err(e) => return error_result(format!("Session not ready: {e}")),
-        };
+        let process = guard
+            .try_begin_eval()
+            .map_err(|e| EvalFailure::Other(format!("Session not ready: {e}")))?;
 
         // Clear the capture sink under the session lock, so a cell that is
         // still evaluating keeps its output
@@ -395,21 +459,7 @@ impl ServerCore {
         .await;
 
         guard.end_eval();
-
-        match result {
-            Ok(eval_result) => success_json(&serde_json::json!({
-                "text_output": eval_result.text_output,
-                "latex": eval_result.latex,
-                "plot_svg": eval_result.plot_svg,
-                "plot_data": eval_result.plot_data,
-                "image_png": eval_result.image_png,
-                "error": eval_result.error,
-                "is_error": eval_result.is_error,
-                "duration_ms": eval_result.duration_ms,
-                "output_label": eval_result.output_label,
-            })),
-            Err(e) => error_result(format!("Evaluation failed: {e}")),
-        }
+        result.map_err(|e| EvalFailure::Other(format!("Evaluation failed: {e}")))
     }
 
     pub(crate) async fn do_get_session_status(
@@ -1056,7 +1106,7 @@ Unicode Greek letters (α, β, γ, θ, π, etc.) are translated to Maxima symbol
         Parameters(params): Parameters<EvaluateExpressionParams>,
     ) -> Result<String, String> {
         self.core
-            .do_evaluate_expression(&params.expression, params.notebook_id.as_deref(), params.labels.map(Into::into))
+            .do_evaluate_expression(&params.expression, params.notebook_id.as_deref(), None)
             .await
     }
 

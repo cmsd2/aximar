@@ -23,7 +23,7 @@ Each numbered group is one pull request. Aximar groups run `cargo test --workspa
 ## 4. Numbering and label contexts (#8)
 
 - [x] 4.1 Loading resets the notebook's numbering to 1; stale outputs never record labels; verify with core tests for both scenarios of the numbering requirement
-- [x] 4.2 `evaluate_expression` takes an optional `labels` context in MCP and the Tauri command; verify with aximar-mcp tests for both scenarios of the label-context requirement
+- [x] 4.2 Simple-mode `evaluate_expression` takes an optional `cell_id` and `cells_above`, runs the expression as that client cell with the notebook's label rules, and returns its `execution_count`; the `labels` parameter from #85 goes; verify with core tests of the client-cell rules and aximar-mcp tests (with Maxima) for each scenario of the client-cell requirement
 
 ## 5. npm workspace and TypeScript package (#17)
 
@@ -33,9 +33,9 @@ Each numbered group is one pull request. Aximar groups run `cargo test --workspa
 ## 6. The VS Code extension (vscode-extension repository)
 
 - [ ] 6.1 Replace the extension's serializer with the package; write IDs, keep errors, and write `text/plain` copies by the spec's rule (the one-line result, or a plot description) instead of copying the first MIME type; verify with the extension's tests against the fixtures
-- [ ] 6.2 Send cell source unchanged with a `labels` context to `evaluate_expression`, delete `labels.ts`, and number runs from 1 per session with stale loaded outputs; verify with the extension's tests and by hand that `%o1` and `%` work in a VS Code notebook again
+- [ ] 6.2 Send cell source unchanged with the cell's ID and the IDs of the code cells above to `evaluate_expression`, show the returned `execution_count`, and delete `labels.ts` and the extension's own numbering and label map; verify with the extension's tests and by hand that `%o1` and `%` work in a VS Code notebook again
 
 ## 7. Round trip and close-out
 
 - [ ] 7.1 Add the round-trip script and run it over every notebook in `demos/notebooks` (Aximar → extension → Aximar); verify it reports no differences
-- [ ] 7.2 Update `docs/project-plan.md` (S1 done), `docs/mcp-server.md` (file behaviour and the `labels` parameter) and `docs/code-audit.md` (bug 8, the ipynb theme); archive this change with `openspec archive s1-notebook-format` and check that `openspec/specs/` gains `notebook-format`
+- [ ] 7.2 Update `docs/project-plan.md` (S1 done), `docs/mcp-server.md` (file behaviour, and `cell_id` and `cells_above`) and `docs/code-audit.md` (bug 8, the ipynb theme); archive this change with `openspec archive s1-notebook-format` and check that `openspec/specs/` gains `notebook-format`

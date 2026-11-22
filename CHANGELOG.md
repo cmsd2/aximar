@@ -34,12 +34,13 @@ see the `v*` releases on GitHub.
   expression refer to the cells' `Out[4]` and `In[4]`, as they do in cells, and
   a label with no value in the session is reported instead of reading an
   unrelated Maxima label. A bare `%` still means Maxima's last result.
-- **`evaluate_expression` takes the caller's labels** (#8): an optional
-  `labels` object (`label_map` from gutter number to Maxima output label, and
-  `previous_output_label`) lets a client that keeps its own notebook, such as
-  the VS Code extension, send cell source unchanged. `%oN` then means the
-  client's `Out[N]` and a bare `%` at the start means the cell above's output.
-  Labels other than `%o` and digits are refused. Both MCP modes take it.
+- **Simple mode runs a client's notebook cells by ID** (#8): `evaluate_expression`
+  takes optional `cell_id` and `cells_above` (the IDs of the code cells above,
+  in order), so a client that keeps its own notebook, such as the VS Code
+  extension, can send cell source unchanged. The server numbers the run,
+  returns it as `execution_count`, and resolves `%oN` and a bare `%` by the
+  desktop app's rules: a cell that failed, printed nothing, or hasn't run in
+  this session is never the output above.
 - **An opened notebook numbers its runs from 1** (#8): `open_notebook` and
   `load_template` start the gutter numbers again at `In[1]`, whatever the
   file's outputs show, as a new session does. Those outputs still have no
