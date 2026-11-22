@@ -28,8 +28,8 @@ Each numbered group is one pull request. Aximar groups run `cargo test --workspa
 ## 5. The format crate and its npm package (#17)
 
 - [x] 5.1 Move the format into the MIT crate `packages/aximar-notebook-format` (model, `read`, `write`, IDs), with aximar-core converting to and from `Notebook`; build it as WebAssembly with `wasm-pack` (feature `wasm`) as the npm package `aximar-notebook-format`, with generated TypeScript types; verify with the crate's tests against the fixtures, aximar-core's tests, and a Node smoke test that the npm build writes the same bytes
-- [x] 5.2 Build the npm package and run its smoke test in CI; add a release workflow that publishes it to npm on a `notebook-format-v*` tag
-- [ ] 5.3 Add the `NPM_TOKEN` secret and publish the first version (by hand: push the tag)
+- [x] 5.2 Build the npm package and run its smoke test in CI; add a release workflow that publishes it to npm on a `notebook-format-v*` tag, through npm trusted publishing
+- [ ] 5.3 Publish the first version by hand, then make `release-notebook-format.yml` the package's trusted publisher on npmjs.com (by hand; see the package README)
 
 ## 6. The VS Code extension (vscode-extension repository)
 

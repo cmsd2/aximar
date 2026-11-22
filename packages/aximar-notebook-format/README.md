@@ -45,6 +45,24 @@ node --test js/smoke.mjs
 
 `fixtures/` holds the shared test notebooks; see its README.
 
+## Publishing
+
+Releases go to npm from GitHub Actions (`.github/workflows/release-notebook-format.yml`)
+when a tag `notebook-format-v<version>` matching the crate's version is pushed.
+The workflow uses npm trusted publishing, so no npm token is stored.
+
+npm sets up a trusted publisher only for a package that already exists, so
+the first version is published by hand, once:
+
+```sh
+npm login
+wasm-pack build --release --target nodejs --out-dir pkg -- --features wasm
+npm publish ./pkg --access public
+```
+
+Then on npmjs.com, in the package's settings, add a trusted publisher:
+GitHub Actions, repository `cmsd2/aximar`, workflow `release-notebook-format.yml`.
+
 ## License
 
 MIT
