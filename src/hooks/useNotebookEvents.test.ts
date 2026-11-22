@@ -77,3 +77,47 @@ describe("handleNotebookStateEvent", () => {
     expect(after.type === "notebook" && after.isDirty).toBe(before.type === "notebook" && before.isDirty);
   });
 });
+
+describe("notebook paths", () => {
+  const event = (effect: string, extra: Record<string, unknown> = {}) => ({
+    notebook_id: "nb-a",
+    effect,
+    cell_id: null,
+    cells: [],
+    can_undo: false,
+    can_redo: false,
+    trusted: true,
+    ...extra,
+  });
+  const tab = () => {
+    const t = useNotebookStore.getState().notebooks["nb-a"];
+    if (t.type !== "notebook") throw new Error("not a notebook tab");
+    return t;
+  };
+
+  beforeEach(() => {
+    const store = useNotebookStore.getState();
+    if (!store.notebooks["nb-a"]) store.addTab("nb-a");
+    store.setNotebookPath("nb-a", null);
+  });
+
+  it("takes the title and save path from path_changed", () => {
+    handleNotebookStateEvent(event("path_changed", { path: "/work/calc.macnb" }));
+    expect(tab().filePath).toBe("/work/calc.macnb");
+    expect(tab().title).toBe("calc.macnb");
+  });
+
+  it("clears them when the path is cleared", () => {
+    handleNotebookStateEvent(event("path_changed", { path: "/work/calc.macnb" }));
+    handleNotebookStateEvent(event("path_changed"));
+    expect(tab().filePath).toBeNull();
+    expect(tab().title).toBe("Untitled");
+  });
+
+  it("keeps the path when the cells are replaced", () => {
+    handleNotebookStateEvent(event("path_changed", { path: "C:\\work\\demo.macnb" }));
+    handleNotebookStateEvent(event("notebook_replaced"));
+    expect(tab().filePath).toBe("C:\\work\\demo.macnb");
+    expect(tab().title).toBe("demo.macnb");
+  });
+});

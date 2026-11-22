@@ -94,7 +94,8 @@ interface NotebookState {
   setSelectedCellIds: (ids: string[]) => void;
   clearSelection: () => void;
   toggleCellSelected: (cellId: string, range?: boolean) => void;
-  setFilePath: (path: string | null) => void;
+  /** Set a notebook's file path and the tab title that follows from it. */
+  setNotebookPath: (notebookId: string, path: string | null) => void;
   setClosePending: (notebookId: string, pending: boolean) => void;
   setPendingTrustFunctions: (notebookId: string, functions: string[] | null) => void;
   markClean: () => void;
@@ -303,20 +304,13 @@ export const useNotebookStore = create<NotebookState>((set) => ({
       };
     }),
 
-  setFilePath: (path: string | null) =>
-    set((state) => {
-      const nbId = state.activeNotebookId;
-      if (!nbId) return state;
-      const title = path
-        ? (path.split("/").pop()?.split("\\").pop() ?? "Untitled")
-        : "Untitled";
-      return {
-        notebooks: updateNotebookTab(state.notebooks, nbId, () => ({
-          filePath: path,
-          title,
-        })),
-      };
-    }),
+  setNotebookPath: (notebookId: string, path: string | null) =>
+    set((state) => ({
+      notebooks: updateNotebookTab(state.notebooks, notebookId, () => ({
+        filePath: path,
+        title: path ? (path.split("/").pop()?.split("\\").pop() ?? "Untitled") : "Untitled",
+      })),
+    })),
 
   setClosePending: (notebookId: string, pending: boolean) =>
     set((state) => ({
@@ -422,10 +416,7 @@ export const useNotebookStore = create<NotebookState>((set) => ({
         trusted: trusted ?? tab.trusted,
         // Clear pending trust prompt when notebook becomes trusted
         pendingTrustFunctions: (trusted ?? tab.trusted) ? null : tab.pendingTrustFunctions,
-        // Clear filePath on new notebook (not on load)
-        ...(effect === "notebook_replaced" && !cellId
-          ? { filePath: null, title: "Untitled" }
-          : {}),
+        // The path and title change only with path_changed events
       };
 
       return {

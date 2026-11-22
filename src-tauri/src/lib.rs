@@ -137,6 +137,7 @@ pub fn run() {
             commands::notebook::nb_load_cells,
             commands::notebook::nb_run_cell,
             commands::notebook::nb_run_all,
+            commands::notebook::nb_set_path,
             commands::notebook::nb_trust_notebook,
             commands::notebook::nb_create,
             commands::notebook::nb_close,

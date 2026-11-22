@@ -3,7 +3,7 @@ import { listen } from "@tauri-apps/api/event";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { ask } from "@tauri-apps/plugin-dialog";
 import { useNotebookStore } from "../store/notebookStore";
-import { nbCreate, nbGetState, nbList, nbClose, nbLoadCells, getInitialFileArgs } from "../lib/notebook-commands";
+import { nbCreate, nbGetState, nbList, nbClose, nbLoadCells, nbSetPath, getInitialFileArgs } from "../lib/notebook-commands";
 import { openFilePath, parseNbformatOutputs } from "../lib/notebooks-client";
 import { markDirty, cleanup } from "../lib/dirty-inputs";
 import type { CellOutput, CellStatus, CellType } from "../types/notebook";
@@ -32,6 +32,13 @@ export function handleNotebookStateEvent(payload: NotebookStateEvent) {
   // Nothing in the notebook changed.
   if (effect === "trust_required") {
     store.setPendingTrustFunctions(notebook_id, payload.trust_functions ?? []);
+    return;
+  }
+
+  // Opened or saved, from this window or over MCP: the tab follows the file.
+  // Nothing in the notebook changed.
+  if (effect === "path_changed") {
+    store.setNotebookPath(notebook_id, payload.path ?? null);
     return;
   }
 
@@ -139,6 +146,8 @@ export interface NotebookStateEvent {
   trusted: boolean;
   /** With `trust_required`: the dangerous functions that blocked the run. */
   trust_functions?: string[];
+  /** With `path_changed`: the notebook's file path, absent when cleared. */
+  path?: string;
 }
 
 /**
@@ -215,19 +224,8 @@ async function openFileAsTab(path: string): Promise<void> {
         };
       });
     await nbLoadCells(cells, notebook_id);
-    // nbLoadCells triggers a backend event that updates the store via notebook-state-changed
-
-    // Set file path so Save works
-    const storeAfterLoad = useNotebookStore.getState();
-    const tab = storeAfterLoad.notebooks[notebook_id];
-    if (tab && tab.type === "notebook") {
-      useNotebookStore.setState({
-        notebooks: {
-          ...storeAfterLoad.notebooks,
-          [notebook_id]: { ...tab, filePath: path, title, isDirty: false },
-        },
-      });
-    }
+    // The path_changed event sets the tab's title and save path
+    await nbSetPath(notebook_id, path);
   }
 }
 
@@ -268,6 +266,7 @@ export function useNotebookEvents() {
         for (const nb of notebooks) {
           if (!store.notebooks[nb.id]) {
             store.addTab(nb.id, nb.title);
+            store.setNotebookPath(nb.id, nb.path);
           }
         }
         const active = notebooks.find((nb) => nb.is_active);

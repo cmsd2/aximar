@@ -16,6 +16,12 @@ see the `v*` releases on GitHub.
   at the first such cell, as its description said, marks the remaining cells
   `not_run`, and adds top-level `success`, `stopped_at`, `stop_reason` and
   `message` fields. The unused `pending_approval` field is gone.
+- **Notebooks keep the file they were opened from or saved to** (#40):
+  `open_notebook` and `save_notebook` record the path, so `list_notebooks`
+  reports it with the file name as the title, and Maxima runs in the file's
+  folder from the session's next start. `load_template` clears it. In
+  connected mode the window's tab follows: it shows the file name and saves
+  to that file.
 - **`evaluate_expression` understands cell labels**: `%o4` and `%i4` in an
   expression refer to the cells' `Out[4]` and `In[4]`, as they do in cells, and
   a label with no value in the session is reported instead of reading an

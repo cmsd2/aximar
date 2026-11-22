@@ -27,6 +27,7 @@ import {
   nbSetActive,
   nbGetState,
   nbLoadCells,
+  nbSetPath,
 } from "./lib/notebook-commands";
 import {
   getHasSeenWelcome,
@@ -254,7 +255,7 @@ function App() {
     } else {
       const savedPath = await saveNotebook(activeTab.cells, activeTab.filePath);
       if (savedPath) {
-        state.setFilePath(savedPath);
+        await nbSetPath(id, savedPath);
         state.markClean();
       }
     }
@@ -272,7 +273,7 @@ function App() {
     } else {
       const savedPath = await saveNotebookAs(activeTab.cells, activeTab.filePath);
       if (savedPath) {
-        state.setFilePath(savedPath);
+        await nbSetPath(id, savedPath);
         state.markClean();
       }
     }
@@ -309,18 +310,8 @@ function App() {
           };
         });
       await nbLoadCells(cells, notebook_id);
-
-      // Set file path so Save works
-      const store = useNotebookStore.getState();
-      const tab = store.notebooks[notebook_id];
-      if (tab && tab.type === "notebook") {
-        useNotebookStore.setState({
-          notebooks: {
-            ...store.notebooks,
-            [notebook_id]: { ...tab, filePath: result.path, title, isDirty: false },
-          },
-        });
-      }
+      // The path_changed event sets the tab's title and save path
+      await nbSetPath(notebook_id, result.path);
     }
   }, [addTab, setActiveTab, addPlotTab]);
 

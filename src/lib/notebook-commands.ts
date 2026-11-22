@@ -162,6 +162,12 @@ interface NotebookInfo {
   is_active: boolean;
 }
 
+/** Record the file a notebook was opened from or saved to, or clear it.
+ *  The backend's path_changed event updates the tab's title and save path. */
+export async function nbSetPath(notebookId: string, path: string | null): Promise<void> {
+  return invoke<void>("nb_set_path", { notebookId, path });
+}
+
 export async function nbList(): Promise<NotebookInfo[]> {
   return invoke<NotebookInfo[]>("nb_list");
 }

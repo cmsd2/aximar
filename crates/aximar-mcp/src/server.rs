@@ -135,6 +135,17 @@ impl ServerCore {
         ClientEffects(self)
     }
 
+    /// Record or clear a notebook's file path, and tell the window.
+    pub(crate) async fn record_path(&self, notebook_id: &str, path: Option<&str>) -> Result<(), String> {
+        let effect = self
+            .registry
+            .lock()
+            .await
+            .set_path(notebook_id, path.map(std::path::PathBuf::from))?;
+        self.notify_notebook_change(notebook_id, effect);
+        Ok(())
+    }
+
     /// Invoke the lifecycle callback if one is registered (connected mode).
     pub(crate) fn notify_lifecycle(&self, notebook_id: &str, event_type: &str) {
         if let Some(ref cb) = self.on_notebook_lifecycle {
@@ -1117,10 +1128,14 @@ Unicode Greek letters (α, β, γ, θ, π, etc.) are translated to Maxima symbol
         drop(nb);
 
         match notebook_io::write_notebook(&params.path, &notebook) {
-            Ok(()) => success_json(&serde_json::json!({
-                "saved": true,
-                "path": params.path,
-            })),
+            Ok(()) => {
+                // The notebook now belongs to this file
+                self.core.record_path(&ctx.id, Some(&params.path)).await?;
+                success_json(&serde_json::json!({
+                    "saved": true,
+                    "path": params.path,
+                }))
+            }
             Err(e) => error_result(format!("Failed to save: {e}")),
         }
     }
@@ -1139,6 +1154,7 @@ Unicode Greek letters (α, β, γ, θ, π, etc.) are translated to Maxima symbol
                 let cell_count = nb.cells().len();
                 drop(nb);
                 self.core.notify_notebook_change(&ctx.id, effect);
+                self.core.record_path(&ctx.id, Some(&params.path)).await?;
                 success_json(&serde_json::json!({
                     "opened": true,
                     "path": params.path,
@@ -1180,6 +1196,8 @@ Unicode Greek letters (α, β, γ, θ, π, etc.) are translated to Maxima symbol
                 let cell_count = nb.cells().len();
                 drop(nb);
                 self.core.notify_notebook_change(&ctx.id, effect);
+                // The cells no longer match any file the notebook came from
+                self.core.record_path(&ctx.id, None).await?;
                 success_json(&serde_json::json!({
                     "loaded": true,
                     "template_id": params.template_id,
