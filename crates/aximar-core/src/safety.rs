@@ -7,8 +7,10 @@ pub enum TrustMode {
     /// The desktop app, and MCP connected to it: the notebook's trust flag
     /// decides, and the user can trust the notebook from the window.
     Interactive,
-    /// Standalone MCP and batch runs: no one to ask, so dangerous calls run
-    /// only when the server was started with `--allow-dangerous`.
+    /// Standalone MCP: no one to ask, so dangerous calls run only when the
+    /// server was started with `--allow-dangerous`.  Batch runs
+    /// (`aximar-mcp run`) pass `allow_dangerous: true`: running the command
+    /// is the decision to run the notebook.
     Headless { allow_dangerous: bool },
 }
 

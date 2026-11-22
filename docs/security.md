@@ -16,10 +16,13 @@ Maxima is a full programming environment with access to the host system. The `sy
 
 **Impact:** A cell containing `system("rm -rf ~")$` would execute if the user runs it.
 
+**Limits:** the gate matches function names in the cell text. It cannot follow what a notebook does indirectly, so a notebook written to get past it can: Lisp escapes (`:lisp` lines, `?`-prefixed Lisp calls) reach the operating system, and a notebook can put its own folder on `file_search_maxima` and then load a file it ships under a known package name. Treat the gate as a warning about notebooks that use these functions openly, not as a sandbox. For notebooks you do not trust, use the Docker backend below.
+
 **Current mitigation:** A safety gate detects dangerous function calls (`system`, `batch`, `batchload`, `writefile`, `appendfile`, `closefile`, `stringout`, `with_stdout`, `save`, `store`, and unknown `load()` targets) before execution. One check, `safety::check_trust`, applies to running a cell, running all cells and evaluating an expression. Its mode depends on context:
 
 - **GUI and MCP connected mode (interactive):** the notebook's trust flag decides. Notebooks loaded from disk start untrusted; new notebooks are trusted. When a cell with dangerous functions is blocked, from the window or over MCP, the window shows a notebook-level trust banner. The user can trust the entire notebook with one click, after which all cells and expressions execute freely. Over MCP a blocked cell returns a `needs_notebook_trust` status, and a blocked `evaluate_expression` returns an error.
-- **MCP headless mode and batch runs:** dangerous calls are always blocked regardless of notebook trust. The `--allow-dangerous` CLI flag opts in.
+- **MCP standalone mode:** dangerous calls are always blocked regardless of notebook trust. The `--allow-dangerous` CLI flag opts in.
+- **Batch runs (`aximar-mcp run`):** no check. Running the command is the decision to run the notebook, as with `maxima -b` or `jupyter nbconvert --execute`, so every cell runs. The old `run --allow-dangerous` flag is accepted with a deprecation warning.
 - **Smart `load()` detection:** `load("distrib")` is allowed when the argument matches a known Maxima package; unknown targets are flagged.
 - **Trust model:** Notebooks start untrusted when loaded from disk. New notebooks created by the user are trusted. Trust is session-only — not persisted to the file.
 

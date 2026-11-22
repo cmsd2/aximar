@@ -9,6 +9,15 @@ see the `v*` releases on GitHub.
 
 ### aximar-mcp
 
+- **`aximar-mcp run` runs every cell**: batch runs no longer apply the
+  dangerous-call check. Running the command is the decision to run the
+  notebook, as with `maxima -b` or `jupyter nbconvert --execute`, and the
+  check only matches names in the cell text, so it stopped ordinary
+  notebooks (any `load` of a file it didn't know) without stopping one
+  written to get past it. `run --allow-dangerous` is still accepted, with a
+  warning that it is no longer needed. The desktop app, connected MCP and the
+  standalone MCP server keep the check.
+
 - **Catalog tools cover functions that only a package provides**:
   `search_functions` lists functions it finds by name after the catalog's
   ranked results, without a score, marking those with no documentation
