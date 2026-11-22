@@ -12,14 +12,44 @@ this before changing the shape of `notebook-state-changed`.
 
 | Event | Emitted by | Shape |
 |---|---|---|
-| `notebook-state-changed` | `emit_notebook_state` (`src-tauri/src/commands/notebook.rs`) | **Full snapshot** — every cell, every output |
+| `notebook-state-changed` | `emit_notebook_state` (`src-tauri/src/commands/notebook.rs`), for window commands directly and for MCP changes through `gui_events.rs` | **Full snapshot** — every cell, every output |
 | `maxima-output` | `TauriOutputSink` (`src-tauri/src/tauri_output.rs`) | Per-line delta, notebook-tagged |
 | `maxima-event` | `TauriEnvelopeObserver` (same file) | Per-frame delta, notebook-tagged |
 | `app-log` | `emit_app_log` | Per-entry delta |
-| `notebook-lifecycle` | `src-tauri/src/mcp/startup.rs` | Single id + verb |
+| `notebook-lifecycle` | `src-tauri/src/gui_events.rs`, for MCP's create, close and switch | Single id + verb |
 
 Note the asymmetry: everything except notebook state is already a
 narrow per-item event. `notebook-state-changed` is the outlier.
+
+Two effects add a field to the snapshot, because the cells alone don't
+carry what changed: `trust_required` carries `trust_functions` (the
+calls that blocked a run, for the trust banner), and `path_changed`
+carries `path` (absent when the path was cleared). The frontend handles
+both in `handleNotebookStateEvent` without touching the cells.
+
+## How changes reach the window
+
+**From the window's own commands**, the Tauri command applies the
+command and calls `emit_notebook_state` straight away.
+
+**From MCP in connected mode**, every notebook change and lifecycle
+event goes into one unbounded `tokio::mpsc` channel
+(`spawn_gui_event_task`, `src-tauri/src/gui_events.rs`). A single task
+drains it: for each change it locks the notebook, takes the snapshot
+and emits. One queue and one consumer keep the window's events in the
+order MCP made the changes. The app handle is a `OnceLock` set in
+`setup`, so emitting never waits on a lock or skips an event because
+one is busy.
+
+**During a cell run**, `evaluate_cell` reports each change as it makes
+it, through an `EffectSink` (`aximar-core/src/commands.rs`): Running
+when evaluation starts, then the output, or Error on any failure. The
+window's commands pass `WindowEffects`, which emits directly; MCP passes
+`ClientEffects`, which queues on the channel above; batch runs pass
+`NoEffects`. The sink is called with the notebook locked, so an
+implementation only emits or queues. `run_all` and the trust check
+report through the same sink, which is how a cell blocked over MCP
+shows the window's trust banner.
 
 ## Current design: full snapshot per command
 
@@ -45,7 +75,8 @@ The snapshot is **self-healing**. Tauri emits are fire-and-forget
 (`let _ = app_handle.emit(...)`) and fan out to every window, so a
 dropped or late event costs nothing — the next one repairs state. A
 window that mounts halfway through a session converges on its first
-event. That property is load-bearing and easy to lose by accident.
+event. Much depends on that property, and it is easy to lose by
+accident.
 
 ## Measurements (2026-07-24)
 
@@ -131,6 +162,8 @@ receives it and currently ignores it.
 | `CellAdded` / `Deleted` / `Moved` / `TypeToggled` | ordered cell-id list (+ the new cell for Added) |
 | `NotebookReplaced` / `Undone` / `Redone` | full snapshot — rare, genuinely needs everything |
 | `NotebookTrusted` | flag only |
+| `TrustRequired` | `{ cell_id, functions }`; nothing in the notebook changes |
+| `PathChanged` | `{ path }` |
 
 This also lets the store replace a single array entry, so with
 `React.memo` on `Cell` only the touched cell re-renders — likely a

@@ -106,13 +106,24 @@ To configure manually, add the following to `~/.gemini/settings.json`:
 
 Replace `<token>` with the value shown in Settings.
 
+## Dangerous functions
+
+Code that calls `system`, `batch`, `writefile` and similar functions, or loads a file that isn't a known package, can read or change files on your machine. `run_cell`, `run_all_cells` and `evaluate_expression` all apply one check before running such code (`safety::check_trust` in aximar-core), the same check the desktop window uses:
+
+- **Connected mode:** the notebook's trust flag decides. New notebooks are trusted; notebooks opened from a file are not until the user trusts them. A blocked cell returns `needs_notebook_trust` with its `dangerous_functions`, and the window shows its trust banner so the user can trust the notebook there. A blocked expression returns an error.
+- **Standalone mode:** dangerous calls are blocked unless the server was started with `--allow-dangerous`, whatever the notebook's trust flag.
+
+In `run_all_cells`, a blocked cell stops the run with status `needs_trust`.
+
 ## Available tools (24)
 
 ### Documentation
 
-- **search_functions(query)** -- Search the Maxima function catalog by name or description.
-- **get_function_docs(name)** -- Get full documentation for a Maxima function.
-- **complete_function(prefix)** -- Autocomplete a function name prefix.
+- **search_functions(query)** -- Search the Maxima function catalog by name or description. The catalog's ranked results come first, with a `score`; functions that installed packages match by name follow without one, marked `undocumented: true` when there are no docs for them.
+- **get_function_docs(name)** -- Get full documentation for a Maxima function. For a function that only a package provides, it names every such package and how to load it. A misspelt name gets suggestions from the catalog and the packages.
+- **complete_function(prefix)** -- Autocomplete a function name prefix. Each name appears once, naming every package that provides it.
+
+These answer from the same core API as the desktop window (`catalog::queries`), so both find the same functions.
 
 ### Packages
 
@@ -141,7 +152,7 @@ Replace `<token>` with the value shown in Settings.
   `needs_trust`, `failed`, or `cancelled` when the user stops the run from the
   desktop window (then `stopped_at` is the first cell not run). The desktop
   window's Run All follows the same rule.
-- **evaluate_expression(expression)** -- Quick evaluation without creating a cell.
+- **evaluate_expression(expression)** -- Quick evaluation without creating a cell. The expression is prepared like a cell: Unicode is translated (see `docs/unicode-input.md`) and `%oN` / `%iN` refer to the cells' gutter numbers. A bare `%` keeps Maxima's meaning, the last result.
 
 ### Session
 
@@ -168,6 +179,8 @@ Replace `<token>` with the value shown in Settings.
 
 All notebook mutations (add/delete/move cell, toggle type, update input, execute, undo/redo) flow through a **command-effect system** in the Rust backend. Both the GUI frontend and MCP tools dispatch `NotebookCommand` variants to `Notebook::apply()`, which returns a `CommandEffect` describing what changed. The backend is the single source of truth; the frontend receives state updates via `notebook-state-changed` Tauri events.
 
+Operations both front ends offer live in aximar-core, and the Tauri commands and MCP tools only translate parameters and results: running a cell and reporting its statuses as they happen (`evaluation::evaluate_cell`), running all cells (`evaluation::run_all`), the trust check (`safety::check_trust`), input preparation (`evaluation::prepare_input`), notebook paths (`NotebookRegistry::set_path`) and catalog queries (`catalog::queries`). `openspec/specs/` holds the requirements they meet.
+
 ```
 crates/aximar-core/     Shared library
   src/notebook.rs       Notebook state + command application + undo/redo
@@ -175,17 +188,23 @@ crates/aximar-core/     Shared library
   src/capture.rs        Per-cell output capture (CaptureOutputSink)
   src/log.rs            Server-wide output ring buffer (ServerLog)
   src/session.rs        SessionManager (Maxima process lifecycle)
+  src/session_ops.rs    Session start, with SessionSettings
+  src/evaluation.rs     evaluate_cell, run_all, prepare_input, check_cell_trust
+  src/safety.rs         Dangerous-call detection and the trust check
+  src/maxima/unicode.rs Unicode in Maxima code (docs/unicode-input.md)
+  src/catalog/queries.rs Function search, docs and completion
 
 crates/aximar-mcp/      MCP server (lib + binary)
   src/lib.rs            Re-exports notebook, commands, capture, log from aximar-core
   src/main.rs           Headless binary entry point (stdio transport)
-  src/server.rs         AximarMcpServer with 21 tool implementations
+  src/server.rs         AximarMcpServer and its tools
   src/config.rs         Environment variable configuration
 
 src-tauri/src/
   commands/notebook.rs  Tauri notebook commands (nb_add_cell, nb_run_cell, etc.)
   mcp/startup.rs        HTTP server startup (StreamableHttpService on localhost)
+  gui_events.rs         One ordered channel from MCP changes to the window
   mcp/sync.rs           Event payload helpers (SyncCell, notebook_state_payload)
 ```
 
-In connected mode, the MCP server shares `SessionManager`, `Catalog`, `Docs`, `Notebook`, and output sinks with the Tauri app via `Arc`. A `MultiOutputSink` broadcasts Maxima I/O to both the Tauri frontend (for the GUI log) and the `CaptureOutputSink` (for MCP cell output capture).
+In connected mode, the MCP server shares `SessionManager`, `Catalog`, `Docs`, `Notebook`, and output sinks with the Tauri app via `Arc`. Changes it makes reach the window in order through one channel, drained by a single task (`gui_events.rs`); see `docs/core-tauri-data-transfer.md`. A `MultiOutputSink` broadcasts Maxima I/O to both the Tauri frontend (for the GUI log) and the `CaptureOutputSink` (for MCP cell output capture).

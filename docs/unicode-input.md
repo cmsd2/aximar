@@ -212,6 +212,6 @@ These were open when the table was drafted:
 
 ## Implementation notes
 
-- One table in `aximar-core`, used by `evaluation::prepare_input`. A rejection is an error like `UnresolvedLabel`, shown as the cell's error before Maxima runs.
-- The unused TypeScript translator (`unicodeToMaxima` in `src/lib/math-symbols.ts`) goes. The command palette and completions keep `MATH_SYMBOLS`, which should list only characters this table maps.
+- One table in `aximar-core` (`maxima/unicode.rs`), used by `evaluation::prepare_input`. A rejection is an `InputError`, like a label with no value, shown as the cell's error before Maxima runs.
+- The frontend has no translator of its own. The command palette and `\name` completion offer `MATH_SYMBOLS` (`src/lib/math-symbols.ts`), which lists only characters this table maps.
 - Each row is a test case, so the table and the code can't drift. Two more tests check that every symbol in the frontend's list translates to what the list says, and that every code cell in the built-in templates and `docs/examples/demo1.macnb` gets past the table.
