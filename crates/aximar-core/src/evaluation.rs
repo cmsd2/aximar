@@ -9,7 +9,7 @@ use crate::error::AppError;
 use crate::maxima::labels::{rewrite_labels, LabelContext, UnresolvedLabel};
 use crate::maxima::protocol;
 use crate::maxima::types::EvalResult;
-use crate::maxima::unicode::unicode_to_maxima;
+use crate::maxima::unicode::{unicode_to_maxima, UnsupportedCharacter};
 use crate::notebook::{CellOutput, CellStatus, CellType, Notebook};
 use crate::registry::NotebookContextRef;
 use crate::safety::{check_trust, TrustDecision, TrustMode};
@@ -21,12 +21,31 @@ pub struct EvalCellResult {
     pub execution_count: u32,
 }
 
+/// Input that can't be sent to Maxima: a character Maxima code can't use,
+/// or a label with no value in this session.  The message is shown to the
+/// user as the cell's or expression's error.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct InputError(pub String);
+
+impl From<UnsupportedCharacter> for InputError {
+    fn from(e: UnsupportedCharacter) -> Self {
+        InputError(e.0)
+    }
+}
+
+impl From<UnresolvedLabel> for InputError {
+    fn from(e: UnresolvedLabel) -> Self {
+        InputError(e.0)
+    }
+}
+
 /// Prepare input for Maxima, the same way for cells and expressions from
-/// either front end: Unicode names such as `α` become Maxima's (`alpha`),
-/// then label references such as `%o4` become the session's labels.  A
-/// reference with no value in this session is an error, shown to the user.
-pub fn prepare_input(input: &str, labels: &LabelContext) -> Result<String, UnresolvedLabel> {
-    rewrite_labels(&unicode_to_maxima(input), labels)
+/// either front end: Unicode is translated as `docs/unicode-input.md` sets
+/// out (`α` becomes `alpha`), then label references such as `%o4` become
+/// the session's labels.
+pub fn prepare_input(input: &str, labels: &LabelContext) -> Result<String, InputError> {
+    let translated = unicode_to_maxima(input)?;
+    Ok(rewrite_labels(&translated, labels)?)
 }
 
 /// Shared cell evaluation logic used by both Tauri and MCP transports.
@@ -76,9 +95,9 @@ pub async fn evaluate_cell(
     // ── No lock: translate and rewrite ──
     let rewritten = match prepare_input(&input, &label_ctx) {
         Ok(rewritten) => rewritten,
-        // A label with no value: show the message as the cell's error
-        // instead of letting Maxima read an unrelated label of its own
-        Err(UnresolvedLabel(message)) => {
+        // A rejected character or a label with no value: show the message
+        // as the cell's error instead of letting Maxima misread the input
+        Err(InputError(message)) => {
             return Ok(label_error_result(ctx, cell_id, exec_count, message, effects).await);
         }
     };
@@ -587,6 +606,21 @@ mod tests {
         assert_eq!(
             prepare_input("% + 1;", &nb.expression_label_context()),
             Ok("% + 1;".to_string())
+        );
+    }
+
+    #[tokio::test]
+    async fn rejected_character_fails_the_cell_before_maxima_runs() {
+        // No session was started: reaching Maxima would fail differently
+        let sink = Recorder::default();
+        let (ctx, cell_id) = notebook_with("a ≈ b;", CellType::Code).await;
+        let result = run(&ctx, &cell_id, &sink).await.unwrap();
+        assert!(result.cell_output.is_error);
+        let error = result.cell_output.error.unwrap();
+        assert!(error.contains("U+2248") && error.contains("abs(a - b)"), "{error}");
+        assert_eq!(
+            *sink.0.lock().unwrap(),
+            vec!["cell_status_updated Running", "cell_output_updated Error"]
         );
     }
 }

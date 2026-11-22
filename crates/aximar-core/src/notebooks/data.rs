@@ -64,6 +64,30 @@ pub fn get_template(id: &str) -> Option<Notebook> {
 mod tests {
     use super::*;
 
+    /// Every code cell in the built-in templates and the demo notebook
+    /// must get past the Unicode table (docs/unicode-input.md).
+    #[test]
+    fn shipped_notebooks_use_only_translatable_unicode() {
+        use crate::maxima::unicode::unicode_to_maxima;
+        use crate::notebooks::types::{CellSource, CellType};
+
+        let demo_path = concat!(env!("CARGO_MANIFEST_DIR"), "/../../docs/examples/demo1.macnb");
+        let demo: Notebook = serde_json::from_str(&std::fs::read_to_string(demo_path).unwrap()).unwrap();
+        let mut notebooks = load_all();
+        notebooks.push(demo);
+        for nb in &notebooks {
+            for cell in nb.cells.iter().filter(|c| c.cell_type == CellType::Code) {
+                let input = match &cell.source {
+                    CellSource::String(s) => s.clone(),
+                    CellSource::Lines(lines) => lines.concat(),
+                };
+                if let Err(e) = unicode_to_maxima(&input) {
+                    panic!("{}: {input:?}: {}", template_id(nb), e.0);
+                }
+            }
+        }
+    }
+
     #[test]
     fn test_templates_load() {
         let templates = list_templates();

@@ -48,6 +48,22 @@ see the `v*` releases on GitHub.
 
 ### aximar-core
 
+- **Unicode in Maxima code follows a defined table**, set out in
+  `docs/unicode-input.md`. Each character becomes a Maxima name, constant or
+  operator, passes through, or is rejected before Maxima runs with a message
+  that says what to type instead.
+  - New: variant letters (`ϕ`, `ϑ`, `ϵ`, `µ`, `∆`, mathematical italic) are
+    their letter; `Γ(5)` calls the gamma function; `√2`, `√(x+1)`; `−`, `⋅`,
+    `∗`, `∧`, `∨`, `¬`; `ⅈ`, `ⅇ`, `ℯ`, `ℏ`, `ℓ`; subscript letters (`aₙ₊₁`);
+    pasted no-break spaces, zero-width characters, full-width forms and
+    ligatures are cleaned up.
+  - `ε` and `φ` display as typed instead of as `ϵ` and `ϕ`.
+  - **Breaking:** a Greek letter inside a longer name stays as typed (`Δx`
+    was `Deltax`, `xπ` was `x%pi`); variant letters are no longer separate
+    names; Greek capitals that look like Latin letters, and omicron, are
+    rejected; comments, and strings containing `\"`, are no longer
+    translated; `Γ(...)` is the gamma function rather than a function named
+    `Gamma`.
 - **Label references resolve only to values from the current session**:
   - After a Maxima restart, execution numbers start again at 1, as in
     Jupyter. Restarting and running all cells gives them the same `In[n]` and
