@@ -5,6 +5,7 @@ use aximar_core::maxima::labels::{self, LabelContext};
 use aximar_core::maxima::protocol;
 use aximar_core::maxima::types::EvalResult;
 use aximar_core::registry::NotebookContextRef;
+use aximar_core::safety::{self, TrustDecision, TrustMode};
 use crate::commands::config::read_session_settings;
 use crate::commands::session::ensure_session;
 use crate::state::AppState;
@@ -45,6 +46,21 @@ pub async fn evaluate_expression(
     };
 
     let ctx = resolve_context(&state, notebook_id).await?;
+    let decision = {
+        let nb = ctx.notebook.lock().await;
+        safety::check_trust(&nb, &expression, &state.packages, TrustMode::Interactive)
+    };
+    if let TrustDecision::NeedsTrust { functions } = decision {
+        return Ok(EvalResult {
+            cell_id,
+            error: Some(format!(
+                "Dangerous function(s) blocked: {}. Trust the notebook to run them.",
+                functions.join(", ")
+            )),
+            is_error: true,
+            ..Default::default()
+        });
+    }
     let settings = read_session_settings(&app);
     let eval_timeout = settings.eval_timeout;
     ensure_session(&state, &ctx, &settings).await?;

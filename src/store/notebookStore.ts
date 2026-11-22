@@ -96,7 +96,7 @@ interface NotebookState {
   toggleCellSelected: (cellId: string, range?: boolean) => void;
   setFilePath: (path: string | null) => void;
   setClosePending: (notebookId: string, pending: boolean) => void;
-  setPendingTrustFunctions: (functions: string[] | null) => void;
+  setPendingTrustFunctions: (notebookId: string, functions: string[] | null) => void;
   markClean: () => void;
   setPendingCursorMove: (move: { cellId: string; pos: number }) => void;
   clearPendingCursorMove: () => void;
@@ -325,16 +325,12 @@ export const useNotebookStore = create<NotebookState>((set) => ({
       })),
     })),
 
-  setPendingTrustFunctions: (functions: string[] | null) =>
-    set((state) => {
-      const nbId = state.activeNotebookId;
-      if (!nbId) return state;
-      return {
-        notebooks: updateNotebookTab(state.notebooks, nbId, () => ({
-          pendingTrustFunctions: functions,
-        })),
-      };
-    }),
+  setPendingTrustFunctions: (notebookId: string, functions: string[] | null) =>
+    set((state) => ({
+      notebooks: updateNotebookTab(state.notebooks, notebookId, () => ({
+        pendingTrustFunctions: functions,
+      })),
+    })),
 
   markClean: () =>
     set((state) => {

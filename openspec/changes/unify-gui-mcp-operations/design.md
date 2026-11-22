@@ -49,7 +49,7 @@ Core operations take an `&dyn EffectSink` (one method, `effect(notebook_id, Comm
 `safety::check_trust(notebook, input, packages, mode) -> TrustDecision` replaces the four checks. `mode` is `Interactive` (desktop app and connected MCP: blocked only when the notebook is untrusted) or `Headless { allow_dangerous }` (standalone MCP and batch: blocked unless `allow_dangerous`). `TrustDecision` is `Allowed` or `NeedsTrust { functions }`.
 
 - Run cell, run-all and evaluate expression call it before evaluating.
-- When an interactive run is blocked, core reports a `TrustRequired { cell_id, functions }` effect, so the window shows its banner whichever front end ran the cell. This is a new `CommandEffect` variant; the frontend sets `pendingTrustFunctions` from it, replacing the `useMaxima.ts` path.
+- When an interactive run is blocked, core reports a `TrustRequired { cell_id, functions }` effect, so the window shows its banner whichever front end ran the cell. This is a new `CommandEffect` variant, reported by `evaluation::check_cell_trust`, which run cell, MCP `run_cell` and batch call. The window's event carries the functions in a `trust_functions` field; the frontend sets `pendingTrustFunctions` on that notebook from it, replacing the `useMaxima.ts` path, and leaves the cells alone.
 - The trust flag itself stays where it is: `true` for new notebooks, `false` after a load, set by the window's banner.
 
 ### 5. Run-all lives in core

@@ -6,11 +6,11 @@ use aximar_core::catalog::packages::PackageCatalog;
 use aximar_core::catalog::search::Catalog;
 use aximar_core::commands::{NoEffects, NotebookCommand};
 use aximar_core::error::AppError;
-use aximar_core::evaluation::evaluate_cell;
+use aximar_core::evaluation::{check_cell_trust, evaluate_cell};
 use aximar_core::notebooks::io as notebook_io;
 use aximar_core::notebook::CellType;
 use aximar_core::registry::NotebookRegistry;
-use aximar_core::safety;
+use aximar_core::safety::{TrustDecision, TrustMode};
 
 use crate::convert::{ipynb_to_cell_tuples, notebook_to_ipynb};
 use crate::server::ServerCore;
@@ -88,21 +88,16 @@ pub async fn run(
     for cell_id in &cell_ids {
         code_idx += 1;
 
-        // Safety check
-        if !allow_dangerous {
-            let input = {
-                let nb = ctx.notebook.lock().await;
-                nb.get_cell(cell_id).map(|c| c.input.clone()).unwrap_or_default()
-            };
-            let dangerous = safety::detect_dangerous_calls(&input, Some(&packages));
-            if !dangerous.is_empty() {
-                let names: Vec<&str> = dangerous.iter().map(|d| d.function_name.as_str()).collect();
-                anyhow::bail!(
-                    "Cell {} contains dangerous function(s): {}. Use --allow-dangerous to allow.",
-                    cell_id,
-                    names.join(", ")
-                );
-            }
+        let mode = TrustMode::Headless { allow_dangerous };
+        let decision = check_cell_trust(&ctx, cell_id, &packages, mode, &NoEffects)
+            .await
+            .map_err(|e| anyhow::anyhow!("{e}"))?;
+        if let TrustDecision::NeedsTrust { functions } = decision {
+            anyhow::bail!(
+                "Cell {} contains dangerous function(s): {}. Use --allow-dangerous to allow.",
+                cell_id,
+                functions.join(", ")
+            );
         }
 
         let start = Instant::now();

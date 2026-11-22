@@ -1,4 +1,51 @@
 use crate::catalog::packages::PackageCatalog;
+use crate::notebook::Notebook;
+
+/// Who decides whether dangerous calls may run.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum TrustMode {
+    /// The desktop app, and MCP connected to it: the notebook's trust flag
+    /// decides, and the user can trust the notebook from the window.
+    Interactive,
+    /// Standalone MCP and batch runs: no one to ask, so dangerous calls run
+    /// only when the server was started with `--allow-dangerous`.
+    Headless { allow_dangerous: bool },
+}
+
+/// Whether input may run.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum TrustDecision {
+    Allowed,
+    /// The input calls these dangerous functions, and the mode doesn't allow them.
+    NeedsTrust { functions: Vec<String> },
+}
+
+/// The one trust check for cells, run-all and expressions, from either
+/// front end.  A trusted notebook (interactive) or `--allow-dangerous`
+/// (headless) allows everything; otherwise any dangerous call blocks the run.
+pub fn check_trust(
+    notebook: &Notebook,
+    input: &str,
+    packages: &PackageCatalog,
+    mode: TrustMode,
+) -> TrustDecision {
+    let allowed = match mode {
+        TrustMode::Interactive => notebook.trusted(),
+        TrustMode::Headless { allow_dangerous } => allow_dangerous,
+    };
+    if allowed {
+        return TrustDecision::Allowed;
+    }
+    let functions: Vec<String> = detect_dangerous_calls(input, Some(packages))
+        .into_iter()
+        .map(|call| call.function_name)
+        .collect();
+    if functions.is_empty() {
+        TrustDecision::Allowed
+    } else {
+        TrustDecision::NeedsTrust { functions }
+    }
+}
 
 /// A dangerous function call detected in Maxima input.
 #[derive(Debug, Clone, PartialEq)]
@@ -140,6 +187,40 @@ fn extract_string_arg(s: &str) -> Option<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn notebook(trusted: bool) -> Notebook {
+        let mut nb = Notebook::new();
+        nb.set_trusted(trusted);
+        nb
+    }
+
+    fn check(trusted: bool, input: &str, mode: TrustMode) -> TrustDecision {
+        check_trust(&notebook(trusted), input, &PackageCatalog::load(), mode)
+    }
+
+    fn needs(functions: &[&str]) -> TrustDecision {
+        TrustDecision::NeedsTrust { functions: functions.iter().map(|f| f.to_string()).collect() }
+    }
+
+    #[test]
+    fn interactive_follows_the_notebook_trust_flag() {
+        let mode = TrustMode::Interactive;
+        assert_eq!(check(true, "system(\"ls\");", mode), TrustDecision::Allowed);
+        assert_eq!(check(false, "system(\"ls\");", mode), needs(&["system"]));
+        assert_eq!(check(false, "load(\"helpers.mac\");", mode), needs(&["load"]));
+        assert_eq!(check(false, "integrate(x^2, x);", mode), TrustDecision::Allowed);
+    }
+
+    #[test]
+    fn headless_ignores_the_notebook_and_follows_allow_dangerous() {
+        let blocked = TrustMode::Headless { allow_dangerous: false };
+        let allowed = TrustMode::Headless { allow_dangerous: true };
+        assert_eq!(check(true, "system(\"ls\");", blocked), needs(&["system"]));
+        assert_eq!(check(false, "system(\"ls\");", blocked), needs(&["system"]));
+        assert_eq!(check(true, "system(\"ls\");", allowed), TrustDecision::Allowed);
+        assert_eq!(check(false, "system(\"ls\");", allowed), TrustDecision::Allowed);
+        assert_eq!(check(false, "diff(sin(x), x);", blocked), TrustDecision::Allowed);
+    }
 
     #[test]
     fn detects_system_call() {

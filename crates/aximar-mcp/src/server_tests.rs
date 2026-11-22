@@ -723,9 +723,11 @@ async fn run_cell_rejects_dangerous_in_headless() {
             notebook_id: None,
         }))
         .await;
+    // New notebooks start trusted, but standalone ignores the flag
     assert!(result.is_err());
     let msg = result.unwrap_err();
     assert!(msg.contains("Dangerous function(s) blocked"));
+    assert!(msg.contains("--allow-dangerous"), "{msg}");
 }
 
 #[tokio::test]
@@ -1239,4 +1241,54 @@ async fn sessions_use_the_settings_in_force_when_they_start() {
         .await
         .expect_err("a missing Maxima can't start");
     assert!(err.contains(missing), "error should name the path: {err}");
+}
+
+// ── One trust check in connected mode ─────────────────────────────────
+
+async fn set_trusted(s: &AximarMcpServer, trusted: bool) {
+    let ctx = s.core.resolve_context(None).await.unwrap();
+    ctx.notebook.lock().await.set_trusted(trusted);
+}
+
+#[tokio::test]
+async fn connected_expression_in_untrusted_notebook_is_blocked() {
+    let s = build_server_connected();
+    set_trusted(&s, false).await;
+    let msg = s
+        .evaluate_expression(Parameters(EvaluateExpressionParams {
+            expression: "system(\"ls\")".into(),
+            notebook_id: None,
+        }))
+        .await
+        .expect_err("an untrusted notebook blocks system");
+    assert!(msg.contains("system") && msg.contains("untrusted"), "{msg}");
+}
+
+#[tokio::test]
+#[ignore = "requires Maxima to be installed"]
+async fn connected_expression_in_trusted_notebook_runs_system() {
+    let s = build_server_connected();
+    set_trusted(&s, true).await;
+    let v = parse_ok(
+        s.evaluate_expression(Parameters(EvaluateExpressionParams {
+            expression: "system(\"true\")$ 1 + 1;".into(),
+            notebook_id: None,
+        }))
+        .await,
+    );
+    assert!(v["error"].is_null(), "{v:#}");
+}
+
+#[tokio::test]
+async fn connected_cell_blocked_by_trust_shows_the_banner() {
+    let (s, seen) = build_server_recording_effects();
+    let cell_id = add_code_cell(&s, "load(\"helpers.mac\")$").await;
+    set_trusted(&s, false).await;
+    seen.lock().unwrap().clear();
+
+    let v = parse_ok(s.run_cell(Parameters(CellIdParams { cell_id, notebook_id: None })).await);
+    assert_eq!(v["needs_notebook_trust"], true);
+    assert_eq!(v["dangerous_functions"], serde_json::json!(["load"]));
+    // The window hears about the block, and the cell never starts running
+    assert_eq!(*seen.lock().unwrap(), vec!["trust_required"]);
 }

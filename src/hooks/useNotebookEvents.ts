@@ -14,6 +14,48 @@ function isMainWindow(): boolean {
   return getCurrentWindow().label === "main";
 }
 
+/** Apply a notebook-state-changed event from the backend to this window's tabs. */
+export function handleNotebookStateEvent(payload: NotebookStateEvent) {
+  const { notebook_id, cells: syncCells, effect, cell_id, can_undo, can_redo, trusted } = payload;
+
+  // Ensure tab exists (e.g. created by MCP) — only auto-adopt in the main window
+  const store = useNotebookStore.getState();
+  if (!store.notebooks[notebook_id]) {
+    if (isMainWindow()) {
+      store.addTab(notebook_id);
+    } else {
+      return; // Ignore events for notebooks not in this window
+    }
+  }
+
+  // A run was blocked, from this window or over MCP: show the trust banner.
+  // Nothing in the notebook changed.
+  if (effect === "trust_required") {
+    store.setPendingTrustFunctions(notebook_id, payload.trust_functions ?? []);
+    return;
+  }
+
+  store.applyBackendState(
+    notebook_id,
+    mapSyncCells(syncCells),
+    effect,
+    cell_id ?? undefined,
+    can_undo,
+    can_redo,
+    trusted
+  );
+
+  // Focus the newly added cell after React renders it,
+  // but only if it's in the active notebook
+  if (
+    effect === "cell_added" &&
+    cell_id &&
+    notebook_id === useNotebookStore.getState().activeNotebookId
+  ) {
+    requestAnimationFrame(() => focusCellEditor(cell_id));
+  }
+}
+
 /** Apply a notebook lifecycle event made over MCP to this window's tabs. */
 export function handleLifecycleEvent(notebook_id: string, eventType: string) {
   const store = useNotebookStore.getState();
@@ -87,7 +129,7 @@ interface SyncCell {
   status?: string | null;
 }
 
-interface NotebookStateEvent {
+export interface NotebookStateEvent {
   notebook_id: string;
   effect: string;
   cell_id: string | null;
@@ -95,6 +137,8 @@ interface NotebookStateEvent {
   can_undo: boolean;
   can_redo: boolean;
   trusted: boolean;
+  /** With `trust_required`: the dangerous functions that blocked the run. */
+  trust_functions?: string[];
 }
 
 /**
@@ -288,40 +332,7 @@ export function useNotebookEvents() {
   useEffect(() => {
     const unlisten = listen<NotebookStateEvent>(
       "notebook-state-changed",
-      (event) => {
-        const { notebook_id, cells: syncCells, effect, cell_id, can_undo, can_redo, trusted } =
-          event.payload;
-
-        // Ensure tab exists (e.g. created by MCP) — only auto-adopt in the main window
-        const store = useNotebookStore.getState();
-        if (!store.notebooks[notebook_id]) {
-          if (isMainWindow()) {
-            store.addTab(notebook_id);
-          } else {
-            return; // Ignore events for notebooks not in this window
-          }
-        }
-
-        store.applyBackendState(
-          notebook_id,
-          mapSyncCells(syncCells),
-          effect,
-          cell_id ?? undefined,
-          can_undo,
-          can_redo,
-          trusted
-        );
-
-        // Focus the newly added cell after React renders it,
-        // but only if it's in the active notebook
-        if (
-          effect === "cell_added" &&
-          cell_id &&
-          notebook_id === useNotebookStore.getState().activeNotebookId
-        ) {
-          requestAnimationFrame(() => focusCellEditor(cell_id));
-        }
-      }
+      (event) => handleNotebookStateEvent(event.payload)
     );
 
     return () => {

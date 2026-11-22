@@ -1,6 +1,6 @@
 use crate::catalog::packages::PackageCatalog;
 use crate::catalog::search::Catalog;
-use crate::commands::{EffectSink, NotebookCommand};
+use crate::commands::{CommandEffect, EffectSink, NotebookCommand};
 use crate::error::AppError;
 use crate::maxima::labels::{rewrite_labels, LabelContext, UnresolvedLabel};
 use crate::maxima::protocol;
@@ -8,6 +8,7 @@ use crate::maxima::types::EvalResult;
 use crate::maxima::unicode::unicode_to_maxima;
 use crate::notebook::{CellOutput, CellStatus, CellType, Notebook};
 use crate::registry::NotebookContextRef;
+use crate::safety::{check_trust, TrustDecision, TrustMode};
 
 /// Result of evaluating a cell.
 pub struct EvalCellResult {
@@ -143,6 +144,35 @@ pub async fn evaluate_cell(
     }
 }
 
+/// Check a cell against the trust rule before running it.  When an
+/// interactive run is blocked, report `TrustRequired` so the window shows its
+/// trust banner, whichever front end ran the cell.  Markdown cells don't run,
+/// so they are always allowed.
+pub async fn check_cell_trust(
+    ctx: &NotebookContextRef,
+    cell_id: &str,
+    packages: &PackageCatalog,
+    mode: TrustMode,
+    effects: &dyn EffectSink,
+) -> Result<TrustDecision, AppError> {
+    let nb = ctx.notebook.lock().await;
+    let cell = nb
+        .get_cell(cell_id)
+        .ok_or_else(|| AppError::CellNotFound(cell_id.to_string()))?;
+    if cell.cell_type == CellType::Markdown {
+        return Ok(TrustDecision::Allowed);
+    }
+    let decision = check_trust(&nb, &cell.input, packages, mode);
+    if let (TrustMode::Interactive, TrustDecision::NeedsTrust { functions }) = (mode, &decision) {
+        let effect = CommandEffect::TrustRequired {
+            cell_id: cell_id.to_string(),
+            functions: functions.clone(),
+        };
+        effects.effect(&ctx.id, &nb, &effect);
+    }
+    Ok(decision)
+}
+
 /// Set a cell's status and report the change.
 fn set_status(
     nb: &mut Notebook,
@@ -193,7 +223,6 @@ async fn label_error_result(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::commands::CommandEffect;
     use crate::registry::NotebookRegistry;
     use std::sync::Mutex;
 
@@ -269,5 +298,38 @@ mod tests {
             *sink.0.lock().unwrap(),
             vec!["cell_status_updated Running", "cell_output_updated Error"]
         );
+    }
+
+    async fn trust(ctx: &NotebookContextRef, cell_id: &str, mode: TrustMode, sink: &Recorder) -> TrustDecision {
+        check_cell_trust(ctx, cell_id, &PackageCatalog::load(), mode, sink).await.unwrap()
+    }
+
+    #[tokio::test]
+    async fn blocked_interactive_run_asks_for_trust() {
+        let sink = Recorder::default();
+        let (ctx, cell_id) = notebook_with("load(\"helpers.mac\")$", CellType::Code).await;
+        ctx.notebook.lock().await.set_trusted(false);
+        let decision = trust(&ctx, &cell_id, TrustMode::Interactive, &sink).await;
+        assert_eq!(decision, TrustDecision::NeedsTrust { functions: vec!["load".into()] });
+        // The notebook is unchanged, so the cell keeps its status
+        assert_eq!(*sink.0.lock().unwrap(), vec!["trust_required Idle"]);
+    }
+
+    #[tokio::test]
+    async fn blocked_headless_run_reports_nothing() {
+        let sink = Recorder::default();
+        let (ctx, cell_id) = notebook_with("system(\"ls\")$", CellType::Code).await;
+        let decision = trust(&ctx, &cell_id, TrustMode::Headless { allow_dangerous: false }, &sink).await;
+        assert_eq!(decision, TrustDecision::NeedsTrust { functions: vec!["system".into()] });
+        assert!(sink.0.lock().unwrap().is_empty());
+    }
+
+    #[tokio::test]
+    async fn markdown_mentioning_a_dangerous_call_is_allowed() {
+        let sink = Recorder::default();
+        let (ctx, cell_id) = notebook_with("Don't call system(\"rm\") here", CellType::Markdown).await;
+        ctx.notebook.lock().await.set_trusted(false);
+        assert_eq!(trust(&ctx, &cell_id, TrustMode::Interactive, &sink).await, TrustDecision::Allowed);
+        assert!(sink.0.lock().unwrap().is_empty());
     }
 }

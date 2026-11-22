@@ -2,9 +2,9 @@ use serde::Serialize;
 use tauri::{AppHandle, Emitter, State};
 
 use aximar_core::error::AppError;
-use aximar_core::evaluation::evaluate_cell;
+use aximar_core::evaluation::{check_cell_trust, evaluate_cell};
 use aximar_core::maxima::types::EvalResult;
-use aximar_core::safety;
+use aximar_core::safety::{TrustDecision, TrustMode};
 
 use aximar_core::commands::{CommandEffect, EffectSink, NotebookCommand};
 use aximar_core::notebook::CellType;
@@ -29,6 +29,9 @@ pub struct NotebookStateEvent {
     pub can_undo: bool,
     pub can_redo: bool,
     pub trusted: bool,
+    /// With `trust_required`: the dangerous functions that blocked the run.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub trust_functions: Option<Vec<String>>,
 }
 
 /// Emit a `notebook-state-changed` event with the current notebook state.
@@ -47,6 +50,10 @@ pub fn emit_notebook_state(
         can_undo: nb.can_undo(),
         can_redo: nb.can_redo(),
         trusted: nb.trusted(),
+        trust_functions: match effect {
+            CommandEffect::TrustRequired { functions, .. } => Some(functions.clone()),
+            _ => None,
+        },
     };
     let _ = app_handle.emit("notebook-state-changed", event);
 }
@@ -92,6 +99,7 @@ pub async fn nb_get_state(
         can_undo: nb.can_undo(),
         can_redo: nb.can_redo(),
         trusted: nb.trusted(),
+        trust_functions: None,
     })
 }
 
@@ -321,7 +329,8 @@ pub enum RunCellResult {
 }
 
 /// Run a cell: checks for dangerous functions, sets status to Running, evaluates, sets output.
-/// If the notebook is untrusted and the cell contains dangerous functions, returns NeedsNotebookTrust.
+/// If the notebook is untrusted and the cell contains dangerous functions, returns
+/// NeedsNotebookTrust; the window's banner shows from the `trust_required` event.
 #[tauri::command]
 pub async fn nb_run_cell(
     app: AppHandle,
@@ -331,21 +340,16 @@ pub async fn nb_run_cell(
 ) -> Result<RunCellResult, AppError> {
     let ctx = resolve_context(&state, notebook_id).await?;
 
-    // Read cell input + notebook trust flag
-    let (input, notebook_trusted) = {
-        let nb = ctx.notebook.lock().await;
-        let cell = nb.get_cell(&cell_id)
-            .ok_or_else(|| AppError::CellNotFound(cell_id.clone()))?;
-        (cell.input.clone(), nb.trusted())
-    };
-
-    // Safety check: skip if notebook is trusted
-    if !notebook_trusted {
-        let dangerous = safety::detect_dangerous_calls(&input, Some(&state.packages));
-        if !dangerous.is_empty() {
-            let func_names: Vec<String> = dangerous.iter().map(|d| d.function_name.clone()).collect();
-            return Ok(RunCellResult::NeedsNotebookTrust { dangerous_functions: func_names });
-        }
+    let decision = check_cell_trust(
+        &ctx,
+        &cell_id,
+        &state.packages,
+        TrustMode::Interactive,
+        &WindowEffects(&app),
+    )
+    .await?;
+    if let TrustDecision::NeedsTrust { functions } = decision {
+        return Ok(RunCellResult::NeedsNotebookTrust { dangerous_functions: functions });
     }
 
     let settings = read_session_settings(&app);
