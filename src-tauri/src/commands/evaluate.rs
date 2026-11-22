@@ -1,8 +1,7 @@
 use tauri::State;
 
 use aximar_core::error::AppError;
-use aximar_core::evaluation::prepare_input;
-use aximar_core::maxima::labels::UnresolvedLabel;
+use aximar_core::evaluation::{prepare_input, InputError};
 use aximar_core::maxima::protocol;
 use aximar_core::maxima::types::EvalResult;
 use aximar_core::registry::NotebookContextRef;
@@ -50,7 +49,7 @@ pub async fn evaluate_expression(
     // reported as the result's error
     let expression = match prepare_input(&expression, &labels) {
         Ok(prepared) => prepared,
-        Err(UnresolvedLabel(message)) => {
+        Err(InputError(message)) => {
             return Ok(EvalResult {
                 cell_id,
                 error: Some(message),

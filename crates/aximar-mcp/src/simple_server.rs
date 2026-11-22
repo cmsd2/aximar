@@ -226,7 +226,8 @@ impl rmcp::handler::server::ServerHandler for SimpleMcpServer {
                  Prefer Unicode Greek letters (α, β, γ, δ, θ, λ, μ, π, σ, φ, ω, etc.) \
                  in Maxima code. Write π rather than %pi, ∞ rather than inf, etc. The \
                  protocol translates Unicode Greek to the corresponding Maxima symbols \
-                 automatically.\n\n\
+                 automatically. Notation that isn't Maxima syntax, such as ∑, ∫, ∂, ≈, ° or 2π, is \
+                 rejected with a hint: write sum(...), integrate(...), diff(...), 2*π.\n\n\
                  Use `evaluate_expression` to run Maxima code. Session state persists \
                  between calls — variables, function definitions, and loaded packages \
                  carry over. Use `restart_session` to start fresh.\n\n\

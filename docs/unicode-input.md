@@ -203,7 +203,7 @@ These were open when the table was drafted:
 ## Changes from current behaviour
 
 - `ε` and `φ` display as typed (today they show `ϵ` and `ϕ`).
-- A Greek letter inside a longer name stays as typed. Today `αβ` becomes `alphabeta`, `Δx` becomes `Deltax`, and `xπ` becomes `x%pi`.
+- A Greek letter inside a longer name stays as typed. Today `αβ` becomes `alphabeta`, `Δx` becomes `Deltax`, and `xπ` becomes `x%pi`. Maxima's TeX shows such names literally, so `r_θ` displayed as "r_theta" and now displays as "r_θ"; only a trailing number becomes a subscript (`α_1` shows as α₁).
 - Variants (`ϕ ϑ ϵ ϱ ϰ ς ϐ ϴ ϒ µ`, ohm sign, increment) map to their letters; today they pass through as different names.
 - Omicron and the Greek capitals that look like Latin letters are rejected; today they pass through as different names. `Υ` is among them; `ϒ` is the mathematical capital upsilon.
 - New mappings: `−` and the other operator forms, `∧ ∨ ¬`, `√`, `Γ(`, `ⅈ ⅇ ℯ`, `ℏ ℓ ℎ`, mathematical italic letters, subscript letters, spaces, full-width forms and ligatures.
@@ -214,4 +214,4 @@ These were open when the table was drafted:
 
 - One table in `aximar-core`, used by `evaluation::prepare_input`. A rejection is an error like `UnresolvedLabel`, shown as the cell's error before Maxima runs.
 - The unused TypeScript translator (`unicodeToMaxima` in `src/lib/math-symbols.ts`) goes. The command palette and completions keep `MATH_SYMBOLS`, which should list only characters this table maps.
-- Each row is a test case, so the table and the code can't drift.
+- Each row is a test case, so the table and the code can't drift. Two more tests check that every symbol in the frontend's list translates to what the list says, and that every code cell in the built-in templates and `docs/examples/demo1.macnb` gets past the table.

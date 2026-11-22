@@ -42,7 +42,7 @@ Maxima's default TeX already gives Greek names their letters, except `theta` (`\
 
 ### 6. One table, tested row by row
 
-The table lives in `maxima/unicode.rs`. Each row of `docs/unicode-input.md` has a test: input, expected output or expected rejection hint. The frontend's `unicodeToMaxima` and its helpers go. `MATH_SYMBOLS`, which feeds the command palette and completions, keeps only characters the table maps.
+The table lives in `maxima/unicode.rs`. Each row of `docs/unicode-input.md` has a test: input, expected output or expected rejection hint. A test reads `src/lib/math-symbols.ts` and checks each symbol translates to what the list says, and another runs every code cell of the built-in templates and the demo notebook through the table. The frontend's `unicodeToMaxima` and its helpers go. `MATH_SYMBOLS`, which feeds the command palette and completions, keeps only characters the table maps.
 
 ## What stays in core and what the adapters keep
 
