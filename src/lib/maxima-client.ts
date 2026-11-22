@@ -7,21 +7,13 @@ function activeId(): string | null {
   return useNotebookStore.getState().activeNotebookId;
 }
 
-export interface LabelContext {
-  label_map: Record<number, string>;
-  previous_output_label: string | null;
-}
-
-export async function evaluateExpression(
-  cellId: string,
-  expression: string,
-  labelContext?: LabelContext
-): Promise<EvalResult> {
+/** Evaluate an expression without a cell.  The backend prepares it as it
+ *  does cells: Unicode names and label references. */
+export async function evaluateExpression(cellId: string, expression: string): Promise<EvalResult> {
   return invoke<EvalResult>("evaluate_expression", {
     notebookId: activeId(),
     cellId,
     expression,
-    labelContext: labelContext ?? null,
   });
 }
 

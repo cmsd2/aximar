@@ -1,7 +1,8 @@
 use tauri::State;
 
 use aximar_core::error::AppError;
-use aximar_core::maxima::labels::{self, LabelContext};
+use aximar_core::evaluation::prepare_input;
+use aximar_core::maxima::labels::UnresolvedLabel;
 use aximar_core::maxima::protocol;
 use aximar_core::maxima::types::EvalResult;
 use aximar_core::registry::NotebookContextRef;
@@ -27,28 +28,12 @@ pub async fn evaluate_expression(
     notebook_id: Option<String>,
     cell_id: String,
     expression: String,
-    label_context: Option<LabelContext>,
 ) -> Result<EvalResult, AppError> {
-    // A label with no value is reported as the result's error, as for cells
-    let expression = match label_context {
-        Some(ref label_ctx) => match labels::rewrite_labels(&expression, label_ctx) {
-            Ok(rewritten) => rewritten,
-            Err(labels::UnresolvedLabel(message)) => {
-                return Ok(EvalResult {
-                    cell_id,
-                    error: Some(message),
-                    is_error: true,
-                    ..Default::default()
-                });
-            }
-        },
-        None => expression,
-    };
-
     let ctx = resolve_context(&state, notebook_id).await?;
-    let decision = {
+    let (decision, labels) = {
         let nb = ctx.notebook.lock().await;
-        safety::check_trust(&nb, &expression, &state.packages, TrustMode::Interactive)
+        let decision = safety::check_trust(&nb, &expression, &state.packages, TrustMode::Interactive);
+        (decision, nb.expression_label_context())
     };
     if let TrustDecision::NeedsTrust { functions } = decision {
         return Ok(EvalResult {
@@ -61,6 +46,19 @@ pub async fn evaluate_expression(
             ..Default::default()
         });
     }
+    // Unicode and label references, as for cells; a label with no value is
+    // reported as the result's error
+    let expression = match prepare_input(&expression, &labels) {
+        Ok(prepared) => prepared,
+        Err(UnresolvedLabel(message)) => {
+            return Ok(EvalResult {
+                cell_id,
+                error: Some(message),
+                is_error: true,
+                ..Default::default()
+            });
+        }
+    };
     let settings = read_session_settings(&app);
     let eval_timeout = settings.eval_timeout;
     ensure_session(&state, &ctx, &settings).await?;

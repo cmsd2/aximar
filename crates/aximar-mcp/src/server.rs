@@ -10,12 +10,12 @@ use aximar_core::safety::{self, TrustDecision, TrustMode};
 use aximar_core::catalog::packages::PackageCatalog;
 use aximar_core::catalog::search::Catalog;
 use aximar_core::maxima::output::OutputSink;
-use aximar_core::maxima::unicode::unicode_to_maxima;
+use aximar_core::maxima::labels::UnresolvedLabel;
 use aximar_core::maxima::protocol;
 use aximar_core::notebooks::{data as notebook_data, io as notebook_io};
 use aximar_core::registry::{NotebookContextRef, NotebookRegistry};
 use aximar_core::evaluation::{
-    check_cell_trust, evaluate_cell, run_all, CellRun, CellRunStatus, RunAllOptions, RunAllReport,
+    check_cell_trust, evaluate_cell, prepare_input, run_all, CellRun, CellRunStatus, RunAllOptions, RunAllReport,
     StopReason,
 };
 use aximar_core::session_ops::{self, SessionSettings, SessionSettingsProvider, SessionStatusCallback};
@@ -322,13 +322,19 @@ impl ServerCore {
         notebook_id: Option<&str>,
     ) -> Result<String, String> {
         let ctx = self.resolve_context(notebook_id).await?;
-        let decision = {
+        let (decision, labels) = {
             let nb = ctx.notebook.lock().await;
-            safety::check_trust(&nb, expression, &self.packages, self.trust_mode)
+            let decision = safety::check_trust(&nb, expression, &self.packages, self.trust_mode);
+            (decision, nb.expression_label_context())
         };
         if let TrustDecision::NeedsTrust { functions } = decision {
             return error_result(self.blocked_message(&functions));
         }
+        // Unicode and label references, as for cells
+        let prepared = match prepare_input(expression, &labels) {
+            Ok(prepared) => prepared,
+            Err(UnresolvedLabel(message)) => return error_result(message),
+        };
 
         if let Err(e) = self.ensure_session(&ctx).await {
             return error_result(format!("Failed to start session: {e}"));
@@ -344,11 +350,10 @@ impl ServerCore {
         // still evaluating keeps its output
         ctx.capture_sink.take_cell_output();
 
-        let translated = unicode_to_maxima(expression);
         let result = protocol::evaluate_with_packages(
             process,
             "__ephemeral__",
-            &translated,
+            &prepared,
             &self.catalog,
             &self.packages,
             self.settings().eval_timeout,

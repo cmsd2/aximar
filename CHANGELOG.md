@@ -16,6 +16,10 @@ see the `v*` releases on GitHub.
   at the first such cell, as its description said, marks the remaining cells
   `not_run`, and adds top-level `success`, `stopped_at`, `stop_reason` and
   `message` fields. The unused `pending_approval` field is gone.
+- **`evaluate_expression` understands cell labels**: `%o4` and `%i4` in an
+  expression refer to the cells' `Out[4]` and `In[4]`, as they do in cells, and
+  a label with no value in the session is reported instead of reading an
+  unrelated Maxima label. A bare `%` still means Maxima's last result.
 - **`run_all_cells` shares the desktop app's Run All** (#41): both run in
   `aximar-core` and stop at the same cells.
   - Stopping a run from the desktop window ends it after the current cell,

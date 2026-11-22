@@ -21,6 +21,14 @@ pub struct EvalCellResult {
     pub execution_count: u32,
 }
 
+/// Prepare input for Maxima, the same way for cells and expressions from
+/// either front end: Unicode names such as `α` become Maxima's (`alpha`),
+/// then label references such as `%o4` become the session's labels.  A
+/// reference with no value in this session is an error, shown to the user.
+pub fn prepare_input(input: &str, labels: &LabelContext) -> Result<String, UnresolvedLabel> {
+    rewrite_labels(&unicode_to_maxima(input), labels)
+}
+
 /// Shared cell evaluation logic used by both Tauri and MCP transports.
 ///
 /// Handles the full lifecycle: validate → set Running → prepare labels →
@@ -61,18 +69,12 @@ pub async fn evaluate_cell(
         set_status(&mut nb, ctx, cell_id, CellStatus::Running, effects);
 
         let ec = nb.next_execution_count();
-        let lctx = LabelContext {
-            label_map: nb.label_map().clone(),
-            previous_output_label: nb.previous_output_label(cell_id),
-        };
-
-        (input, ec, lctx)
+        (input, ec, nb.cell_label_context(cell_id))
     };
     // Lock 1 dropped here
 
     // ── No lock: translate and rewrite ──
-    let translated = unicode_to_maxima(&input);
-    let rewritten = match rewrite_labels(&translated, &label_ctx) {
+    let rewritten = match prepare_input(&input, &label_ctx) {
         Ok(rewritten) => rewritten,
         // A label with no value: show the message as the cell's error
         // instead of letting Maxima read an unrelated label of its own
@@ -560,5 +562,31 @@ mod tests {
         ctx.notebook.lock().await.set_trusted(false);
         assert_eq!(trust(&ctx, &cell_id, TrustMode::Interactive, &sink).await, TrustDecision::Allowed);
         assert!(sink.0.lock().unwrap().is_empty());
+    }
+
+    // ── Input preparation ──
+
+    #[tokio::test]
+    async fn cells_and_expressions_are_prepared_alike() {
+        let (ctx, cell_id) = notebook_with("α + 1;", CellType::Code).await;
+        let nb = ctx.notebook.lock().await;
+        for labels in [nb.cell_label_context(&cell_id), nb.expression_label_context()] {
+            assert_eq!(prepare_input("α + 1;", &labels), Ok("alpha + 1;".to_string()));
+            let err = prepare_input("%o9 + 1;", &labels).unwrap_err();
+            assert!(err.0.contains("Out[9]"), "{err:?}");
+        }
+    }
+
+    #[tokio::test]
+    async fn bare_percent_means_the_cell_above_only_in_cells() {
+        let (ctx, cell_id) = notebook_with("% + 1;", CellType::Code).await;
+        let nb = ctx.notebook.lock().await;
+        // No cell above has an output, so a cell can't use %
+        assert!(prepare_input("% + 1;", &nb.cell_label_context(&cell_id)).is_err());
+        // An expression's % is Maxima's last result
+        assert_eq!(
+            prepare_input("% + 1;", &nb.expression_label_context()),
+            Ok("% + 1;".to_string())
+        );
     }
 }

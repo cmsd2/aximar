@@ -31,7 +31,7 @@ Each numbered group is one pull request. Every group updates the Unreleased sect
 
 ## 6. One input preparation
 
-- [ ] 6.1 Add `evaluation::prepare_input` (Unicode translation, then label rewriting) and use it for cells and both `evaluate_expression` commands; verify with core unit tests that `α + 1` becomes `alpha + 1` and an unknown `%o9` is reported, for cells and expressions
+- [x] 6.1 Add `evaluation::prepare_input` (Unicode translation, then label rewriting) and use it for cells and both `evaluate_expression` commands; verify with core unit tests that `α + 1` becomes `alpha + 1` and an unknown `%o9` is reported, for cells and expressions
 
 ## 7. Notebook paths (#40)
 

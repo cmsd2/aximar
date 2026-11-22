@@ -63,7 +63,7 @@ Core operations take an `&dyn EffectSink` (one method, `effect(notebook_id, Comm
 
 ### 6. Input preparation in one function
 
-`evaluation::prepare_input(input, label_ctx) -> Result<String, UnresolvedLabel>` applies Unicode translation, then label rewriting. Cells and both `evaluate_expression` commands use it. Expressions have no cell, so they get no bare-`%` context; `%oN` references still resolve.
+`evaluation::prepare_input(input, label_ctx) -> Result<String, UnresolvedLabel>` applies Unicode translation, then label rewriting. Cells and both `evaluate_expression` commands use it. Expressions have no cell, so they get no bare-`%` context; `%oN` references still resolve. `LabelContext` gains a `bare_percent` flag for this, and `Notebook::cell_label_context(cell_id)` and `Notebook::expression_label_context()` build the two kinds. The desktop app's expression command no longer takes a label context from the frontend.
 
 ### 7. Paths are recorded by core, and the window follows them
 
