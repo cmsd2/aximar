@@ -39,6 +39,27 @@ pub fn parse(source: &str) -> MacFile {
     converter.convert(raw)
 }
 
+/// Replace each comment with spaces, keeping its line breaks so that line
+/// numbers stay the same. Uses the lexer, so `/*` inside a string stays
+/// and nested comments go as a whole.
+pub fn blank_comments(source: &str) -> String {
+    let (tokens, _errors) = lexer::lexer().parse(source).into_output_errors();
+    let mut result = String::with_capacity(source.len());
+    let mut copied = 0;
+    for (token, span) in tokens.unwrap_or_default() {
+        if matches!(token, lexer::Token::Comment(_)) {
+            result.push_str(&source[copied..span.start]);
+            let blank = source[span.start..span.end]
+                .chars()
+                .map(|c| if c == '\n' || c == '\r' { c } else { ' ' });
+            result.extend(blank);
+            copied = span.end;
+        }
+    }
+    result.push_str(&source[copied..]);
+    result
+}
+
 /// Replace top-level statement terminators (`$` and `;`) with commas.
 ///
 /// Uses the lexer to correctly handle comments, strings, and nesting.
@@ -426,6 +447,19 @@ mod tests {
         assert!(!file.errors.is_empty());
         let msg = file.errors[0].message();
         assert!(!msg.is_empty(), "error message should not be empty");
+    }
+
+    #[test]
+    fn blank_comments_keeps_lines_and_strings() {
+        let source = "/* a\n /* nested */ b */ x : \"/* not */\"$ /* é */\ny$";
+        let expected = format!(
+            "{}\n{} x : \"/* not */\"$ {}\ny$",
+            " ".repeat("/* a".len()),
+            " ".repeat(" /* nested */ b */".len()),
+            " ".repeat("/* é */".chars().count()),
+        );
+        assert_eq!(blank_comments(source), expected);
+        assert_eq!(blank_comments("a$"), "a$");
     }
 
     #[test]
