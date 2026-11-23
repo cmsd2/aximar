@@ -11,7 +11,7 @@ use aximar_core::registry::NotebookRegistry;
 use aximar_core::session_ops::{SessionSettings, SessionSettingsProvider};
 
 use crate::params::*;
-use crate::server::AximarMcpServer;
+use crate::server::{AximarMcpServer, ConnectedHooks};
 
 /// The local Maxima on the PATH, with a 30-second timeout.
 fn local_settings() -> SessionSettingsProvider {
@@ -874,10 +874,12 @@ fn build_server_connected() -> AximarMcpServer {
         Arc::new(Catalog::load()),
         Arc::new(PackageCatalog::load()),
         local_settings(),
-        process_sink_factory,
-        Arc::new(|_, _| {}),
-        Arc::new(|_, _| {}),
-        Arc::new(|_, _| {}),
+        ConnectedHooks {
+            process_sink_factory,
+            on_notebook_change: Arc::new(|_, _| {}),
+            on_notebook_lifecycle: Arc::new(|_, _| {}),
+            on_session_status: Arc::new(|_, _| {}),
+        },
     )
 }
 
@@ -1262,12 +1264,14 @@ async fn connected_mode_reports_create_and_switch() {
         Arc::new(Catalog::load()),
         Arc::new(PackageCatalog::load()),
         local_settings(),
-        process_sink_factory,
-        Arc::new(|_, _| {}),
-        Arc::new(move |id: &str, event: &str| {
-            recorded.lock().unwrap().push(format!("{id} {event}"));
-        }),
-        Arc::new(|_, _| {}),
+        ConnectedHooks {
+            process_sink_factory,
+            on_notebook_change: Arc::new(|_, _| {}),
+            on_notebook_lifecycle: Arc::new(move |id: &str, event: &str| {
+                recorded.lock().unwrap().push(format!("{id} {event}"));
+            }),
+            on_session_status: Arc::new(|_, _| {}),
+        },
     );
 
     let v = parse_ok(s.create_notebook().await);
@@ -1300,17 +1304,19 @@ fn build_server_recording_effects() -> (AximarMcpServer, Arc<std::sync::Mutex<Ve
         Arc::new(Catalog::load()),
         Arc::new(PackageCatalog::load()),
         local_settings(),
-        process_sink_factory,
-        Arc::new(
-            move |_id: &str, effect: aximar_core::commands::CommandEffect| {
-                recorded
-                    .lock()
-                    .unwrap()
-                    .push(effect.effect_name().to_string());
-            },
-        ),
-        Arc::new(|_, _| {}),
-        Arc::new(|_, _| {}),
+        ConnectedHooks {
+            process_sink_factory,
+            on_notebook_change: Arc::new(
+                move |_id: &str, effect: aximar_core::commands::CommandEffect| {
+                    recorded
+                        .lock()
+                        .unwrap()
+                        .push(effect.effect_name().to_string());
+                },
+            ),
+            on_notebook_lifecycle: Arc::new(|_, _| {}),
+            on_session_status: Arc::new(|_, _| {}),
+        },
     );
     (s, seen)
 }

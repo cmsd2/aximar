@@ -4,7 +4,10 @@ use tokio_util::sync::CancellationToken;
 
 use aximar_core::maxima::output::{MultiOutputSink, OutputSink};
 
-use aximar_mcp::server::{AximarMcpServer, ProcessSinkFactory};
+use aximar_mcp::server::{
+    AximarMcpServer, ConnectedHooks, NotebookChangeCallback, NotebookLifecycleCallback,
+    ProcessSinkFactory,
+};
 
 use crate::state::AppState;
 use crate::tauri_output::{emit_app_log, TauriOutputSink};
@@ -44,14 +47,14 @@ pub async fn start_mcp_server(
         Arc::new(TauriGuiEmitter(state.app_handle.clone())),
     );
     let changes = gui_events.clone();
-    let on_notebook_change: Arc<dyn Fn(&str, CommandEffect) + Send + Sync> =
+    let on_notebook_change: NotebookChangeCallback =
         Arc::new(move |notebook_id: &str, effect: CommandEffect| {
             let _ = changes.send(GuiEvent::NotebookChanged {
                 notebook_id: notebook_id.to_string(),
                 effect,
             });
         });
-    let on_notebook_lifecycle: Arc<dyn Fn(&str, &str) + Send + Sync> =
+    let on_notebook_lifecycle: NotebookLifecycleCallback =
         Arc::new(move |notebook_id: &str, event_type: &str| {
             let _ = gui_events.send(GuiEvent::Lifecycle {
                 notebook_id: notebook_id.to_string(),
@@ -79,10 +82,12 @@ pub async fn start_mcp_server(
         state.catalog.clone(),
         state.packages.clone(),
         session_settings,
-        process_sink_factory,
-        on_notebook_change,
-        on_notebook_lifecycle,
-        on_session_status,
+        ConnectedHooks {
+            process_sink_factory,
+            on_notebook_change,
+            on_notebook_lifecycle,
+            on_session_status,
+        },
     );
 
     let addr = listen_address;

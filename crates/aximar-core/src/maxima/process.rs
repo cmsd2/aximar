@@ -704,11 +704,8 @@ impl MaximaProcess {
 
         if let Some(rx) = events_rx.as_mut() {
             let idle = std::time::Duration::from_millis(50);
-            loop {
-                match tokio::time::timeout(idle, rx.recv()).await {
-                    Ok(Some(e)) => envelopes.push(e),
-                    _ => break,
-                }
+            while let Ok(Some(e)) = tokio::time::timeout(idle, rx.recv()).await {
+                envelopes.push(e);
             }
         }
 

@@ -131,7 +131,7 @@ fn deserialize_launch_request_full() {
 
             assert_eq!(launch_args.program, "/home/user/project/main.mac");
             assert_eq!(launch_args.evaluate.as_deref(), Some("main()"));
-            assert_eq!(launch_args.stop_on_entry, false);
+            assert!(!launch_args.stop_on_entry);
             assert_eq!(
                 launch_args.maxima_path.as_deref(),
                 Some("/usr/local/bin/maxima")
@@ -167,7 +167,7 @@ fn deserialize_launch_request_minimal() {
 
             assert_eq!(launch_args.program, "/tmp/test.mac");
             assert_eq!(launch_args.evaluate, None);
-            assert_eq!(launch_args.stop_on_entry, false);
+            assert!(!launch_args.stop_on_entry);
             assert_eq!(launch_args.maxima_path, None);
             assert_eq!(launch_args.backend, "local");
             assert_eq!(launch_args.cwd, None);
@@ -201,7 +201,7 @@ fn deserialize_launch_request_with_cwd() {
 
             assert_eq!(launch_args.program, "main.mac");
             assert_eq!(launch_args.cwd.as_deref(), Some("/home/user/project"));
-            assert_eq!(launch_args.stop_on_entry, true);
+            assert!(launch_args.stop_on_entry);
         }
         other => panic!("expected Launch, got {:?}", other),
     }
@@ -584,7 +584,7 @@ fn launch_args_camel_case_mapping() {
 
     assert_eq!(args.program, "/test/main.mac");
     assert_eq!(args.maxima_path.as_deref(), Some("/opt/maxima/bin/maxima"));
-    assert_eq!(args.stop_on_entry, true);
+    assert!(args.stop_on_entry);
     assert_eq!(args.evaluate.as_deref(), Some("test()"));
     assert_eq!(args.cwd.as_deref(), Some("/test"));
     assert_eq!(args.backend, "local");
@@ -1214,7 +1214,7 @@ fn round_trip_launch_with_evaluate() {
 
             assert_eq!(launch_args.program, "/home/user/test.mac");
             assert_eq!(launch_args.evaluate.as_deref(), Some("run_tests()"));
-            assert_eq!(launch_args.stop_on_entry, true);
+            assert!(launch_args.stop_on_entry);
 
             // Build response
             let response = BaseMessage {

@@ -153,7 +153,7 @@ pub async fn evaluate_cell(
 
             if let Ok(effect) = nb.apply(NotebookCommand::SetCellOutput {
                 cell_id: cell_id.to_string(),
-                output: cell_output.clone(),
+                output: Box::new(cell_output.clone()),
                 raw_output,
             }) {
                 effects.effect(&ctx.id, &nb, &effect);
@@ -477,7 +477,7 @@ async fn label_error_result(
     let mut nb = ctx.notebook.lock().await;
     if let Ok(effect) = nb.apply(NotebookCommand::SetCellOutput {
         cell_id: cell_id.to_string(),
-        output: cell_output.clone(),
+        output: Box::new(cell_output.clone()),
         raw_output: Vec::new(),
     }) {
         effects.effect(&ctx.id, &nb, &effect);

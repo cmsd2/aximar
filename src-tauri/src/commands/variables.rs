@@ -12,7 +12,7 @@ async fn resolve_context(
 ) -> Result<NotebookContextRef, AppError> {
     let reg = state.registry.lock().await;
     reg.resolve(notebook_id.as_deref())
-        .map_err(|e| AppError::CommunicationError(e))
+        .map_err(AppError::CommunicationError)
 }
 
 #[tauri::command]

@@ -117,7 +117,7 @@ impl PackageCatalog {
             .into_iter()
             .map(|qr| PackageSearchResult {
                 package: self.packages[qr.key].clone(),
-                score: qr.score as f64,
+                score: qr.score,
             })
             .collect();
 

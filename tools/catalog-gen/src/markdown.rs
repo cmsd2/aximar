@@ -688,29 +688,25 @@ fn clean_texinfo_in_html(s: &str) -> String {
     }
 
     // Strip remaining @command{content} patterns, keeping content
-    loop {
-        if let Some(at_pos) = result.find('@') {
-            let rest = &result[at_pos + 1..];
-            let cmd_len = rest
-                .find(|c: char| !c.is_alphanumeric() && c != '_')
-                .unwrap_or(rest.len());
-            if cmd_len > 0 && rest[cmd_len..].starts_with('{') {
-                let content_start = at_pos + 1 + cmd_len + 1;
-                if let Some(end) = find_matching_brace(&result, content_start) {
-                    let content = result[content_start..end].to_string();
-                    result = format!("{}{content}{}", &result[..at_pos], &result[end + 1..]);
-                    continue;
-                }
-            }
-            // @@ → @
-            if rest.starts_with('@') {
-                result = format!("{}@{}", &result[..at_pos], &result[at_pos + 2..]);
+    while let Some(at_pos) = result.find('@') {
+        let rest = &result[at_pos + 1..];
+        let cmd_len = rest
+            .find(|c: char| !c.is_alphanumeric() && c != '_')
+            .unwrap_or(rest.len());
+        if cmd_len > 0 && rest[cmd_len..].starts_with('{') {
+            let content_start = at_pos + 1 + cmd_len + 1;
+            if let Some(end) = find_matching_brace(&result, content_start) {
+                let content = result[content_start..end].to_string();
+                result = format!("{}{content}{}", &result[..at_pos], &result[end + 1..]);
                 continue;
             }
-            break;
-        } else {
-            break;
         }
+        // @@ → @
+        if rest.starts_with('@') {
+            result = format!("{}@{}", &result[..at_pos], &result[at_pos + 2..]);
+            continue;
+        }
+        break;
     }
 
     result

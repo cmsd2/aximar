@@ -302,7 +302,7 @@ fn test_ax_draw2d_streamline() {
 
     let data = spec["data"].as_array().unwrap();
     assert!(
-        data.len() >= 1,
+        !data.is_empty(),
         "streamline should produce at least one trace"
     );
     for trace in data {

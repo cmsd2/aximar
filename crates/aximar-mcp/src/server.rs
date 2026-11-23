@@ -37,6 +37,20 @@ use crate::params::*;
 pub type ProcessSinkFactory =
     Arc<dyn Fn(&str, &Arc<CaptureOutputSink>) -> Arc<dyn OutputSink> + Send + Sync>;
 
+/// Called with a notebook ID and each change made to that notebook.
+pub type NotebookChangeCallback = Arc<dyn Fn(&str, CommandEffect) + Send + Sync>;
+
+/// Called with a notebook ID and a lifecycle event, such as "created".
+pub type NotebookLifecycleCallback = Arc<dyn Fn(&str, &str) + Send + Sync>;
+
+/// How a connected-mode server reaches the window that embeds it.
+pub struct ConnectedHooks {
+    pub process_sink_factory: ProcessSinkFactory,
+    pub on_notebook_change: NotebookChangeCallback,
+    pub on_notebook_lifecycle: NotebookLifecycleCallback,
+    pub on_session_status: SessionStatusCallback,
+}
+
 // ── Shared server core ────────────────────────────────────────────────
 
 /// Forwards effects to the notebook-change callback, which queues them for
@@ -90,8 +104,8 @@ pub struct ServerCore {
     pub(crate) packages: Arc<PackageCatalog>,
     pub(crate) session_settings: SessionSettingsProvider,
     pub(crate) process_sink_factory: ProcessSinkFactory,
-    pub(crate) on_notebook_change: Option<Arc<dyn Fn(&str, CommandEffect) + Send + Sync>>,
-    pub(crate) on_notebook_lifecycle: Option<Arc<dyn Fn(&str, &str) + Send + Sync>>,
+    pub(crate) on_notebook_change: Option<NotebookChangeCallback>,
+    pub(crate) on_notebook_lifecycle: Option<NotebookLifecycleCallback>,
     pub(crate) on_session_status: Option<SessionStatusCallback>,
     /// Interactive in connected mode, where the notebook's trust flag
     /// decides; headless when standalone.
@@ -128,20 +142,17 @@ impl ServerCore {
         catalog: Arc<Catalog>,
         packages: Arc<PackageCatalog>,
         session_settings: SessionSettingsProvider,
-        process_sink_factory: ProcessSinkFactory,
-        on_notebook_change: Arc<dyn Fn(&str, CommandEffect) + Send + Sync>,
-        on_notebook_lifecycle: Arc<dyn Fn(&str, &str) + Send + Sync>,
-        on_session_status: SessionStatusCallback,
+        hooks: ConnectedHooks,
     ) -> Self {
         Self {
             registry,
             catalog,
             packages,
             session_settings,
-            process_sink_factory,
-            on_notebook_change: Some(on_notebook_change),
-            on_notebook_lifecycle: Some(on_notebook_lifecycle),
-            on_session_status: Some(on_session_status),
+            process_sink_factory: hooks.process_sink_factory,
+            on_notebook_change: Some(hooks.on_notebook_change),
+            on_notebook_lifecycle: Some(hooks.on_notebook_lifecycle),
+            on_session_status: Some(hooks.on_session_status),
             trust_mode: TrustMode::Interactive,
         }
     }
@@ -710,21 +721,9 @@ impl AximarMcpServer {
         catalog: Arc<Catalog>,
         packages: Arc<PackageCatalog>,
         session_settings: SessionSettingsProvider,
-        process_sink_factory: ProcessSinkFactory,
-        on_notebook_change: Arc<dyn Fn(&str, CommandEffect) + Send + Sync>,
-        on_notebook_lifecycle: Arc<dyn Fn(&str, &str) + Send + Sync>,
-        on_session_status: SessionStatusCallback,
+        hooks: ConnectedHooks,
     ) -> Self {
-        let core = ServerCore::new_connected(
-            registry,
-            catalog,
-            packages,
-            session_settings,
-            process_sink_factory,
-            on_notebook_change,
-            on_notebook_lifecycle,
-            on_session_status,
-        );
+        let core = ServerCore::new_connected(registry, catalog, packages, session_settings, hooks);
         Self::from_core(core)
     }
 

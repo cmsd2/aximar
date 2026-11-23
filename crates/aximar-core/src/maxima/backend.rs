@@ -15,29 +15,21 @@ const SECCOMP_PROFILE: &str = include_str!("../../../../docker/seccomp.json");
 
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
+#[derive(Default)]
 pub enum BackendKind {
+    #[default]
     Local,
     Docker,
     Wsl,
 }
 
-impl Default for BackendKind {
-    fn default() -> Self {
-        Self::Local
-    }
-}
-
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
+#[derive(Default)]
 pub enum ContainerEngine {
+    #[default]
     Docker,
     Podman,
-}
-
-impl Default for ContainerEngine {
-    fn default() -> Self {
-        Self::Docker
-    }
 }
 
 #[derive(Debug, Clone)]

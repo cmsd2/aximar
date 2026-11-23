@@ -32,7 +32,7 @@ pub fn parse_xml(xml: &str, log_unmapped: bool, min_description: usize) -> Vec<M
     functions.retain(|f| seen.insert(f.name.to_lowercase()));
 
     // Sort by name for stable output
-    functions.sort_by(|a, b| a.name.to_lowercase().cmp(&b.name.to_lowercase()));
+    functions.sort_by_key(|a| a.name.to_lowercase());
 
     functions
 }
@@ -657,33 +657,29 @@ fn clean_texinfo_markup(s: &str) -> String {
     }
 
     // Strip any remaining @command{content} patterns — keep content
-    loop {
-        if let Some(at_pos) = result.find('@') {
-            let rest = &result[at_pos + 1..];
-            // Check if it's @word{...}
-            let cmd_len = rest
-                .find(|c: char| !c.is_alphanumeric() && c != '_')
-                .unwrap_or(rest.len());
-            if cmd_len > 0 && rest[cmd_len..].starts_with('{') {
-                let content_start = at_pos + 1 + cmd_len + 1;
-                if let Some(end) = find_matching_brace(&result, content_start) {
-                    let content = result[content_start..end].to_string();
-                    result = format!("{}{}{}", &result[..at_pos], content, &result[end + 1..]);
-                    continue;
-                }
+    while let Some(at_pos) = result.find('@') {
+        let rest = &result[at_pos + 1..];
+        // Check if it's @word{...}
+        let cmd_len = rest
+            .find(|c: char| !c.is_alphanumeric() && c != '_')
+            .unwrap_or(rest.len());
+        if cmd_len > 0 && rest[cmd_len..].starts_with('{') {
+            let content_start = at_pos + 1 + cmd_len + 1;
+            if let Some(end) = find_matching_brace(&result, content_start) {
+                let content = result[content_start..end].to_string();
+                result = format!("{}{}{}", &result[..at_pos], content, &result[end + 1..]);
+                continue;
             }
-            // Not a @cmd{} pattern — skip past this @
-            if at_pos + 1 < result.len() {
-                // Skip @@ (escaped @)
-                if result[at_pos + 1..].starts_with('@') {
-                    result = format!("{}@{}", &result[..at_pos], &result[at_pos + 2..]);
-                    continue;
-                }
-            }
-            break;
-        } else {
-            break;
         }
+        // Not a @cmd{} pattern — skip past this @
+        if at_pos + 1 < result.len() {
+            // Skip @@ (escaped @)
+            if result[at_pos + 1..].starts_with('@') {
+                result = format!("{}@{}", &result[..at_pos], &result[at_pos + 2..]);
+                continue;
+            }
+        }
+        break;
     }
 
     // Clean up extra whitespace introduced by removals

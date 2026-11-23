@@ -163,10 +163,8 @@ pub fn find_enclosing_call(content: &str, line: u32, character: u32) -> Option<(
                     bracket_depth -= 1;
                 }
             }
-            ',' => {
-                if paren_depth == 0 && bracket_depth == 0 {
-                    comma_count += 1;
-                }
+            ',' if paren_depth == 0 && bracket_depth == 0 => {
+                comma_count += 1;
             }
             _ => {}
         }

@@ -148,6 +148,7 @@ fn parse_enhanced_breakpoint_response(
 ) -> SetBreakpointResult {
     let bkpt_re = Regex::new(r"Bkpt\s+(\d+)").unwrap();
     let adjusted_re = Regex::new(r"adjusted to line\s+(\d+)").unwrap();
+    let in_line_re = Regex::new(r"(?:at |in .+ )line\s+(\d+)").unwrap();
     // Actual Enhanced Maxima format: "Breakpoint at FILE line N deferred (file not yet loaded)"
     // Note: no breakpoint ID is assigned for deferred breakpoints.
     let deferred_re = Regex::new(r"deferred \(file not yet loaded\)").unwrap();
@@ -169,7 +170,6 @@ fn parse_enhanced_breakpoint_response(
             if let Some(id) = caps.get(1).and_then(|m| m.as_str().parse::<u32>().ok()) {
                 maxima_id = Some(id);
                 // Extract line number from "line M" or "at line M"
-                let in_line_re = Regex::new(r"(?:at |in .+ )line\s+(\d+)").unwrap();
                 if let Some(line_caps) = in_line_re.captures(line) {
                     if let Some(l) = line_caps
                         .get(1)

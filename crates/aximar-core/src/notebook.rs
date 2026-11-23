@@ -125,6 +125,12 @@ pub struct Notebook {
     trusted: bool,
 }
 
+impl Default for Notebook {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Notebook {
     pub fn new() -> Self {
         let initial_cell = Cell {
@@ -501,7 +507,7 @@ impl Notebook {
                 } else {
                     CellStatus::Success
                 };
-                cell.output = Some(output);
+                cell.output = Some(*output);
                 cell.raw_output = raw_output;
                 // Not undoable — no snapshot pushed
                 Ok(CommandEffect::CellOutputUpdated { cell_id })
@@ -1018,7 +1024,7 @@ mod tests {
         }
         n.apply(NotebookCommand::SetCellOutput {
             cell_id: cell_id.to_string(),
-            output: CellOutput::from_eval_result(&result, count),
+            output: Box::new(CellOutput::from_eval_result(&result, count)),
             raw_output: Vec::new(),
         })
         .unwrap();

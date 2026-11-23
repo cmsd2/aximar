@@ -99,7 +99,7 @@ async fn resolve_context(
 ) -> Result<NotebookContextRef, AppError> {
     let reg = state.registry.lock().await;
     reg.resolve(notebook_id.as_deref())
-        .map_err(|e| AppError::CommunicationError(e))
+        .map_err(AppError::CommunicationError)
 }
 
 // ── Tauri commands ───────────────────────────────────────────────────
@@ -155,7 +155,7 @@ pub async fn nb_add_cell(
             after_cell_id,
             before_cell_id,
         })
-        .map_err(|e| AppError::CommunicationError(e))?;
+        .map_err(AppError::CommunicationError)?;
     let cell_id = match &effect {
         CommandEffect::CellAdded { cell_id } => cell_id.clone(),
         _ => String::new(),
@@ -175,7 +175,7 @@ pub async fn nb_delete_cell(
     let mut nb = ctx.notebook.lock().await;
     let effect = nb
         .apply(NotebookCommand::DeleteCell { cell_id })
-        .map_err(|e| AppError::CommunicationError(e))?;
+        .map_err(AppError::CommunicationError)?;
     emit_notebook_state(&app, &ctx.id, &nb, &effect);
     Ok(())
 }
@@ -192,7 +192,7 @@ pub async fn nb_move_cell(
     let mut nb = ctx.notebook.lock().await;
     let effect = nb
         .apply(NotebookCommand::MoveCell { cell_id, direction })
-        .map_err(|e| AppError::CommunicationError(e))?;
+        .map_err(AppError::CommunicationError)?;
     emit_notebook_state(&app, &ctx.id, &nb, &effect);
     Ok(())
 }
@@ -208,7 +208,7 @@ pub async fn nb_toggle_cell_type(
     let mut nb = ctx.notebook.lock().await;
     let effect = nb
         .apply(NotebookCommand::ToggleCellType { cell_id })
-        .map_err(|e| AppError::CommunicationError(e))?;
+        .map_err(AppError::CommunicationError)?;
     emit_notebook_state(&app, &ctx.id, &nb, &effect);
     Ok(())
 }
@@ -225,7 +225,7 @@ pub async fn nb_update_cell_input(
     let mut nb = ctx.notebook.lock().await;
     let effect = nb
         .apply(NotebookCommand::UpdateCellInput { cell_id, input })
-        .map_err(|e| AppError::CommunicationError(e))?;
+        .map_err(AppError::CommunicationError)?;
     // Only emit if something actually changed
     if !matches!(effect, CommandEffect::NoOp { .. }) {
         emit_notebook_state(&app, &ctx.id, &nb, &effect);
@@ -243,7 +243,7 @@ pub async fn nb_undo(
     let mut nb = ctx.notebook.lock().await;
     let effect = nb
         .apply(NotebookCommand::Undo)
-        .map_err(|e| AppError::CommunicationError(e))?;
+        .map_err(AppError::CommunicationError)?;
     if !matches!(effect, CommandEffect::NoOp { .. }) {
         emit_notebook_state(&app, &ctx.id, &nb, &effect);
     }
@@ -260,7 +260,7 @@ pub async fn nb_redo(
     let mut nb = ctx.notebook.lock().await;
     let effect = nb
         .apply(NotebookCommand::Redo)
-        .map_err(|e| AppError::CommunicationError(e))?;
+        .map_err(AppError::CommunicationError)?;
     if !matches!(effect, CommandEffect::NoOp { .. }) {
         emit_notebook_state(&app, &ctx.id, &nb, &effect);
     }
@@ -277,7 +277,7 @@ pub async fn nb_new_notebook(
     let mut nb = ctx.notebook.lock().await;
     let effect = nb
         .apply(NotebookCommand::NewNotebook)
-        .map_err(|e| AppError::CommunicationError(e))?;
+        .map_err(AppError::CommunicationError)?;
     emit_notebook_state(&app, &ctx.id, &nb, &effect);
     drop(nb);
     // A new notebook belongs to no file
@@ -391,7 +391,7 @@ pub async fn nb_load_template(
 #[derive(Debug, Serialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum RunCellResult {
-    Evaluated(EvalResult),
+    Evaluated(Box<EvalResult>),
     NeedsNotebookTrust { dangerous_functions: Vec<String> },
 }
 
@@ -437,7 +437,7 @@ pub async fn nb_run_cell(
     )
     .await?;
 
-    Ok(RunCellResult::Evaluated(result.eval_result))
+    Ok(RunCellResult::Evaluated(Box::new(result.eval_result)))
 }
 
 /// Run every code cell in order, stopping at the first error, trust block
@@ -475,7 +475,7 @@ pub async fn nb_trust_notebook(
     let mut nb = ctx.notebook.lock().await;
     let effect = nb
         .apply(NotebookCommand::TrustNotebook { trusted })
-        .map_err(|e| AppError::CommunicationError(e))?;
+        .map_err(AppError::CommunicationError)?;
     emit_notebook_state(&app, &ctx.id, &nb, &effect);
     Ok(())
 }
@@ -499,7 +499,7 @@ pub async fn nb_close(state: State<'_, AppState>, notebook_id: String) -> Result
     let ctx = {
         let mut reg = state.registry.lock().await;
         reg.close(&notebook_id)
-            .map_err(|e| AppError::CommunicationError(e))?
+            .map_err(AppError::CommunicationError)?
     };
     // Stop the Maxima session for the closed notebook
     let _ = ctx.session.stop().await;
@@ -519,5 +519,5 @@ pub async fn nb_set_active(
 ) -> Result<(), AppError> {
     let mut reg = state.registry.lock().await;
     reg.set_active(&notebook_id)
-        .map_err(|e| AppError::CommunicationError(e))
+        .map_err(AppError::CommunicationError)
 }

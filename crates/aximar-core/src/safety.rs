@@ -218,8 +218,7 @@ fn is_mxpm_package(name: &str, userdir: &Path) -> bool {
 
 /// Extract a string literal from the start of `s`, e.g. `"foo")...` → Some("foo").
 fn extract_string_arg(s: &str) -> Option<String> {
-    if s.starts_with('"') {
-        let rest = &s[1..];
+    if let Some(rest) = s.strip_prefix('"') {
         if let Some(end) = rest.find('"') {
             return Some(rest[..end].to_string());
         }

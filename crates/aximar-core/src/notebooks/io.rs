@@ -60,7 +60,7 @@ mod tests {
         };
         nb.apply(NotebookCommand::SetCellOutput {
             cell_id: cell_id.clone(),
-            output,
+            output: Box::new(output),
             raw_output: vec![],
         })
         .unwrap();

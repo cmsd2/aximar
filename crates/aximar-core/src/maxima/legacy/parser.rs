@@ -52,7 +52,7 @@ const JUNK_LATEX: &[&str] = &[
 ];
 
 fn is_junk_latex(inner: &str) -> bool {
-    JUNK_LATEX.iter().any(|j| inner == *j)
+    JUNK_LATEX.contains(&inner)
         || inner.contains("__AXIMAR_")
         || inner.contains("AXIMAR")
         // String results: tex() wraps them in \mbox{...} which KaTeX can't
@@ -447,9 +447,7 @@ fn parse_output_inner(
 
     // Filter junk only from the final LaTeX (our injected tex(%)).
     // Intermediate blocks from user tex() calls are kept unconditionally.
-    let latex = if has_error {
-        None
-    } else if latex.as_ref().is_some_and(|l| is_junk_latex(l)) {
+    let latex = if has_error || latex.as_ref().is_some_and(|l| is_junk_latex(l)) {
         None
     } else {
         latex

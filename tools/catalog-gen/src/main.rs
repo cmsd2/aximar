@@ -783,9 +783,9 @@ fn copy_figures(src: &Path, dest: &Path) {
 /// GCL calls personality() with these flags to disable ASLR and enable
 /// READ_IMPLIES_EXEC, both needed for its memory management.
 const GCL_PERSONALITY_VALUES: &[(u64, &str)] = &[
-    (0x0_0040_000, "ADDR_NO_RANDOMIZE"),
-    (0x0_0400_000, "READ_IMPLIES_EXEC"),
-    (0x0_0440_000, "ADDR_NO_RANDOMIZE | READ_IMPLIES_EXEC"),
+    (0x0004_0000, "ADDR_NO_RANDOMIZE"),
+    (0x0040_0000, "READ_IMPLIES_EXEC"),
+    (0x0044_0000, "ADDR_NO_RANDOMIZE | READ_IMPLIES_EXEC"),
 ];
 
 fn is_personality_entry(sc: &serde_json::Value) -> bool {
@@ -824,7 +824,7 @@ fn generate_seccomp(upstream_url: &str, output: &Path) {
         // Find the last personality entry so we insert right after it
         let last_personality_idx = syscalls
             .iter()
-            .rposition(|sc| is_personality_entry(sc))
+            .rposition(is_personality_entry)
             .unwrap_or_else(|| {
                 fatal("Upstream profile has no 'personality' syscall entry");
             });
@@ -945,7 +945,7 @@ fn merge_catalogs(
     );
 
     let mut result: Vec<MaximaFunction> = by_name.into_values().collect();
-    result.sort_by(|a, b| a.name.to_lowercase().cmp(&b.name.to_lowercase()));
+    result.sort_by_key(|a| a.name.to_lowercase());
     result
 }
 

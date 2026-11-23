@@ -9,6 +9,12 @@ pub struct ServerLog {
     entries: Mutex<Vec<OutputEvent>>,
 }
 
+impl Default for ServerLog {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl ServerLog {
     pub fn new() -> Self {
         ServerLog {
@@ -30,7 +36,7 @@ impl ServerLog {
         let entries = self.entries.lock().unwrap();
         let iter = entries
             .iter()
-            .filter(|e| stream_filter.map_or(true, |f| e.stream == f));
+            .filter(|e| stream_filter.is_none_or(|f| e.stream == f));
 
         match limit {
             Some(n) => iter

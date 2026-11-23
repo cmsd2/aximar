@@ -36,7 +36,7 @@ pub enum NotebookCommand {
     /// Non-undoable: set cell output after evaluation
     SetCellOutput {
         cell_id: String,
-        output: CellOutput,
+        output: Box<CellOutput>,
         raw_output: Vec<OutputEvent>,
     },
     /// Non-undoable: set notebook-level trust flag

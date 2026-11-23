@@ -277,7 +277,7 @@ mod tests {
         };
         nb.apply(NotebookCommand::SetCellOutput {
             cell_id: id,
-            output,
+            output: Box::new(output),
             raw_output: Vec::new(),
         })
         .unwrap();

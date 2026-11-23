@@ -24,6 +24,12 @@ pub struct NotebookContext {
     pub run_all_cancel: Arc<AtomicBool>,
 }
 
+impl Default for NotebookContext {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl NotebookContext {
     pub fn new() -> Self {
         let server_log = Arc::new(ServerLog::new());
@@ -75,6 +81,12 @@ pub struct NotebookRegistry {
     notebooks: HashMap<NotebookId, NotebookContext>,
     active: NotebookId,
     next_counter: u32,
+}
+
+impl Default for NotebookRegistry {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl NotebookRegistry {

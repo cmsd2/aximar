@@ -244,7 +244,7 @@ impl DocIndexStore {
         }
 
         let mut file_count = 0u32;
-        for (_stem, (slim, full)) in &by_stem {
+        for (slim, full) in by_stem.values() {
             // Prefer full doc-index; fall back to slim
             let path = full.as_ref().or(slim.as_ref());
             let path = match path {
@@ -328,7 +328,7 @@ impl DocIndexStore {
                     signature,
                     summary: sym.summary.clone(),
                     package: sym.package.clone(),
-                    score: qr.score as f64,
+                    score: qr.score,
                 }
             })
             .collect();
@@ -631,11 +631,11 @@ pub(crate) fn levenshtein(a: &str, b: &str) -> usize {
 
     let mut dp = vec![vec![0usize; n + 1]; m + 1];
 
-    for i in 0..=m {
-        dp[i][0] = i;
+    for (i, row) in dp.iter_mut().enumerate() {
+        row[0] = i;
     }
-    for j in 0..=n {
-        dp[0][j] = j;
+    for (j, cell) in dp[0].iter_mut().enumerate() {
+        *cell = j;
     }
 
     for i in 1..=m {

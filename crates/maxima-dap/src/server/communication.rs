@@ -37,7 +37,7 @@ impl DapServer {
     ) -> Result<(PromptKind, Option<CanonicalLocation>), AppError> {
         let process = self.process.as_mut().ok_or(AppError::ProcessNotRunning)?;
         let sentinel = "__MAXIMA_DAP_DONE__";
-        let trimmed = expr.trim().trim_end_matches(|c: char| c == ';' || c == '$');
+        let trimmed = expr.trim().trim_end_matches([';', '$']);
         let wrapped = format!(
             "block([__dap_r__], __dap_r__: ({}), print(\"{}\"), __dap_r__)$\n",
             trimmed, sentinel
@@ -199,10 +199,7 @@ impl DapServer {
         &mut self,
         expression: &str,
     ) -> Result<String, AppError> {
-        let cmd = format!(
-            "{};\n",
-            expression.trim_end_matches(|c| c == ';' || c == '$')
-        );
+        let cmd = format!("{};\n", expression.trim_end_matches([';', '$']));
         let (lines, _level) = self.send_debugger_command_raw(&cmd).await?;
 
         let result: Vec<&str> = lines

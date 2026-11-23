@@ -27,6 +27,12 @@ pub struct SourceIndex {
     files: HashMap<PathBuf, MacFile>,
 }
 
+impl Default for SourceIndex {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl SourceIndex {
     pub fn new() -> Self {
         Self {
@@ -121,8 +127,8 @@ fn definition_bitmap(source: &str, mac_file: &MacFile) -> Vec<bool> {
             }
             _ => continue,
         };
-        for i in start..=end.min(total_lines.saturating_sub(1)) {
-            is_definition[i] = true;
+        for flag in is_definition.iter_mut().take(end + 1).skip(start) {
+            *flag = true;
         }
     }
     is_definition

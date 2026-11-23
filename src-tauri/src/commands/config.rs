@@ -15,71 +15,51 @@ use crate::tauri_output::{emit_app_log, AppLogEvent};
 
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
+#[derive(Default)]
 pub enum Theme {
+    #[default]
     Auto,
     Light,
     Dark,
 }
 
-impl Default for Theme {
-    fn default() -> Self {
-        Self::Auto
-    }
-}
-
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
+#[derive(Default)]
 pub enum CellStyle {
     Card,
+    #[default]
     Bracket,
 }
 
-impl Default for CellStyle {
-    fn default() -> Self {
-        Self::Bracket
-    }
-}
-
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
+#[derive(Default)]
 pub enum AutocompleteMode {
     Hint,
     Snippet,
+    #[default]
     ActiveHint,
-}
-
-impl Default for AutocompleteMode {
-    fn default() -> Self {
-        Self::ActiveHint
-    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
+#[derive(Default)]
 pub enum MarkdownFont {
+    #[default]
     SansSerif,
     Serif,
     ComputerModern,
     Mono,
 }
 
-impl Default for MarkdownFont {
-    fn default() -> Self {
-        Self::SansSerif
-    }
-}
-
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
+#[derive(Default)]
 pub enum MarkdownIndent {
+    #[default]
     Flush,
     Aligned,
-}
-
-impl Default for MarkdownIndent {
-    fn default() -> Self {
-        Self::Flush
-    }
 }
 
 fn default_font_size() -> u32 {
@@ -342,12 +322,10 @@ pub struct ConfigUpdate {
 }
 
 fn config_path(app: &tauri::AppHandle) -> Result<PathBuf, AppError> {
-    let dir = app.path().app_config_dir().map_err(|e| {
-        AppError::Io(std::io::Error::new(
-            std::io::ErrorKind::Other,
-            e.to_string(),
-        ))
-    })?;
+    let dir = app
+        .path()
+        .app_config_dir()
+        .map_err(|e| AppError::Io(std::io::Error::other(e.to_string())))?;
     Ok(dir.join("config.json"))
 }
 
@@ -420,8 +398,7 @@ fn write_config(app: &tauri::AppHandle, config: &AppConfig) -> Result<(), AppErr
     if let Some(parent) = path.parent() {
         fs::create_dir_all(parent)?;
     }
-    let contents = serde_json::to_string_pretty(config)
-        .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))?;
+    let contents = serde_json::to_string_pretty(config).map_err(std::io::Error::other)?;
     fs::write(&path, contents)?;
     Ok(())
 }

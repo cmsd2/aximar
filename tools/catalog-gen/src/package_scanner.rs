@@ -126,7 +126,7 @@ pub fn scan_packages(
                     .filter(|(_, sig)| !sig.is_empty())
                     .collect();
                 let load_name = format!("{}/{}", dir_name, file_stem);
-                let description = extract_description(&mac_path, &file_stem, catalog);
+                let description = extract_description(&mac_path, file_stem, catalog);
                 packages.push(PackageInfo {
                     name: load_name,
                     description,
