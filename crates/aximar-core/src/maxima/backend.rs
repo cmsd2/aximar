@@ -191,10 +191,40 @@ pub fn decode_wsl_output(bytes: &[u8]) -> String {
 }
 
 fn decode_utf16le(bytes: &[u8]) -> String {
-    let iter = bytes
-        .chunks_exact(2)
-        .map(|chunk| u16::from_le_bytes([chunk[0], chunk[1]]));
+    // A trailing odd byte is dropped, as chunks_exact did
+    let (pairs, _) = bytes.as_chunks::<2>();
+    let iter = pairs.iter().map(|&pair| u16::from_le_bytes(pair));
     char::decode_utf16(iter)
         .map(|r| r.unwrap_or('\u{FFFD}'))
         .collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::decode_wsl_output;
+
+    fn utf16le(s: &str) -> Vec<u8> {
+        s.encode_utf16().flat_map(u16::to_le_bytes).collect()
+    }
+
+    #[test]
+    fn decodes_utf16le_with_and_without_a_bom() {
+        let mut with_bom = vec![0xFF, 0xFE];
+        with_bom.extend(utf16le("Ubuntu é"));
+        assert_eq!(decode_wsl_output(&with_bom), "Ubuntu é");
+        assert_eq!(decode_wsl_output(&utf16le("Ubuntu")), "Ubuntu");
+    }
+
+    #[test]
+    fn drops_a_trailing_odd_byte_and_replaces_lone_surrogates() {
+        let mut bytes = utf16le("ab");
+        bytes.push(b'c');
+        assert_eq!(decode_wsl_output(&bytes), "ab");
+        assert_eq!(decode_wsl_output(&[0x61, 0x00, 0x00, 0xD8]), "a\u{FFFD}");
+    }
+
+    #[test]
+    fn reads_utf8_output_as_utf8() {
+        assert_eq!(decode_wsl_output("Ubuntu é".as_bytes()), "Ubuntu é");
+    }
 }
