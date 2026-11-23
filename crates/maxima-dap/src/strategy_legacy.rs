@@ -232,32 +232,17 @@ impl BreakpointStrategy for LegacyStrategy {
         evaluate: Option<&str>,
         source_index: &SourceIndex,
     ) -> Option<String> {
-        match evaluate {
-            Some(expr) if !expr.trim().is_empty() => Some(expr.to_string()),
-            _ => {
-                // Extract top-level (non-definition) code from the file.
-                let source = std::fs::read_to_string(program_path).ok()?;
-                let mac_file = source_index.get(program_path)?;
-                let top_level = breakpoints::extract_top_level_code(&source, mac_file);
-
-                let trimmed = top_level.trim();
-                if trimmed.is_empty() {
-                    return None;
-                }
-
-                let converted = maxima_mac_parser::replace_terminators(trimmed);
-                let final_code = converted
-                    .trim()
-                    .trim_end_matches(',')
-                    .trim()
-                    .to_string();
-
-                if final_code.is_empty() {
-                    None
-                } else {
-                    Some(final_code)
-                }
-            }
+        // The definitions are already loaded; run the file's other top-level
+        // statements (loads, settings, globals) before the evaluate
+        // expression, as batchloading the file would. Enhanced mode runs
+        // `batchload(file), evaluate`, which does the same.
+        let top_level = top_level_code(program_path, source_index);
+        let evaluate = evaluate.map(str::trim).filter(|e| !e.is_empty());
+        match (top_level, evaluate) {
+            (Some(code), Some(expr)) => Some(format!("{code}, {expr}")),
+            (Some(code), None) => Some(code),
+            (None, Some(expr)) => Some(expr.to_string()),
+            (None, None) => None,
         }
     }
 
@@ -276,6 +261,17 @@ impl BreakpointStrategy for LegacyStrategy {
     fn name(&self) -> &'static str {
         "Legacy"
     }
+}
+
+/// The file's top-level statements other than definitions, joined with
+/// commas so they can run inside one expression. `None` if there are none.
+fn top_level_code(program_path: &Path, source_index: &SourceIndex) -> Option<String> {
+    let source = std::fs::read_to_string(program_path).ok()?;
+    let mac_file = source_index.get(program_path)?;
+    let top_level = breakpoints::extract_top_level_code(&source, mac_file);
+    let converted = maxima_mac_parser::replace_terminators(top_level.trim());
+    let code = converted.trim().trim_end_matches(',').trim();
+    (!code.is_empty()).then(|| code.to_string())
 }
 
 /// Mapping metadata from a Legacy breakpoint for storage in `MappedBreakpoint`.
@@ -315,5 +311,42 @@ impl LegacyStrategy {
                 message: Some("Could not parse source file".to_string()),
             },
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn expression(source: &str, evaluate: Option<&str>) -> Option<String> {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("main.mac");
+        std::fs::write(&path, source).unwrap();
+        let mut index = SourceIndex::new();
+        index.index_file(&path).unwrap();
+        LegacyStrategy.build_evaluate_expression(&path, evaluate, &index)
+    }
+
+    const PROGRAM: &str = "load(mypkg)$\nscale : 10$\n\nf(x) := block(\n  [y],\n  y : g(x) * scale,\n  y)$\n";
+
+    #[test]
+    fn top_level_code_runs_before_the_evaluate_expression() {
+        // load(mypkg) defines g; without it f(2) can't run (#43)
+        let expr = expression(PROGRAM, Some("f(2)")).unwrap();
+        assert_eq!(expr, "load(mypkg),\nscale : 10, f(2)");
+    }
+
+    #[test]
+    fn without_evaluate_only_the_top_level_code_runs() {
+        let expr = expression(PROGRAM, None).unwrap();
+        assert_eq!(expr, "load(mypkg),\nscale : 10");
+        assert_eq!(expression(PROGRAM, Some("  ")), Some(expr));
+    }
+
+    #[test]
+    fn definitions_only_files_run_just_the_evaluate_expression() {
+        let source = "f(x) := x + 1$\n";
+        assert_eq!(expression(source, Some("f(2)")).as_deref(), Some("f(2)"));
+        assert_eq!(expression(source, None), None);
     }
 }

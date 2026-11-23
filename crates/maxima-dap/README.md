@@ -44,7 +44,7 @@ Add a launch configuration in `.vscode/launch.json`:
 }
 ```
 
-If `evaluate` is omitted, the file's top-level code runs automatically.
+The file's top-level code (loads, settings, globals) runs first, then `evaluate` if it's set.
 
 Enable debug logging with:
 

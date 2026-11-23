@@ -75,9 +75,8 @@ The DAP launch sequence is carefully ordered to ensure breakpoints work:
 1. **`launch`** — Spawn Maxima, enable `debugmode(true)`, parse the `.mac` file for breakpoint mapping. The file is **not loaded yet**.
 2. **`setBreakpoints`** — Map source lines to function+offset pairs. Breakpoints are stored as pending (functions don't exist yet).
 3. **`configurationDone`** — Load the file via a temp file that contains **only function/macro definitions** (extracted by `maxima-mac-parser`). Blank lines are inserted to preserve original line numbers so that Maxima's line info matches the source file. Then set pending breakpoints in Maxima (functions now exist). Finally:
-   - If an `evaluate` expression is provided: evaluate it (breakpoints fire on function calls).
-   - If no `evaluate`: extract and re-execute only the top-level non-definition code from the file. Statement terminators (`$` and `;`) are converted to commas using `maxima_mac_parser::replace_terminators()` so the code can be wrapped in a `block()` for sentinel-based completion detection. This avoids redefining functions (which would clear breakpoints) while still running the file's top-level statements.
-   - If the file has no top-level code: terminate with a message suggesting an `evaluate` expression.
+   - Run the file's top-level non-definition code, followed by the `evaluate` expression if one is provided; breakpoints fire on function calls. The top-level code comes first so that loads, settings and globals are in place, as when Enhanced mode batchloads the file before `evaluate`. Statement terminators (`$` and `;`) are converted to commas using `maxima_mac_parser::replace_terminators()` so the code can be wrapped in a `block()` for sentinel-based completion detection. This avoids redefining functions (which would clear breakpoints) while still running the file's top-level statements.
+   - If the file has no top-level code and no `evaluate`: terminate with a message suggesting an `evaluate` expression.
 
 If `batchload()` fails (e.g., due to a built-in name conflict), the server detects the error debugger prompt, escapes with `:top`, and terminates the session with an error message.
 
@@ -245,7 +244,7 @@ Breakpoints inside `errcatch()` blocks do not fire. This is a Maxima limitation 
 
 ### Function redefinition clears breakpoints (Legacy only)
 
-In Legacy mode, redefining a function (via `batchload()`, `load()`, or re-evaluating its `:=` definition) clears all breakpoints on that function. The DAP server works around this by extracting and re-executing only non-definition top-level code when no `evaluate` expression is provided, so function definitions (and their breakpoints) remain intact.
+In Legacy mode, redefining a function (via `batchload()`, `load()`, or re-evaluating its `:=` definition) clears all breakpoints on that function. The DAP server works around this by running only the non-definition top-level code, before any `evaluate` expression, so function definitions (and their breakpoints) remain intact.
 
 In Enhanced mode, breakpoints are auto-reapplied when functions are redefined.
 
@@ -291,7 +290,7 @@ The Maxima VS Code extension registers a debug adapter that spawns `maxima-dap`.
 | Property | Type | Required | Description |
 |----------|------|----------|-------------|
 | `program` | string | yes | Path to the `.mac` file to debug. |
-| `evaluate` | string | no | Maxima expression to evaluate after loading the file. If omitted, the file's top-level code is re-executed automatically. |
+| `evaluate` | string | no | Maxima expression to evaluate after the file's top-level code runs. If omitted, only the top-level code runs. |
 | `backend` | string | no | Backend type. Currently only `"local"` is supported. Default: `"local"`. |
 | `maximaPath` | string | no | Path to the Maxima binary. Default: uses `maxima` from PATH. |
 | `stopOnEntry` | boolean | no | Reserved for future use. |

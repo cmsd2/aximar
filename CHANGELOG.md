@@ -7,6 +7,15 @@ see the `v*` releases on GitHub.
 
 ## [Unreleased]
 
+### maxima-dap
+
+- **A program's top-level code runs before `evaluate` with stock Maxima**:
+  Legacy mode (Maxima without the enhanced debugger) loaded only the
+  program's definitions and then ran `evaluate`, so top-level `load`s,
+  settings and globals were skipped whenever `evaluate` was set. Calls into
+  a package loaded that way did nothing, and Step Into ran to the end.
+  Enhanced mode already ran the file first.
+
 ### aximar-mcp
 
 - **`cargo install --git` builds again**: without `--locked`, cargo picked
