@@ -265,9 +265,11 @@ impl BreakpointStrategy for LegacyStrategy {
 
 /// The file's top-level statements other than definitions, joined with
 /// commas so they can run inside one expression. `None` if there are none.
+/// Comments go first: one left at the end would leave a dangling comma.
 fn top_level_code(program_path: &Path, source_index: &SourceIndex) -> Option<String> {
     let source = std::fs::read_to_string(program_path).ok()?;
     let mac_file = source_index.get(program_path)?;
+    let source = maxima_mac_parser::blank_comments(&source);
     let top_level = breakpoints::extract_top_level_code(&source, mac_file);
     let converted = maxima_mac_parser::replace_terminators(top_level.trim());
     let code = converted.trim().trim_end_matches(',').trim();
@@ -341,6 +343,20 @@ mod tests {
         let expr = expression(PROGRAM, None).unwrap();
         assert_eq!(expr, "load(mypkg),\nscale : 10");
         assert_eq!(expression(PROGRAM, Some("  ")), Some(expr));
+    }
+
+    #[test]
+    fn comments_are_not_top_level_code() {
+        // A leading comment alone used to become "/* ... */, f(2)"
+        let source = "/* About\n   this file */\nf(x) := x + 1$ /* trailing\n note */\n";
+        assert_eq!(expression(source, Some("f(2)")).as_deref(), Some("f(2)"));
+        assert_eq!(expression(source, None), None);
+
+        let source = "/* setup */ load(mypkg)$ /* done */\nf(x) := g(x)$\n";
+        assert_eq!(
+            expression(source, Some("f(2)")).as_deref(),
+            Some("load(mypkg), f(2)")
+        );
     }
 
     #[test]

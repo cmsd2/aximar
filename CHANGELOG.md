@@ -122,6 +122,10 @@ see the `v*` releases on GitHub.
   settings and globals were skipped whenever `evaluate` was set. Calls into
   a package loaded that way did nothing, and Step Into ran to the end.
   Enhanced mode already ran the file first.
+- **Comments outside functions no longer stop a launch with stock Maxima**:
+  Legacy mode ran the top-level code with its comments, so a comment after
+  the last top-level statement, or a file whose only top-level text was a
+  comment, failed with `incorrect syntax: , is not a prefix operator`.
 - **`--version` and `--help`**: both servers print and exit. Before, they
   started the server and waited for an editor on stdin, so
   `maxima-dap --version` hung. Run from a terminal, either server now says on
