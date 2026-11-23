@@ -108,6 +108,13 @@ see the `v*` releases on GitHub.
   preview was cut at a byte offset, which panicked inside a Greek letter or
   other non-ASCII character.
 
+### maxima-dap and maxima-lsp
+
+- **`--version` and `--help`**: both print and exit. Before, they started
+  the server and waited for an editor on stdin, so `maxima-dap --version`
+  hung. Run from a terminal, either server now says on stderr that an editor
+  starts it. `--stdio` is accepted, for editors that pass it.
+
 ### aximar-core
 
 - **Unicode in Maxima code follows a defined table**, set out in
