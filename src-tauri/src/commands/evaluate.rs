@@ -1,14 +1,14 @@
 use tauri::State;
 
+use crate::commands::config::read_session_settings;
+use crate::commands::session::ensure_session;
+use crate::state::AppState;
 use aximar_core::error::AppError;
 use aximar_core::evaluation::{prepare_input, InputError};
 use aximar_core::maxima::protocol;
 use aximar_core::maxima::types::EvalResult;
 use aximar_core::registry::NotebookContextRef;
 use aximar_core::safety::{self, TrustDecision, TrustMode};
-use crate::commands::config::read_session_settings;
-use crate::commands::session::ensure_session;
-use crate::state::AppState;
 
 /// Resolve notebook context: if notebook_id is provided, use it; otherwise use the active notebook.
 async fn resolve_context(
@@ -17,7 +17,7 @@ async fn resolve_context(
 ) -> Result<NotebookContextRef, AppError> {
     let reg = state.registry.lock().await;
     reg.resolve(notebook_id.as_deref())
-        .map_err(|e| AppError::CommunicationError(e))
+        .map_err(AppError::CommunicationError)
 }
 
 #[tauri::command]
@@ -31,7 +31,8 @@ pub async fn evaluate_expression(
     let ctx = resolve_context(&state, notebook_id).await?;
     let (decision, labels) = {
         let nb = ctx.notebook.lock().await;
-        let decision = safety::check_trust(&nb, &expression, &state.packages, TrustMode::Interactive);
+        let decision =
+            safety::check_trust(&nb, &expression, &state.packages, TrustMode::Interactive);
         (decision, nb.expression_label_context())
     };
     if let TrustDecision::NeedsTrust { functions } = decision {
@@ -64,7 +65,8 @@ pub async fn evaluate_expression(
 
     let mut guard = ctx.session.lock().await;
     let process = guard.try_begin_eval()?;
-    let result = protocol::evaluate(process, &cell_id, &expression, &state.catalog, eval_timeout).await;
+    let result =
+        protocol::evaluate(process, &cell_id, &expression, &state.catalog, eval_timeout).await;
     guard.end_eval();
     result
 }

@@ -54,7 +54,10 @@ impl CancelPipe {
         // SAFETY: pipe() succeeded; we own both fds.
         let read_end = unsafe { OwnedFd::from_raw_fd(fds[0]) };
         let write_end = unsafe { OwnedFd::from_raw_fd(fds[1]) };
-        Ok(CancelPipe { read_end, write_end })
+        Ok(CancelPipe {
+            read_end,
+            write_end,
+        })
     }
 }
 
@@ -110,9 +113,7 @@ impl CancelHandle {
     pub fn request_cancel(&self) -> std::io::Result<()> {
         // Use a raw `write(2)` so we don't run into BufWriter
         // semantics; one byte, one syscall, no buffering.
-        let n = unsafe {
-            libc::write(self.write.as_raw_fd(), b"x".as_ptr() as *const _, 1)
-        };
+        let n = unsafe { libc::write(self.write.as_raw_fd(), b"x".as_ptr() as *const _, 1) };
         if n < 0 {
             Err(std::io::Error::last_os_error())
         } else {
@@ -134,13 +135,7 @@ impl From<OwnedFd> for CancelHandle {
 // trait — the underlying syscall is the same as request_cancel.
 impl Write for CancelHandle {
     fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
-        let n = unsafe {
-            libc::write(
-                self.write.as_raw_fd(),
-                buf.as_ptr() as *const _,
-                buf.len(),
-            )
-        };
+        let n = unsafe { libc::write(self.write.as_raw_fd(), buf.as_ptr() as *const _, buf.len()) };
         if n < 0 {
             Err(std::io::Error::last_os_error())
         } else {

@@ -3,9 +3,9 @@ use std::sync::Mutex as StdMutex;
 
 use tokio::sync::{Mutex, MutexGuard};
 
+use crate::error::AppError;
 #[cfg(unix)]
 use crate::maxima::envelope::cancel_pipe::CancelHandle;
-use crate::error::AppError;
 use crate::maxima::process::MaximaProcess;
 use crate::maxima::types::SessionStatus;
 
@@ -57,20 +57,20 @@ impl Session {
     /// return `Broken pipe`. Surfacing the death up front gives the caller a
     /// clear `ProcessNotRunning` and pushes the status atomic to `Error` so
     /// `SessionManager::status()` stops lying about the session.
-    fn begin_eval(self) -> Result<Self, (Self, AppError)> {
+    fn begin_eval(self) -> Result<Self, Box<(Self, AppError)>> {
         match self {
             Session::Ready { process } if process.is_dead() => {
                 drop(process);
-                Err((
+                Err(Box::new((
                     Session::Error(
                         "Maxima process is no longer running (likely killed by an eval timeout). Call restart_session.".to_string(),
                     ),
                     AppError::ProcessNotRunning,
-                ))
+                )))
             }
             Session::Ready { process } => Ok(Session::Busy { process }),
-            session @ Session::Busy { .. } => Err((session, AppError::SessionBusy)),
-            other => Err((other, AppError::ProcessNotRunning)),
+            session @ Session::Busy { .. } => Err(Box::new((session, AppError::SessionBusy))),
+            other => Err(Box::new((other, AppError::ProcessNotRunning))),
         }
     }
 
@@ -115,6 +115,12 @@ pub struct SessionManager {
     /// where the fd-4 cancel transport isn't wired.
     #[cfg(unix)]
     cancel: StdMutex<Option<CancelHandle>>,
+}
+
+impl Default for SessionManager {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl SessionManager {
@@ -254,15 +260,16 @@ impl<'a> SessionGuard<'a> {
         match old.begin_eval() {
             Ok(new) => {
                 *self.guard = new;
-                sync_status(self.status_code, self.error_message, &*self.guard);
+                sync_status(self.status_code, self.error_message, &self.guard);
                 match &mut *self.guard {
                     Session::Busy { process } => Ok(process),
                     _ => unreachable!(),
                 }
             }
-            Err((restored, err)) => {
+            Err(failed) => {
+                let (restored, err) = *failed;
                 *self.guard = restored;
-                sync_status(self.status_code, self.error_message, &*self.guard);
+                sync_status(self.status_code, self.error_message, &self.guard);
                 Err(err)
             }
         }
@@ -272,7 +279,7 @@ impl<'a> SessionGuard<'a> {
     pub fn end_eval(&mut self) {
         let old = std::mem::replace(&mut *self.guard, Session::Stopped);
         *self.guard = old.end_eval();
-        sync_status(self.status_code, self.error_message, &*self.guard);
+        sync_status(self.status_code, self.error_message, &self.guard);
     }
 
     /// Get a mutable reference to the process if Ready. A `Ready` variant
@@ -333,19 +340,28 @@ mod tests {
     #[test]
     fn begin_eval_on_stopped() {
         let result = Session::Stopped.begin_eval();
-        assert!(matches!(result, Err((_, AppError::ProcessNotRunning))));
+        assert!(matches!(
+            result.map_err(|e| e.1),
+            Err(AppError::ProcessNotRunning)
+        ));
     }
 
     #[test]
     fn begin_eval_on_starting() {
         let result = Session::Starting.begin_eval();
-        assert!(matches!(result, Err((_, AppError::ProcessNotRunning))));
+        assert!(matches!(
+            result.map_err(|e| e.1),
+            Err(AppError::ProcessNotRunning)
+        ));
     }
 
     #[test]
     fn begin_eval_on_error() {
         let result = Session::Error("err".into()).begin_eval();
-        assert!(matches!(result, Err((_, AppError::ProcessNotRunning))));
+        assert!(matches!(
+            result.map_err(|e| e.1),
+            Err(AppError::ProcessNotRunning)
+        ));
     }
 
     #[test]
@@ -379,10 +395,7 @@ mod tests {
     async fn set_error_stores_message() {
         let mgr = SessionManager::new();
         mgr.set_error("spawn failed".into()).await;
-        assert_eq!(
-            mgr.status(),
-            SessionStatus::Error("spawn failed".into())
-        );
+        assert_eq!(mgr.status(), SessionStatus::Error("spawn failed".into()));
     }
 
     #[tokio::test]

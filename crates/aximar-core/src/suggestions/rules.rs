@@ -267,8 +267,7 @@ pub fn suggestions_for_output_with_packages(
         }
 
         // Factor: only when output has multiple additive terms (polynomials)
-        let worth_factoring = text.contains('+')
-            || (text.contains('-') && text.len() > 3);
+        let worth_factoring = text.contains('+') || (text.contains('-') && text.len() > 3);
         if worth_factoring && !input_lower.contains("factor(") {
             suggestions.push(Suggestion {
                 label: "Factor".into(),
@@ -332,9 +331,7 @@ fn check_unevaluated_package_functions(
                 suggestions.push(Suggestion {
                     label: format!("Load {pkg_name}"),
                     template: format!("load(\"{pkg_name}\")$"),
-                    description: format!(
-                        "{func_name} is provided by the \"{pkg_name}\" package"
-                    ),
+                    description: format!("{func_name} is provided by the \"{pkg_name}\" package"),
                     action: None,
                     position: Some("before".into()),
                 });
@@ -460,7 +457,10 @@ mod tests {
 
     #[test]
     fn test_expand_suggested_for_products() {
-        let result = make_result("(x+1)*(x-1)", Some("\\left(x+1\\right)\\,\\left(x-1\\right)"));
+        let result = make_result(
+            "(x+1)*(x-1)",
+            Some("\\left(x+1\\right)\\,\\left(x-1\\right)"),
+        );
         let suggestions = suggestions_for_output("something", &result);
         assert!(suggestions.iter().any(|s| s.template.contains("expand")));
     }
@@ -477,7 +477,9 @@ mod tests {
         let mut result = make_result("", None);
         result.plot_svg = Some("<svg>...</svg>".into());
         let suggestions = suggestions_for_output("plot2d(sin(x), [x, -5, 5])", &result);
-        assert!(suggestions.iter().any(|s| s.action.as_deref() == Some("save_svg")));
+        assert!(suggestions
+            .iter()
+            .any(|s| s.action.as_deref() == Some("save_svg")));
     }
 
     #[test]

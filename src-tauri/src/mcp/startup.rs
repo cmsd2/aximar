@@ -4,7 +4,10 @@ use tokio_util::sync::CancellationToken;
 
 use aximar_core::maxima::output::{MultiOutputSink, OutputSink};
 
-use aximar_mcp::server::{AximarMcpServer, ProcessSinkFactory};
+use aximar_mcp::server::{
+    AximarMcpServer, ConnectedHooks, NotebookChangeCallback, NotebookLifecycleCallback,
+    ProcessSinkFactory,
+};
 
 use crate::state::AppState;
 use crate::tauri_output::{emit_app_log, TauriOutputSink};
@@ -19,8 +22,12 @@ use aximar_core::session_ops::SessionSettingsProvider;
 ///
 /// The server shares the same notebook registry, catalog, and state as the
 /// Tauri app, so MCP-triggered changes appear live in the GUI and vice versa.
-pub async fn start_mcp_server(state: AppState, listen_address: String, token: String, ct: CancellationToken) {
-
+pub async fn start_mcp_server(
+    state: AppState,
+    listen_address: String,
+    token: String,
+    ct: CancellationToken,
+) {
     // Build process sink factory: creates MultiOutputSink(TauriSink + CaptureSink)
     // for each notebook when spawning a Maxima session.
     let app_handle_for_factory = state.app_handle.clone();
@@ -40,14 +47,14 @@ pub async fn start_mcp_server(state: AppState, listen_address: String, token: St
         Arc::new(TauriGuiEmitter(state.app_handle.clone())),
     );
     let changes = gui_events.clone();
-    let on_notebook_change: Arc<dyn Fn(&str, CommandEffect) + Send + Sync> =
+    let on_notebook_change: NotebookChangeCallback =
         Arc::new(move |notebook_id: &str, effect: CommandEffect| {
             let _ = changes.send(GuiEvent::NotebookChanged {
                 notebook_id: notebook_id.to_string(),
                 effect,
             });
         });
-    let on_notebook_lifecycle: Arc<dyn Fn(&str, &str) + Send + Sync> =
+    let on_notebook_lifecycle: NotebookLifecycleCallback =
         Arc::new(move |notebook_id: &str, event_type: &str| {
             let _ = gui_events.send(GuiEvent::Lifecycle {
                 notebook_id: notebook_id.to_string(),
@@ -75,10 +82,12 @@ pub async fn start_mcp_server(state: AppState, listen_address: String, token: St
         state.catalog.clone(),
         state.packages.clone(),
         session_settings,
-        process_sink_factory,
-        on_notebook_change,
-        on_notebook_lifecycle,
-        on_session_status,
+        ConnectedHooks {
+            process_sink_factory,
+            on_notebook_change,
+            on_notebook_lifecycle,
+            on_session_status,
+        },
     );
 
     let addr = listen_address;
@@ -86,16 +95,42 @@ pub async fn start_mcp_server(state: AppState, listen_address: String, token: St
     match tokio::net::TcpListener::bind(&addr).await {
         Ok(listener) => {
             tracing::info!("MCP HTTP server listening on http://{addr}/mcp");
-            emit_app_log(&app_handle_for_log, &state.app_log, "info", &format!("MCP server listening on http://{addr}/mcp"), "mcp");
-            if let Err(e) = aximar_mcp::http::serve_mcp_http(server, listener, Some(token), ct).await {
+            emit_app_log(
+                &app_handle_for_log,
+                &state.app_log,
+                "info",
+                &format!("MCP server listening on http://{addr}/mcp"),
+                "mcp",
+            );
+            if let Err(e) =
+                aximar_mcp::http::serve_mcp_http(server, listener, Some(token), ct).await
+            {
                 tracing::error!("MCP HTTP server error: {e}");
-                emit_app_log(&app_handle_for_log, &state.app_log, "error", &format!("MCP server error: {e}"), "mcp");
+                emit_app_log(
+                    &app_handle_for_log,
+                    &state.app_log,
+                    "error",
+                    &format!("MCP server error: {e}"),
+                    "mcp",
+                );
             }
-            emit_app_log(&app_handle_for_log, &state.app_log, "info", "MCP server stopped", "mcp");
+            emit_app_log(
+                &app_handle_for_log,
+                &state.app_log,
+                "info",
+                "MCP server stopped",
+                "mcp",
+            );
         }
         Err(e) => {
             tracing::error!("Failed to bind MCP HTTP server to {addr}: {e}");
-            emit_app_log(&app_handle_for_log, &state.app_log, "error", &format!("MCP server failed to bind to {addr}: {e}"), "mcp");
+            emit_app_log(
+                &app_handle_for_log,
+                &state.app_log,
+                "error",
+                &format!("MCP server failed to bind to {addr}: {e}"),
+                "mcp",
+            );
         }
     }
 }

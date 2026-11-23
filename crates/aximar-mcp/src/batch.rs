@@ -5,8 +5,8 @@ use aximar_core::catalog::packages::PackageCatalog;
 use aximar_core::catalog::search::Catalog;
 use aximar_core::commands::{NoEffects, NotebookCommand};
 use aximar_core::evaluation::{run_all, CellRun, CellRunStatus, RunAllOptions};
-use aximar_core::notebooks::io as notebook_io;
 use aximar_core::notebook::CellType;
+use aximar_core::notebooks::io as notebook_io;
 use aximar_core::registry::NotebookRegistry;
 use aximar_core::safety::TrustMode;
 
@@ -33,7 +33,11 @@ pub async fn run(input_path: &str, output_path: Option<&str>) -> anyhow::Result<
     let file = notebook_io::open(std::path::Path::new(input_path), &catalog, &packages)
         .map_err(|e| anyhow::anyhow!("{e}"))?;
     let cell_count = file.cells.len();
-    let total_code_cells = file.cells.iter().filter(|c| c.cell_type == CellType::Code).count();
+    let total_code_cells = file
+        .cells
+        .iter()
+        .filter(|c| c.cell_type == CellType::Code)
+        .count();
 
     eprintln!("Loaded {cell_count} cells ({total_code_cells} code) from {input_path}");
 
@@ -43,7 +47,8 @@ pub async fn run(input_path: &str, output_path: Option<&str>) -> anyhow::Result<
     let ctx = {
         let mut reg = registry.lock().await;
         let id = reg.active_id().to_string();
-        reg.set_path(&id, Some(notebook_path)).map_err(|e| anyhow::anyhow!("{e}"))?;
+        reg.set_path(&id, Some(notebook_path))
+            .map_err(|e| anyhow::anyhow!("{e}"))?;
         reg.resolve(None).map_err(|e| anyhow::anyhow!("{e}"))?
     };
     {
@@ -69,7 +74,9 @@ pub async fn run(input_path: &str, output_path: Option<&str>) -> anyhow::Result<
         catalog: &catalog,
         packages: &packages,
         eval_timeout,
-        mode: TrustMode::Headless { allow_dangerous: true },
+        mode: TrustMode::Headless {
+            allow_dangerous: true,
+        },
         effects: &NoEffects,
     };
     let mut done = 0;
@@ -102,7 +109,8 @@ pub async fn run(input_path: &str, output_path: Option<&str>) -> anyhow::Result<
     // Save with the new outputs
     {
         let nb = ctx.notebook.lock().await;
-        notebook_io::save(std::path::Path::new(output_path), &nb).map_err(|e| anyhow::anyhow!("{e}"))?;
+        notebook_io::save(std::path::Path::new(output_path), &nb)
+            .map_err(|e| anyhow::anyhow!("{e}"))?;
     }
 
     eprintln!("Saved to {}", output_path);

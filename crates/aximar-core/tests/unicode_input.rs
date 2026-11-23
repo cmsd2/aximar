@@ -29,8 +29,11 @@ impl Session {
         let id = registry.create();
         let ctx = registry.get(&id).unwrap();
         let catalog = Catalog::load();
-        let settings =
-            SessionSettings { backend: Backend::Local, maxima_path: None, eval_timeout: 30 };
+        let settings = SessionSettings {
+            backend: Backend::Local,
+            maxima_path: None,
+            eval_timeout: 30,
+        };
         ensure_session(
             &ctx,
             &settings,
@@ -41,7 +44,11 @@ impl Session {
         )
         .await
         .expect("Maxima starts");
-        Session { ctx, catalog, packages: PackageCatalog::load() }
+        Session {
+            ctx,
+            catalog,
+            packages: PackageCatalog::load(),
+        }
     }
 
     /// Add a code cell holding `input`, run it, and return its output.
@@ -58,11 +65,21 @@ impl Session {
                 .unwrap();
             effect.cell_id().unwrap().to_string()
         };
-        let result =
-            evaluate_cell(&self.ctx, &cell_id, &self.catalog, &self.packages, 30, &NoEffects)
-                .await
-                .expect("the cell runs");
-        assert!(!result.cell_output.is_error, "{input}: {:?}", result.cell_output);
+        let result = evaluate_cell(
+            &self.ctx,
+            &cell_id,
+            &self.catalog,
+            &self.packages,
+            30,
+            &NoEffects,
+        )
+        .await
+        .expect("the cell runs");
+        assert!(
+            !result.cell_output.is_error,
+            "{input}: {:?}",
+            result.cell_output
+        );
         result.cell_output
     }
 

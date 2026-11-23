@@ -21,7 +21,9 @@ pub fn backend_from_env() -> Backend {
 }
 
 pub fn maxima_path_from_env() -> Option<String> {
-    std::env::var("AXIMAR_MAXIMA_PATH").ok().filter(|p| !p.is_empty())
+    std::env::var("AXIMAR_MAXIMA_PATH")
+        .ok()
+        .filter(|p| !p.is_empty())
 }
 
 pub fn eval_timeout_from_env() -> u64 {

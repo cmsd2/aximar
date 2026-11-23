@@ -1,9 +1,9 @@
 use tauri::State;
 
+use crate::state::AppState;
 use aximar_core::error::AppError;
 use aximar_core::maxima::protocol;
 use aximar_core::registry::NotebookContextRef;
-use crate::state::AppState;
 
 /// Resolve notebook context: if notebook_id is provided, use it; otherwise use the active notebook.
 async fn resolve_context(
@@ -12,7 +12,7 @@ async fn resolve_context(
 ) -> Result<NotebookContextRef, AppError> {
     let reg = state.registry.lock().await;
     reg.resolve(notebook_id.as_deref())
-        .map_err(|e| AppError::CommunicationError(e))
+        .map_err(AppError::CommunicationError)
 }
 
 #[tauri::command]

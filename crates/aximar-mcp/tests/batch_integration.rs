@@ -53,7 +53,12 @@ fn trailing_comment_does_not_cause_error() {
     let output = dir.path().join("out.macnb");
 
     let result = Command::new(binary_path())
-        .args(["run", input.to_str().unwrap(), "-o", output.to_str().unwrap()])
+        .args([
+            "run",
+            input.to_str().unwrap(),
+            "-o",
+            output.to_str().unwrap(),
+        ])
         .output()
         .expect("failed to run aximar-mcp");
 
@@ -67,7 +72,10 @@ fn trailing_comment_does_not_cause_error() {
     let saved: serde_json::Value =
         serde_json::from_str(&fs::read_to_string(&output).unwrap()).unwrap();
     let outputs = saved["cells"][0]["outputs"].as_array().unwrap();
-    assert!(!outputs.is_empty(), "cell should have outputs after execution");
+    assert!(
+        !outputs.is_empty(),
+        "cell should have outputs after execution"
+    );
 }
 
 /// A cell with only a comment and no statements should be skipped (empty after stripping).
@@ -79,7 +87,12 @@ fn comment_only_cell_skipped() {
     let output = dir.path().join("out.macnb");
 
     let result = Command::new(binary_path())
-        .args(["run", input.to_str().unwrap(), "-o", output.to_str().unwrap()])
+        .args([
+            "run",
+            input.to_str().unwrap(),
+            "-o",
+            output.to_str().unwrap(),
+        ])
         .output()
         .expect("failed to run aximar-mcp");
 
@@ -99,7 +112,12 @@ fn inline_comment_preserved() {
     let output = dir.path().join("out.macnb");
 
     let result = Command::new(binary_path())
-        .args(["run", input.to_str().unwrap(), "-o", output.to_str().unwrap()])
+        .args([
+            "run",
+            input.to_str().unwrap(),
+            "-o",
+            output.to_str().unwrap(),
+        ])
         .output()
         .expect("failed to run aximar-mcp");
 
@@ -119,7 +137,11 @@ fn inline_comment_preserved() {
 /// dangerous-call check flags (loading an unknown file).
 fn write_notebook_loading_helper(dir: &tempfile::TempDir) -> PathBuf {
     fs::write(dir.path().join("helpers.mac"), "helper_value : 7$\n").unwrap();
-    write_notebook(dir, "loads_helper.macnb", "load(\"helpers.mac\")$ helper_value;")
+    write_notebook(
+        dir,
+        "loads_helper.macnb",
+        "load(\"helpers.mac\")$ helper_value;",
+    )
 }
 
 /// `aximar-mcp run` is the decision to run the notebook, so a call the
@@ -132,16 +154,30 @@ fn batch_run_executes_dangerous_calls_without_flag() {
     let output = dir.path().join("out.macnb");
 
     let result = Command::new(binary_path())
-        .args(["run", input.to_str().unwrap(), "-o", output.to_str().unwrap()])
+        .args([
+            "run",
+            input.to_str().unwrap(),
+            "-o",
+            output.to_str().unwrap(),
+        ])
         .output()
         .expect("failed to run aximar-mcp");
 
     let stderr = String::from_utf8_lossy(&result.stderr);
-    assert!(result.status.success(), "batch run should succeed.\nstderr: {stderr}");
-    assert!(!stderr.contains("dangerous"), "no trust message expected.\nstderr: {stderr}");
+    assert!(
+        result.status.success(),
+        "batch run should succeed.\nstderr: {stderr}"
+    );
+    assert!(
+        !stderr.contains("dangerous"),
+        "no trust message expected.\nstderr: {stderr}"
+    );
 
     let saved = fs::read_to_string(&output).unwrap();
-    assert!(saved.contains('7'), "helper_value should be in the outputs: {saved}");
+    assert!(
+        saved.contains('7'),
+        "helper_value should be in the outputs: {saved}"
+    );
 }
 
 /// The old flag still parses, so existing scripts keep working, and says it
@@ -165,6 +201,12 @@ fn batch_run_accepts_deprecated_allow_dangerous_flag() {
         .expect("failed to run aximar-mcp");
 
     let stderr = String::from_utf8_lossy(&result.stderr);
-    assert!(result.status.success(), "batch run should succeed.\nstderr: {stderr}");
-    assert!(stderr.contains("no longer needed"), "deprecation warning expected.\nstderr: {stderr}");
+    assert!(
+        result.status.success(),
+        "batch run should succeed.\nstderr: {stderr}"
+    );
+    assert!(
+        stderr.contains("no longer needed"),
+        "deprecation warning expected.\nstderr: {stderr}"
+    );
 }

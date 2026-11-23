@@ -23,8 +23,8 @@ impl Catalog {
         let ax_functions: Vec<MaximaFunction> =
             serde_json::from_str(ax_json).expect("embedded ax_plotting_catalog.json must be valid");
         let ax_docs_json = include_str!("../maxima/ax_plotting_docs.json");
-        let ax_docs: HashMap<String, String> =
-            serde_json::from_str(ax_docs_json).expect("embedded ax_plotting_docs.json must be valid");
+        let ax_docs: HashMap<String, String> = serde_json::from_str(ax_docs_json)
+            .expect("embedded ax_plotting_docs.json must be valid");
         let ax_index = functions_to_doc_index("ax-plotting", &ax_functions, &ax_docs);
         store.ingest_index(ax_index);
 
@@ -63,10 +63,7 @@ impl Catalog {
         self.store.complete(prefix)
     }
 
-    pub fn signature_info(
-        &self,
-        func_name: &str,
-    ) -> Option<Vec<(String, Vec<String>, String)>> {
+    pub fn signature_info(&self, func_name: &str) -> Option<Vec<(String, Vec<String>, String)>> {
         self.store.signature_info(func_name)
     }
 
@@ -207,7 +204,10 @@ mod tests {
     fn test_find_deprecated() {
         let catalog = Catalog::load();
         let deprecated = catalog.find_deprecated();
-        assert!(!deprecated.is_empty(), "expected at least one deprecated function");
+        assert!(
+            !deprecated.is_empty(),
+            "expected at least one deprecated function"
+        );
         for info in &deprecated {
             assert!(!info.name.is_empty());
             assert!(!info.description.is_empty());

@@ -17,12 +17,15 @@ fn js_error(e: impl std::fmt::Display) -> JsError {
 #[wasm_bindgen(js_name = read, unchecked_return_type = "NotebookFile")]
 pub fn read_notebook(json: &str) -> Result<JsValue, JsError> {
     let file = crate::read(json).map_err(js_error)?;
-    file.serialize(&serde_wasm_bindgen::Serializer::json_compatible()).map_err(js_error)
+    file.serialize(&serde_wasm_bindgen::Serializer::json_compatible())
+        .map_err(js_error)
 }
 
 /// Write a notebook as nbformat 4.5 JSON, the same bytes Aximar writes.
 #[wasm_bindgen(js_name = write)]
-pub fn write_notebook(#[wasm_bindgen(unchecked_param_type = "NotebookFile")] notebook: JsValue) -> Result<String, JsError> {
+pub fn write_notebook(
+    #[wasm_bindgen(unchecked_param_type = "NotebookFile")] notebook: JsValue,
+) -> Result<String, JsError> {
     let file: NotebookFile = serde_wasm_bindgen::from_value(notebook).map_err(js_error)?;
     Ok(crate::write(&file))
 }

@@ -114,9 +114,7 @@ fn test_ax_plot2d_multiple_expressions() {
 #[test]
 #[ignore]
 fn test_ax_draw2d_explicit() {
-    let (stdout, _) = run_maxima(
-        r#"ax_draw2d(color="red", explicit(x^2, x, -3, 3));"#,
-    );
+    let (stdout, _) = run_maxima(r#"ax_draw2d(color="red", explicit(x^2, x, -3, 3));"#);
     let json = extract_plotly_json(&stdout).expect("should produce plotly JSON");
     let spec = parse_plotly(&json);
 
@@ -177,7 +175,10 @@ fn test_ax_draw2d_implicit_grid_orientation() {
     let spec = parse_plotly(&json);
 
     let z = &spec["data"][0]["z"];
-    assert_eq!(*z, serde_json::json!([[-1.0, 0.0, 1.0], [-1.0, 0.0, 1.0], [-1.0, 0.0, 1.0]]));
+    assert_eq!(
+        *z,
+        serde_json::json!([[-1.0, 0.0, 1.0], [-1.0, 0.0, 1.0], [-1.0, 0.0, 1.0]])
+    );
 }
 
 #[test]
@@ -198,9 +199,8 @@ fn test_ax_draw2d_multiple_traces() {
 #[test]
 #[ignore]
 fn test_ax_draw2d_layout_options() {
-    let (stdout, _) = run_maxima(
-        r#"ax_draw2d(explicit(x, x, 0, 1), title="My Title", xlabel="X", ylabel="Y");"#,
-    );
+    let (stdout, _) =
+        run_maxima(r#"ax_draw2d(explicit(x, x, 0, 1), title="My Title", xlabel="X", ylabel="Y");"#);
     let json = extract_plotly_json(&stdout).expect("should produce plotly JSON");
     let spec = parse_plotly(&json);
 
@@ -212,9 +212,7 @@ fn test_ax_draw2d_layout_options() {
 #[test]
 #[ignore]
 fn test_ax_draw3d_surface() {
-    let (stdout, _) = run_maxima(
-        "ax_draw3d(explicit(sin(x)*cos(y), x, -%pi, %pi, y, -%pi, %pi));",
-    );
+    let (stdout, _) = run_maxima("ax_draw3d(explicit(sin(x)*cos(y), x, -%pi, %pi, y, -%pi, %pi));");
     let json = extract_plotly_json(&stdout).expect("should produce plotly JSON");
     let spec = parse_plotly(&json);
 
@@ -268,9 +266,7 @@ fn test_sampling_values_are_finite() {
 #[test]
 #[ignore]
 fn test_ax_draw2d_vector_field() {
-    let (stdout, _) = run_maxima(
-        "ax_draw2d(ax_vector_field(-y, x, x, -3, 3, y, -3, 3));",
-    );
+    let (stdout, _) = run_maxima("ax_draw2d(ax_vector_field(-y, x, x, -3, 3, y, -3, 3));");
     let json = extract_plotly_json(&stdout).expect("should produce plotly JSON");
     let spec = parse_plotly(&json);
 
@@ -300,14 +296,15 @@ fn test_ax_draw2d_vector_field_normalized() {
 #[test]
 #[ignore]
 fn test_ax_draw2d_streamline() {
-    let (stdout, _) = run_maxima(
-        "ax_draw2d(ax_streamline(-y, x, x, -3, 3, y, -3, 3));",
-    );
+    let (stdout, _) = run_maxima("ax_draw2d(ax_streamline(-y, x, x, -3, 3, y, -3, 3));");
     let json = extract_plotly_json(&stdout).expect("should produce plotly JSON");
     let spec = parse_plotly(&json);
 
     let data = spec["data"].as_array().unwrap();
-    assert!(data.len() >= 1, "streamline should produce at least one trace");
+    assert!(
+        !data.is_empty(),
+        "streamline should produce at least one trace"
+    );
     for trace in data {
         assert_eq!(trace["type"], "scatter");
         assert_eq!(trace["mode"], "lines");
@@ -337,7 +334,10 @@ fn test_ax_draw2d_phase_portrait() {
     let spec = parse_plotly(&json);
 
     let data = spec["data"].as_array().unwrap();
-    assert!(data.len() >= 3, "should have vector field traces + streamline traces");
+    assert!(
+        data.len() >= 3,
+        "should have vector field traces + streamline traces"
+    );
 }
 
 // ── Numerical correctness tests ──────────────────────────────────────────
@@ -486,9 +486,7 @@ fn test_vector_field_arrow_directions_uniform() {
     // Wait — for F=(1,0), atan2(0, positive) = 0, so angle = 90 - 0 = 90... but that's wrong.
     // Actually, Plotly's triangle-up points +y by default, and marker.angle rotates clockwise.
     // So angle=0 means pointing up, angle=90 means pointing right. Our formula gives 90° for rightward. ✓
-    let (stdout, _) = run_maxima(
-        "ax_draw2d(ngrid=5, ax_vector_field(1, 0, x, -1, 1, y, -1, 1));",
-    );
+    let (stdout, _) = run_maxima("ax_draw2d(ngrid=5, ax_vector_field(1, 0, x, -1, 1, y, -1, 1));");
     let json = extract_plotly_json(&stdout).expect("should produce plotly JSON");
     let spec = parse_plotly(&json);
 
@@ -511,9 +509,7 @@ fn test_vector_field_arrow_directions_uniform() {
 fn test_vector_field_diagonal_direction() {
     // Field F = (1, 1) at every point: arrows should point at 45° from +x.
     // atan2(1, 1) = π/4, angle = 90 - 45 = 45°
-    let (stdout, _) = run_maxima(
-        "ax_draw2d(ngrid=3, ax_vector_field(1, 1, x, -1, 1, y, -1, 1));",
-    );
+    let (stdout, _) = run_maxima("ax_draw2d(ngrid=3, ax_vector_field(1, 1, x, -1, 1, y, -1, 1));");
     let json = extract_plotly_json(&stdout).expect("should produce plotly JSON");
     let spec = parse_plotly(&json);
 
@@ -581,9 +577,7 @@ fn test_streamline_exponential_growth() {
 #[ignore]
 fn test_unique_filenames() {
     // Two consecutive plots should produce different file paths
-    let (stdout, _) = run_maxima(
-        "ax_plot2d(sin(x), [x, 0, 1]); ax_plot2d(cos(x), [x, 0, 1]);",
-    );
+    let (stdout, _) = run_maxima("ax_plot2d(sin(x), [x, 0, 1]); ax_plot2d(cos(x), [x, 0, 1]);");
     let joined = stdout.replace("\\\n", "");
     let paths: Vec<&str> = joined
         .lines()
@@ -597,9 +591,7 @@ fn test_unique_filenames() {
 #[test]
 #[ignore]
 fn test_ax_draw3d_parametric_curve() {
-    let (stdout, _) = run_maxima(
-        "ax_draw3d(parametric(cos(t), sin(t), t/5, t, 0, 4*%pi));",
-    );
+    let (stdout, _) = run_maxima("ax_draw3d(parametric(cos(t), sin(t), t/5, t, 0, 4*%pi));");
     let json = extract_plotly_json(&stdout).expect("should produce plotly JSON");
     let spec = parse_plotly(&json);
 
@@ -626,9 +618,15 @@ fn test_ax_draw3d_parametric_surface() {
     // x, y, z should all be 2D matrices
     let x = data[0]["x"].as_array().unwrap();
     assert!(!x.is_empty());
-    assert!(x[0].is_array(), "x should be a 2D matrix for parametric_surface");
+    assert!(
+        x[0].is_array(),
+        "x should be a 2D matrix for parametric_surface"
+    );
     let y = data[0]["y"].as_array().unwrap();
-    assert!(y[0].is_array(), "y should be a 2D matrix for parametric_surface");
+    assert!(
+        y[0].is_array(),
+        "y should be a 2D matrix for parametric_surface"
+    );
     let z = data[0]["z"].as_array().unwrap();
     assert!(z[0].is_array());
 }
@@ -657,9 +655,7 @@ fn test_ax_draw3d_implicit() {
 #[test]
 #[ignore]
 fn test_ax_draw3d_contour() {
-    let (stdout, _) = run_maxima(
-        "ax_draw3d(ax_contour3d(x^2 - y^2, x, -2, 2, y, -2, 2));",
-    );
+    let (stdout, _) = run_maxima("ax_draw3d(ax_contour3d(x^2 - y^2, x, -2, 2, y, -2, 2));");
     let json = extract_plotly_json(&stdout).expect("should produce plotly JSON");
     let spec = parse_plotly(&json);
 
@@ -674,9 +670,8 @@ fn test_ax_draw3d_contour() {
 #[test]
 #[ignore]
 fn test_ax_draw3d_vector_field() {
-    let (stdout, _) = run_maxima(
-        "ax_draw3d(ax_vector_field3d(-y, x, 0, x, -2, 2, y, -2, 2, z, -1, 1));",
-    );
+    let (stdout, _) =
+        run_maxima("ax_draw3d(ax_vector_field3d(-y, x, 0, x, -2, 2, y, -2, 2, z, -1, 1));");
     let json = extract_plotly_json(&stdout).expect("should produce plotly JSON");
     let spec = parse_plotly(&json);
 
@@ -711,9 +706,8 @@ fn test_ax_draw2d_box() {
 #[test]
 #[ignore]
 fn test_ax_draw2d_violin() {
-    let (stdout, _) = run_maxima(
-        "ax_draw2d(ax_violin(makelist(random(100)/10.0, i, 1, 50), \"Group A\"));",
-    );
+    let (stdout, _) =
+        run_maxima("ax_draw2d(ax_violin(makelist(random(100)/10.0, i, 1, 50), \"Group A\"));");
     let json = extract_plotly_json(&stdout).expect("should produce plotly JSON");
     let spec = parse_plotly(&json);
 
@@ -729,9 +723,8 @@ fn test_ax_draw2d_violin() {
 #[test]
 #[ignore]
 fn test_ax_draw2d_pie() {
-    let (stdout, _) = run_maxima(
-        "ax_draw2d(hole=0.4, ax_pie([40, 30, 20, 10], [\"A\", \"B\", \"C\", \"D\"]));",
-    );
+    let (stdout, _) =
+        run_maxima("ax_draw2d(hole=0.4, ax_pie([40, 30, 20, 10], [\"A\", \"B\", \"C\", \"D\"]));");
     let json = extract_plotly_json(&stdout).expect("should produce plotly JSON");
     let spec = parse_plotly(&json);
 

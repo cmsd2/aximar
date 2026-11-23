@@ -38,11 +38,7 @@ fn hover_markdown(
         for item in &entry.value().parsed.items {
             match item {
                 MacItem::FunctionDef(f) | MacItem::MacroDef(f) if f.name == word => {
-                    let mut md = format!(
-                        "```maxima\n{}({})\n```\n",
-                        f.name,
-                        f.params.join(", ")
-                    );
+                    let mut md = format!("```maxima\n{}({})\n```\n", f.name, f.params.join(", "));
                     if let Some(doc) = &f.doc_comment {
                         md.push_str(&format!("\n{}", doc));
                     }

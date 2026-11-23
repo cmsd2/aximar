@@ -324,7 +324,9 @@ async fn display_envelope_populates_plot_data() {
     // and load the bundled ax_plotting.mac so ax_draw2d is defined.
     // (MaximaProcess::spawn alone doesn't do this — it's the host's
     // job to load whatever Maxima libraries the session needs.)
-    proc.write_stdin(plotting_lisp_stdin()).await.expect("lisp init");
+    proc.write_stdin(plotting_lisp_stdin())
+        .await
+        .expect("lisp init");
     let _ = protocol::evaluate(&mut proc, "__init__", plotting_init_code(), &catalog, 30).await;
 
     let result = protocol::evaluate(
@@ -403,7 +405,10 @@ async fn heatmap_matrix_does_not_crash_when_numerics_absent() {
         .plot_data
         .as_deref()
         .expect("heatmap should populate plot_data");
-    assert!(plot.contains("\"heatmap\""), "result should be a heatmap trace");
+    assert!(
+        plot.contains("\"heatmap\""),
+        "result should be a heatmap trace"
+    );
 }
 
 /// Phase D: cooperative cancellation via fd 4.  A long-running Maxima
@@ -495,13 +500,26 @@ async fn query_variables_uses_vars_envelope_when_wired() {
 
     // Query and assert both names came back.  has_events_channel
     // must be true here (we set AXIMAR_KERNEL_EVENTS=1).
-    assert!(proc.has_events_channel(), "envelope channel should be wired");
-    let vars = protocol::query_variables(&mut proc).await.expect("vars query");
+    assert!(
+        proc.has_events_channel(),
+        "envelope channel should be wired"
+    );
+    let vars = protocol::query_variables(&mut proc)
+        .await
+        .expect("vars query");
     drop(proc);
 
     eprintln!("vars: {:?}", vars);
-    assert!(vars.iter().any(|v| v == "myvara"), "myvara missing from {:?}", vars);
-    assert!(vars.iter().any(|v| v == "myvarb"), "myvarb missing from {:?}", vars);
+    assert!(
+        vars.iter().any(|v| v == "myvara"),
+        "myvara missing from {:?}",
+        vars
+    );
+    assert!(
+        vars.iter().any(|v| v == "myvarb"),
+        "myvarb missing from {:?}",
+        vars
+    );
 }
 
 /// eval_result envelope feeds EvalResult.latex and output_label.

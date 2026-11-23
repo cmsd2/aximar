@@ -1,19 +1,17 @@
 use tauri::State;
 
+use crate::commands::config::read_session_settings;
+use crate::commands::session::ensure_session;
+use crate::state::AppState;
 use aximar_core::error::AppError;
 use aximar_core::maxima::protocol;
 use aximar_core::maxima::types::EvalResult;
 use aximar_core::registry::NotebookContextRef;
-use crate::commands::config::read_session_settings;
-use crate::commands::session::ensure_session;
-use crate::state::AppState;
 
 fn is_valid_signal_name(name: &str) -> bool {
     !name.is_empty()
         && name.len() <= 128
-        && name
-            .chars()
-            .all(|c| c.is_ascii_alphanumeric() || c == '_')
+        && name.chars().all(|c| c.is_ascii_alphanumeric() || c == '_')
 }
 
 fn is_valid_view_id(view_id: &str) -> bool {
@@ -67,9 +65,7 @@ pub async fn set_signal_and_replot(
     let eval_timeout = settings.eval_timeout;
     ensure_session(&state, &ctx, &settings).await?;
 
-    let expression = format!(
-        "signal_set(\"{name}\", {value})$\nax__replot(\"{view_id}\");"
-    );
+    let expression = format!("signal_set(\"{name}\", {value})$\nax__replot(\"{view_id}\");");
 
     let mut guard = ctx.session.lock().await;
     let process = guard.try_begin_eval()?;

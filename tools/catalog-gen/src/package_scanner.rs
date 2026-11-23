@@ -15,7 +15,10 @@ pub fn scan_packages(
     functions_catalog: Option<&[MaximaFunction]>,
 ) -> Vec<PackageInfo> {
     if !share_dir.is_dir() {
-        eprintln!("Error: share directory does not exist: {}", share_dir.display());
+        eprintln!(
+            "Error: share directory does not exist: {}",
+            share_dir.display()
+        );
         return Vec::new();
     }
 
@@ -53,9 +56,7 @@ pub fn scan_packages(
         }
 
         // Determine package structure
-        let has_matching_mac = mac_files
-            .iter()
-            .any(|f| stem(f) == dir_name);
+        let has_matching_mac = mac_files.iter().any(|f| stem(f) == dir_name);
 
         if has_matching_mac && mac_files.len() <= 3 {
             // Simple package: directory has a .mac file matching its name
@@ -82,7 +83,8 @@ pub fn scan_packages(
             if has_matching_mac {
                 let mac_path = path.join(format!("{}.mac", dir_name));
                 let func_sigs = extract_functions(&mac_path, &func_def_re);
-                let functions: Vec<String> = func_sigs.iter().map(|(name, _)| name.clone()).collect();
+                let functions: Vec<String> =
+                    func_sigs.iter().map(|(name, _)| name.clone()).collect();
                 let signatures: HashMap<String, String> = func_sigs
                     .into_iter()
                     .filter(|(_, sig)| !sig.is_empty())
@@ -117,14 +119,14 @@ pub fn scan_packages(
                     continue;
                 }
 
-                let functions: Vec<String> = func_sigs.iter().map(|(name, _)| name.clone()).collect();
+                let functions: Vec<String> =
+                    func_sigs.iter().map(|(name, _)| name.clone()).collect();
                 let signatures: HashMap<String, String> = func_sigs
                     .into_iter()
                     .filter(|(_, sig)| !sig.is_empty())
                     .collect();
                 let load_name = format!("{}/{}", dir_name, file_stem);
-                let description =
-                    extract_description(&mac_path, &file_stem, catalog);
+                let description = extract_description(&mac_path, file_stem, catalog);
                 packages.push(PackageInfo {
                     name: load_name,
                     description,

@@ -15,71 +15,51 @@ use crate::tauri_output::{emit_app_log, AppLogEvent};
 
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
+#[derive(Default)]
 pub enum Theme {
+    #[default]
     Auto,
     Light,
     Dark,
 }
 
-impl Default for Theme {
-    fn default() -> Self {
-        Self::Auto
-    }
-}
-
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
+#[derive(Default)]
 pub enum CellStyle {
     Card,
+    #[default]
     Bracket,
 }
 
-impl Default for CellStyle {
-    fn default() -> Self {
-        Self::Bracket
-    }
-}
-
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
+#[derive(Default)]
 pub enum AutocompleteMode {
     Hint,
     Snippet,
+    #[default]
     ActiveHint,
-}
-
-impl Default for AutocompleteMode {
-    fn default() -> Self {
-        Self::ActiveHint
-    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
+#[derive(Default)]
 pub enum MarkdownFont {
+    #[default]
     SansSerif,
     Serif,
     ComputerModern,
     Mono,
 }
 
-impl Default for MarkdownFont {
-    fn default() -> Self {
-        Self::SansSerif
-    }
-}
-
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
+#[derive(Default)]
 pub enum MarkdownIndent {
+    #[default]
     Flush,
     Aligned,
-}
-
-impl Default for MarkdownIndent {
-    fn default() -> Self {
-        Self::Flush
-    }
 }
 
 fn default_font_size() -> u32 {
@@ -94,14 +74,28 @@ fn default_print_font_size() -> u32 {
     12
 }
 
-fn default_print_margin_top() -> u32 { 15 }
-fn default_print_margin_bottom() -> u32 { 15 }
-fn default_print_margin_left() -> u32 { 24 }
-fn default_print_margin_right() -> u32 { 24 }
+fn default_print_margin_top() -> u32 {
+    15
+}
+fn default_print_margin_bottom() -> u32 {
+    15
+}
+fn default_print_margin_left() -> u32 {
+    24
+}
+fn default_print_margin_right() -> u32 {
+    24
+}
 
-fn default_docker_image() -> String { String::new() }
-fn default_wsl_distro() -> String { String::new() }
-fn default_mcp_listen_address() -> String { "127.0.0.1:19542".to_string() }
+fn default_docker_image() -> String {
+    String::new()
+}
+fn default_wsl_distro() -> String {
+    String::new()
+}
+fn default_mcp_listen_address() -> String {
+    "127.0.0.1:19542".to_string()
+}
 
 fn generate_mcp_token() -> String {
     let bytes: [u8; 32] = rand::rng().random();
@@ -217,18 +211,42 @@ impl AppConfig {
             self.eval_timeout = default_eval_timeout();
         }
         for (field, val, default_fn) in [
-            ("print_margin_top", &mut self.print_margin_top, default_print_margin_top as fn() -> u32),
-            ("print_margin_bottom", &mut self.print_margin_bottom, default_print_margin_bottom),
-            ("print_margin_left", &mut self.print_margin_left, default_print_margin_left),
-            ("print_margin_right", &mut self.print_margin_right, default_print_margin_right),
+            (
+                "print_margin_top",
+                &mut self.print_margin_top,
+                default_print_margin_top as fn() -> u32,
+            ),
+            (
+                "print_margin_bottom",
+                &mut self.print_margin_bottom,
+                default_print_margin_bottom,
+            ),
+            (
+                "print_margin_left",
+                &mut self.print_margin_left,
+                default_print_margin_left,
+            ),
+            (
+                "print_margin_right",
+                &mut self.print_margin_right,
+                default_print_margin_right,
+            ),
         ] {
             if *val > 50 {
-                warnings.push(format!("Invalid {} {}, reset to {}", field, val, default_fn()));
+                warnings.push(format!(
+                    "Invalid {} {}, reset to {}",
+                    field,
+                    val,
+                    default_fn()
+                ));
                 *val = default_fn();
             }
         }
         if self.mcp_listen_address.is_empty()
-            || self.mcp_listen_address.parse::<std::net::SocketAddr>().is_err()
+            || self
+                .mcp_listen_address
+                .parse::<std::net::SocketAddr>()
+                .is_err()
         {
             warnings.push(format!(
                 "Invalid mcp_listen_address \"{}\", reset to {}",
@@ -304,9 +322,10 @@ pub struct ConfigUpdate {
 }
 
 fn config_path(app: &tauri::AppHandle) -> Result<PathBuf, AppError> {
-    let dir = app.path().app_config_dir().map_err(|e| {
-        AppError::Io(std::io::Error::new(std::io::ErrorKind::Other, e.to_string()))
-    })?;
+    let dir = app
+        .path()
+        .app_config_dir()
+        .map_err(|e| AppError::Io(std::io::Error::other(e.to_string())))?;
     Ok(dir.join("config.json"))
 }
 
@@ -379,8 +398,7 @@ fn write_config(app: &tauri::AppHandle, config: &AppConfig) -> Result<(), AppErr
     if let Some(parent) = path.parent() {
         fs::create_dir_all(parent)?;
     }
-    let contents = serde_json::to_string_pretty(config)
-        .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))?;
+    let contents = serde_json::to_string_pretty(config).map_err(std::io::Error::other)?;
     fs::write(&path, contents)?;
     Ok(())
 }
@@ -446,7 +464,9 @@ pub async fn get_config(app: tauri::AppHandle) -> Result<ConfigResponse, AppErro
 
 #[tauri::command]
 pub async fn set_config(app: tauri::AppHandle, updates: ConfigUpdate) -> Result<(), AppError> {
-    let mcp_changed = updates.mcp_enabled.is_some() || updates.mcp_listen_address.is_some() || updates.mcp_token.is_some();
+    let mcp_changed = updates.mcp_enabled.is_some()
+        || updates.mcp_listen_address.is_some()
+        || updates.mcp_token.is_some();
 
     let mut config = read_config_for_update(&app)?;
     if let Some(theme) = updates.theme {
@@ -479,17 +499,39 @@ pub async fn set_config(app: tauri::AppHandle, updates: ConfigUpdate) -> Result<
     if let Some(markdown_indent) = updates.markdown_indent {
         config.markdown_indent = markdown_indent;
     }
-    if let Some(v) = updates.print_margin_top { config.print_margin_top = v; }
-    if let Some(v) = updates.print_margin_bottom { config.print_margin_bottom = v; }
-    if let Some(v) = updates.print_margin_left { config.print_margin_left = v; }
-    if let Some(v) = updates.print_margin_right { config.print_margin_right = v; }
-    if let Some(backend) = updates.backend { config.backend = backend; }
-    if let Some(docker_image) = updates.docker_image { config.docker_image = docker_image; }
-    if let Some(wsl_distro) = updates.wsl_distro { config.wsl_distro = wsl_distro; }
-    if let Some(container_engine) = updates.container_engine { config.container_engine = container_engine; }
-    if let Some(mcp_enabled) = updates.mcp_enabled { config.mcp_enabled = mcp_enabled; }
-    if let Some(mcp_listen_address) = updates.mcp_listen_address { config.mcp_listen_address = mcp_listen_address; }
-    if let Some(mcp_token) = updates.mcp_token { config.mcp_token = mcp_token; }
+    if let Some(v) = updates.print_margin_top {
+        config.print_margin_top = v;
+    }
+    if let Some(v) = updates.print_margin_bottom {
+        config.print_margin_bottom = v;
+    }
+    if let Some(v) = updates.print_margin_left {
+        config.print_margin_left = v;
+    }
+    if let Some(v) = updates.print_margin_right {
+        config.print_margin_right = v;
+    }
+    if let Some(backend) = updates.backend {
+        config.backend = backend;
+    }
+    if let Some(docker_image) = updates.docker_image {
+        config.docker_image = docker_image;
+    }
+    if let Some(wsl_distro) = updates.wsl_distro {
+        config.wsl_distro = wsl_distro;
+    }
+    if let Some(container_engine) = updates.container_engine {
+        config.container_engine = container_engine;
+    }
+    if let Some(mcp_enabled) = updates.mcp_enabled {
+        config.mcp_enabled = mcp_enabled;
+    }
+    if let Some(mcp_listen_address) = updates.mcp_listen_address {
+        config.mcp_listen_address = mcp_listen_address;
+    }
+    if let Some(mcp_token) = updates.mcp_token {
+        config.mcp_token = mcp_token;
+    }
     write_config(&app, &config)?;
 
     // Handle MCP server lifecycle changes
@@ -498,12 +540,24 @@ pub async fn set_config(app: tauri::AppHandle, updates: ConfigUpdate) -> Result<
         let controller = state.mcp_controller.clone();
 
         if controller.is_running().await {
-            emit_app_log(&state.app_handle, &state.app_log, "info", "MCP server stopping...", "mcp");
+            emit_app_log(
+                &state.app_handle,
+                &state.app_log,
+                "info",
+                "MCP server stopping...",
+                "mcp",
+            );
             controller.stop().await;
         }
 
         if config.mcp_enabled {
-            emit_app_log(&state.app_handle, &state.app_log, "info", &format!("MCP server starting on {}...", config.mcp_listen_address), "mcp");
+            emit_app_log(
+                &state.app_handle,
+                &state.app_log,
+                "info",
+                &format!("MCP server starting on {}...", config.mcp_listen_address),
+                "mcp",
+            );
             let mcp_state = AppState {
                 registry: state.registry.clone(),
                 catalog: state.catalog.clone(),
@@ -547,7 +601,10 @@ impl AppConfig {
 /// can't be read.  Read each time a session starts or a cell runs, so changes
 /// in Settings apply without restarting the app.
 pub fn read_session_settings(app: &tauri::AppHandle) -> SessionSettings {
-    read_config(app).map(|(c, _)| c).unwrap_or_default().session_settings()
+    read_config(app)
+        .map(|(c, _)| c)
+        .unwrap_or_default()
+        .session_settings()
 }
 
 #[tauri::command]
@@ -557,7 +614,9 @@ pub async fn list_wsl_distros() -> Result<Vec<String>, AppError> {
         .stdout(std::process::Stdio::piped())
         .stderr(std::process::Stdio::null());
     hide_console_window(&mut cmd);
-    let output = cmd.output().await
+    let output = cmd
+        .output()
+        .await
         .map_err(|e| AppError::ProcessStartFailed(format!("Failed to list WSL distros: {}", e)))?;
 
     let text = decode_wsl_output(&output.stdout);
@@ -580,8 +639,9 @@ pub async fn check_wsl_maxima(distro: String) -> Result<Option<String>, AppError
     cmd.stdout(std::process::Stdio::piped())
         .stderr(std::process::Stdio::null());
     hide_console_window(&mut cmd);
-    let output = cmd.output().await
-        .map_err(|e| AppError::ProcessStartFailed(format!("Failed to check maxima in WSL: {}", e)))?;
+    let output = cmd.output().await.map_err(|e| {
+        AppError::ProcessStartFailed(format!("Failed to check maxima in WSL: {}", e))
+    })?;
 
     if output.status.success() {
         let path = String::from_utf8_lossy(&output.stdout).trim().to_string();
@@ -661,18 +721,24 @@ pub async fn claude_mcp_configure(url: String, token: String) -> Result<String, 
     let mut add_cmd = tokio::process::Command::new("claude");
     add_cmd
         .args([
-            "mcp", "add",
-            "--transport", "http",
-            "--header", &header,
-            "--", "aximar", &url,
+            "mcp",
+            "add",
+            "--transport",
+            "http",
+            "--header",
+            &header,
+            "--",
+            "aximar",
+            &url,
         ])
         .stdout(std::process::Stdio::piped())
         .stderr(std::process::Stdio::piped());
     hide_console_window(&mut add_cmd);
 
-    let output = add_cmd.output().await.map_err(|e| {
-        AppError::ProcessStartFailed(format!("Failed to run claude CLI: {e}"))
-    })?;
+    let output = add_cmd
+        .output()
+        .await
+        .map_err(|e| AppError::ProcessStartFailed(format!("Failed to run claude CLI: {e}")))?;
 
     if output.status.success() {
         Ok("Claude Code MCP configured successfully".to_string())
@@ -712,7 +778,7 @@ pub async fn codex_mcp_status() -> Result<CodexMcpStatus, AppError> {
 
 #[tauri::command]
 pub async fn codex_mcp_configure(url: String, token: String) -> Result<String, AppError> {
-    use toml_edit::{DocumentMut, InlineTable, value};
+    use toml_edit::{value, DocumentMut, InlineTable};
 
     // Locate config file
     let home = std::env::var("HOME")
@@ -727,9 +793,9 @@ pub async fn codex_mcp_configure(url: String, token: String) -> Result<String, A
     } else {
         String::new()
     };
-    let mut doc = content.parse::<DocumentMut>().map_err(|e| {
-        AppError::ProcessStartFailed(format!("Failed to parse config.toml: {e}"))
-    })?;
+    let mut doc = content
+        .parse::<DocumentMut>()
+        .map_err(|e| AppError::ProcessStartFailed(format!("Failed to parse config.toml: {e}")))?;
 
     // Ensure [mcp_servers] table exists
     if !doc.contains_table("mcp_servers") {
@@ -737,7 +803,9 @@ pub async fn codex_mcp_configure(url: String, token: String) -> Result<String, A
     }
 
     // Build [mcp_servers.aximar] entry
-    let servers = doc["mcp_servers"].as_table_mut().expect("mcp_servers is a table");
+    let servers = doc["mcp_servers"]
+        .as_table_mut()
+        .expect("mcp_servers is a table");
     let mut entry = toml_edit::Table::new();
     entry["url"] = value(&url);
     let mut headers = InlineTable::new();
@@ -747,9 +815,9 @@ pub async fn codex_mcp_configure(url: String, token: String) -> Result<String, A
 
     // Ensure directory exists and write config
     tokio::fs::create_dir_all(&config_dir).await.ok();
-    tokio::fs::write(&config_path, doc.to_string()).await.map_err(|e| {
-        AppError::ProcessStartFailed(format!("Failed to write config.toml: {e}"))
-    })?;
+    tokio::fs::write(&config_path, doc.to_string())
+        .await
+        .map_err(|e| AppError::ProcessStartFailed(format!("Failed to write config.toml: {e}")))?;
 
     Ok("Codex MCP configured successfully".to_string())
 }
@@ -775,14 +843,19 @@ pub async fn gemini_mcp_status() -> Result<GeminiMcpStatus, AppError> {
     };
 
     if !installed {
-        return Ok(GeminiMcpStatus { installed: false, configured: false });
+        return Ok(GeminiMcpStatus {
+            installed: false,
+            configured: false,
+        });
     }
 
     // Check if aximar is configured in ~/.gemini/settings.json
     let home = std::env::var("HOME")
         .or_else(|_| std::env::var("USERPROFILE"))
         .unwrap_or_default();
-    let settings_path = std::path::Path::new(&home).join(".gemini").join("settings.json");
+    let settings_path = std::path::Path::new(&home)
+        .join(".gemini")
+        .join("settings.json");
 
     let configured = if settings_path.exists() {
         match tokio::fs::read_to_string(&settings_path).await {
@@ -801,7 +874,10 @@ pub async fn gemini_mcp_status() -> Result<GeminiMcpStatus, AppError> {
         false
     };
 
-    Ok(GeminiMcpStatus { installed, configured })
+    Ok(GeminiMcpStatus {
+        installed,
+        configured,
+    })
 }
 
 #[tauri::command]
@@ -846,14 +922,13 @@ pub async fn gemini_mcp_configure(url: String, token: String) -> Result<String, 
     });
 
     // Write back with pretty formatting
-    let output = serde_json::to_string_pretty(&settings).map_err(|e| {
-        AppError::ProcessStartFailed(format!("Failed to serialize settings: {e}"))
-    })?;
+    let output = serde_json::to_string_pretty(&settings)
+        .map_err(|e| AppError::ProcessStartFailed(format!("Failed to serialize settings: {e}")))?;
 
     tokio::fs::create_dir_all(&config_dir).await.ok();
-    tokio::fs::write(&settings_path, output).await.map_err(|e| {
-        AppError::ProcessStartFailed(format!("Failed to write settings.json: {e}"))
-    })?;
+    tokio::fs::write(&settings_path, output)
+        .await
+        .map_err(|e| AppError::ProcessStartFailed(format!("Failed to write settings.json: {e}")))?;
 
     Ok("Gemini CLI MCP configured successfully".to_string())
 }
@@ -901,7 +976,10 @@ mod tests {
         let (config, _) = config_or_defaults(parse_config_file(path(), Some(text)));
         let settings = config.session_settings();
         assert!(matches!(settings.backend, Backend::Wsl { ref distro } if distro == "Ubuntu"));
-        assert_eq!(settings.maxima_path.as_deref(), Some("/opt/maxima/bin/maxima"));
+        assert_eq!(
+            settings.maxima_path.as_deref(),
+            Some("/opt/maxima/bin/maxima")
+        );
         assert_eq!(settings.eval_timeout, 120);
     }
 

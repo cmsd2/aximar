@@ -57,19 +57,21 @@ where
         let expected = format!("Bearer {token}");
         axum::Router::new()
             .nest_service("/mcp", service)
-            .layer(axum::middleware::from_fn(move |req: Request, next: Next| {
-                let expected = expected.clone();
-                async move {
-                    let auth = req
-                        .headers()
-                        .get(axum::http::header::AUTHORIZATION)
-                        .and_then(|v| v.to_str().ok());
-                    match auth {
-                        Some(v) if v == expected => Ok(next.run(req).await),
-                        _ => Err(StatusCode::UNAUTHORIZED),
+            .layer(axum::middleware::from_fn(
+                move |req: Request, next: Next| {
+                    let expected = expected.clone();
+                    async move {
+                        let auth = req
+                            .headers()
+                            .get(axum::http::header::AUTHORIZATION)
+                            .and_then(|v| v.to_str().ok());
+                        match auth {
+                            Some(v) if v == expected => Ok(next.run(req).await),
+                            _ => Err(StatusCode::UNAUTHORIZED),
+                        }
                     }
-                }
-            }))
+                },
+            ))
     } else {
         axum::Router::new().nest_service("/mcp", service)
     };
@@ -90,7 +92,10 @@ mod tests {
         let config = server_config(true, CancellationToken::new());
         assert!(config.stateful_mode);
         assert!(config.allowed_hosts.iter().any(|h| h == "localhost"));
-        assert!(config.allowed_hosts.iter().all(|h| ["localhost", "127.0.0.1", "::1"].contains(&h.as_str())));
+        assert!(config
+            .allowed_hosts
+            .iter()
+            .all(|h| ["localhost", "127.0.0.1", "::1"].contains(&h.as_str())));
     }
 
     #[test]

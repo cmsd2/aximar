@@ -239,7 +239,8 @@ mod tests {
 
     #[test]
     fn parses_eval_begin_with_id() {
-        let env = parse(r#"{"type":"eval_begin","eval_id":"e_42","started_at":"2026-06-07T12:34:56Z"}"#);
+        let env =
+            parse(r#"{"type":"eval_begin","eval_id":"e_42","started_at":"2026-06-07T12:34:56Z"}"#);
         match env {
             Envelope::EvalBegin(b) => assert_eq!(b.eval_id.as_deref(), Some("e_42")),
             _ => panic!("wrong arm"),
@@ -260,7 +261,9 @@ mod tests {
 
     #[test]
     fn parses_output() {
-        let env = parse(r#"{"type":"output","eval_id":"e_1","stream":"stdout","mime":"text/plain","text":"hi\n"}"#);
+        let env = parse(
+            r#"{"type":"output","eval_id":"e_1","stream":"stdout","mime":"text/plain","text":"hi\n"}"#,
+        );
         match env {
             Envelope::Output(o) => {
                 assert_eq!(o.stream, StreamName::Stdout);
@@ -272,7 +275,8 @@ mod tests {
 
     #[test]
     fn parses_error_envelope() {
-        let env = parse(r#"{"type":"error","eval_id":"e_1","kind":"maxima_error","message":"foo: bar"}"#);
+        let env =
+            parse(r#"{"type":"error","eval_id":"e_1","kind":"maxima_error","message":"foo: bar"}"#);
         match env {
             Envelope::Error(e) => {
                 assert_eq!(e.kind, ErrorKind::MaximaError);

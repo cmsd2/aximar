@@ -23,9 +23,7 @@ pub fn parser_severity_to_lsp(
     }
 }
 
-pub fn parse_error_to_diagnostic(
-    error: &maxima_mac_parser::ParseError,
-) -> lsp_types::Diagnostic {
+pub fn parse_error_to_diagnostic(error: &maxima_mac_parser::ParseError) -> lsp_types::Diagnostic {
     lsp_types::Diagnostic {
         range: parser_span_to_lsp(error.span),
         severity: Some(parser_severity_to_lsp(error.severity)),
@@ -86,10 +84,7 @@ mod tests {
             severity: Severity::Warning,
         };
         let diag = parse_error_to_diagnostic(&error);
-        assert_eq!(
-            diag.severity,
-            Some(lsp_types::DiagnosticSeverity::WARNING)
-        );
+        assert_eq!(diag.severity, Some(lsp_types::DiagnosticSeverity::WARNING));
         assert_eq!(diag.source, Some("maxima".to_string()));
         assert!(!diag.message.is_empty());
     }

@@ -53,12 +53,7 @@ impl PackageCatalog {
 
         let mut index = Index::<usize>::new(2);
         for (i, p) in packages.iter().enumerate() {
-            index.add_document(
-                &[name_extract, description_extract],
-                tokenizer,
-                i,
-                p,
-            );
+            index.add_document(&[name_extract, description_extract], tokenizer, i, p);
         }
 
         let mut func_to_package = HashMap::new();
@@ -122,7 +117,7 @@ impl PackageCatalog {
             .into_iter()
             .map(|qr| PackageSearchResult {
                 package: self.packages[qr.key].clone(),
-                score: qr.score as f64,
+                score: qr.score,
             })
             .collect();
 
@@ -324,7 +319,10 @@ mod tests {
         let catalog = PackageCatalog::load();
         assert!(catalog.is_share_file("orthopoly"));
         assert!(catalog.is_share_file("draw"));
-        assert!(catalog.get("orthopoly").is_none(), "orthopoly has no .mac functions");
+        assert!(
+            catalog.get("orthopoly").is_none(),
+            "orthopoly has no .mac functions"
+        );
     }
 
     #[test]

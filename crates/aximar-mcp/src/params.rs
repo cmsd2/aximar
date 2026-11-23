@@ -189,7 +189,10 @@ mod tests {
     #[test]
     fn output_preview_cuts_long_text() {
         let long = "a".repeat(OUTPUT_PREVIEW_CHARS + 1);
-        assert_eq!(output_preview(&long), format!("{}...", "a".repeat(OUTPUT_PREVIEW_CHARS)));
+        assert_eq!(
+            output_preview(&long),
+            format!("{}...", "a".repeat(OUTPUT_PREVIEW_CHARS))
+        );
     }
 
     #[test]
@@ -197,6 +200,9 @@ mod tests {
         // 'α' is two bytes, so byte 200 falls inside a character
         let greek = format!("x{}", "α".repeat(OUTPUT_PREVIEW_CHARS));
         let preview = output_preview(&greek);
-        assert_eq!(preview, format!("x{}...", "α".repeat(OUTPUT_PREVIEW_CHARS - 1)));
+        assert_eq!(
+            preview,
+            format!("x{}...", "α".repeat(OUTPUT_PREVIEW_CHARS - 1))
+        );
     }
 }

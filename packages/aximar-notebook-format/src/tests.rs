@@ -10,7 +10,10 @@ fn json(text: &str) -> Value {
 }
 
 fn cell<'a>(file: &'a NotebookFile, input: &str) -> &'a Cell {
-    file.cells.iter().find(|c| c.input == input).unwrap_or_else(|| panic!("no cell {input:?}"))
+    file.cells
+        .iter()
+        .find(|c| c.input == input)
+        .unwrap_or_else(|| panic!("no cell {input:?}"))
 }
 
 #[test]
@@ -26,8 +29,15 @@ fn written_files_are_nbformat_4_5_and_end_with_a_newline() {
     let text = write(&file);
     assert!(text.ends_with("}\n"));
     let v = json(&text);
-    assert_eq!((v["nbformat"].as_u64(), v["nbformat_minor"].as_u64()), (Some(4), Some(5)));
-    assert!(v["cells"].as_array().unwrap().iter().all(|c| c["id"].is_string()));
+    assert_eq!(
+        (v["nbformat"].as_u64(), v["nbformat_minor"].as_u64()),
+        (Some(4), Some(5))
+    );
+    assert!(v["cells"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .all(|c| c["id"].is_string()));
     assert_eq!(v["metadata"]["kernelspec"]["name"], "maxima");
 }
 
@@ -55,7 +65,11 @@ fn new_ids_are_valid_and_distinct() {
 
 #[test]
 fn every_loaded_output_is_stale() {
-    for name in ["spec-example.macnb", "vscode-extension-before-s1.macnb", "aximar-mcp-before-s1.macnb"] {
+    for name in [
+        "spec-example.macnb",
+        "vscode-extension-before-s1.macnb",
+        "aximar-mcp-before-s1.macnb",
+    ] {
         let file = read(&fixture(name)).unwrap();
         for out in file.cells.iter().filter_map(|c| c.output.as_ref()) {
             assert!(out.stale, "{name}");
@@ -67,10 +81,16 @@ fn every_loaded_output_is_stale() {
 fn the_vscode_file_reads_plots_as_plots_and_keeps_errors() {
     let file = read(&fixture("vscode-extension-before-s1.macnb")).unwrap();
     // The text/plain copy of the SVG source is not shown (#6)
-    let plot = cell(&file, "plot2d(x^2, [x, 0, 1])$").output.as_ref().unwrap();
+    let plot = cell(&file, "plot2d(x^2, [x, 0, 1])$")
+        .output
+        .as_ref()
+        .unwrap();
     assert!(plot.plot_svg.is_some());
     assert!(plot.text_output.is_empty(), "{:?}", plot.text_output);
-    let plotly = cell(&file, "plot2d(x, [x, 0, 1], [plot_format, plotly])$").output.as_ref().unwrap();
+    let plotly = cell(&file, "plot2d(x, [x, 0, 1], [plot_format, plotly])$")
+        .output
+        .as_ref()
+        .unwrap();
     assert!(plotly.plot_data.is_some() && plotly.text_output.is_empty());
     // Print text written as a text/plain bundle is print text
     let result = cell(&file, "print(\"working\")$\nintegrate(x, x);");
@@ -113,11 +133,23 @@ fn the_jupyter_file_keeps_raw_cells_metadata_and_plain_results() {
 #[test]
 fn files_saved_before_s1_open() {
     let file = read(&fixture("aximar-mcp-before-s1.macnb")).unwrap();
-    assert!(cell(&file, "plot2d(x^2, [x, 0, 1])$").output.as_ref().unwrap().plot_svg.is_some());
+    assert!(cell(&file, "plot2d(x^2, [x, 0, 1])$")
+        .output
+        .as_ref()
+        .unwrap()
+        .plot_svg
+        .is_some());
     // The failed cell was saved with no outputs (#7)
     assert!(cell(&file, "1/0;").output.is_none());
     let file = read(&fixture("aximar-window-before-s1.macnb")).unwrap();
-    assert_eq!(cell(&file, "print(\"working\")$\nintegrate(x, x);").output.as_ref().unwrap().text_output, "working");
+    assert_eq!(
+        cell(&file, "print(\"working\")$\nintegrate(x, x);")
+            .output
+            .as_ref()
+            .unwrap()
+            .text_output,
+        "working"
+    );
 }
 
 #[test]
@@ -142,7 +174,10 @@ fn an_error_in_the_print_text_is_written_once() {
     let outputs = v["cells"][0]["outputs"].as_array().unwrap();
     assert_eq!(outputs.len(), 1, "{outputs:?}");
     assert_eq!(outputs[0]["output_type"], "error");
-    assert_eq!(outputs[0]["evalue"], "incorrect syntax: x is not an infix operator");
+    assert_eq!(
+        outputs[0]["evalue"],
+        "incorrect syntax: x is not an infix operator"
+    );
 }
 
 #[test]
@@ -158,12 +193,18 @@ fn unknown_outputs_and_cell_fields_are_kept() {
     let outputs = v["cells"][0]["outputs"].as_array().unwrap();
     assert_eq!(outputs[0]["data"]["text/html"], json(r#"["<b>x</b>"]"#));
     assert_eq!(outputs[1]["output_type"], "future_type");
-    assert_eq!(v["cells"][1]["attachments"]["x.png"]["image/png"], "iVBORw0KGgo=");
+    assert_eq!(
+        v["cells"][1]["attachments"]["x.png"]["image/png"],
+        "iVBORw0KGgo="
+    );
 }
 
 #[test]
 fn other_versions_are_refused() {
-    assert!(matches!(read(r#"{"nbformat": 3, "cells": []}"#), Err(FormatError::Version(3))));
+    assert!(matches!(
+        read(r#"{"nbformat": 3, "cells": []}"#),
+        Err(FormatError::Version(3))
+    ));
     assert!(matches!(read("not json"), Err(FormatError::Json(_))));
     assert!(matches!(read("[]"), Err(FormatError::Shape(_))));
 }
@@ -174,7 +215,10 @@ fn the_model_survives_a_trip_through_serde() {
     let file = read(&fixture("spec-example.macnb")).unwrap();
     let back: NotebookFile = serde_json::from_value(serde_json::to_value(&file).unwrap()).unwrap();
     assert_eq!(back, file);
-    assert_eq!(serde_json::to_value(&file).unwrap()["cells"][0]["cellType"], "markdown");
+    assert_eq!(
+        serde_json::to_value(&file).unwrap()["cells"][0]["cellType"],
+        "markdown"
+    );
 }
 
 #[test]

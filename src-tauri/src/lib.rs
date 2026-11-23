@@ -11,8 +11,8 @@ mod state;
 pub use aximar_core::suggestions;
 mod tauri_output;
 
-use tauri::{Emitter, Manager};
 use state::AppState;
+use tauri::{Emitter, Manager};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -24,7 +24,8 @@ pub fn run() {
                 let _ = window.set_focus();
 
                 // Forward file arguments from the second instance to the running app
-                let file_args: Vec<String> = argv.iter()
+                let file_args: Vec<String> = argv
+                    .iter()
                     .skip(1) // skip program name
                     .filter(|a| !a.starts_with('-'))
                     .cloned()
@@ -73,7 +74,13 @@ pub fn run() {
                 let controller = state.mcp_controller.clone();
                 tauri::async_runtime::spawn(async move {
                     controller.set_running(ct.clone()).await;
-                    mcp::start_mcp_server(mcp_state, mcp_config.listen_address, mcp_config.token, ct).await;
+                    mcp::start_mcp_server(
+                        mcp_state,
+                        mcp_config.listen_address,
+                        mcp_config.token,
+                        ct,
+                    )
+                    .await;
                 });
             }
 

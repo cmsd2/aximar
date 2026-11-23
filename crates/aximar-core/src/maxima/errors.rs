@@ -17,8 +17,9 @@ static UNDEFINED_FUNC_RE_1: LazyLock<Regex> =
 static UNDEFINED_FUNC_RE_2: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"The function (\w+) is not known").unwrap());
 
-static MISSING_ASSUMPTION_RE: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"Is\s+(.+?)\s+(positive|negative|zero|an integer|even|odd)").unwrap());
+static MISSING_ASSUMPTION_RE: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"Is\s+(.+?)\s+(positive|negative|zero|an integer|even|odd)").unwrap()
+});
 
 static LOAD_FAILED_RE: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"(?:failed to load|Cannot find file)\s+(\S+)").unwrap());
@@ -100,7 +101,10 @@ fn check_syntax_error(raw: &str) -> Option<ErrorInfo> {
         return Some(ErrorInfo {
             title: "Syntax Error".into(),
             explanation,
-            suggestion: Some("Check for missing *, +, or other operators. Ensure all parentheses are matched.".into()),
+            suggestion: Some(
+                "Check for missing *, +, or other operators. Ensure all parentheses are matched."
+                    .into(),
+            ),
             example: None,
             did_you_mean: Vec::new(),
             correct_signatures: Vec::new(),
@@ -120,15 +124,18 @@ fn check_arg_count(raw: &str, catalog: &Catalog) -> Option<ErrorInfo> {
         .map(|sigs| sigs.into_iter().map(|(sig, _, _)| sig).collect::<Vec<_>>())
         .unwrap_or_default();
 
-    let explanation = format!(
-        "Too {} arguments were passed to {}.",
-        direction, func_name
-    );
+    let explanation = format!("Too {} arguments were passed to {}.", direction, func_name);
 
     let suggestion = if correct_signatures.is_empty() {
-        Some(format!("Check the documentation for {} with describe({}).", func_name, func_name))
+        Some(format!(
+            "Check the documentation for {} with describe({}).",
+            func_name, func_name
+        ))
     } else {
-        Some(format!("Correct usage: {}", correct_signatures.join(" or ")))
+        Some(format!(
+            "Correct usage: {}",
+            correct_signatures.join(" or ")
+        ))
     };
 
     Some(ErrorInfo {
@@ -193,7 +200,10 @@ fn check_undefined_function(
                 title: "Unknown Function".into(),
                 explanation: format!("'{}' is not a known Maxima function.", func_name),
                 suggestion: if similar.is_empty() {
-                    Some(format!("Check the spelling or use describe(\"{}\") to search.", func_name))
+                    Some(format!(
+                        "Check the spelling or use describe(\"{}\") to search.",
+                        func_name
+                    ))
                 } else {
                     None
                 },
@@ -238,7 +248,9 @@ fn check_inconsistent_equations(raw: &str) -> Option<ErrorInfo> {
     if raw.contains("inconsistent equations") {
         return Some(ErrorInfo {
             title: "Inconsistent Equations".into(),
-            explanation: "The system of equations has no solution -- the equations contradict each other.".into(),
+            explanation:
+                "The system of equations has no solution -- the equations contradict each other."
+                    .into(),
             suggestion: Some("Check that the equations are correct and compatible.".into()),
             example: None,
             did_you_mean: Vec::new(),
@@ -252,7 +264,9 @@ fn check_missing_assumption(raw: &str) -> Option<ErrorInfo> {
     if MISSING_ASSUMPTION_RE.is_match(raw) {
         return Some(ErrorInfo {
             title: "Assumption Required".into(),
-            explanation: "Maxima needs to know a property of a variable to proceed with the computation.".into(),
+            explanation:
+                "Maxima needs to know a property of a variable to proceed with the computation."
+                    .into(),
             suggestion: Some("Use assume() to declare properties, e.g.: assume(x > 0);".into()),
             example: Some("assume(x > 0);".into()),
             did_you_mean: Vec::new(),
@@ -263,9 +277,7 @@ fn check_missing_assumption(raw: &str) -> Option<ErrorInfo> {
 }
 
 fn check_matrix_dimension(raw: &str) -> Option<ErrorInfo> {
-    if raw.contains("all rows must be the same length")
-        || raw.contains("incompatible dimensions")
-    {
+    if raw.contains("all rows must be the same length") || raw.contains("incompatible dimensions") {
         return Some(ErrorInfo {
             title: "Matrix Dimension Error".into(),
             explanation: "Matrix rows have different lengths, or the matrices have incompatible dimensions for the operation.".into(),
@@ -334,10 +346,7 @@ mod tests {
 
     #[test]
     fn test_syntax_error() {
-        let info = enhance_error(
-            "incorrect syntax: ! is not a prefix operator",
-            &catalog(),
-        );
+        let info = enhance_error("incorrect syntax: ! is not a prefix operator", &catalog());
         assert!(info.is_some());
         assert_eq!(info.unwrap().title, "Syntax Error");
     }
@@ -356,10 +365,7 @@ mod tests {
 
     #[test]
     fn test_did_you_mean() {
-        let info = enhance_error(
-            "funcall: no such function: intgrate",
-            &catalog(),
-        );
+        let info = enhance_error("funcall: no such function: intgrate", &catalog());
         assert!(info.is_some());
         let info = info.unwrap();
         assert_eq!(info.title, "Unknown Function");
@@ -368,10 +374,7 @@ mod tests {
 
     #[test]
     fn test_divergent() {
-        let info = enhance_error(
-            "defint: integral is divergent.",
-            &catalog(),
-        );
+        let info = enhance_error("defint: integral is divergent.", &catalog());
         assert!(info.is_some());
         assert_eq!(info.unwrap().title, "Divergent Integral");
     }
@@ -505,14 +508,15 @@ mod tests {
         use crate::catalog::packages::PackageCatalog;
         let cat = catalog();
         let pkgs = PackageCatalog::load();
-        let info = enhance_error_with_packages(
-            "funcall: no such function: pdf_normal",
-            &cat,
-            Some(&pkgs),
-        );
+        let info =
+            enhance_error_with_packages("funcall: no such function: pdf_normal", &cat, Some(&pkgs));
         let info = info.unwrap();
         assert_eq!(info.title, "Unknown Function");
-        assert!(info.explanation.contains("distrib"), "Expected 'distrib' in explanation: {}", info.explanation);
+        assert!(
+            info.explanation.contains("distrib"),
+            "Expected 'distrib' in explanation: {}",
+            info.explanation
+        );
         assert!(info.example.is_some());
         assert!(info.example.unwrap().contains("load(\"distrib\")"));
     }
@@ -523,11 +527,8 @@ mod tests {
         let cat = catalog();
         let pkgs = PackageCatalog::load();
         // intgrate is a typo, not a package function
-        let info = enhance_error_with_packages(
-            "funcall: no such function: intgrate",
-            &cat,
-            Some(&pkgs),
-        );
+        let info =
+            enhance_error_with_packages("funcall: no such function: intgrate", &cat, Some(&pkgs));
         let info = info.unwrap();
         assert_eq!(info.title, "Unknown Function");
         assert!(info.did_you_mean.contains(&"integrate".to_string()));

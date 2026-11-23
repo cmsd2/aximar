@@ -201,8 +201,10 @@ impl DocIndexStore {
         //
         // Stem is derived by stripping `-slim-doc-index.json` or
         // `-doc-index.json` from the filename.
-        let mut by_stem: StdHashMap<String, (Option<std::path::PathBuf>, Option<std::path::PathBuf>)> =
-            StdHashMap::new();
+        let mut by_stem: StdHashMap<
+            String,
+            (Option<std::path::PathBuf>, Option<std::path::PathBuf>),
+        > = StdHashMap::new();
 
         let entries = match std::fs::read_dir(&userdir) {
             Ok(e) => e,
@@ -242,7 +244,7 @@ impl DocIndexStore {
         }
 
         let mut file_count = 0u32;
-        for (_stem, (slim, full)) in &by_stem {
+        for (slim, full) in by_stem.values() {
             // Prefer full doc-index; fall back to slim
             let path = full.as_ref().or(slim.as_ref());
             let path = match path {
@@ -255,11 +257,7 @@ impl DocIndexStore {
                     file_count += 1;
                 }
                 Err(e) => {
-                    eprintln!(
-                        "[doc-index] Failed to load {}: {}",
-                        path.display(),
-                        e
-                    );
+                    eprintln!("[doc-index] Failed to load {}: {}", path.display(), e);
                 }
             }
         }
@@ -330,7 +328,7 @@ impl DocIndexStore {
                     signature,
                     summary: sym.summary.clone(),
                     package: sym.package.clone(),
-                    score: qr.score as f64,
+                    score: qr.score,
                 }
             })
             .collect();
@@ -370,10 +368,7 @@ impl DocIndexStore {
         }
 
         if !entry.see_also.is_empty() {
-            md.push_str(&format!(
-                "\n**See also:** {}",
-                entry.see_also.join(", ")
-            ));
+            md.push_str(&format!("\n**See also:** {}", entry.see_also.join(", ")));
         }
 
         md.push_str(&format!("\n\n*From package `{}`*", pkg_name));
@@ -421,10 +416,7 @@ impl DocIndexStore {
 
     /// Extract signature info for signature help.
     /// Returns all signatures (primary + alternatives) with params and summary.
-    pub fn signature_info(
-        &self,
-        func_name: &str,
-    ) -> Option<Vec<(String, Vec<String>, String)>> {
+    pub fn signature_info(&self, func_name: &str) -> Option<Vec<(String, Vec<String>, String)>> {
         let (_, entry) = self.get(func_name)?;
 
         if entry.symbol_type != "Function" {
@@ -505,17 +497,14 @@ impl DocIndexStore {
         let mut map: BTreeMap<String, Vec<(String, String)>> = BTreeMap::new();
         for (name, pkg_name) in &self.names {
             if let Some((_, entry)) = self.symbols.get(&name.to_lowercase()) {
-                let cat = entry
-                    .category
-                    .clone()
-                    .unwrap_or_else(|| {
-                        // Derive category from package name if not set
-                        if pkg_name == "maxima-core-docs" {
-                            "Other".to_string()
-                        } else {
-                            pkg_name.clone()
-                        }
-                    });
+                let cat = entry.category.clone().unwrap_or_else(|| {
+                    // Derive category from package name if not set
+                    if pkg_name == "maxima-core-docs" {
+                        "Other".to_string()
+                    } else {
+                        pkg_name.clone()
+                    }
+                });
                 map.entry(cat)
                     .or_default()
                     .push((name.clone(), entry.signature.clone()));
@@ -542,8 +531,7 @@ impl DocIndexStore {
 // ---------------------------------------------------------------------------
 
 fn load_doc_index(path: &std::path::Path) -> Result<DocIndex, String> {
-    let content =
-        std::fs::read_to_string(path).map_err(|e| format!("read error: {}", e))?;
+    let content = std::fs::read_to_string(path).map_err(|e| format!("read error: {}", e))?;
     serde_json::from_str(&content).map_err(|e| format!("parse error: {}", e))
 }
 
@@ -643,11 +631,11 @@ pub(crate) fn levenshtein(a: &str, b: &str) -> usize {
 
     let mut dp = vec![vec![0usize; n + 1]; m + 1];
 
-    for i in 0..=m {
-        dp[i][0] = i;
+    for (i, row) in dp.iter_mut().enumerate() {
+        row[0] = i;
     }
-    for j in 0..=n {
-        dp[0][j] = j;
+    for (j, cell) in dp[0].iter_mut().enumerate() {
+        *cell = j;
     }
 
     for i in 1..=m {
@@ -747,7 +735,10 @@ mod tests {
         assert_eq!(entry.category.as_deref(), Some("Calculus"));
         assert_eq!(entry.section.as_deref(), Some("Differentiation"));
         assert_eq!(entry.keywords, vec!["derivative", "differentiation"]);
-        assert_eq!(entry.signatures, vec!["diff(expr, var)", "diff(expr, var, n)"]);
+        assert_eq!(
+            entry.signatures,
+            vec!["diff(expr, var)", "diff(expr, var, n)"]
+        );
     }
 
     #[test]
@@ -858,7 +849,8 @@ mod tests {
             index: Index::new(3),
         };
 
-        let base: DocIndex = serde_json::from_str(r#"{
+        let base: DocIndex = serde_json::from_str(
+            r#"{
             "version": 1,
             "package": "base",
             "source": "",
@@ -873,9 +865,12 @@ mod tests {
                 }
             },
             "sections": []
-        }"#).unwrap();
+        }"#,
+        )
+        .unwrap();
 
-        let overlay: DocIndex = serde_json::from_str(r#"{
+        let overlay: DocIndex = serde_json::from_str(
+            r#"{
             "version": 1,
             "package": "overlay",
             "source": "",
@@ -890,7 +885,9 @@ mod tests {
                 }
             },
             "sections": []
-        }"#).unwrap();
+        }"#,
+        )
+        .unwrap();
 
         store.ingest_index(base);
         store.ingest_index(overlay);

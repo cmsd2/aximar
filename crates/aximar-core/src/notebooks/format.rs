@@ -55,7 +55,11 @@ pub fn read(json: &str) -> Result<NotebookFile, FormatError> {
             output: c.output.map(output_from),
         })
         .collect();
-    Ok(NotebookFile { metadata: f.metadata, cells, ids_replaced: f.ids_replaced })
+    Ok(NotebookFile {
+        metadata: f.metadata,
+        cells,
+        ids_replaced: f.ids_replaced,
+    })
 }
 
 fn cell_type_from(t: file::CellType) -> CellType {
@@ -143,9 +147,9 @@ pub fn write(notebook: &Notebook) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::commands::NotebookCommand;
     use aximar_notebook_format::text;
     use serde_json::json;
-    use crate::commands::NotebookCommand;
 
     fn fixture(name: &str) -> String {
         let path = format!(
@@ -159,7 +163,10 @@ mod tests {
     fn load(name: &str) -> (NotebookFile, Notebook) {
         let file = read(&fixture(name)).unwrap();
         let mut nb = Notebook::new();
-        nb.apply(NotebookCommand::LoadNotebook { file: file.clone().into() }).unwrap();
+        nb.apply(NotebookCommand::LoadNotebook {
+            file: file.clone().into(),
+        })
+        .unwrap();
         (file, nb)
     }
 
@@ -168,7 +175,10 @@ mod tests {
     }
 
     fn cell<'a>(nb: &'a Notebook, input: &str) -> &'a crate::notebook::Cell {
-        nb.cells().iter().find(|c| c.input == input).unwrap_or_else(|| panic!("no cell {input:?}"))
+        nb.cells()
+            .iter()
+            .find(|c| c.input == input)
+            .unwrap_or_else(|| panic!("no cell {input:?}"))
     }
 
     #[test]
@@ -182,10 +192,16 @@ mod tests {
     fn the_vscode_file_reads_plots_as_plots_and_keeps_errors() {
         let (_, nb) = load("vscode-extension-before-s1.macnb");
         // The text/plain copy of the SVG source is not shown (#6)
-        let plot = cell(&nb, "plot2d(x^2, [x, 0, 1])$").output.as_ref().unwrap();
+        let plot = cell(&nb, "plot2d(x^2, [x, 0, 1])$")
+            .output
+            .as_ref()
+            .unwrap();
         assert!(plot.plot_svg.is_some());
         assert!(plot.text_output.is_empty(), "{:?}", plot.text_output);
-        let plotly = cell(&nb, "plot2d(x, [x, 0, 1], [plot_format, plotly])$").output.as_ref().unwrap();
+        let plotly = cell(&nb, "plot2d(x, [x, 0, 1], [plot_format, plotly])$")
+            .output
+            .as_ref()
+            .unwrap();
         assert!(plotly.plot_data.is_some() && plotly.text_output.is_empty());
         // Print text written as a text/plain bundle is print text
         let result = cell(&nb, "print(\"working\")$\nintegrate(x, x);");
@@ -230,11 +246,23 @@ mod tests {
     #[test]
     fn files_saved_before_s1_open() {
         let (_, nb) = load("aximar-mcp-before-s1.macnb");
-        assert!(cell(&nb, "plot2d(x^2, [x, 0, 1])$").output.as_ref().unwrap().plot_svg.is_some());
+        assert!(cell(&nb, "plot2d(x^2, [x, 0, 1])$")
+            .output
+            .as_ref()
+            .unwrap()
+            .plot_svg
+            .is_some());
         // The failed cell was saved with no outputs (#7)
         assert!(cell(&nb, "1/0;").output.is_none());
         let (_, nb) = load("aximar-window-before-s1.macnb");
-        assert_eq!(cell(&nb, "print(\"working\")$\nintegrate(x, x);").output.as_ref().unwrap().text_output, "working");
+        assert_eq!(
+            cell(&nb, "print(\"working\")$\nintegrate(x, x);")
+                .output
+                .as_ref()
+                .unwrap()
+                .text_output,
+            "working"
+        );
     }
 
     #[test]
@@ -247,12 +275,20 @@ mod tests {
             execution_count: Some(1),
             ..Default::default()
         };
-        nb.apply(NotebookCommand::SetCellOutput { cell_id: id, output, raw_output: Vec::new() }).unwrap();
+        nb.apply(NotebookCommand::SetCellOutput {
+            cell_id: id,
+            output: Box::new(output),
+            raw_output: Vec::new(),
+        })
+        .unwrap();
         let v = json(&write(&nb));
         let outputs = v["cells"][0]["outputs"].as_array().unwrap();
         assert_eq!(outputs.len(), 1, "{outputs:?}");
         assert_eq!(outputs[0]["output_type"], "error");
-        assert_eq!(outputs[0]["evalue"], "incorrect syntax: x is not an infix operator");
+        assert_eq!(
+            outputs[0]["evalue"],
+            "incorrect syntax: x is not an infix operator"
+        );
     }
 
     #[test]
@@ -264,7 +300,8 @@ mod tests {
             ]}]}"#;
         let file = read(text).unwrap();
         let mut nb = Notebook::new();
-        nb.apply(NotebookCommand::LoadNotebook { file: file.into() }).unwrap();
+        nb.apply(NotebookCommand::LoadNotebook { file: file.into() })
+            .unwrap();
         let v = json(&write(&nb));
         let outputs = v["cells"][0]["outputs"].as_array().unwrap();
         assert_eq!(outputs[0]["data"]["text/html"], json(r#"["<b>x</b>"]"#));
@@ -278,9 +315,13 @@ mod tests {
              "attachments": {"x.png": {"image/png": "iVBORw0KGgo="}}}]}"#;
         let file = read(text).unwrap();
         let mut nb = Notebook::new();
-        nb.apply(NotebookCommand::LoadNotebook { file: file.into() }).unwrap();
+        nb.apply(NotebookCommand::LoadNotebook { file: file.into() })
+            .unwrap();
         let v = json(&write(&nb));
-        assert_eq!(v["cells"][0]["attachments"]["x.png"]["image/png"], "iVBORw0KGgo=");
+        assert_eq!(
+            v["cells"][0]["attachments"]["x.png"]["image/png"],
+            "iVBORw0KGgo="
+        );
     }
 
     #[test]
@@ -288,9 +329,19 @@ mod tests {
         let mut file = read(&fixture("vscode-extension-before-s1.macnb")).unwrap();
         explain_errors(&mut file, &Catalog::load(), &PackageCatalog::load());
         let failed = file.cells.iter().find(|c| c.input == "1/0;").unwrap();
-        let info = failed.output.as_ref().unwrap().error_info.as_ref().expect("an explanation");
+        let info = failed
+            .output
+            .as_ref()
+            .unwrap()
+            .error_info
+            .as_ref()
+            .expect("an explanation");
         assert_eq!(info.title, "Division by Zero");
         // Outputs that aren't errors get none
-        assert!(file.cells.iter().filter(|c| c.input != "1/0;").all(|c| c.output.as_ref().is_none_or(|o| o.error_info.is_none())));
+        assert!(file
+            .cells
+            .iter()
+            .filter(|c| c.input != "1/0;")
+            .all(|c| c.output.as_ref().is_none_or(|o| o.error_info.is_none())));
     }
 }

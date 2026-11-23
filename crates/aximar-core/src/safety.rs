@@ -22,7 +22,9 @@ pub enum TrustMode {
 pub enum TrustDecision {
     Allowed,
     /// The input calls these dangerous functions, and the mode doesn't allow them.
-    NeedsTrust { functions: Vec<String> },
+    NeedsTrust {
+        functions: Vec<String>,
+    },
 }
 
 /// The one trust check for cells, run-all and expressions, from either
@@ -171,9 +173,8 @@ fn check_load_calls(
         // Found load( — extract string argument
         let after_paren = trimmed[1..].trim_start();
         if let Some(arg) = extract_string_arg(after_paren) {
-            let known = packages.is_some_and(|catalog| {
-                catalog.get(&arg).is_some() || catalog.is_share_file(&arg)
-            });
+            let known = packages
+                .is_some_and(|catalog| catalog.get(&arg).is_some() || catalog.is_share_file(&arg));
             let from_mxpm = userdir.is_some_and(|dir| is_mxpm_package(&arg, dir));
             if !known && !from_mxpm {
                 return true;
@@ -198,7 +199,9 @@ fn check_load_calls(
 /// can point elsewhere.
 fn is_mxpm_package(name: &str, userdir: &Path) -> bool {
     let plain = !name.is_empty()
-        && name.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'-' || b == b'_');
+        && name
+            .bytes()
+            .all(|b| b.is_ascii_alphanumeric() || b == b'-' || b == b'_');
     if !plain {
         return false;
     }
@@ -215,8 +218,7 @@ fn is_mxpm_package(name: &str, userdir: &Path) -> bool {
 
 /// Extract a string literal from the start of `s`, e.g. `"foo")...` → Some("foo").
 fn extract_string_arg(s: &str) -> Option<String> {
-    if s.starts_with('"') {
-        let rest = &s[1..];
+    if let Some(rest) = s.strip_prefix('"') {
         if let Some(end) = rest.find('"') {
             return Some(rest[..end].to_string());
         }
@@ -239,7 +241,9 @@ mod tests {
     }
 
     fn needs(functions: &[&str]) -> TrustDecision {
-        TrustDecision::NeedsTrust { functions: functions.iter().map(|f| f.to_string()).collect() }
+        TrustDecision::NeedsTrust {
+            functions: functions.iter().map(|f| f.to_string()).collect(),
+        }
     }
 
     #[test]
@@ -247,19 +251,38 @@ mod tests {
         let mode = TrustMode::Interactive;
         assert_eq!(check(true, "system(\"ls\");", mode), TrustDecision::Allowed);
         assert_eq!(check(false, "system(\"ls\");", mode), needs(&["system"]));
-        assert_eq!(check(false, "load(\"helpers.mac\");", mode), needs(&["load"]));
-        assert_eq!(check(false, "integrate(x^2, x);", mode), TrustDecision::Allowed);
+        assert_eq!(
+            check(false, "load(\"helpers.mac\");", mode),
+            needs(&["load"])
+        );
+        assert_eq!(
+            check(false, "integrate(x^2, x);", mode),
+            TrustDecision::Allowed
+        );
     }
 
     #[test]
     fn headless_ignores_the_notebook_and_follows_allow_dangerous() {
-        let blocked = TrustMode::Headless { allow_dangerous: false };
-        let allowed = TrustMode::Headless { allow_dangerous: true };
+        let blocked = TrustMode::Headless {
+            allow_dangerous: false,
+        };
+        let allowed = TrustMode::Headless {
+            allow_dangerous: true,
+        };
         assert_eq!(check(true, "system(\"ls\");", blocked), needs(&["system"]));
         assert_eq!(check(false, "system(\"ls\");", blocked), needs(&["system"]));
-        assert_eq!(check(true, "system(\"ls\");", allowed), TrustDecision::Allowed);
-        assert_eq!(check(false, "system(\"ls\");", allowed), TrustDecision::Allowed);
-        assert_eq!(check(false, "diff(sin(x), x);", blocked), TrustDecision::Allowed);
+        assert_eq!(
+            check(true, "system(\"ls\");", allowed),
+            TrustDecision::Allowed
+        );
+        assert_eq!(
+            check(false, "system(\"ls\");", allowed),
+            TrustDecision::Allowed
+        );
+        assert_eq!(
+            check(false, "diff(sin(x), x);", blocked),
+            TrustDecision::Allowed
+        );
     }
 
     #[test]
@@ -313,8 +336,15 @@ mod tests {
     #[test]
     fn load_share_packages_written_in_lisp_is_safe() {
         let packages = PackageCatalog::load();
-        for input in ["load(\"orthopoly\")$", "load(\"draw\")$", "load(\"ctensor\")$"] {
-            assert!(detect_dangerous_calls(input, Some(&packages)).is_empty(), "{input}");
+        for input in [
+            "load(\"orthopoly\")$",
+            "load(\"draw\")$",
+            "load(\"ctensor\")$",
+        ] {
+            assert!(
+                detect_dangerous_calls(input, Some(&packages)).is_empty(),
+                "{input}"
+            );
         }
     }
 
@@ -331,7 +361,11 @@ mod tests {
     #[test]
     fn untrusted_notebook_runs_share_package_loads() {
         assert_eq!(
-            check(false, "load(\"orthopoly\")$ load(\"distrib\")$", TrustMode::Interactive),
+            check(
+                false,
+                "load(\"orthopoly\")$ load(\"distrib\")$",
+                TrustMode::Interactive
+            ),
             TrustDecision::Allowed
         );
     }
@@ -403,13 +437,19 @@ mod tests {
     #[test]
     fn load_file_shipped_in_mxpm_package_is_safe() {
         let dir = userdir_with_mxpm_package();
-        assert!(!load_is_dangerous("load(\"numerics-optimize\")$", dir.path()));
+        assert!(!load_is_dangerous(
+            "load(\"numerics-optimize\")$",
+            dir.path()
+        ));
     }
 
     #[test]
     fn load_mxpm_and_catalog_packages_together_is_safe() {
         let dir = userdir_with_mxpm_package();
-        assert!(!load_is_dangerous("load(\"numerics\")$ load(\"distrib\")$", dir.path()));
+        assert!(!load_is_dangerous(
+            "load(\"numerics\")$ load(\"distrib\")$",
+            dir.path()
+        ));
     }
 
     #[test]
@@ -423,7 +463,10 @@ mod tests {
     #[test]
     fn load_path_into_mxpm_package_is_dangerous() {
         let dir = userdir_with_mxpm_package();
-        assert!(load_is_dangerous("load(\"numerics/numerics\")$", dir.path()));
+        assert!(load_is_dangerous(
+            "load(\"numerics/numerics\")$",
+            dir.path()
+        ));
         assert!(load_is_dangerous("load(\"../numerics\")$", dir.path()));
         assert!(load_is_dangerous("load(\"numerics.mac\")$", dir.path()));
         assert!(load_is_dangerous("load(\"\")$", dir.path()));
@@ -432,7 +475,10 @@ mod tests {
     #[test]
     fn mxpm_package_does_not_excuse_other_dangerous_calls() {
         let dir = userdir_with_mxpm_package();
-        assert!(load_is_dangerous("load(\"numerics\")$ load(\"/tmp/evil.mac\")$", dir.path()));
+        assert!(load_is_dangerous(
+            "load(\"numerics\")$ load(\"/tmp/evil.mac\")$",
+            dir.path()
+        ));
     }
 
     #[test]

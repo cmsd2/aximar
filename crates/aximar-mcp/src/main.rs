@@ -81,7 +81,12 @@ async fn main() -> anyhow::Result<()> {
     tracing::info!("Starting aximar-mcp v{}", env!("CARGO_PKG_VERSION"));
 
     // Subcommand: `run` for batch execution
-    if let Some(Command::Run { path, o, allow_dangerous }) = cli.command {
+    if let Some(Command::Run {
+        path,
+        o,
+        allow_dangerous,
+    }) = cli.command
+    {
         if allow_dangerous || cli.allow_dangerous {
             eprintln!(
                 "Warning: --allow-dangerous is no longer needed: `aximar-mcp run` executes every cell. \

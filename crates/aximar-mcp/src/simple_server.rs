@@ -6,8 +6,8 @@ use crate::params::{
     CompleteFunctionParams, GetFunctionDocsParams, GetPackageParams, SearchFunctionsParams,
     SearchPackagesParams,
 };
-use crate::simple_params::*;
 use crate::server::{ClientCell, ExpressionLabels, ServerCore};
+use crate::simple_params::*;
 
 // ── SimpleMcpServer (simple/session mode) ─────────────────────────────
 
@@ -39,8 +39,10 @@ impl SimpleMcpServer {
 impl SimpleMcpServer {
     // ── Session lifecycle tools ───────────────────────────────────
 
-    #[tool(description = "Create a new isolated Maxima session. Returns the new session's ID. Variables and definitions in one session are isolated from other sessions. Optionally pass a filesystem path so that load() and batchload() resolve relative paths from that directory.",
-           annotations(read_only_hint = false, destructive_hint = false))]
+    #[tool(
+        description = "Create a new isolated Maxima session. Returns the new session's ID. Variables and definitions in one session are isolated from other sessions. Optionally pass a filesystem path so that load() and batchload() resolve relative paths from that directory.",
+        annotations(read_only_hint = false, destructive_hint = false)
+    )]
     async fn create_session(
         &self,
         Parameters(params): Parameters<CreateSessionParams>,
@@ -48,8 +50,10 @@ impl SimpleMcpServer {
         self.core.do_create_session(params.path.as_deref()).await
     }
 
-    #[tool(description = "Close a session and stop its Maxima process. Cannot close the last remaining session.",
-           annotations(read_only_hint = false, destructive_hint = true))]
+    #[tool(
+        description = "Close a session and stop its Maxima process. Cannot close the last remaining session.",
+        annotations(read_only_hint = false, destructive_hint = true)
+    )]
     async fn close_session(
         &self,
         Parameters(params): Parameters<CloseSessionParams>,
@@ -57,18 +61,22 @@ impl SimpleMcpServer {
         self.core.do_close_session(&params.session_id).await
     }
 
-    #[tool(description = "List all open sessions with their IDs and active status.",
-           annotations(read_only_hint = true))]
+    #[tool(
+        description = "List all open sessions with their IDs and active status.",
+        annotations(read_only_hint = true)
+    )]
     async fn list_sessions(&self) -> Result<String, String> {
         self.core.do_list_sessions().await
     }
 
     // ── Evaluation ────────────────────────────────────────────────
 
-    #[tool(description = "Evaluate a Maxima expression. Auto-starts the session if needed. Session state persists — variables and definitions set here are available to subsequent expressions.
+    #[tool(
+        description = "Evaluate a Maxima expression. Auto-starts the session if needed. Session state persists — variables and definitions set here are available to subsequent expressions.
 
 Unicode Greek letters (α, β, γ, θ, π, etc.) are translated to Maxima symbols automatically. Statements ending with `;` display their result; statements ending with `$` are silent. The last statement's result is rendered as LaTeX when it ends with `;`. End the last statement with `$` to suppress all output, just like in normal Maxima.",
-           annotations(read_only_hint = false, destructive_hint = false))]
+        annotations(read_only_hint = false, destructive_hint = false)
+    )]
     async fn evaluate_expression(
         &self,
         Parameters(params): Parameters<SimpleEvaluateExpressionParams>,
@@ -78,7 +86,10 @@ Unicode Greek letters (α, β, γ, θ, π, etc.) are translated to Maxima symbol
                 &params.expression,
                 params.session_id.as_deref(),
                 match params.cell_id {
-                    Some(id) => ExpressionLabels::ClientCell(ClientCell { id, cells_above: params.cells_above }),
+                    Some(id) => ExpressionLabels::ClientCell(ClientCell {
+                        id,
+                        cells_above: params.cells_above,
+                    }),
                     // A plain Maxima session: %oN means Maxima's own label
                     None => ExpressionLabels::Maxima,
                 },
@@ -88,8 +99,10 @@ Unicode Greek letters (α, β, γ, θ, π, etc.) are translated to Maxima symbol
 
     // ── Session management ────────────────────────────────────────
 
-    #[tool(description = "Get the current Maxima session status: Starting, Ready, Busy, Stopped, or Error.",
-           annotations(read_only_hint = true))]
+    #[tool(
+        description = "Get the current Maxima session status: Starting, Ready, Busy, Stopped, or Error.",
+        annotations(read_only_hint = true)
+    )]
     async fn get_session_status(
         &self,
         Parameters(params): Parameters<SessionIdParam>,
@@ -99,8 +112,10 @@ Unicode Greek letters (α, β, γ, θ, π, etc.) are translated to Maxima symbol
             .await
     }
 
-    #[tool(description = "Restart the Maxima session. Kills the current process and starts a new one. All session state is lost, including variables, function definitions, and loaded packages.",
-           annotations(read_only_hint = false, destructive_hint = true))]
+    #[tool(
+        description = "Restart the Maxima session. Kills the current process and starts a new one. All session state is lost, including variables, function definitions, and loaded packages.",
+        annotations(read_only_hint = false, destructive_hint = true)
+    )]
     async fn restart_session(
         &self,
         Parameters(params): Parameters<SessionIdParam>,
@@ -110,8 +125,10 @@ Unicode Greek letters (α, β, γ, θ, π, etc.) are translated to Maxima symbol
             .await
     }
 
-    #[tool(description = "List all user-defined variables in the current Maxima session. Internal Maxima and package variables are filtered out — only variables you have explicitly assigned are shown.",
-           annotations(read_only_hint = true))]
+    #[tool(
+        description = "List all user-defined variables in the current Maxima session. Internal Maxima and package variables are filtered out — only variables you have explicitly assigned are shown.",
+        annotations(read_only_hint = true)
+    )]
     async fn list_variables(
         &self,
         Parameters(params): Parameters<SessionIdParam>,
@@ -121,8 +138,10 @@ Unicode Greek letters (α, β, γ, θ, π, etc.) are translated to Maxima symbol
             .await
     }
 
-    #[tool(description = "Remove a variable from the Maxima session (equivalent to `kill(name)` in Maxima).",
-           annotations(read_only_hint = false, destructive_hint = true))]
+    #[tool(
+        description = "Remove a variable from the Maxima session (equivalent to `kill(name)` in Maxima).",
+        annotations(read_only_hint = false, destructive_hint = true)
+    )]
     async fn kill_variable(
         &self,
         Parameters(params): Parameters<SimpleKillVariableParams>,
@@ -134,8 +153,10 @@ Unicode Greek letters (α, β, γ, θ, π, etc.) are translated to Maxima symbol
 
     // ── Documentation tools ───────────────────────────────────────
 
-    #[tool(description = "Search the Maxima function catalog by name or description. Returns matching functions with signatures and brief descriptions. Searches across 2500+ built-in and package functions. Supports partial name matching (e.g. \"integ\" finds integrate) and description keywords (e.g. \"matrix inverse\").",
-           annotations(read_only_hint = true))]
+    #[tool(
+        description = "Search the Maxima function catalog by name or description. Returns matching functions with signatures and brief descriptions. Searches across 2500+ built-in and package functions. Supports partial name matching (e.g. \"integ\" finds integrate) and description keywords (e.g. \"matrix inverse\").",
+        annotations(read_only_hint = true)
+    )]
     async fn search_functions(
         &self,
         Parameters(params): Parameters<SearchFunctionsParams>,
@@ -143,8 +164,10 @@ Unicode Greek letters (α, β, γ, θ, π, etc.) are translated to Maxima symbol
         self.core.do_search_functions(&params.query).await
     }
 
-    #[tool(description = "Get full documentation for a Maxima function, including usage, examples, and related functions. Falls back to a catalog summary if full docs are unavailable. Suggests similar function names if the exact name is not found.",
-           annotations(read_only_hint = true))]
+    #[tool(
+        description = "Get full documentation for a Maxima function, including usage, examples, and related functions. Falls back to a catalog summary if full docs are unavailable. Suggests similar function names if the exact name is not found.",
+        annotations(read_only_hint = true)
+    )]
     async fn get_function_docs(
         &self,
         Parameters(params): Parameters<GetFunctionDocsParams>,
@@ -152,14 +175,18 @@ Unicode Greek letters (α, β, γ, θ, π, etc.) are translated to Maxima symbol
         self.core.do_get_function_docs(&params.name).await
     }
 
-    #[tool(description = "List Maxima functions that are deprecated, obsolete, or superseded. Returns names, descriptions, and suggested replacements where available.",
-           annotations(read_only_hint = true))]
+    #[tool(
+        description = "List Maxima functions that are deprecated, obsolete, or superseded. Returns names, descriptions, and suggested replacements where available.",
+        annotations(read_only_hint = true)
+    )]
     async fn list_deprecated(&self) -> Result<String, String> {
         self.core.do_list_deprecated().await
     }
 
-    #[tool(description = "Autocomplete a Maxima function name prefix. Returns matching function names with signatures. Includes both built-in and package functions.",
-           annotations(read_only_hint = true))]
+    #[tool(
+        description = "Autocomplete a Maxima function name prefix. Returns matching function names with signatures. Includes both built-in and package functions.",
+        annotations(read_only_hint = true)
+    )]
     async fn complete_function(
         &self,
         Parameters(params): Parameters<CompleteFunctionParams>,
@@ -169,8 +196,10 @@ Unicode Greek letters (α, β, γ, θ, π, etc.) are translated to Maxima symbol
 
     // ── Package tools ─────────────────────────────────────────────
 
-    #[tool(description = "Search available Maxima packages by name or description. Returns packages with their load paths and function lists. Load a package with load(\"name\")$ before using its functions.",
-           annotations(read_only_hint = true))]
+    #[tool(
+        description = "Search available Maxima packages by name or description. Returns packages with their load paths and function lists. Load a package with load(\"name\")$ before using its functions.",
+        annotations(read_only_hint = true)
+    )]
     async fn search_packages(
         &self,
         Parameters(params): Parameters<SearchPackagesParams>,
@@ -178,14 +207,18 @@ Unicode Greek letters (α, β, γ, θ, π, etc.) are translated to Maxima symbol
         self.core.do_search_packages(&params.query).await
     }
 
-    #[tool(description = "List all available Maxima packages that can be loaded with load(\"name\")$. Use get_package to see what functions a specific package provides.",
-           annotations(read_only_hint = true))]
+    #[tool(
+        description = "List all available Maxima packages that can be loaded with load(\"name\")$. Use get_package to see what functions a specific package provides.",
+        annotations(read_only_hint = true)
+    )]
     async fn list_packages(&self) -> Result<String, String> {
         self.core.do_list_packages().await
     }
 
-    #[tool(description = "Get details of a specific Maxima package, including description and list of functions it provides.",
-           annotations(read_only_hint = true))]
+    #[tool(
+        description = "Get details of a specific Maxima package, including description and list of functions it provides.",
+        annotations(read_only_hint = true)
+    )]
     async fn get_package(
         &self,
         Parameters(params): Parameters<GetPackageParams>,
@@ -195,8 +228,10 @@ Unicode Greek letters (α, β, γ, θ, π, etc.) are translated to Maxima symbol
 
     // ── Log tools ─────────────────────────────────────────────────
 
-    #[tool(description = "Get the server-wide Maxima output log. Useful for debugging session startup or crash issues. Supports optional stream filter (\"stdout\", \"stderr\", or \"stdin\") and a limit on the number of entries returned.",
-           annotations(read_only_hint = true))]
+    #[tool(
+        description = "Get the server-wide Maxima output log. Useful for debugging session startup or crash issues. Supports optional stream filter (\"stdout\", \"stderr\", or \"stdin\") and a limit on the number of entries returned.",
+        annotations(read_only_hint = true)
+    )]
     async fn get_server_log(
         &self,
         Parameters(params): Parameters<SimpleGetServerLogParams>,
@@ -275,7 +310,11 @@ mod tests {
     use super::*;
 
     fn server() -> SimpleMcpServer {
-        let settings = SessionSettings { backend: Backend::Local, maxima_path: None, eval_timeout: 30 };
+        let settings = SessionSettings {
+            backend: Backend::Local,
+            maxima_path: None,
+            eval_timeout: 30,
+        };
         SimpleMcpServer::new(ServerCore::new(
             Arc::new(Mutex::new(NotebookRegistry::new())),
             Arc::new(Catalog::load()),
@@ -287,12 +326,19 @@ mod tests {
 
     /// Run `expression` as cell `id` below `above`, as an editor's
     /// notebook view does.
-    async fn run(s: &SimpleMcpServer, expression: &str, id: &str, above: &[&str]) -> Result<serde_json::Value, String> {
+    async fn run(
+        s: &SimpleMcpServer,
+        expression: &str,
+        id: &str,
+        above: &[&str],
+    ) -> Result<serde_json::Value, String> {
         let params: SimpleEvaluateExpressionParams = serde_json::from_value(serde_json::json!({
             "expression": expression, "cell_id": id, "cells_above": above,
         }))
         .unwrap();
-        s.evaluate_expression(Parameters(params)).await.map(|r| serde_json::from_str(&r).unwrap())
+        s.evaluate_expression(Parameters(params))
+            .await
+            .map(|r| serde_json::from_str(&r).unwrap())
     }
 
     #[tokio::test]
@@ -303,10 +349,20 @@ mod tests {
         let v = run(&s, "%o2 + 1;", "c1", &[]).await.unwrap();
         assert_eq!(v["is_error"], true);
         assert_eq!(v["execution_count"], 1);
-        assert!(v["error"].as_str().unwrap().contains("Out[2] (%o2) has no value in this session"), "{v}");
+        assert!(
+            v["error"]
+                .as_str()
+                .unwrap()
+                .contains("Out[2] (%o2) has no value in this session"),
+            "{v}"
+        );
         // A bare % with nothing above has no value either
         let v = run(&s, "% + 1;", "c2", &["c1"]).await.unwrap();
-        assert_eq!((v["is_error"].as_bool(), v["execution_count"].as_u64()), (Some(true), Some(2)), "{v}");
+        assert_eq!(
+            (v["is_error"].as_bool(), v["execution_count"].as_u64()),
+            (Some(true), Some(2)),
+            "{v}"
+        );
     }
 
     #[tokio::test]
@@ -321,7 +377,11 @@ mod tests {
         let c = run(&s, "1/0;", "c", &["a", "b"]).await.unwrap();
         assert_eq!(c["is_error"], true);
         let d = run(&s, "%o1 + %;", "d", &["a", "b", "c"]).await.unwrap();
-        assert_eq!((d["execution_count"].as_u64(), d["latex"].as_str()), (Some(4), Some("15")), "{d}");
+        assert_eq!(
+            (d["execution_count"].as_u64(), d["latex"].as_str()),
+            (Some(4), Some("15")),
+            "{d}"
+        );
         // A cell this session never ran, such as one reopened from a file,
         // isn't an output above
         let e = run(&s, "%;", "e", &["from-file"]).await.unwrap();
@@ -332,8 +392,11 @@ mod tests {
     #[ignore = "requires Maxima to be installed"]
     async fn an_expression_without_a_cell_takes_no_number() {
         let s = server();
-        let params: SimpleEvaluateExpressionParams = serde_json::from_value(serde_json::json!({ "expression": "7;" })).unwrap();
-        let v: serde_json::Value = serde_json::from_str(&s.evaluate_expression(Parameters(params)).await.unwrap()).unwrap();
+        let params: SimpleEvaluateExpressionParams =
+            serde_json::from_value(serde_json::json!({ "expression": "7;" })).unwrap();
+        let v: serde_json::Value =
+            serde_json::from_str(&s.evaluate_expression(Parameters(params)).await.unwrap())
+                .unwrap();
         assert!(v["execution_count"].is_null(), "{v}");
         assert_eq!(run(&s, "1;", "a", &[]).await.unwrap()["execution_count"], 1);
     }
@@ -347,13 +410,27 @@ mod tests {
         let plain = |e: &str| -> SimpleEvaluateExpressionParams {
             serde_json::from_value(serde_json::json!({ "expression": e })).unwrap()
         };
-        let v: serde_json::Value = serde_json::from_str(&s.evaluate_expression(Parameters(plain("10;"))).await.unwrap()).unwrap();
+        let v: serde_json::Value = serde_json::from_str(
+            &s.evaluate_expression(Parameters(plain("10;")))
+                .await
+                .unwrap(),
+        )
+        .unwrap();
         let label = v["output_label"].as_str().unwrap().to_string();
-        let v: serde_json::Value =
-            serde_json::from_str(&s.evaluate_expression(Parameters(plain(&format!("{label} + 1;")))).await.unwrap()).unwrap();
+        let v: serde_json::Value = serde_json::from_str(
+            &s.evaluate_expression(Parameters(plain(&format!("{label} + 1;"))))
+                .await
+                .unwrap(),
+        )
+        .unwrap();
         assert_eq!(v["latex"], "11", "{v}");
         // Unicode is still translated
-        let v: serde_json::Value = serde_json::from_str(&s.evaluate_expression(Parameters(plain("α: 2$ α + 1;"))).await.unwrap()).unwrap();
+        let v: serde_json::Value = serde_json::from_str(
+            &s.evaluate_expression(Parameters(plain("α: 2$ α + 1;")))
+                .await
+                .unwrap(),
+        )
+        .unwrap();
         assert_eq!(v["latex"], "3", "{v}");
     }
 
@@ -361,8 +438,12 @@ mod tests {
     fn the_published_parameters_offer_client_cells() {
         // Clients detect support for client cells from the tool's input
         // schema, which works for builds of any version number
-        let schema = serde_json::to_value(schemars::schema_for!(SimpleEvaluateExpressionParams)).unwrap();
+        let schema =
+            serde_json::to_value(schemars::schema_for!(SimpleEvaluateExpressionParams)).unwrap();
         let properties = &schema["properties"];
-        assert!(properties.get("cell_id").is_some() && properties.get("cells_above").is_some(), "{schema}");
+        assert!(
+            properties.get("cell_id").is_some() && properties.get("cells_above").is_some(),
+            "{schema}"
+        );
     }
 }

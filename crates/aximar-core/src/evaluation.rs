@@ -153,7 +153,7 @@ pub async fn evaluate_cell(
 
             if let Ok(effect) = nb.apply(NotebookCommand::SetCellOutput {
                 cell_id: cell_id.to_string(),
-                output: cell_output.clone(),
+                output: Box::new(cell_output.clone()),
                 raw_output,
             }) {
                 effects.effect(&ctx.id, &nb, &effect);
@@ -238,7 +238,10 @@ impl CellRunStatus {
 
     /// Whether this outcome stops the run.
     pub fn stops_run(self) -> bool {
-        matches!(self, CellRunStatus::Error | CellRunStatus::NeedsTrust | CellRunStatus::Failed)
+        matches!(
+            self,
+            CellRunStatus::Error | CellRunStatus::NeedsTrust | CellRunStatus::Failed
+        )
     }
 }
 
@@ -375,7 +378,11 @@ pub async fn run_all(
         Some((cell_id, reason)) => (Some(cell_id), Some(reason)),
         None => (None, None),
     };
-    RunAllReport { cells, stopped_at, stop_reason }
+    RunAllReport {
+        cells,
+        stopped_at,
+        stop_reason,
+    }
 }
 
 /// Check and run one cell of a run of all cells.
@@ -406,7 +413,11 @@ async fn run_one(ctx: &NotebookContextRef, cell_id: &str, opts: &RunAllOptions<'
     match result {
         Ok(result) => {
             let output = &result.cell_output;
-            let status = if output.is_error { CellRunStatus::Error } else { CellRunStatus::Ok };
+            let status = if output.is_error {
+                CellRunStatus::Error
+            } else {
+                CellRunStatus::Ok
+            };
             let mut run = CellRun::new(cell_id, status);
             run.execution_count = Some(result.execution_count);
             run.duration_ms = Some(output.duration_ms);
@@ -466,7 +477,7 @@ async fn label_error_result(
     let mut nb = ctx.notebook.lock().await;
     if let Ok(effect) = nb.apply(NotebookCommand::SetCellOutput {
         cell_id: cell_id.to_string(),
-        output: cell_output.clone(),
+        output: Box::new(cell_output.clone()),
         raw_output: Vec::new(),
     }) {
         effects.effect(&ctx.id, &nb, &effect);
@@ -495,7 +506,10 @@ mod tests {
                 .and_then(|id| nb.get_cell(id))
                 .map(|cell| format!("{:?}", cell.status))
                 .unwrap_or_default();
-            self.0.lock().unwrap().push(format!("{} {status}", effect.effect_name()));
+            self.0
+                .lock()
+                .unwrap()
+                .push(format!("{} {status}", effect.effect_name()));
         }
     }
 
@@ -508,7 +522,10 @@ mod tests {
             let mut nb = ctx.notebook.lock().await;
             let cell_id = nb.cells()[0].id.clone();
             if cell_type == CellType::Markdown {
-                nb.apply(NotebookCommand::ToggleCellType { cell_id: cell_id.clone() }).unwrap();
+                nb.apply(NotebookCommand::ToggleCellType {
+                    cell_id: cell_id.clone(),
+                })
+                .unwrap();
             }
             nb.apply(NotebookCommand::UpdateCellInput {
                 cell_id: cell_id.clone(),
@@ -520,17 +537,35 @@ mod tests {
         (ctx, cell_id)
     }
 
-    async fn run(ctx: &NotebookContextRef, cell_id: &str, sink: &Recorder) -> Result<EvalCellResult, AppError> {
-        evaluate_cell(ctx, cell_id, &Catalog::load(), &PackageCatalog::load(), 5, sink).await
+    async fn run(
+        ctx: &NotebookContextRef,
+        cell_id: &str,
+        sink: &Recorder,
+    ) -> Result<EvalCellResult, AppError> {
+        evaluate_cell(
+            ctx,
+            cell_id,
+            &Catalog::load(),
+            &PackageCatalog::load(),
+            5,
+            sink,
+        )
+        .await
     }
 
     #[tokio::test]
     async fn markdown_and_empty_cells_report_nothing() {
         let sink = Recorder::default();
         let (ctx, cell_id) = notebook_with("# Title", CellType::Markdown).await;
-        assert!(matches!(run(&ctx, &cell_id, &sink).await, Err(AppError::CellIsMarkdown)));
+        assert!(matches!(
+            run(&ctx, &cell_id, &sink).await,
+            Err(AppError::CellIsMarkdown)
+        ));
         let (ctx, cell_id) = notebook_with("   ", CellType::Code).await;
-        assert!(matches!(run(&ctx, &cell_id, &sink).await, Err(AppError::EmptyInput)));
+        assert!(matches!(
+            run(&ctx, &cell_id, &sink).await,
+            Err(AppError::EmptyInput)
+        ));
         assert!(sink.0.lock().unwrap().is_empty());
     }
 
@@ -539,7 +574,10 @@ mod tests {
         // No session was started, so the evaluation can't begin
         let sink = Recorder::default();
         let (ctx, cell_id) = notebook_with("2 + 3;", CellType::Code).await;
-        assert!(matches!(run(&ctx, &cell_id, &sink).await, Err(AppError::ProcessNotRunning)));
+        assert!(matches!(
+            run(&ctx, &cell_id, &sink).await,
+            Err(AppError::ProcessNotRunning)
+        ));
         assert_eq!(
             *sink.0.lock().unwrap(),
             vec!["cell_status_updated Running", "cell_status_updated Error"]
@@ -558,8 +596,15 @@ mod tests {
         );
     }
 
-    async fn trust(ctx: &NotebookContextRef, cell_id: &str, mode: TrustMode, sink: &Recorder) -> TrustDecision {
-        check_cell_trust(ctx, cell_id, &PackageCatalog::load(), mode, sink).await.unwrap()
+    async fn trust(
+        ctx: &NotebookContextRef,
+        cell_id: &str,
+        mode: TrustMode,
+        sink: &Recorder,
+    ) -> TrustDecision {
+        check_cell_trust(ctx, cell_id, &PackageCatalog::load(), mode, sink)
+            .await
+            .unwrap()
     }
 
     #[tokio::test]
@@ -568,7 +613,12 @@ mod tests {
         let (ctx, cell_id) = notebook_with("load(\"helpers.mac\")$", CellType::Code).await;
         ctx.notebook.lock().await.set_trusted(false);
         let decision = trust(&ctx, &cell_id, TrustMode::Interactive, &sink).await;
-        assert_eq!(decision, TrustDecision::NeedsTrust { functions: vec!["load".into()] });
+        assert_eq!(
+            decision,
+            TrustDecision::NeedsTrust {
+                functions: vec!["load".into()]
+            }
+        );
         // The notebook is unchanged, so the cell keeps its status
         assert_eq!(*sink.0.lock().unwrap(), vec!["trust_required Idle"]);
     }
@@ -577,17 +627,34 @@ mod tests {
     async fn blocked_headless_run_reports_nothing() {
         let sink = Recorder::default();
         let (ctx, cell_id) = notebook_with("system(\"ls\")$", CellType::Code).await;
-        let decision = trust(&ctx, &cell_id, TrustMode::Headless { allow_dangerous: false }, &sink).await;
-        assert_eq!(decision, TrustDecision::NeedsTrust { functions: vec!["system".into()] });
+        let decision = trust(
+            &ctx,
+            &cell_id,
+            TrustMode::Headless {
+                allow_dangerous: false,
+            },
+            &sink,
+        )
+        .await;
+        assert_eq!(
+            decision,
+            TrustDecision::NeedsTrust {
+                functions: vec!["system".into()]
+            }
+        );
         assert!(sink.0.lock().unwrap().is_empty());
     }
 
     #[tokio::test]
     async fn markdown_mentioning_a_dangerous_call_is_allowed() {
         let sink = Recorder::default();
-        let (ctx, cell_id) = notebook_with("Don't call system(\"rm\") here", CellType::Markdown).await;
+        let (ctx, cell_id) =
+            notebook_with("Don't call system(\"rm\") here", CellType::Markdown).await;
         ctx.notebook.lock().await.set_trusted(false);
-        assert_eq!(trust(&ctx, &cell_id, TrustMode::Interactive, &sink).await, TrustDecision::Allowed);
+        assert_eq!(
+            trust(&ctx, &cell_id, TrustMode::Interactive, &sink).await,
+            TrustDecision::Allowed
+        );
         assert!(sink.0.lock().unwrap().is_empty());
     }
 
@@ -597,8 +664,14 @@ mod tests {
     async fn cells_and_expressions_are_prepared_alike() {
         let (ctx, cell_id) = notebook_with("α + 1;", CellType::Code).await;
         let nb = ctx.notebook.lock().await;
-        for labels in [nb.cell_label_context(&cell_id), nb.expression_label_context()] {
-            assert_eq!(prepare_input("α + 1;", &labels), Ok("alpha + 1;".to_string()));
+        for labels in [
+            nb.cell_label_context(&cell_id),
+            nb.expression_label_context(),
+        ] {
+            assert_eq!(
+                prepare_input("α + 1;", &labels),
+                Ok("alpha + 1;".to_string())
+            );
             let err = prepare_input("%o9 + 1;", &labels).unwrap_err();
             assert!(err.0.contains("Out[9]"), "{err:?}");
         }
@@ -625,7 +698,10 @@ mod tests {
         let result = run(&ctx, &cell_id, &sink).await.unwrap();
         assert!(result.cell_output.is_error);
         let error = result.cell_output.error.unwrap();
-        assert!(error.contains("U+2248") && error.contains("abs(a - b)"), "{error}");
+        assert!(
+            error.contains("U+2248") && error.contains("abs(a - b)"),
+            "{error}"
+        );
         assert_eq!(
             *sink.0.lock().unwrap(),
             vec!["cell_status_updated Running", "cell_output_updated Error"]
@@ -654,14 +730,22 @@ mod tests {
         };
         nb.apply(NotebookCommand::LoadCells {
             cells: vec![
-                ("loaded".into(), CellType::Code, "6 * 7;".into(), Some(output)),
+                (
+                    "loaded".into(),
+                    CellType::Code,
+                    "6 * 7;".into(),
+                    Some(output),
+                ),
                 ("next".into(), CellType::Code, String::new(), None),
             ],
         })
         .unwrap();
         let labels = nb.cell_label_context("next");
         let err = prepare_input("%o3 + 1;", &labels).unwrap_err();
-        assert!(err.0.contains("Out[3] (%o3) has no value in this session"), "{err:?}");
+        assert!(
+            err.0.contains("Out[3] (%o3) has no value in this session"),
+            "{err:?}"
+        );
         assert!(prepare_input("% + 1;", &labels).is_err());
         // New runs number from 1 again, as in a fresh session
         assert_eq!(nb.next_execution_count(), 1);
@@ -676,11 +760,24 @@ mod tests {
         ctx.notebook
             .lock()
             .await
-            .apply(NotebookCommand::LoadNotebook { file: crate::notebooks::format::read(text).unwrap().into() })
+            .apply(NotebookCommand::LoadNotebook {
+                file: crate::notebooks::format::read(text).unwrap().into(),
+            })
             .unwrap();
-        assert!(matches!(run(&ctx, "r", &sink).await, Err(AppError::CellIsRaw)));
+        assert!(matches!(
+            run(&ctx, "r", &sink).await,
+            Err(AppError::CellIsRaw)
+        ));
         // Nor does it ask for trust, whatever its text
-        let decision = check_cell_trust(&ctx, "r", &PackageCatalog::load(), TrustMode::Interactive, &sink).await.unwrap();
+        let decision = check_cell_trust(
+            &ctx,
+            "r",
+            &PackageCatalog::load(),
+            TrustMode::Interactive,
+            &sink,
+        )
+        .await
+        .unwrap();
         assert!(matches!(decision, TrustDecision::Allowed));
         assert!(sink.0.lock().unwrap().is_empty());
     }

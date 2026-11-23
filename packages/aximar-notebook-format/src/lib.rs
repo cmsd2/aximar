@@ -119,13 +119,23 @@ const LATEX: &str = "text/latex";
 const PLAIN: &str = "text/plain";
 
 /// Fields of a cell this crate reads; anything else is kept in `extra`.
-const CELL_FIELDS: &[&str] = &["id", "cell_type", "source", "metadata", "execution_count", "outputs"];
+const CELL_FIELDS: &[&str] = &[
+    "id",
+    "cell_type",
+    "source",
+    "metadata",
+    "execution_count",
+    "outputs",
+];
 
 // ── Cell IDs ─────────────────────────────────────────────────────────
 
 /// nbformat 4.5's rule for a cell ID: 1 to 64 letters, digits, `-` or `_`.
 pub fn valid_id(id: &str) -> bool {
-    (1..=64).contains(&id.len()) && id.chars().all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_')
+    (1..=64).contains(&id.len())
+        && id
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_')
 }
 
 /// A new random cell ID: 21 characters of `A-Za-z0-9_-`, as nanoid makes.
@@ -133,7 +143,10 @@ pub fn new_id() -> String {
     const ALPHABET: &[u8; 64] = b"_-0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
     let mut bytes = [0u8; 21];
     getrandom::getrandom(&mut bytes).expect("the system has a random source");
-    bytes.iter().map(|b| ALPHABET[(b & 63) as usize] as char).collect()
+    bytes
+        .iter()
+        .map(|b| ALPHABET[(b & 63) as usize] as char)
+        .collect()
 }
 
 // ── Reading ──────────────────────────────────────────────────────────
@@ -142,18 +155,29 @@ pub fn new_id() -> String {
 /// session that no longer exists.
 pub fn read(json: &str) -> Result<NotebookFile, FormatError> {
     let root: Value = serde_json::from_str(json)?;
-    let root = root.as_object().ok_or_else(|| FormatError::Shape("the top level isn't an object".into()))?;
+    let root = root
+        .as_object()
+        .ok_or_else(|| FormatError::Shape("the top level isn't an object".into()))?;
     match root.get("nbformat").and_then(Value::as_u64) {
         Some(4) => {}
         Some(other) => return Err(FormatError::Version(other)),
         None => return Err(FormatError::Shape("no nbformat version".into())),
     }
-    let metadata = root.get("metadata").and_then(Value::as_object).cloned().unwrap_or_default();
+    let metadata = root
+        .get("metadata")
+        .and_then(Value::as_object)
+        .cloned()
+        .unwrap_or_default();
 
     let mut seen = HashSet::new();
     let mut ids_replaced = false;
     let mut cells = Vec::new();
-    for raw in root.get("cells").and_then(Value::as_array).into_iter().flatten() {
+    for raw in root
+        .get("cells")
+        .and_then(Value::as_array)
+        .into_iter()
+        .flatten()
+    {
         let Some(cell) = raw.as_object() else {
             return Err(FormatError::Shape("a cell isn't an object".into()));
         };
@@ -173,8 +197,13 @@ pub fn read(json: &str) -> Result<NotebookFile, FormatError> {
         };
         let output = match cell_type {
             CellType::Code => read_outputs(
-                cell.get("outputs").and_then(Value::as_array).map(Vec::as_slice).unwrap_or_default(),
-                cell.get("execution_count").and_then(Value::as_u64).map(|n| n as u32),
+                cell.get("outputs")
+                    .and_then(Value::as_array)
+                    .map(Vec::as_slice)
+                    .unwrap_or_default(),
+                cell.get("execution_count")
+                    .and_then(Value::as_u64)
+                    .map(|n| n as u32),
             ),
             _ => None,
         };
@@ -187,12 +216,20 @@ pub fn read(json: &str) -> Result<NotebookFile, FormatError> {
             id,
             cell_type,
             input: text(cell.get("source")),
-            metadata: cell.get("metadata").and_then(Value::as_object).cloned().unwrap_or_default(),
+            metadata: cell
+                .get("metadata")
+                .and_then(Value::as_object)
+                .cloned()
+                .unwrap_or_default(),
             extra,
             output,
         });
     }
-    Ok(NotebookFile { metadata, cells, ids_replaced })
+    Ok(NotebookFile {
+        metadata,
+        cells,
+        ids_replaced,
+    })
 }
 
 /// A string, or a list of strings joined (nbformat's multiline text).
@@ -218,7 +255,11 @@ fn read_outputs(outputs: &[Value], execution_count: Option<u32>) -> Option<Outpu
     if outputs.is_empty() {
         return None;
     }
-    let mut out = Output { execution_count, stale: true, ..Default::default() };
+    let mut out = Output {
+        execution_count,
+        stale: true,
+        ..Default::default()
+    };
     let mut others = Vec::new();
     for output in outputs {
         match output.get("output_type").and_then(Value::as_str) {
@@ -226,7 +267,11 @@ fn read_outputs(outputs: &[Value], execution_count: Option<u32>) -> Option<Outpu
             Some("error") => {
                 out.is_error = true;
                 let message = text(output.get("evalue"));
-                out.error = Some(if message.is_empty() { text(output.get("ename")) } else { message });
+                out.error = Some(if message.is_empty() {
+                    text(output.get("ename"))
+                } else {
+                    message
+                });
             }
             Some(kind @ ("execute_result" | "display_data")) => {
                 let data = output.get("data").and_then(Value::as_object);
@@ -300,7 +345,10 @@ pub fn write(notebook: &NotebookFile) -> String {
             if cell.cell_type == CellType::Code {
                 let count = cell.output.as_ref().and_then(|o| o.execution_count);
                 out.insert("execution_count".into(), json!(count));
-                out.insert("outputs".into(), Value::Array(cell.output.as_ref().map(write_outputs).unwrap_or_default()));
+                out.insert(
+                    "outputs".into(),
+                    Value::Array(cell.output.as_ref().map(write_outputs).unwrap_or_default()),
+                );
             }
             Value::Object(out)
         })
@@ -314,7 +362,8 @@ pub fn write(notebook: &NotebookFile) -> String {
     let mut bytes = Vec::new();
     let formatter = serde_json::ser::PrettyFormatter::with_indent(b" ");
     let mut serializer = serde_json::Serializer::with_formatter(&mut bytes, formatter);
-    file.serialize(&mut serializer).expect("a JSON value always serializes");
+    file.serialize(&mut serializer)
+        .expect("a JSON value always serializes");
     let mut text = String::from_utf8(bytes).expect("serde_json writes UTF-8");
     text.push('\n');
     text
@@ -360,7 +409,11 @@ fn write_outputs(output: &Output) -> Vec<Value> {
     ] {
         if let Some(value) = value {
             // PNG is base64: one string, as Jupyter writes it
-            let content = if mime == PNG { json!(value) } else { lines(value) };
+            let content = if mime == PNG {
+                json!(value)
+            } else {
+                lines(value)
+            };
             outputs.push(json!({
                 "output_type": "display_data",
                 "data": { mime: content, PLAIN: [description] },

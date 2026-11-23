@@ -87,13 +87,19 @@ impl BreakpointStrategy for LegacyStrategy {
         // trigger the debugger — Maxima just prints the error and returns
         // to its normal prompt, so the sentinel still arrives and
         // send_maxima succeeds.
-        let has_error = response_lines
-            .iter()
-            .any(|l| debugger::ERROR_MARKERS.iter().any(|marker| l.contains(marker)));
+        let has_error = response_lines.iter().any(|l| {
+            debugger::ERROR_MARKERS
+                .iter()
+                .any(|marker| l.contains(marker))
+        });
         if has_error {
             let error_msg = response_lines
                 .iter()
-                .find(|l| debugger::ERROR_MARKERS.iter().any(|marker| l.contains(marker)))
+                .find(|l| {
+                    debugger::ERROR_MARKERS
+                        .iter()
+                        .any(|marker| l.contains(marker))
+                })
                 .cloned()
                 .unwrap_or_else(|| "batchload failed".to_string());
             return Err(AppError::CommunicationError(format!(
@@ -168,9 +174,7 @@ impl BreakpointStrategy for LegacyStrategy {
                 let bkpt_re = Regex::new(r"Bkpt\s+(\d+)").unwrap();
                 for l in &lines {
                     if let Some(caps) = bkpt_re.captures(l) {
-                        if let Some(id) =
-                            caps.get(1).and_then(|m| m.as_str().parse::<u32>().ok())
-                        {
+                        if let Some(id) = caps.get(1).and_then(|m| m.as_str().parse::<u32>().ok()) {
                             tracing::debug!(
                                 "LegacyStrategy::set_breakpoint: confirmed, maxima_id={}",
                                 id
@@ -185,17 +189,12 @@ impl BreakpointStrategy for LegacyStrategy {
                     }
                 }
 
-                tracing::warn!(
-                    "LegacyStrategy::set_breakpoint: no Bkpt confirmation in response"
-                );
+                tracing::warn!("LegacyStrategy::set_breakpoint: no Bkpt confirmation in response");
                 SetBreakpointResult {
                     verified: false,
                     maxima_id: None,
                     actual_line: None,
-                    message: Some(format!(
-                        "Could not set breakpoint in {}",
-                        function_name
-                    )),
+                    message: Some(format!("Could not set breakpoint in {}", function_name)),
                 }
             }
             Some(BreakpointMapping::NotInFunction { message }) => SetBreakpointResult {
@@ -213,11 +212,7 @@ impl BreakpointStrategy for LegacyStrategy {
         }
     }
 
-    async fn delete_breakpoint(
-        &self,
-        ctx: &mut StrategyContext<'_>,
-        maxima_id: u32,
-    ) {
+    async fn delete_breakpoint(&self, ctx: &mut StrategyContext<'_>, maxima_id: u32) {
         let cmd = format!(":delete {}", maxima_id);
         if matches!(ctx.state, crate::types::DebugState::Stopped { .. }) {
             let _ = ctx.send_debugger_command_raw(&cmd).await;
@@ -329,7 +324,8 @@ mod tests {
         LegacyStrategy.build_evaluate_expression(&path, evaluate, &index)
     }
 
-    const PROGRAM: &str = "load(mypkg)$\nscale : 10$\n\nf(x) := block(\n  [y],\n  y : g(x) * scale,\n  y)$\n";
+    const PROGRAM: &str =
+        "load(mypkg)$\nscale : 10$\n\nf(x) := block(\n  [y],\n  y : g(x) * scale,\n  y)$\n";
 
     #[test]
     fn top_level_code_runs_before_the_evaluate_expression() {

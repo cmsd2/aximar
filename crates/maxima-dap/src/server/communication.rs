@@ -10,10 +10,7 @@ impl DapServer {
         &mut self,
         cmd: &str,
     ) -> Result<(Vec<String>, PromptKind), AppError> {
-        let process = self
-            .process
-            .as_mut()
-            .ok_or(AppError::ProcessNotRunning)?;
+        let process = self.process.as_mut().ok_or(AppError::ProcessNotRunning)?;
         let sentinel = "__MAXIMA_DAP_DONE__";
         process.write_stdin(cmd).await?;
         process
@@ -38,14 +35,9 @@ impl DapServer {
         &mut self,
         expr: &str,
     ) -> Result<(PromptKind, Option<CanonicalLocation>), AppError> {
-        let process = self
-            .process
-            .as_mut()
-            .ok_or(AppError::ProcessNotRunning)?;
+        let process = self.process.as_mut().ok_or(AppError::ProcessNotRunning)?;
         let sentinel = "__MAXIMA_DAP_DONE__";
-        let trimmed = expr
-            .trim()
-            .trim_end_matches(|c: char| c == ';' || c == '$');
+        let trimmed = expr.trim().trim_end_matches([';', '$']);
         let wrapped = format!(
             "block([__dap_r__], __dap_r__: ({}), print(\"{}\"), __dap_r__)$\n",
             trimmed, sentinel
@@ -105,10 +97,7 @@ impl DapServer {
                     timeout_secs
                 );
                 // Re-borrow process after the timeout future is dropped.
-                let process = self
-                    .process
-                    .as_mut()
-                    .ok_or(AppError::ProcessNotRunning)?;
+                let process = self.process.as_mut().ok_or(AppError::ProcessNotRunning)?;
                 process.interrupt_and_resync(sentinel).await;
                 Err(AppError::Timeout(timeout_secs))
             }
@@ -128,10 +117,7 @@ impl DapServer {
         &mut self,
         cmd: &str,
     ) -> Result<(PromptKind, Option<CanonicalLocation>), AppError> {
-        let process = self
-            .process
-            .as_mut()
-            .ok_or(AppError::ProcessNotRunning)?;
+        let process = self.process.as_mut().ok_or(AppError::ProcessNotRunning)?;
         let sentinel = "__MAXIMA_DAP_DONE__";
         tracing::debug!("send_debugger_command: sending {:?}", cmd);
         process.write_stdin(&format!("{}\n", cmd)).await?;
@@ -162,10 +148,7 @@ impl DapServer {
         &mut self,
         cmd: &str,
     ) -> Result<(Vec<String>, u32), AppError> {
-        let process = self
-            .process
-            .as_mut()
-            .ok_or(AppError::ProcessNotRunning)?;
+        let process = self.process.as_mut().ok_or(AppError::ProcessNotRunning)?;
         process.write_stdin(&format!("{}\n", cmd)).await?;
         let (lines, prompt_kind) = process.read_dap_response(None).await?;
         match prompt_kind {
@@ -197,10 +180,7 @@ impl DapServer {
 
         // Delegate to strategy to resolve frame paths.
         let canonical_paths = if let Some(strategy) = self.strategy.as_ref() {
-            let process = self
-                .process
-                .as_mut()
-                .ok_or(AppError::ProcessNotRunning)?;
+            let process = self.process.as_mut().ok_or(AppError::ProcessNotRunning)?;
             let mut ctx = StrategyContext {
                 process,
                 state: &self.state,
@@ -219,7 +199,7 @@ impl DapServer {
         &mut self,
         expression: &str,
     ) -> Result<String, AppError> {
-        let cmd = format!("{};\n", expression.trim_end_matches(|c| c == ';' || c == '$'));
+        let cmd = format!("{};\n", expression.trim_end_matches([';', '$']));
         let (lines, _level) = self.send_debugger_command_raw(&cmd).await?;
 
         let result: Vec<&str> = lines
@@ -284,7 +264,10 @@ impl DapServer {
     /// Probes for the `set_breakpoint` function which is only present in
     /// patched Maxima.
     pub(super) async fn detect_enhanced_debugger(&mut self) -> bool {
-        match self.send_maxima(":lisp (fboundp 'maxima::$set_breakpoint)\n").await {
+        match self
+            .send_maxima(":lisp (fboundp 'maxima::$set_breakpoint)\n")
+            .await
+        {
             Ok((lines, _)) => {
                 let output = lines.join(" ");
                 output.contains("T") && !output.contains("NIL")

@@ -160,18 +160,18 @@ pub async fn evaluate(
     // housekeeping prints stay because the parser needs the tex(%)
     // latex, the LABEL stdout line, and the EVAL_END sentinel.
     let wired = process.has_events_channel();
-    let sentinel = if wired { None } else { Some(next_eval_sentinel()) };
+    let sentinel = if wired {
+        None
+    } else {
+        Some(next_eval_sentinel())
+    };
     let input = build_eval_input(&expr, sentinel.as_deref());
 
     process.write_stdin(&input).await?;
 
-    let (lines, envelopes) = run_eval_read_with_envelope_drain(
-        process,
-        &input,
-        sentinel.as_deref(),
-        eval_timeout_secs,
-    )
-    .await?;
+    let (lines, envelopes) =
+        run_eval_read_with_envelope_drain(process, &input, sentinel.as_deref(), eval_timeout_secs)
+            .await?;
 
     let duration_ms = start.elapsed().as_millis() as u64;
 
@@ -215,18 +215,18 @@ pub async fn evaluate_with_packages(
     let (expr, emit_latex) = suppress_display(&expr);
 
     let wired = process.has_events_channel();
-    let sentinel = if wired { None } else { Some(next_eval_sentinel()) };
+    let sentinel = if wired {
+        None
+    } else {
+        Some(next_eval_sentinel())
+    };
     let input = build_eval_input(&expr, sentinel.as_deref());
 
     process.write_stdin(&input).await?;
 
-    let (lines, envelopes) = run_eval_read_with_envelope_drain(
-        process,
-        &input,
-        sentinel.as_deref(),
-        eval_timeout_secs,
-    )
-    .await?;
+    let (lines, envelopes) =
+        run_eval_read_with_envelope_drain(process, &input, sentinel.as_deref(), eval_timeout_secs)
+            .await?;
 
     let duration_ms = start.elapsed().as_millis() as u64;
 
@@ -426,9 +426,7 @@ pub async fn query_variables(process: &mut MaximaProcess) -> Result<Vec<String>,
 /// sentinel print — the `eval_end` envelope for `emit_vars()` itself
 /// signals completion on the single-source wired path.
 #[cfg(unix)]
-async fn query_variables_envelope(
-    process: &mut MaximaProcess,
-) -> Result<Vec<String>, AppError> {
+async fn query_variables_envelope(process: &mut MaximaProcess) -> Result<Vec<String>, AppError> {
     use crate::maxima::envelope::types::Envelope;
 
     // emit_vars() fires a `vars` envelope through the fd-3 sink and
@@ -490,9 +488,7 @@ async fn query_variables_envelope(
 }
 
 #[cfg(not(unix))]
-async fn query_variables_envelope(
-    process: &mut MaximaProcess,
-) -> Result<Vec<String>, AppError> {
+async fn query_variables_envelope(process: &mut MaximaProcess) -> Result<Vec<String>, AppError> {
     // has_events_channel is always false on non-unix, so this
     // branch never executes — defensive delegate to legacy.
     query_variables_legacy(process).await
@@ -501,22 +497,16 @@ async fn query_variables_envelope(
 /// Legacy path: print the values list to stdout with a marker and
 /// scrape the bracketed list back out.  Used when kernel-events isn't
 /// wired (Docker / WSL / non-Unix backend, env var off).
-async fn query_variables_legacy(
-    process: &mut MaximaProcess,
-) -> Result<Vec<String>, AppError> {
+async fn query_variables_legacy(process: &mut MaximaProcess) -> Result<Vec<String>, AppError> {
     let action = format!("print(\"{}\", values)$", VARS_START);
     let input = build_internal_input(&action, process.has_events_channel());
 
     process.write_stdin(&input).await?;
 
     let expected_count = find_terminators(&input).len();
-    let lines = read_internal_until_sentinel(
-        process,
-        VARS_SENTINEL,
-        expected_count,
-        VARS_TIMEOUT_SECS,
-    )
-    .await?;
+    let lines =
+        read_internal_until_sentinel(process, VARS_SENTINEL, expected_count, VARS_TIMEOUT_SECS)
+            .await?;
 
     // Find __AXIMAR_VARS__ and parse the variable list.
     // Maxima may wrap long lists across multiple lines, so join them first.
@@ -544,7 +534,10 @@ async fn query_variables_legacy(
 
 pub async fn kill_variable(process: &mut MaximaProcess, name: &str) -> Result<(), AppError> {
     // Validate name contains only alphanumeric and underscore chars to prevent injection
-    if !name.chars().all(|c| c.is_alphanumeric() || c == '_' || c == '%') {
+    if !name
+        .chars()
+        .all(|c| c.is_alphanumeric() || c == '_' || c == '%')
+    {
         return Err(AppError::CommunicationError(format!(
             "Invalid variable name: {}",
             name
@@ -556,13 +549,7 @@ pub async fn kill_variable(process: &mut MaximaProcess, name: &str) -> Result<()
 
     process.write_stdin(&input).await?;
     let expected_count = find_terminators(&input).len();
-    read_internal_until_sentinel(
-        process,
-        VARS_SENTINEL,
-        expected_count,
-        VARS_TIMEOUT_SECS,
-    )
-    .await?;
+    read_internal_until_sentinel(process, VARS_SENTINEL, expected_count, VARS_TIMEOUT_SECS).await?;
     Ok(())
 }
 
@@ -575,13 +562,7 @@ pub async fn kill_all_variables(process: &mut MaximaProcess) -> Result<(), AppEr
 
     process.write_stdin(&input).await?;
     let expected_count = find_terminators(&input).len();
-    read_internal_until_sentinel(
-        process,
-        VARS_SENTINEL,
-        expected_count,
-        VARS_TIMEOUT_SECS,
-    )
-    .await?;
+    read_internal_until_sentinel(process, VARS_SENTINEL, expected_count, VARS_TIMEOUT_SECS).await?;
     Ok(())
 }
 
@@ -774,10 +755,7 @@ mod tests {
 
     #[test]
     fn trailing_dollar() {
-        assert_eq!(
-            suppress_display("a:5; b:10$"),
-            ("a:5; b:10$".into(), false)
-        );
+        assert_eq!(suppress_display("a:5; b:10$"), ("a:5; b:10$".into(), false));
     }
 
     #[test]
@@ -790,18 +768,12 @@ mod tests {
 
     #[test]
     fn strip_trailing_comment_after_dollar() {
-        assert_eq!(
-            strip_trailing_comments("x : 5$ /* done */"),
-            "x : 5$"
-        );
+        assert_eq!(strip_trailing_comments("x : 5$ /* done */"), "x : 5$");
     }
 
     #[test]
     fn strip_multiple_trailing_comments() {
-        assert_eq!(
-            strip_trailing_comments("x; /* a */ /* b */"),
-            "x;"
-        );
+        assert_eq!(strip_trailing_comments("x; /* a */ /* b */"), "x;");
     }
 
     #[test]

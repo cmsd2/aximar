@@ -52,7 +52,7 @@ const JUNK_LATEX: &[&str] = &[
 ];
 
 fn is_junk_latex(inner: &str) -> bool {
-    JUNK_LATEX.iter().any(|j| inner == *j)
+    JUNK_LATEX.contains(&inner)
         || inner.contains("__AXIMAR_")
         || inner.contains("AXIMAR")
         // String results: tex() wraps them in \mbox{...} which KaTeX can't
@@ -220,7 +220,13 @@ fn is_safe_image_path(path_str: &str, backend: &Backend) -> bool {
     false
 }
 
-pub fn parse_output(cell_id: &str, lines: &[String], duration_ms: u64, catalog: &Catalog, backend: &Backend) -> EvalResult {
+pub fn parse_output(
+    cell_id: &str,
+    lines: &[String],
+    duration_ms: u64,
+    catalog: &Catalog,
+    backend: &Backend,
+) -> EvalResult {
     parse_output_inner(cell_id, lines, duration_ms, catalog, None, backend)
 }
 
@@ -232,7 +238,14 @@ pub fn parse_output_with_packages(
     packages: &crate::catalog::packages::PackageCatalog,
     backend: &Backend,
 ) -> EvalResult {
-    parse_output_inner(cell_id, lines, duration_ms, catalog, Some(packages), backend)
+    parse_output_inner(
+        cell_id,
+        lines,
+        duration_ms,
+        catalog,
+        Some(packages),
+        backend,
+    )
 }
 
 fn parse_output_inner(
@@ -388,8 +401,8 @@ fn parse_output_inner(
         // Skip SBCL compiler diagnostics (lines starting with ";") — these are
         // compile-time warnings (e.g. "caught WARNING: undefined variable"), not
         // Maxima-level errors.
-        let is_error_line = !trimmed.starts_with(';')
-            && error_patterns.iter().any(|p| line.contains(p));
+        let is_error_line =
+            !trimmed.starts_with(';') && error_patterns.iter().any(|p| line.contains(p));
 
         if is_error_line {
             // Pull any preceding text lines into the error (they're context)
@@ -434,9 +447,7 @@ fn parse_output_inner(
 
     // Filter junk only from the final LaTeX (our injected tex(%)).
     // Intermediate blocks from user tex() calls are kept unconditionally.
-    let latex = if has_error {
-        None
-    } else if latex.as_ref().is_some_and(|l| is_junk_latex(l)) {
+    let latex = if has_error || latex.as_ref().is_some_and(|l| is_junk_latex(l)) {
         None
     } else {
         latex
@@ -478,11 +489,15 @@ fn parse_output_inner(
     let mut plot_svg: Option<String> = None;
     let text_output = if !has_error {
         // Try text_output first: Maxima returns e.g. ["/tmp/maxplot.svg"]
-        let svg_path_from_text = svg_path_re.captures(&text_output).map(|caps| caps[1].to_string());
+        let svg_path_from_text = svg_path_re
+            .captures(&text_output)
+            .map(|caps| caps[1].to_string());
         // Fall back to LaTeX \mbox{} content
         let raw_svg_path = svg_path_from_text.or_else(|| {
             raw_latex.as_ref().and_then(|l| {
-                latex_svg_re.captures(l).map(|caps| caps[1].trim().to_string())
+                latex_svg_re
+                    .captures(l)
+                    .map(|caps| caps[1].trim().to_string())
             })
         });
 
@@ -572,8 +587,7 @@ fn parse_output_inner(
                 match fs::read(&image_path) {
                     Ok(bytes) => {
                         use base64::Engine;
-                        image_png =
-                            Some(base64::engine::general_purpose::STANDARD.encode(&bytes));
+                        image_png = Some(base64::engine::general_purpose::STANDARD.encode(&bytes));
                     }
                     Err(e) => {
                         eprintln!("[parser] Failed to read image {}: {}", image_path, e);
@@ -584,9 +598,7 @@ fn parse_output_inner(
             let cleaned: Vec<&str> = text_output
                 .lines()
                 .filter(|line| {
-                    !line.contains(".png")
-                        && !line.contains(".jpg")
-                        && !line.contains(".jpeg")
+                    !line.contains(".png") && !line.contains(".jpg") && !line.contains(".jpeg")
                 })
                 .collect();
             cleaned.join("\n")
@@ -606,7 +618,8 @@ fn parse_output_inner(
 
     // The one-line form belongs to the final value: keep it only when that
     // value is shown as LaTeX, not for plots, images or errors
-    let shows_value = latex.is_some() && plot_svg.is_none() && plot_data.is_none() && image_png.is_none();
+    let shows_value =
+        latex.is_some() && plot_svg.is_none() && plot_data.is_none() && image_png.is_none();
     let text_plain = if shows_value { plain } else { None };
 
     EvalResult {
@@ -765,7 +778,10 @@ mod tests {
 
         let result = parse_output("cell-1", &lines, 100, &catalog(), &Backend::Local);
         assert!(!result.is_error);
-        assert_eq!(result.latex.as_deref(), Some("-\\log c+2\\,\\log b+\\log a"));
+        assert_eq!(
+            result.latex.as_deref(),
+            Some("-\\log c+2\\,\\log b+\\log a")
+        );
         assert_eq!(result.text_output, "$$-\\log c+2\\,\\log b+\\log a$$");
     }
 
@@ -912,7 +928,10 @@ mod tests {
             "__AXIMAR_EVAL_END__".to_string(),
         ];
         let result = parse_output("cell-1", &lines, 100, &catalog(), &Backend::Local);
-        assert!(!result.is_error, "SBCL warnings should not be treated as errors");
+        assert!(
+            !result.is_error,
+            "SBCL warnings should not be treated as errors"
+        );
         assert!(
             result.text_output.contains("actual output"),
             "regular output should still be captured"
@@ -1050,10 +1069,10 @@ mod tests {
         // No 1D result lines since display is suppressed.
         let lines = vec![
             "Step 1".to_string(),
-            "$$1$$".to_string(),            // user tex(1)
+            "$$1$$".to_string(), // user tex(1)
             "false".to_string(),
             "Step 2".to_string(),
-            "$$4$$".to_string(),            // user tex(4)
+            "$$4$$".to_string(), // user tex(4)
             "false".to_string(),
             "$$\\mathit{done}$$".to_string(), // tex(%) on "done"
             "false".to_string(),
@@ -1095,12 +1114,12 @@ mod tests {
         // final $$\\mathbf{done}$$.
         let lines = vec![
             "Step 1".to_string(),
-            "$$0$$".to_string(),               // user tex(0) — should be kept
+            "$$0$$".to_string(), // user tex(0) — should be kept
             "false".to_string(),
             "Step 2".to_string(),
-            "$$4$$".to_string(),               // user tex(4)
+            "$$4$$".to_string(), // user tex(4)
             "false".to_string(),
-            "$$\\mathbf{done}$$".to_string(),  // tex(%) on for-loop result
+            "$$\\mathbf{done}$$".to_string(), // tex(%) on for-loop result
             "false".to_string(),
             "__AXIMAR_EVAL_END__".to_string(),
         ];
@@ -1109,7 +1128,10 @@ mod tests {
         // \mathbf{done} is junk LaTeX (filtered since ax_draw2d returns 'done)
         assert_eq!(result.latex, None);
         // Both intermediate tex() results should be in text_output
-        assert!(result.text_output.contains("$$0$$"), "tex(0) should be preserved");
+        assert!(
+            result.text_output.contains("$$0$$"),
+            "tex(0) should be preserved"
+        );
         assert!(result.text_output.contains("$$4$$"));
         assert!(result.text_output.contains("Step 1"));
         assert!(result.text_output.contains("Step 2"));
@@ -1121,7 +1143,7 @@ mod tests {
         // filtered, but intermediate user tex() blocks should still be kept.
         let lines = vec![
             "Step 1".to_string(),
-            "$$x^2$$".to_string(),             // user tex(x^2)
+            "$$x^2$$".to_string(), // user tex(x^2)
             "false".to_string(),
             "$$\\mathbf{false}$$".to_string(), // tex(%) on false — junk
             "false".to_string(),
@@ -1130,7 +1152,10 @@ mod tests {
         let result = parse_output("cell-1", &lines, 100, &catalog(), &Backend::Local);
         assert!(!result.is_error);
         assert_eq!(result.latex, None, "final junk latex should be filtered");
-        assert!(result.text_output.contains("$$x^2$$"), "user tex() should be kept");
+        assert!(
+            result.text_output.contains("$$x^2$$"),
+            "user tex() should be kept"
+        );
         assert!(result.text_output.contains("Step 1"));
     }
 
@@ -1172,7 +1197,10 @@ mod tests {
         ];
         let result = parse_output("cell-1", &lines, 100, &catalog(), &Backend::Local);
         assert!(!result.is_error);
-        assert_eq!(result.latex, None, "plot path latex should be filtered as junk");
+        assert_eq!(
+            result.latex, None,
+            "plot path latex should be filtered as junk"
+        );
         // Both .gnuplot and .svg path lines should be stripped
         assert!(
             !result.text_output.contains(".gnuplot"),
@@ -1199,7 +1227,10 @@ mod tests {
         ];
         let result = parse_output("cell-1", &lines, 100, &catalog(), &Backend::Local);
         assert!(!result.is_error);
-        assert_eq!(result.latex, None, "plot path latex should be filtered as junk");
+        assert_eq!(
+            result.latex, None,
+            "plot path latex should be filtered as junk"
+        );
         // The warning line should remain but no file path lines
         assert!(
             result.text_output.contains("some values will be clipped"),
@@ -1345,7 +1376,10 @@ mod tests {
         ];
         let result = parse_output("cell-1", &lines, 100, &catalog(), &Backend::Local);
         assert!(!result.is_error);
-        assert!(result.plot_data.is_none(), "invalid JSON should be rejected");
+        assert!(
+            result.plot_data.is_none(),
+            "invalid JSON should be rejected"
+        );
 
         let _ = fs::remove_file(&plotly_path);
     }

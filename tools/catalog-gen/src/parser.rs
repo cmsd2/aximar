@@ -19,14 +19,20 @@ pub fn parse_xml(xml: &str, log_unmapped: bool, min_description: usize) -> Vec<M
     let mut functions = Vec::new();
     let current_chapter = String::new();
 
-    collect_definitions(root, &mut functions, &current_chapter, log_unmapped, min_description);
+    collect_definitions(
+        root,
+        &mut functions,
+        &current_chapter,
+        log_unmapped,
+        min_description,
+    );
 
     // Deduplicate by name (keep first occurrence which tends to be the primary definition)
     let mut seen = std::collections::HashSet::new();
     functions.retain(|f| seen.insert(f.name.to_lowercase()));
 
     // Sort by name for stable output
-    functions.sort_by(|a, b| a.name.to_lowercase().cmp(&b.name.to_lowercase()));
+    functions.sort_by_key(|a| a.name.to_lowercase());
 
     functions
 }
@@ -92,17 +98,30 @@ fn collect_definitions(
                 "chapter" => {
                     // Extract chapter title and use it as context for category mapping
                     let chapter_title = extract_section_title(child);
-                    collect_definitions(child, functions, &chapter_title, log_unmapped, min_description);
+                    collect_definitions(
+                        child,
+                        functions,
+                        &chapter_title,
+                        log_unmapped,
+                        min_description,
+                    );
                 }
                 "deffn" | "defvr" => {
-                    if let Some(func) = parse_definition(child, tag, current_chapter, log_unmapped) {
+                    if let Some(func) = parse_definition(child, tag, current_chapter, log_unmapped)
+                    {
                         if func.description.len() >= min_description {
                             functions.push(func);
                         }
                     }
                 }
                 _ => {
-                    collect_definitions(child, functions, current_chapter, log_unmapped, min_description);
+                    collect_definitions(
+                        child,
+                        functions,
+                        current_chapter,
+                        log_unmapped,
+                        min_description,
+                    );
                 }
             }
         }
@@ -120,7 +139,12 @@ fn extract_section_title(node: Node) -> String {
 }
 
 /// Parse a single `<deffn>` or `<defvr>` element into a MaximaFunction.
-fn parse_definition(node: Node, tag: &str, chapter: &str, log_unmapped: bool) -> Option<MaximaFunction> {
+fn parse_definition(
+    node: Node,
+    tag: &str,
+    chapter: &str,
+    log_unmapped: bool,
+) -> Option<MaximaFunction> {
     let name = extract_name(node, tag)?;
 
     // Skip internal/private names (starting with %)
@@ -516,7 +540,9 @@ fn is_likely_function_name(name: &str) -> bool {
     }
     let first = name.chars().next().unwrap();
     (first.is_alphabetic() || first == '%' || first == '_')
-        && name.chars().all(|c| c.is_alphanumeric() || c == '_' || c == '%')
+        && name
+            .chars()
+            .all(|c| c.is_alphanumeric() || c == '_' || c == '%')
 }
 
 // --- XML pre-processing ---
@@ -631,31 +657,29 @@ fn clean_texinfo_markup(s: &str) -> String {
     }
 
     // Strip any remaining @command{content} patterns — keep content
-    loop {
-        if let Some(at_pos) = result.find('@') {
-            let rest = &result[at_pos + 1..];
-            // Check if it's @word{...}
-            let cmd_len = rest.find(|c: char| !c.is_alphanumeric() && c != '_').unwrap_or(rest.len());
-            if cmd_len > 0 && rest[cmd_len..].starts_with('{') {
-                let content_start = at_pos + 1 + cmd_len + 1;
-                if let Some(end) = find_matching_brace(&result, content_start) {
-                    let content = result[content_start..end].to_string();
-                    result = format!("{}{}{}", &result[..at_pos], content, &result[end + 1..]);
-                    continue;
-                }
+    while let Some(at_pos) = result.find('@') {
+        let rest = &result[at_pos + 1..];
+        // Check if it's @word{...}
+        let cmd_len = rest
+            .find(|c: char| !c.is_alphanumeric() && c != '_')
+            .unwrap_or(rest.len());
+        if cmd_len > 0 && rest[cmd_len..].starts_with('{') {
+            let content_start = at_pos + 1 + cmd_len + 1;
+            if let Some(end) = find_matching_brace(&result, content_start) {
+                let content = result[content_start..end].to_string();
+                result = format!("{}{}{}", &result[..at_pos], content, &result[end + 1..]);
+                continue;
             }
-            // Not a @cmd{} pattern — skip past this @
-            if at_pos + 1 < result.len() {
-                // Skip @@ (escaped @)
-                if result[at_pos + 1..].starts_with('@') {
-                    result = format!("{}@{}", &result[..at_pos], &result[at_pos + 2..]);
-                    continue;
-                }
-            }
-            break;
-        } else {
-            break;
         }
+        // Not a @cmd{} pattern — skip past this @
+        if at_pos + 1 < result.len() {
+            // Skip @@ (escaped @)
+            if result[at_pos + 1..].starts_with('@') {
+                result = format!("{}@{}", &result[..at_pos], &result[at_pos + 2..]);
+                continue;
+            }
+        }
+        break;
     }
 
     // Clean up extra whitespace introduced by removals

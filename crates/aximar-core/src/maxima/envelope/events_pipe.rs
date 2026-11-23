@@ -59,7 +59,10 @@ impl EventsPipe {
         // SAFETY: pipe() succeeded; we own both fds.
         let read_end = unsafe { OwnedFd::from_raw_fd(fds[0]) };
         let write_end = unsafe { OwnedFd::from_raw_fd(fds[1]) };
-        Ok(EventsPipe { read_end, write_end })
+        Ok(EventsPipe {
+            read_end,
+            write_end,
+        })
     }
 }
 

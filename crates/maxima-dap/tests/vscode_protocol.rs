@@ -9,9 +9,8 @@ use emmy_dap_types::base_message::{BaseMessage, Sendable};
 use emmy_dap_types::events::{Event, OutputEventBody, StoppedEventBody};
 use emmy_dap_types::requests::{Command, Request};
 use emmy_dap_types::responses::{
-    ContinueResponse, EvaluateResponse, Response, ResponseBody, ResponseMessage,
-    ScopesResponse, SetBreakpointsResponse, StackTraceResponse, ThreadsResponse,
-    VariablesResponse,
+    ContinueResponse, EvaluateResponse, Response, ResponseBody, ResponseMessage, ScopesResponse,
+    SetBreakpointsResponse, StackTraceResponse, ThreadsResponse, VariablesResponse,
 };
 use emmy_dap_types::types::{
     Breakpoint, Capabilities, OutputEventCategory, Scope, ScopePresentationhint, Source,
@@ -65,10 +64,7 @@ fn deserialize_initialize_request() {
     match &request.command {
         Command::Initialize(args) => {
             assert_eq!(args.client_id.as_deref(), Some("vscode"));
-            assert_eq!(
-                args.client_name.as_deref(),
-                Some("Visual Studio Code")
-            );
+            assert_eq!(args.client_name.as_deref(), Some("Visual Studio Code"));
             assert_eq!(args.adapter_id, "maxima");
             assert_eq!(args.lines_start_at1, Some(true));
             assert_eq!(args.columns_start_at1, Some(true));
@@ -126,13 +122,16 @@ fn deserialize_launch_request_full() {
             assert_eq!(args.no_debug, Some(false));
 
             // Extract our custom arguments from additional_data
-            let data = args.additional_data.as_ref().expect("missing additional_data");
-            let launch_args: MaximaLaunchArguments =
-                serde_json::from_value(data.clone()).expect("failed to parse MaximaLaunchArguments");
+            let data = args
+                .additional_data
+                .as_ref()
+                .expect("missing additional_data");
+            let launch_args: MaximaLaunchArguments = serde_json::from_value(data.clone())
+                .expect("failed to parse MaximaLaunchArguments");
 
             assert_eq!(launch_args.program, "/home/user/project/main.mac");
             assert_eq!(launch_args.evaluate.as_deref(), Some("main()"));
-            assert_eq!(launch_args.stop_on_entry, false);
+            assert!(!launch_args.stop_on_entry);
             assert_eq!(
                 launch_args.maxima_path.as_deref(),
                 Some("/usr/local/bin/maxima")
@@ -159,13 +158,16 @@ fn deserialize_launch_request_minimal() {
     let request = parse_request(json);
     match &request.command {
         Command::Launch(args) => {
-            let data = args.additional_data.as_ref().expect("missing additional_data");
-            let launch_args: MaximaLaunchArguments =
-                serde_json::from_value(data.clone()).expect("failed to parse MaximaLaunchArguments");
+            let data = args
+                .additional_data
+                .as_ref()
+                .expect("missing additional_data");
+            let launch_args: MaximaLaunchArguments = serde_json::from_value(data.clone())
+                .expect("failed to parse MaximaLaunchArguments");
 
             assert_eq!(launch_args.program, "/tmp/test.mac");
             assert_eq!(launch_args.evaluate, None);
-            assert_eq!(launch_args.stop_on_entry, false);
+            assert!(!launch_args.stop_on_entry);
             assert_eq!(launch_args.maxima_path, None);
             assert_eq!(launch_args.backend, "local");
             assert_eq!(launch_args.cwd, None);
@@ -190,13 +192,16 @@ fn deserialize_launch_request_with_cwd() {
     let request = parse_request(json);
     match &request.command {
         Command::Launch(args) => {
-            let data = args.additional_data.as_ref().expect("missing additional_data");
-            let launch_args: MaximaLaunchArguments =
-                serde_json::from_value(data.clone()).expect("failed to parse MaximaLaunchArguments");
+            let data = args
+                .additional_data
+                .as_ref()
+                .expect("missing additional_data");
+            let launch_args: MaximaLaunchArguments = serde_json::from_value(data.clone())
+                .expect("failed to parse MaximaLaunchArguments");
 
             assert_eq!(launch_args.program, "main.mac");
             assert_eq!(launch_args.cwd.as_deref(), Some("/home/user/project"));
-            assert_eq!(launch_args.stop_on_entry, true);
+            assert!(launch_args.stop_on_entry);
         }
         other => panic!("expected Launch, got {:?}", other),
     }
@@ -579,7 +584,7 @@ fn launch_args_camel_case_mapping() {
 
     assert_eq!(args.program, "/test/main.mac");
     assert_eq!(args.maxima_path.as_deref(), Some("/opt/maxima/bin/maxima"));
-    assert_eq!(args.stop_on_entry, true);
+    assert!(args.stop_on_entry);
     assert_eq!(args.evaluate.as_deref(), Some("test()"));
     assert_eq!(args.cwd.as_deref(), Some("/test"));
     assert_eq!(args.backend, "local");
@@ -701,9 +706,7 @@ fn serialize_set_breakpoints_response() {
                         id: Some(2),
                         verified: false,
                         line: Some(3),
-                        message: Some(
-                            "Line 3 is not inside a function definition.".to_string(),
-                        ),
+                        message: Some("Line 3 is not inside a function definition.".to_string()),
                         ..Default::default()
                     },
                 ],
@@ -714,7 +717,9 @@ fn serialize_set_breakpoints_response() {
 
     let json = serde_json::to_value(&msg).expect("failed to serialize");
     assert_eq!(json["command"], "setBreakpoints");
-    let bps = json["body"]["breakpoints"].as_array().expect("missing breakpoints");
+    let bps = json["body"]["breakpoints"]
+        .as_array()
+        .expect("missing breakpoints");
     assert_eq!(bps.len(), 2);
     assert_eq!(bps[0]["id"], 1);
     assert_eq!(bps[0]["verified"], true);
@@ -759,25 +764,23 @@ fn serialize_stack_trace_response() {
             success: true,
             message: None,
             body: Some(ResponseBody::StackTrace(StackTraceResponse {
-                stack_frames: vec![
-                    StackFrame {
-                        id: 0,
-                        name: "foo".to_string(),
-                        source: Some(Source {
-                            name: Some("main.mac".to_string()),
-                            path: Some("/test/main.mac".to_string()),
-                            ..Default::default()
-                        }),
-                        line: 7,
-                        column: 1,
-                        end_line: None,
-                        end_column: None,
-                        can_restart: None,
-                        instruction_pointer_reference: None,
-                        module_id: None,
-                        presentation_hint: None,
-                    },
-                ],
+                stack_frames: vec![StackFrame {
+                    id: 0,
+                    name: "foo".to_string(),
+                    source: Some(Source {
+                        name: Some("main.mac".to_string()),
+                        path: Some("/test/main.mac".to_string()),
+                        ..Default::default()
+                    }),
+                    line: 7,
+                    column: 1,
+                    end_line: None,
+                    end_column: None,
+                    can_restart: None,
+                    instruction_pointer_reference: None,
+                    module_id: None,
+                    presentation_hint: None,
+                }],
                 total_frames: Some(1),
             })),
             error: None,
@@ -786,7 +789,9 @@ fn serialize_stack_trace_response() {
 
     let json = serde_json::to_value(&msg).expect("failed to serialize");
     assert_eq!(json["command"], "stackTrace");
-    let frames = json["body"]["stackFrames"].as_array().expect("missing stackFrames");
+    let frames = json["body"]["stackFrames"]
+        .as_array()
+        .expect("missing stackFrames");
     assert_eq!(frames.len(), 1);
     assert_eq!(frames[0]["id"], 0);
     assert_eq!(frames[0]["name"], "foo");
@@ -872,7 +877,9 @@ fn serialize_variables_response() {
 
     let json = serde_json::to_value(&msg).expect("failed to serialize");
     assert_eq!(json["command"], "variables");
-    let vars = json["body"]["variables"].as_array().expect("missing variables");
+    let vars = json["body"]["variables"]
+        .as_array()
+        .expect("missing variables");
     assert_eq!(vars.len(), 2);
     assert_eq!(vars[0]["name"], "x");
     assert_eq!(vars[0]["value"], "5");
@@ -936,7 +943,9 @@ fn serialize_error_response() {
         message: Sendable::Response(Response {
             request_seq: 2,
             success: false,
-            message: Some(ResponseMessage::Error("program not found: /bad/path.mac".to_string())),
+            message: Some(ResponseMessage::Error(
+                "program not found: /bad/path.mac".to_string(),
+            )),
             body: None,
             error: None,
         }),
@@ -1201,12 +1210,11 @@ fn round_trip_launch_with_evaluate() {
     match &request.command {
         Command::Launch(args) => {
             let data = args.additional_data.as_ref().unwrap();
-            let launch_args: MaximaLaunchArguments =
-                serde_json::from_value(data.clone()).unwrap();
+            let launch_args: MaximaLaunchArguments = serde_json::from_value(data.clone()).unwrap();
 
             assert_eq!(launch_args.program, "/home/user/test.mac");
             assert_eq!(launch_args.evaluate.as_deref(), Some("run_tests()"));
-            assert_eq!(launch_args.stop_on_entry, true);
+            assert!(launch_args.stop_on_entry);
 
             // Build response
             let response = BaseMessage {

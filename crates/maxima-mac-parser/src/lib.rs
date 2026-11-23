@@ -49,9 +49,13 @@ pub fn blank_comments(source: &str) -> String {
     for (token, span) in tokens.unwrap_or_default() {
         if matches!(token, lexer::Token::Comment(_)) {
             result.push_str(&source[copied..span.start]);
-            let blank = source[span.start..span.end]
-                .chars()
-                .map(|c| if c == '\n' || c == '\r' { c } else { ' ' });
+            let blank = source[span.start..span.end].chars().map(|c| {
+                if c == '\n' || c == '\r' {
+                    c
+                } else {
+                    ' '
+                }
+            });
             result.extend(blank);
             copied = span.end;
         }
@@ -288,12 +292,48 @@ mod tests {
     #[test]
     fn span_converter_basic() {
         let conv = SpanConverter::new("ab\ncd\nef");
-        assert_eq!(conv.byte_offset_to_position(0), Position { line: 0, character: 0 });
-        assert_eq!(conv.byte_offset_to_position(1), Position { line: 0, character: 1 });
-        assert_eq!(conv.byte_offset_to_position(2), Position { line: 0, character: 2 });
-        assert_eq!(conv.byte_offset_to_position(3), Position { line: 1, character: 0 });
-        assert_eq!(conv.byte_offset_to_position(5), Position { line: 1, character: 2 });
-        assert_eq!(conv.byte_offset_to_position(6), Position { line: 2, character: 0 });
+        assert_eq!(
+            conv.byte_offset_to_position(0),
+            Position {
+                line: 0,
+                character: 0
+            }
+        );
+        assert_eq!(
+            conv.byte_offset_to_position(1),
+            Position {
+                line: 0,
+                character: 1
+            }
+        );
+        assert_eq!(
+            conv.byte_offset_to_position(2),
+            Position {
+                line: 0,
+                character: 2
+            }
+        );
+        assert_eq!(
+            conv.byte_offset_to_position(3),
+            Position {
+                line: 1,
+                character: 0
+            }
+        );
+        assert_eq!(
+            conv.byte_offset_to_position(5),
+            Position {
+                line: 1,
+                character: 2
+            }
+        );
+        assert_eq!(
+            conv.byte_offset_to_position(6),
+            Position {
+                line: 2,
+                character: 0
+            }
+        );
     }
 
     #[test]
@@ -416,7 +456,9 @@ mod tests {
         assert_eq!(file.items.len(), 2);
         // The "!@#" region should produce a SkippedStatement warning
         assert!(
-            file.errors.iter().any(|e| e.kind == ParseErrorKind::SkippedStatement),
+            file.errors
+                .iter()
+                .any(|e| e.kind == ParseErrorKind::SkippedStatement),
             "expected SkippedStatement warning, got: {:?}",
             file.errors
         );

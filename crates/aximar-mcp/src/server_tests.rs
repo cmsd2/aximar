@@ -11,11 +11,16 @@ use aximar_core::registry::NotebookRegistry;
 use aximar_core::session_ops::{SessionSettings, SessionSettingsProvider};
 
 use crate::params::*;
-use crate::server::AximarMcpServer;
+use crate::server::{AximarMcpServer, ConnectedHooks};
 
 /// The local Maxima on the PATH, with a 30-second timeout.
 fn local_settings() -> SessionSettingsProvider {
-    SessionSettings { backend: Backend::Local, maxima_path: None, eval_timeout: 30 }.fixed()
+    SessionSettings {
+        backend: Backend::Local,
+        maxima_path: None,
+        eval_timeout: 30,
+    }
+    .fixed()
 }
 
 fn build_server() -> AximarMcpServer {
@@ -197,10 +202,8 @@ async fn cell_crud_lifecycle() {
 
     // List cells — should have one default cell
     let v = parse_ok(
-        s.list_cells(Parameters(NotebookIdParam {
-            notebook_id: None,
-        }))
-        .await,
+        s.list_cells(Parameters(NotebookIdParam { notebook_id: None }))
+            .await,
     );
     let cells = v.as_array().unwrap();
     assert_eq!(cells.len(), 1);
@@ -262,10 +265,8 @@ async fn cell_crud_lifecycle() {
 
     // Verify order changed
     let v = parse_ok(
-        s.list_cells(Parameters(NotebookIdParam {
-            notebook_id: None,
-        }))
-        .await,
+        s.list_cells(Parameters(NotebookIdParam { notebook_id: None }))
+            .await,
     );
     let cells = v.as_array().unwrap();
     assert_eq!(cells[0]["id"].as_str().unwrap(), new_id);
@@ -283,10 +284,8 @@ async fn cell_crud_lifecycle() {
 
     // Verify deleted
     let v = parse_ok(
-        s.list_cells(Parameters(NotebookIdParam {
-            notebook_id: None,
-        }))
-        .await,
+        s.list_cells(Parameters(NotebookIdParam { notebook_id: None }))
+            .await,
     );
     assert_eq!(v.as_array().unwrap().len(), 1);
 }
@@ -297,15 +296,10 @@ async fn add_cell_with_position() {
 
     // Get the default cell ID
     let v = parse_ok(
-        s.list_cells(Parameters(NotebookIdParam {
-            notebook_id: None,
-        }))
-        .await,
+        s.list_cells(Parameters(NotebookIdParam { notebook_id: None }))
+            .await,
     );
-    let first_id = v.as_array().unwrap()[0]["id"]
-        .as_str()
-        .unwrap()
-        .to_string();
+    let first_id = v.as_array().unwrap()[0]["id"].as_str().unwrap().to_string();
 
     // Add a cell after the first
     let v = parse_ok(
@@ -332,10 +326,8 @@ async fn add_cell_with_position() {
 
     // Verify order: first, middle, second
     let v = parse_ok(
-        s.list_cells(Parameters(NotebookIdParam {
-            notebook_id: None,
-        }))
-        .await,
+        s.list_cells(Parameters(NotebookIdParam { notebook_id: None }))
+            .await,
     );
     let cells = v.as_array().unwrap();
     assert_eq!(cells.len(), 3);
@@ -367,10 +359,8 @@ async fn load_template_populates_cells() {
     );
 
     let v = parse_ok(
-        s.list_cells(Parameters(NotebookIdParam {
-            notebook_id: None,
-        }))
-        .await,
+        s.list_cells(Parameters(NotebookIdParam { notebook_id: None }))
+            .await,
     );
     let cells = v.as_array().unwrap();
     assert!(cells.len() > 5);
@@ -457,26 +447,45 @@ async fn an_error_output_survives_open_and_save() {
                 "evalue": "expt: undefined: 0 to a negative exponent."}]}]}"#,
     )
     .unwrap();
-    let at = |path: &std::path::Path| NotebookPathParams { path: path.to_str().unwrap().into(), notebook_id: None };
+    let at = |path: &std::path::Path| NotebookPathParams {
+        path: path.to_str().unwrap().into(),
+        notebook_id: None,
+    };
 
     parse_ok(s.open_notebook(Parameters(at(&path))).await);
-    let cell = parse_ok(s.get_cell(Parameters(CellIdParams { cell_id: "bad-cell".into(), notebook_id: None })).await);
+    let cell = parse_ok(
+        s.get_cell(Parameters(CellIdParams {
+            cell_id: "bad-cell".into(),
+            notebook_id: None,
+        }))
+        .await,
+    );
     assert_eq!(cell["input"], "1/0;");
     let output = &cell["output"];
     assert_eq!(output["is_error"], true, "{cell:#}");
     assert_eq!(output["stale"], true);
-    assert_eq!(output["error"], "expt: undefined: 0 to a negative exponent.");
+    assert_eq!(
+        output["error"],
+        "expt: undefined: 0 to a negative exponent."
+    );
     assert_eq!(output["error_info"]["title"], "Division by Zero");
 
     // Saving writes the same cell back, with what Aximar doesn't use
     let copy = dir.path().join("copy.macnb");
     parse_ok(s.save_notebook(Parameters(at(&copy))).await);
-    let saved: serde_json::Value = serde_json::from_str(&std::fs::read_to_string(&copy).unwrap()).unwrap();
+    let saved: serde_json::Value =
+        serde_json::from_str(&std::fs::read_to_string(&copy).unwrap()).unwrap();
     assert_eq!(saved["metadata"]["mine"], 1);
     let cell = &saved["cells"][0];
-    assert_eq!((&cell["id"], &cell["metadata"]["tag"]), (&serde_json::json!("bad-cell"), &serde_json::json!("x")));
+    assert_eq!(
+        (&cell["id"], &cell["metadata"]["tag"]),
+        (&serde_json::json!("bad-cell"), &serde_json::json!("x"))
+    );
     assert_eq!(cell["outputs"][0]["output_type"], "error");
-    assert_eq!(cell["outputs"][0]["evalue"], "expt: undefined: 0 to a negative exponent.");
+    assert_eq!(
+        cell["outputs"][0]["evalue"],
+        "expt: undefined: 0 to a negative exponent."
+    );
 }
 
 #[tokio::test]
@@ -486,10 +495,16 @@ async fn opening_a_bad_file_names_it() {
     let path = dir.path().join("old.ipynb");
     std::fs::write(&path, r#"{"nbformat": 3, "worksheets": []}"#).unwrap();
     let err = s
-        .open_notebook(Parameters(NotebookPathParams { path: path.to_str().unwrap().into(), notebook_id: None }))
+        .open_notebook(Parameters(NotebookPathParams {
+            path: path.to_str().unwrap().into(),
+            notebook_id: None,
+        }))
         .await
         .unwrap_err();
-    assert!(err.contains("old.ipynb") && err.contains("nbformat 3"), "{err}");
+    assert!(
+        err.contains("old.ipynb") && err.contains("nbformat 3"),
+        "{err}"
+    );
 }
 
 // ── Session tools (no Maxima needed) ─────────────────────────────────
@@ -498,10 +513,8 @@ async fn opening_a_bad_file_names_it() {
 async fn get_session_status_stopped() {
     let s = build_server();
     let v = parse_ok(
-        s.get_session_status(Parameters(NotebookIdParam {
-            notebook_id: None,
-        }))
-        .await,
+        s.get_session_status(Parameters(NotebookIdParam { notebook_id: None }))
+            .await,
     );
     assert_eq!(v["status"], "Stopped");
 }
@@ -552,7 +565,10 @@ async fn run_cell_evaluates() {
     );
     assert_eq!(v["is_error"], false);
     // Single expression: 1D display is suppressed, result is in LaTeX only
-    assert!(v["latex"].as_str().unwrap().contains("5"), "latex should contain the result");
+    assert!(
+        v["latex"].as_str().unwrap().contains("5"),
+        "latex should contain the result"
+    );
 }
 
 #[tokio::test]
@@ -608,10 +624,8 @@ async fn run_all_cells_sequential() {
     );
 
     let v = parse_ok(
-        s.run_all_cells(Parameters(NotebookIdParam {
-            notebook_id: None,
-        }))
-        .await,
+        s.run_all_cells(Parameters(NotebookIdParam { notebook_id: None }))
+            .await,
     );
     // Default empty cell + 2 code cells = 3, but run_all_cells only runs Code cells
     // The default cell is empty so it will fail; let's just check we got results
@@ -632,7 +646,11 @@ async fn evaluate_expression_quick() {
     assert_eq!(v["is_error"], false);
     // Single expression: 1D display is suppressed, result is in LaTeX only
     let latex = v["latex"].as_str().unwrap();
-    assert!(latex.contains("x-1") && latex.contains("x+1"), "latex should contain factored result: {}", latex);
+    assert!(
+        latex.contains("x-1") && latex.contains("x+1"),
+        "latex should contain factored result: {}",
+        latex
+    );
 }
 
 #[tokio::test]
@@ -651,10 +669,8 @@ async fn list_and_kill_variable() {
 
     // List variables — should contain myvar
     let v = parse_ok(
-        s.list_variables(Parameters(NotebookIdParam {
-            notebook_id: None,
-        }))
-        .await,
+        s.list_variables(Parameters(NotebookIdParam { notebook_id: None }))
+            .await,
     );
     let vars = v["variables"].as_array().unwrap();
     assert!(vars.iter().any(|v| v.as_str() == Some("myvar")));
@@ -670,10 +686,8 @@ async fn list_and_kill_variable() {
 
     // Verify it's gone
     let v = parse_ok(
-        s.list_variables(Parameters(NotebookIdParam {
-            notebook_id: None,
-        }))
-        .await,
+        s.list_variables(Parameters(NotebookIdParam { notebook_id: None }))
+            .await,
     );
     let vars = v["variables"].as_array().unwrap();
     assert!(!vars.iter().any(|v| v.as_str() == Some("myvar")));
@@ -694,10 +708,8 @@ async fn restart_session_works() {
     );
 
     let v = parse_ok(
-        s.restart_session(Parameters(NotebookIdParam {
-            notebook_id: None,
-        }))
-        .await,
+        s.restart_session(Parameters(NotebookIdParam { notebook_id: None }))
+            .await,
     );
     assert_eq!(v["restarted"], true);
 }
@@ -746,7 +758,10 @@ async fn evaluate_expression_allows_dangerous_with_flag() {
         }))
         .await;
     if let Err(msg) = &result {
-        assert!(!msg.contains("Dangerous function"), "Should not be blocked by safety: {msg}");
+        assert!(
+            !msg.contains("Dangerous function"),
+            "Should not be blocked by safety: {msg}"
+        );
     }
 }
 
@@ -803,7 +818,10 @@ async fn run_cell_allows_safe_input_in_headless() {
         }))
         .await;
     if let Err(msg) = &result {
-        assert!(!msg.contains("Dangerous function"), "Should not be blocked by safety: {msg}");
+        assert!(
+            !msg.contains("Dangerous function"),
+            "Should not be blocked by safety: {msg}"
+        );
     }
 }
 
@@ -818,7 +836,10 @@ async fn evaluate_expression_allows_known_package_load() {
         }))
         .await;
     if let Err(msg) = &result {
-        assert!(!msg.contains("Dangerous function"), "Known package should not be blocked: {msg}");
+        assert!(
+            !msg.contains("Dangerous function"),
+            "Known package should not be blocked: {msg}"
+        );
     }
 }
 
@@ -845,17 +866,20 @@ use aximar_core::safety::TrustMode;
 use crate::server::{cell_run_entry, run_all_summary};
 
 fn build_server_connected() -> AximarMcpServer {
-    let process_sink_factory: crate::server::ProcessSinkFactory =
-        Arc::new(|_id, capture| capture.clone() as Arc<dyn aximar_core::maxima::output::OutputSink>);
+    let process_sink_factory: crate::server::ProcessSinkFactory = Arc::new(|_id, capture| {
+        capture.clone() as Arc<dyn aximar_core::maxima::output::OutputSink>
+    });
     AximarMcpServer::new_connected(
         Arc::new(Mutex::new(NotebookRegistry::new())),
         Arc::new(Catalog::load()),
         Arc::new(PackageCatalog::load()),
         local_settings(),
-        process_sink_factory,
-        Arc::new(|_, _| {}),
-        Arc::new(|_, _| {}),
-        Arc::new(|_, _| {}),
+        ConnectedHooks {
+            process_sink_factory,
+            on_notebook_change: Arc::new(|_, _| {}),
+            on_notebook_lifecycle: Arc::new(|_, _| {}),
+            on_session_status: Arc::new(|_, _| {}),
+        },
     )
 }
 
@@ -887,8 +911,16 @@ fn needs_trust_entry_is_not_success() {
     assert_eq!(entry["dangerous_functions"], serde_json::json!(["load"]));
     assert!(entry["message"].as_str().unwrap().contains("untrusted"));
 
-    let entry = cell_run_entry(&run, TrustMode::Headless { allow_dangerous: false });
-    assert!(entry["message"].as_str().unwrap().contains("--allow-dangerous"));
+    let entry = cell_run_entry(
+        &run,
+        TrustMode::Headless {
+            allow_dangerous: false,
+        },
+    );
+    assert!(entry["message"]
+        .as_str()
+        .unwrap()
+        .contains("--allow-dangerous"));
 }
 
 #[test]
@@ -911,7 +943,10 @@ fn ok_and_empty_entries_succeed() {
     assert_eq!(entry["success"], true);
     assert_eq!(entry["execution_count"], 4);
 
-    let entry = cell_run_entry(&cell_run("c4", CellRunStatus::Empty), TrustMode::Interactive);
+    let entry = cell_run_entry(
+        &cell_run("c4", CellRunStatus::Empty),
+        TrustMode::Interactive,
+    );
     assert_eq!(entry["status"], "empty");
     assert_eq!(entry["success"], true);
 }
@@ -951,7 +986,10 @@ fn run_all_summary_reports_stop() {
 #[test]
 fn run_all_summary_reports_a_cancel() {
     let report = RunAllReport {
-        cells: vec![cell_run("a", CellRunStatus::Ok), cell_run("b", CellRunStatus::NotRun)],
+        cells: vec![
+            cell_run("a", CellRunStatus::Ok),
+            cell_run("b", CellRunStatus::NotRun),
+        ],
         stopped_at: Some("b".into()),
         stop_reason: Some(StopReason::Cancelled),
     };
@@ -990,7 +1028,10 @@ async fn run_all_cells_stops_at_untrusted_load_in_connected_mode() {
         ctx.notebook.lock().await.set_trusted(false);
     }
 
-    let v = parse_ok(s.run_all_cells(Parameters(NotebookIdParam { notebook_id: None })).await);
+    let v = parse_ok(
+        s.run_all_cells(Parameters(NotebookIdParam { notebook_id: None }))
+            .await,
+    );
     let results = v["results"].as_array().unwrap();
     let by_id = |id: &str| results.iter().find(|r| r["cell_id"] == id).unwrap().clone();
 
@@ -1021,7 +1062,10 @@ async fn run_all_cells_runs_dangerous_cell_once_notebook_trusted() {
         ctx.notebook.lock().await.set_trusted(true);
     }
 
-    let v = parse_ok(s.run_all_cells(Parameters(NotebookIdParam { notebook_id: None })).await);
+    let v = parse_ok(
+        s.run_all_cells(Parameters(NotebookIdParam { notebook_id: None }))
+            .await,
+    );
     assert_eq!(v["success"], true, "{v:#}");
     assert!(v["stopped_at"].is_null());
     for r in v["results"].as_array().unwrap() {
@@ -1037,7 +1081,10 @@ async fn run_all_cells_stops_at_maxima_error() {
     let bad = add_code_cell(&s, "inpart(l, 4);").await;
     let after = add_code_cell(&s, "b: 5;").await;
 
-    let v = parse_ok(s.run_all_cells(Parameters(NotebookIdParam { notebook_id: None })).await);
+    let v = parse_ok(
+        s.run_all_cells(Parameters(NotebookIdParam { notebook_id: None }))
+            .await,
+    );
     let results = v["results"].as_array().unwrap();
     let by_id = |id: &str| results.iter().find(|r| r["cell_id"] == id).unwrap().clone();
 
@@ -1096,7 +1143,10 @@ async fn label_references_follow_the_gutter_numbers() {
     add_and_run(&s, "b: 20$").await; // Out[2]
     add_and_run(&s, "1/0;").await; // In[3], an error with no output
     let v = add_and_run(&s, "[%o1, %o2, %];").await;
-    assert!(v["latex"].as_str().unwrap().contains("10 , 20 , 20"), "{v:#}");
+    assert!(
+        v["latex"].as_str().unwrap().contains("10 , 20 , 20"),
+        "{v:#}"
+    );
 
     // % in a later statement is Maxima's own: the statement before it
     let v = add_and_run(&s, "x: 5; % + 1;").await;
@@ -1105,7 +1155,13 @@ async fn label_references_follow_the_gutter_numbers() {
     // Out[3] has no value: the cell reports it instead of reading %o3
     let v = add_and_run(&s, "%o3 + 1;").await;
     assert_eq!(v["is_error"], true, "{v:#}");
-    assert!(v["error"].as_str().unwrap().starts_with("Out[3] (%o3) has no value"), "{v:#}");
+    assert!(
+        v["error"]
+            .as_str()
+            .unwrap()
+            .starts_with("Out[3] (%o3) has no value"),
+        "{v:#}"
+    );
 }
 
 #[tokio::test]
@@ -1120,11 +1176,23 @@ async fn labels_from_before_a_restart_have_no_value() {
 
     let v = add_and_run(&s, "%o1;").await;
     assert_eq!(v["is_error"], true, "{v:#}");
-    assert!(v["error"].as_str().unwrap().starts_with("Out[1] (%o1) has no value"), "{v:#}");
+    assert!(
+        v["error"]
+            .as_str()
+            .unwrap()
+            .starts_with("Out[1] (%o1) has no value"),
+        "{v:#}"
+    );
 
     let v = add_and_run(&s, "% + 1;").await;
     assert_eq!(v["is_error"], true, "{v:#}");
-    assert!(v["error"].as_str().unwrap().starts_with("% refers to the previous cell"), "{v:#}");
+    assert!(
+        v["error"]
+            .as_str()
+            .unwrap()
+            .starts_with("% refers to the previous cell"),
+        "{v:#}"
+    );
 
     // Cells run after the restart work as usual
     add_and_run(&s, "p: 7;").await;
@@ -1150,15 +1218,29 @@ async fn restart_then_run_all_numbers_cells_from_one() {
         ids.push(v["cell_id"].as_str().unwrap().to_string());
     }
 
-    let all = || async { parse_ok(s.run_all_cells(Parameters(NotebookIdParam { notebook_id: None })).await) };
+    let all = || async {
+        parse_ok(
+            s.run_all_cells(Parameters(NotebookIdParam { notebook_id: None }))
+                .await,
+        )
+    };
     let v = all().await;
     assert_eq!(v["success"], true, "{v:#}");
-    parse_ok(s.restart_session(Parameters(NotebookIdParam { notebook_id: None })).await);
+    parse_ok(
+        s.restart_session(Parameters(NotebookIdParam { notebook_id: None }))
+            .await,
+    );
     let v = all().await;
     assert_eq!(v["success"], true, "{v:#}");
 
     let cell = |id: String| async {
-        parse_ok(s.get_cell(Parameters(CellIdParams { cell_id: id, notebook_id: None })).await)
+        parse_ok(
+            s.get_cell(Parameters(CellIdParams {
+                cell_id: id,
+                notebook_id: None,
+            }))
+            .await,
+        )
     };
     let second = cell(ids[1].clone()).await;
     assert_eq!(second["output"]["execution_count"], 2, "{second:#}");
@@ -1174,30 +1256,38 @@ async fn restart_then_run_all_numbers_cells_from_one() {
 async fn connected_mode_reports_create_and_switch() {
     let events = Arc::new(std::sync::Mutex::new(Vec::<String>::new()));
     let recorded = events.clone();
-    let process_sink_factory: crate::server::ProcessSinkFactory =
-        Arc::new(|_id, capture| capture.clone() as Arc<dyn aximar_core::maxima::output::OutputSink>);
+    let process_sink_factory: crate::server::ProcessSinkFactory = Arc::new(|_id, capture| {
+        capture.clone() as Arc<dyn aximar_core::maxima::output::OutputSink>
+    });
     let s = AximarMcpServer::new_connected(
         Arc::new(Mutex::new(NotebookRegistry::new())),
         Arc::new(Catalog::load()),
         Arc::new(PackageCatalog::load()),
         local_settings(),
-        process_sink_factory,
-        Arc::new(|_, _| {}),
-        Arc::new(move |id: &str, event: &str| {
-            recorded.lock().unwrap().push(format!("{id} {event}"));
-        }),
-        Arc::new(|_, _| {}),
+        ConnectedHooks {
+            process_sink_factory,
+            on_notebook_change: Arc::new(|_, _| {}),
+            on_notebook_lifecycle: Arc::new(move |id: &str, event: &str| {
+                recorded.lock().unwrap().push(format!("{id} {event}"));
+            }),
+            on_session_status: Arc::new(|_, _| {}),
+        },
     );
 
     let v = parse_ok(s.create_notebook().await);
     let id = v["notebook_id"].as_str().unwrap().to_string();
     parse_ok(
-        s.switch_notebook(Parameters(SwitchNotebookParams { notebook_id: id.clone() }))
-            .await,
+        s.switch_notebook(Parameters(SwitchNotebookParams {
+            notebook_id: id.clone(),
+        }))
+        .await,
     );
 
     let seen = events.lock().unwrap().clone();
-    assert_eq!(seen, vec![format!("{id} created"), format!("{id} active_changed")]);
+    assert_eq!(
+        seen,
+        vec![format!("{id} created"), format!("{id} active_changed")]
+    );
 }
 
 // ── Effects reach the window as they happen ───────────────────────────
@@ -1206,19 +1296,27 @@ async fn connected_mode_reports_create_and_switch() {
 fn build_server_recording_effects() -> (AximarMcpServer, Arc<std::sync::Mutex<Vec<String>>>) {
     let seen = Arc::new(std::sync::Mutex::new(Vec::<String>::new()));
     let recorded = seen.clone();
-    let process_sink_factory: crate::server::ProcessSinkFactory =
-        Arc::new(|_id, capture| capture.clone() as Arc<dyn aximar_core::maxima::output::OutputSink>);
+    let process_sink_factory: crate::server::ProcessSinkFactory = Arc::new(|_id, capture| {
+        capture.clone() as Arc<dyn aximar_core::maxima::output::OutputSink>
+    });
     let s = AximarMcpServer::new_connected(
         Arc::new(Mutex::new(NotebookRegistry::new())),
         Arc::new(Catalog::load()),
         Arc::new(PackageCatalog::load()),
         local_settings(),
-        process_sink_factory,
-        Arc::new(move |_id: &str, effect: aximar_core::commands::CommandEffect| {
-            recorded.lock().unwrap().push(effect.effect_name().to_string());
-        }),
-        Arc::new(|_, _| {}),
-        Arc::new(|_, _| {}),
+        ConnectedHooks {
+            process_sink_factory,
+            on_notebook_change: Arc::new(
+                move |_id: &str, effect: aximar_core::commands::CommandEffect| {
+                    recorded
+                        .lock()
+                        .unwrap()
+                        .push(effect.effect_name().to_string());
+                },
+            ),
+            on_notebook_lifecycle: Arc::new(|_, _| {}),
+            on_session_status: Arc::new(|_, _| {}),
+        },
     );
     (s, seen)
 }
@@ -1233,11 +1331,20 @@ async fn effects_of_run(
     let cell_id = add_code_cell(s, input).await;
     seen.lock().unwrap().clear();
     parse_ok(
-        s.run_cell(Parameters(CellIdParams { cell_id: cell_id.clone(), notebook_id: None }))
-            .await,
+        s.run_cell(Parameters(CellIdParams {
+            cell_id: cell_id.clone(),
+            notebook_id: None,
+        }))
+        .await,
     );
     let effects = seen.lock().unwrap().clone();
-    let cell = parse_ok(s.get_cell(Parameters(CellIdParams { cell_id, notebook_id: None })).await);
+    let cell = parse_ok(
+        s.get_cell(Parameters(CellIdParams {
+            cell_id,
+            notebook_id: None,
+        }))
+        .await,
+    );
     (effects, cell["status"].as_str().unwrap().to_string())
 }
 
@@ -1283,7 +1390,10 @@ async fn sessions_use_the_settings_in_force_when_they_start() {
 
     let cell_id = add_code_cell(&s, "1 + 1;").await;
     let err = s
-        .run_cell(Parameters(CellIdParams { cell_id, notebook_id: None }))
+        .run_cell(Parameters(CellIdParams {
+            cell_id,
+            notebook_id: None,
+        }))
         .await
         .expect_err("a missing Maxima can't start");
     assert!(err.contains(missing), "error should name the path: {err}");
@@ -1332,7 +1442,13 @@ async fn connected_cell_blocked_by_trust_shows_the_banner() {
     set_trusted(&s, false).await;
     seen.lock().unwrap().clear();
 
-    let v = parse_ok(s.run_cell(Parameters(CellIdParams { cell_id, notebook_id: None })).await);
+    let v = parse_ok(
+        s.run_cell(Parameters(CellIdParams {
+            cell_id,
+            notebook_id: None,
+        }))
+        .await,
+    );
     assert_eq!(v["needs_notebook_trust"], true);
     assert_eq!(v["dangerous_functions"], serde_json::json!(["load"]));
     // The window hears about the block, and the cell never starts running
@@ -1359,7 +1475,13 @@ async fn expression_with_a_label_from_no_cell_is_reported() {
 async fn expression_can_use_a_cells_output_label() {
     let s = build_server();
     let cell_id = add_code_cell(&s, "6 * 7;").await;
-    let v = parse_ok(s.run_cell(Parameters(CellIdParams { cell_id, notebook_id: None })).await);
+    let v = parse_ok(
+        s.run_cell(Parameters(CellIdParams {
+            cell_id,
+            notebook_id: None,
+        }))
+        .await,
+    );
     assert_eq!(v["execution_count"], 1);
     let v = parse_ok(
         s.evaluate_expression(Parameters(EvaluateExpressionParams {
@@ -1401,7 +1523,10 @@ async fn listed_path(s: &AximarMcpServer) -> (serde_json::Value, serde_json::Val
 }
 
 fn path_params(path: &std::path::Path) -> Parameters<NotebookPathParams> {
-    Parameters(NotebookPathParams { path: path.to_string_lossy().to_string(), notebook_id: None })
+    Parameters(NotebookPathParams {
+        path: path.to_string_lossy().to_string(),
+        notebook_id: None,
+    })
 }
 
 #[tokio::test]
@@ -1410,10 +1535,16 @@ async fn open_save_and_template_record_the_path() {
     let a = dir.path().join("a.macnb");
     let b = dir.path().join("b.macnb");
     let s = build_server();
-    assert_eq!(listed_path(&s).await, (serde_json::Value::Null, "Untitled".into()));
+    assert_eq!(
+        listed_path(&s).await,
+        (serde_json::Value::Null, "Untitled".into())
+    );
 
     parse_ok(s.save_notebook(path_params(&a)).await);
-    assert_eq!(listed_path(&s).await, (a.to_string_lossy().into(), "a.macnb".into()));
+    assert_eq!(
+        listed_path(&s).await,
+        (a.to_string_lossy().into(), "a.macnb".into())
+    );
 
     // A template no longer matches the file
     parse_ok(
@@ -1423,14 +1554,23 @@ async fn open_save_and_template_record_the_path() {
         }))
         .await,
     );
-    assert_eq!(listed_path(&s).await, (serde_json::Value::Null, "Untitled".into()));
+    assert_eq!(
+        listed_path(&s).await,
+        (serde_json::Value::Null, "Untitled".into())
+    );
 
     parse_ok(s.open_notebook(path_params(&a)).await);
-    assert_eq!(listed_path(&s).await, (a.to_string_lossy().into(), "a.macnb".into()));
+    assert_eq!(
+        listed_path(&s).await,
+        (a.to_string_lossy().into(), "a.macnb".into())
+    );
 
     // Save as a new file
     parse_ok(s.save_notebook(path_params(&b)).await);
-    assert_eq!(listed_path(&s).await, (b.to_string_lossy().into(), "b.macnb".into()));
+    assert_eq!(
+        listed_path(&s).await,
+        (b.to_string_lossy().into(), "b.macnb".into())
+    );
 }
 
 #[tokio::test]
@@ -1442,7 +1582,10 @@ async fn connected_open_tells_the_window_the_path_after_the_cells() {
     seen.lock().unwrap().clear();
 
     parse_ok(s.open_notebook(path_params(&a)).await);
-    assert_eq!(*seen.lock().unwrap(), vec!["notebook_replaced", "path_changed"]);
+    assert_eq!(
+        *seen.lock().unwrap(),
+        vec!["notebook_replaced", "path_changed"]
+    );
 }
 
 #[tokio::test]
@@ -1460,7 +1603,13 @@ async fn session_runs_in_the_notebooks_folder() {
     let s = build_server_allow_dangerous();
     parse_ok(s.open_notebook(path_params(&notebook)).await);
     let cell_id = add_code_cell(&s, "load(\"helpers.mac\")$ h(1);").await;
-    let v = parse_ok(s.run_cell(Parameters(CellIdParams { cell_id, notebook_id: None })).await);
+    let v = parse_ok(
+        s.run_cell(Parameters(CellIdParams {
+            cell_id,
+            notebook_id: None,
+        }))
+        .await,
+    );
     assert_eq!(v["latex"], "2", "{v:#}");
 }
 
@@ -1470,7 +1619,10 @@ async fn session_runs_in_the_notebooks_folder() {
 async fn completion_lists_a_name_from_several_packages_once() {
     let s = build_server();
     let v = parse_ok(
-        s.complete_function(Parameters(CompleteFunctionParams { prefix: "gradien".into() })).await,
+        s.complete_function(Parameters(CompleteFunctionParams {
+            prefix: "gradien".into(),
+        }))
+        .await,
     );
     let gradients = v["completions"]
         .as_array()
@@ -1485,59 +1637,113 @@ async fn completion_lists_a_name_from_several_packages_once() {
 async fn docs_for_a_function_only_a_package_provides() {
     let s = build_server();
     let v = parse_ok(
-        s.get_function_docs(Parameters(GetFunctionDocsParams { name: "jcubic".into() })).await,
+        s.get_function_docs(Parameters(GetFunctionDocsParams {
+            name: "jcubic".into(),
+        }))
+        .await,
     );
     assert_eq!(v["undocumented"], true);
     let description = v["description"].as_str().unwrap();
-    assert!(description.contains(&format!("load(\"{}\")", v["package"].as_str().unwrap())), "{description}");
+    assert!(
+        description.contains(&format!("load(\"{}\")", v["package"].as_str().unwrap())),
+        "{description}"
+    );
 }
 
 #[tokio::test]
 async fn a_misspelt_package_function_suggests_it() {
     let s = build_server();
     let msg = s
-        .get_function_docs(Parameters(GetFunctionDocsParams { name: "jcubik".into() }))
+        .get_function_docs(Parameters(GetFunctionDocsParams {
+            name: "jcubik".into(),
+        }))
         .await
         .expect_err("jcubik is not a function");
-    assert!(msg.contains("Did you mean") && msg.contains("jcubic"), "{msg}");
+    assert!(
+        msg.contains("Did you mean") && msg.contains("jcubic"),
+        "{msg}"
+    );
 }
 
 #[tokio::test]
 async fn search_includes_undocumented_package_functions() {
     let s = build_server();
     let v = parse_ok(
-        s.search_functions(Parameters(SearchFunctionsParams { query: "jcubic".into() })).await,
+        s.search_functions(Parameters(SearchFunctionsParams {
+            query: "jcubic".into(),
+        }))
+        .await,
     );
-    let hit = v["results"].as_array().unwrap().iter().find(|r| r["name"] == "jcubic").cloned();
+    let hit = v["results"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|r| r["name"] == "jcubic")
+        .cloned();
     assert_eq!(hit.expect("jcubic is found")["undocumented"], true);
 }
 
 #[tokio::test]
 async fn search_labels_hits_by_their_docs_and_scores_only_ranked_ones() {
     let s = build_server();
-    let v = parse_ok(s.search_functions(Parameters(SearchFunctionsParams { query: "pdf_".into() })).await);
+    let v = parse_ok(
+        s.search_functions(Parameters(SearchFunctionsParams {
+            query: "pdf_".into(),
+        }))
+        .await,
+    );
     let results = v["results"].as_array().unwrap();
     // Found by name after the ranking, but documented
-    let student = results.iter().find(|r| r["name"] == "pdf_student_t").expect("pdf_student_t is found");
+    let student = results
+        .iter()
+        .find(|r| r["name"] == "pdf_student_t")
+        .expect("pdf_student_t is found");
     assert!(student.get("undocumented").is_none(), "{student:#}");
     // Scores only for the ranked hits, which come first
-    let first_unscored = results.iter().position(|r| r.get("score").is_none()).unwrap();
-    assert!(results[first_unscored..].iter().all(|r| r.get("score").is_none()), "{v:#}");
+    let first_unscored = results
+        .iter()
+        .position(|r| r.get("score").is_none())
+        .unwrap();
+    assert!(
+        results[first_unscored..]
+            .iter()
+            .all(|r| r.get("score").is_none()),
+        "{v:#}"
+    );
 }
 
 #[tokio::test]
 async fn completion_names_every_package_that_provides_a_function() {
     let s = build_server();
-    let v = parse_ok(s.complete_function(Parameters(CompleteFunctionParams { prefix: "gradien".into() })).await);
-    let gradient = v["completions"].as_array().unwrap().iter().find(|c| c["name"] == "gradient").cloned().unwrap();
+    let v = parse_ok(
+        s.complete_function(Parameters(CompleteFunctionParams {
+            prefix: "gradien".into(),
+        }))
+        .await,
+    );
+    let gradient = v["completions"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|c| c["name"] == "gradient")
+        .cloned()
+        .unwrap();
     let description = gradient["description"].as_str().unwrap();
-    assert!(description.contains("calculus/optmiz") && description.contains("calculus/qual"), "{description}");
+    assert!(
+        description.contains("calculus/optmiz") && description.contains("calculus/qual"),
+        "{description}"
+    );
 }
 
 #[tokio::test]
 async fn undocumented_function_docs_read_cleanly() {
     let s = build_server();
-    let v = parse_ok(s.get_function_docs(Parameters(GetFunctionDocsParams { name: "jcubic".into() })).await);
+    let v = parse_ok(
+        s.get_function_docs(Parameters(GetFunctionDocsParams {
+            name: "jcubic".into(),
+        }))
+        .await,
+    );
     assert_eq!(
         v["description"],
         "From the affine/macbasic package. It has no documentation. Load it with load(\"affine/macbasic\")$."

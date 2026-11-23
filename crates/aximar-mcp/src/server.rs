@@ -5,22 +5,24 @@ use rmcp::model::{Implementation, ServerCapabilities, ServerInfo};
 use rmcp::{tool, tool_handler, tool_router};
 use tokio::sync::Mutex;
 
-use aximar_core::commands::{CommandEffect, EffectSink, NotebookCommand};
-use aximar_core::safety::{self, TrustDecision, TrustMode};
 use aximar_core::catalog::packages::PackageCatalog;
 use aximar_core::catalog::queries::{self as catalog_queries, FunctionDocs};
 use aximar_core::catalog::search::Catalog;
+use aximar_core::commands::{CommandEffect, EffectSink, NotebookCommand};
+use aximar_core::evaluation::{
+    check_cell_trust, evaluate_cell, prepare_input, run_all, translate_input, CellRun,
+    CellRunStatus, InputError, RunAllOptions, RunAllReport, StopReason,
+};
+use aximar_core::maxima::labels::LabelContext;
 use aximar_core::maxima::output::OutputSink;
 use aximar_core::maxima::protocol;
+use aximar_core::maxima::types::EvalResult;
 use aximar_core::notebooks::{data as notebook_data, io as notebook_io};
 use aximar_core::registry::{NotebookContextRef, NotebookRegistry};
-use aximar_core::maxima::labels::LabelContext;
-use aximar_core::maxima::types::EvalResult;
-use aximar_core::evaluation::{
-    check_cell_trust, evaluate_cell, prepare_input, run_all, translate_input, InputError, CellRun, CellRunStatus, RunAllOptions, RunAllReport,
-    StopReason,
+use aximar_core::safety::{self, TrustDecision, TrustMode};
+use aximar_core::session_ops::{
+    self, SessionSettings, SessionSettingsProvider, SessionStatusCallback,
 };
-use aximar_core::session_ops::{self, SessionSettings, SessionSettingsProvider, SessionStatusCallback};
 
 use crate::capture::CaptureOutputSink;
 use crate::notebook::CellType;
@@ -35,6 +37,20 @@ use crate::params::*;
 pub type ProcessSinkFactory =
     Arc<dyn Fn(&str, &Arc<CaptureOutputSink>) -> Arc<dyn OutputSink> + Send + Sync>;
 
+/// Called with a notebook ID and each change made to that notebook.
+pub type NotebookChangeCallback = Arc<dyn Fn(&str, CommandEffect) + Send + Sync>;
+
+/// Called with a notebook ID and a lifecycle event, such as "created".
+pub type NotebookLifecycleCallback = Arc<dyn Fn(&str, &str) + Send + Sync>;
+
+/// How a connected-mode server reaches the window that embeds it.
+pub struct ConnectedHooks {
+    pub process_sink_factory: ProcessSinkFactory,
+    pub on_notebook_change: NotebookChangeCallback,
+    pub on_notebook_lifecycle: NotebookLifecycleCallback,
+    pub on_session_status: SessionStatusCallback,
+}
+
 // ── Shared server core ────────────────────────────────────────────────
 
 /// Forwards effects to the notebook-change callback, which queues them for
@@ -42,7 +58,12 @@ pub type ProcessSinkFactory =
 pub(crate) struct ClientEffects<'a>(&'a ServerCore);
 
 impl EffectSink for ClientEffects<'_> {
-    fn effect(&self, notebook_id: &str, _notebook: &aximar_core::notebook::Notebook, effect: &CommandEffect) {
+    fn effect(
+        &self,
+        notebook_id: &str,
+        _notebook: &aximar_core::notebook::Notebook,
+        effect: &CommandEffect,
+    ) {
         self.0.notify_notebook_change(notebook_id, effect.clone());
     }
 }
@@ -83,8 +104,8 @@ pub struct ServerCore {
     pub(crate) packages: Arc<PackageCatalog>,
     pub(crate) session_settings: SessionSettingsProvider,
     pub(crate) process_sink_factory: ProcessSinkFactory,
-    pub(crate) on_notebook_change: Option<Arc<dyn Fn(&str, CommandEffect) + Send + Sync>>,
-    pub(crate) on_notebook_lifecycle: Option<Arc<dyn Fn(&str, &str) + Send + Sync>>,
+    pub(crate) on_notebook_change: Option<NotebookChangeCallback>,
+    pub(crate) on_notebook_lifecycle: Option<NotebookLifecycleCallback>,
     pub(crate) on_session_status: Option<SessionStatusCallback>,
     /// Interactive in connected mode, where the notebook's trust flag
     /// decides; headless when standalone.
@@ -121,20 +142,17 @@ impl ServerCore {
         catalog: Arc<Catalog>,
         packages: Arc<PackageCatalog>,
         session_settings: SessionSettingsProvider,
-        process_sink_factory: ProcessSinkFactory,
-        on_notebook_change: Arc<dyn Fn(&str, CommandEffect) + Send + Sync>,
-        on_notebook_lifecycle: Arc<dyn Fn(&str, &str) + Send + Sync>,
-        on_session_status: SessionStatusCallback,
+        hooks: ConnectedHooks,
     ) -> Self {
         Self {
             registry,
             catalog,
             packages,
             session_settings,
-            process_sink_factory,
-            on_notebook_change: Some(on_notebook_change),
-            on_notebook_lifecycle: Some(on_notebook_lifecycle),
-            on_session_status: Some(on_session_status),
+            process_sink_factory: hooks.process_sink_factory,
+            on_notebook_change: Some(hooks.on_notebook_change),
+            on_notebook_lifecycle: Some(hooks.on_notebook_lifecycle),
+            on_session_status: Some(hooks.on_session_status),
             trust_mode: TrustMode::Interactive,
         }
     }
@@ -164,7 +182,11 @@ impl ServerCore {
     }
 
     /// Record or clear a notebook's file path, and tell the window.
-    pub(crate) async fn record_path(&self, notebook_id: &str, path: Option<&str>) -> Result<(), String> {
+    pub(crate) async fn record_path(
+        &self,
+        notebook_id: &str,
+        path: Option<&str>,
+    ) -> Result<(), String> {
         let effect = self
             .registry
             .lock()
@@ -249,7 +271,11 @@ impl ServerCore {
     pub(crate) async fn do_get_function_docs(&self, name: &str) -> Result<String, String> {
         match catalog_queries::docs(&self.catalog, &self.packages, name) {
             FunctionDocs::Documented { package, entry } => {
-                let docs = if entry.body_md.is_empty() { &entry.summary } else { &entry.body_md };
+                let docs = if entry.body_md.is_empty() {
+                    &entry.summary
+                } else {
+                    &entry.body_md
+                };
                 success_json(&serde_json::json!({
                     "name": name,
                     "signatures": [entry.signature],
@@ -260,7 +286,10 @@ impl ServerCore {
                     "package": package,
                 }))
             }
-            FunctionDocs::InPackages { packages, signature } => {
+            FunctionDocs::InPackages {
+                packages,
+                signature,
+            } => {
                 let description = format!(
                     "{} It has no documentation. {}",
                     catalog_queries::provided_by(&packages),
@@ -407,7 +436,9 @@ impl ServerCore {
             return error_result(self.blocked_message(&functions));
         }
 
-        let outcome = self.evaluate_prepared(&ctx, expression, (!maxima_labels).then_some(&labels)).await;
+        let outcome = self
+            .evaluate_prepared(&ctx, expression, (!maxima_labels).then_some(&labels))
+            .await;
 
         // Record the client cell's run, with its label when it has an output
         if let (Some(cell), Some(count)) = (&cell, count) {
@@ -415,7 +446,10 @@ impl ServerCore {
                 Ok(result) if !result.is_error => result.output_label.clone(),
                 _ => None,
             };
-            ctx.notebook.lock().await.record_client_run(&cell.id, count, label);
+            ctx.notebook
+                .lock()
+                .await
+                .record_client_run(&cell.id, count, label);
         }
 
         match outcome {
@@ -432,11 +466,13 @@ impl ServerCore {
                 "execution_count": count,
             })),
             // A client cell shows a label with no value as its own error
-            Err(EvalFailure::Input(message)) if count.is_some() => success_json(&serde_json::json!({
-                "error": message,
-                "is_error": true,
-                "execution_count": count,
-            })),
+            Err(EvalFailure::Input(message)) if count.is_some() => {
+                success_json(&serde_json::json!({
+                    "error": message,
+                    "is_error": true,
+                    "execution_count": count,
+                }))
+            }
             Err(EvalFailure::Input(message)) => error_result(message),
             Err(EvalFailure::Other(message)) => error_result(message),
         }
@@ -685,21 +721,9 @@ impl AximarMcpServer {
         catalog: Arc<Catalog>,
         packages: Arc<PackageCatalog>,
         session_settings: SessionSettingsProvider,
-        process_sink_factory: ProcessSinkFactory,
-        on_notebook_change: Arc<dyn Fn(&str, CommandEffect) + Send + Sync>,
-        on_notebook_lifecycle: Arc<dyn Fn(&str, &str) + Send + Sync>,
-        on_session_status: SessionStatusCallback,
+        hooks: ConnectedHooks,
     ) -> Self {
-        let core = ServerCore::new_connected(
-            registry,
-            catalog,
-            packages,
-            session_settings,
-            process_sink_factory,
-            on_notebook_change,
-            on_notebook_lifecycle,
-            on_session_status,
-        );
+        let core = ServerCore::new_connected(registry, catalog, packages, session_settings, hooks);
         Self::from_core(core)
     }
 
@@ -718,7 +742,9 @@ impl AximarMcpServer {
 impl AximarMcpServer {
     // ── Documentation tools ───────────────────────────────────────
 
-    #[tool(description = "Search the Maxima function catalog by name or description. Returns matching functions with signatures and brief descriptions. Searches across 2500+ built-in and package functions. Supports partial name matching (e.g. \"integ\" finds integrate) and description keywords (e.g. \"matrix inverse\").")]
+    #[tool(
+        description = "Search the Maxima function catalog by name or description. Returns matching functions with signatures and brief descriptions. Searches across 2500+ built-in and package functions. Supports partial name matching (e.g. \"integ\" finds integrate) and description keywords (e.g. \"matrix inverse\")."
+    )]
     async fn search_functions(
         &self,
         Parameters(params): Parameters<SearchFunctionsParams>,
@@ -726,7 +752,9 @@ impl AximarMcpServer {
         self.core.do_search_functions(&params.query).await
     }
 
-    #[tool(description = "Get full documentation for a Maxima function, including usage, examples, and related functions. Falls back to a catalog summary if full docs are unavailable. Suggests similar function names if the exact name is not found.")]
+    #[tool(
+        description = "Get full documentation for a Maxima function, including usage, examples, and related functions. Falls back to a catalog summary if full docs are unavailable. Suggests similar function names if the exact name is not found."
+    )]
     async fn get_function_docs(
         &self,
         Parameters(params): Parameters<GetFunctionDocsParams>,
@@ -734,12 +762,16 @@ impl AximarMcpServer {
         self.core.do_get_function_docs(&params.name).await
     }
 
-    #[tool(description = "List Maxima functions that are deprecated, obsolete, or superseded. Returns names, descriptions, and suggested replacements where available. Consider calling this at the start of a session to avoid using obsolete functions in your notebook.")]
+    #[tool(
+        description = "List Maxima functions that are deprecated, obsolete, or superseded. Returns names, descriptions, and suggested replacements where available. Consider calling this at the start of a session to avoid using obsolete functions in your notebook."
+    )]
     async fn list_deprecated(&self) -> Result<String, String> {
         self.core.do_list_deprecated().await
     }
 
-    #[tool(description = "Autocomplete a Maxima function name prefix. Returns matching function names with signatures. Includes both built-in and package functions alongside each other.")]
+    #[tool(
+        description = "Autocomplete a Maxima function name prefix. Returns matching function names with signatures. Includes both built-in and package functions alongside each other."
+    )]
     async fn complete_function(
         &self,
         Parameters(params): Parameters<CompleteFunctionParams>,
@@ -749,7 +781,9 @@ impl AximarMcpServer {
 
     // ── Package tools ─────────────────────────────────────────────
 
-    #[tool(description = "Search available Maxima packages by name or description. Returns packages with their load paths and function lists. Load a package in a code cell with load(\"name\")$ before using its functions.")]
+    #[tool(
+        description = "Search available Maxima packages by name or description. Returns packages with their load paths and function lists. Load a package in a code cell with load(\"name\")$ before using its functions."
+    )]
     async fn search_packages(
         &self,
         Parameters(params): Parameters<SearchPackagesParams>,
@@ -757,12 +791,16 @@ impl AximarMcpServer {
         self.core.do_search_packages(&params.query).await
     }
 
-    #[tool(description = "List all available Maxima packages that can be loaded with load(\"name\")$. Use get_package to see what functions a specific package provides.")]
+    #[tool(
+        description = "List all available Maxima packages that can be loaded with load(\"name\")$. Use get_package to see what functions a specific package provides."
+    )]
     async fn list_packages(&self) -> Result<String, String> {
         self.core.do_list_packages().await
     }
 
-    #[tool(description = "Get details of a specific Maxima package, including description and list of functions it provides. Load a package in a code cell with load(\"name\")$ before using its functions.")]
+    #[tool(
+        description = "Get details of a specific Maxima package, including description and list of functions it provides. Load a package in a code cell with load(\"name\")$ before using its functions."
+    )]
     async fn get_package(
         &self,
         Parameters(params): Parameters<GetPackageParams>,
@@ -782,7 +820,9 @@ impl AximarMcpServer {
         }))
     }
 
-    #[tool(description = "Create a new notebook with its own independent Maxima session. Returns the new notebook's ID. Variables and definitions in one notebook are isolated from other notebooks.")]
+    #[tool(
+        description = "Create a new notebook with its own independent Maxima session. Returns the new notebook's ID. Variables and definitions in one notebook are isolated from other notebooks."
+    )]
     async fn create_notebook(&self) -> Result<String, String> {
         let mut reg = self.core.registry.lock().await;
         let id = reg.create();
@@ -791,7 +831,9 @@ impl AximarMcpServer {
         success_json(&serde_json::json!({ "notebook_id": id }))
     }
 
-    #[tool(description = "Close a notebook and stop its Maxima session. Cannot close the last notebook. In the GUI, the user will be prompted to confirm if there are unsaved changes.")]
+    #[tool(
+        description = "Close a notebook and stop its Maxima session. Cannot close the last notebook. In the GUI, the user will be prompted to confirm if there are unsaved changes."
+    )]
     async fn close_notebook(
         &self,
         Parameters(params): Parameters<CloseNotebookParams>,
@@ -806,7 +848,8 @@ impl AximarMcpServer {
 
         // In connected mode, emit close_requested and let the frontend mediate
         if self.core.on_notebook_lifecycle.is_some() {
-            self.core.notify_lifecycle(&params.notebook_id, "close_requested");
+            self.core
+                .notify_lifecycle(&params.notebook_id, "close_requested");
             return success_json(&serde_json::json!({
                 "status": "pending_confirmation",
                 "notebook_id": params.notebook_id,
@@ -836,7 +879,9 @@ impl AximarMcpServer {
         }
     }
 
-    #[tool(description = "Switch the active notebook. Most tools default to the active notebook when notebook_id is omitted.")]
+    #[tool(
+        description = "Switch the active notebook. Most tools default to the active notebook when notebook_id is omitted."
+    )]
     async fn switch_notebook(
         &self,
         Parameters(params): Parameters<SwitchNotebookParams>,
@@ -845,7 +890,8 @@ impl AximarMcpServer {
         match reg.set_active(&params.notebook_id) {
             Ok(()) => {
                 drop(reg);
-                self.core.notify_lifecycle(&params.notebook_id, "active_changed");
+                self.core
+                    .notify_lifecycle(&params.notebook_id, "active_changed");
                 success_json(&serde_json::json!({
                     "active_notebook_id": params.notebook_id,
                 }))
@@ -856,12 +902,17 @@ impl AximarMcpServer {
 
     // ── Cell management tools ─────────────────────────────────────
 
-    #[tool(description = "List all cells in the notebook with their IDs, types, status, and content preview. Shows a truncated preview of each cell's input and output. Use get_cell for full content.")]
+    #[tool(
+        description = "List all cells in the notebook with their IDs, types, status, and content preview. Shows a truncated preview of each cell's input and output. Use get_cell for full content."
+    )]
     async fn list_cells(
         &self,
         Parameters(params): Parameters<NotebookIdParam>,
     ) -> Result<String, String> {
-        let ctx = self.core.resolve_context(params.notebook_id.as_deref()).await?;
+        let ctx = self
+            .core
+            .resolve_context(params.notebook_id.as_deref())
+            .await?;
         let nb = ctx.notebook.lock().await;
         let summaries: Vec<CellSummary> = nb
             .cells()
@@ -878,12 +929,17 @@ impl AximarMcpServer {
         success_json(&summaries)
     }
 
-    #[tool(description = "Get full details of a specific cell, including its input, output, status, and raw Maxima I/O log. Output includes text_output (print statements, warnings, provisos), LaTeX-rendered result, plot SVGs, and any errors.")]
+    #[tool(
+        description = "Get full details of a specific cell, including its input, output, status, and raw Maxima I/O log. Output includes text_output (print statements, warnings, provisos), LaTeX-rendered result, plot SVGs, and any errors."
+    )]
     async fn get_cell(
         &self,
         Parameters(params): Parameters<CellIdParams>,
     ) -> Result<String, String> {
-        let ctx = self.core.resolve_context(params.notebook_id.as_deref()).await?;
+        let ctx = self
+            .core
+            .resolve_context(params.notebook_id.as_deref())
+            .await?;
         let nb = ctx.notebook.lock().await;
         match nb.get_cell(&params.cell_id) {
             Some(cell) => success_json(cell),
@@ -891,18 +947,23 @@ impl AximarMcpServer {
         }
     }
 
-    #[tool(description = "Add a new cell to the notebook. Returns the new cell's ID.
+    #[tool(
+        description = "Add a new cell to the notebook. Returns the new cell's ID.
 
 Unicode Greek letters (α, β, γ, θ, π, etc.) are supported in code cells and translated to Maxima symbols automatically. For markdown cells: use real newlines (not literal \\n) for line breaks, and single backslashes for LaTeX commands (e.g. \\sin, \\varphi).
 
 Output works like normal Maxima: statements ending with `;` display their result, statements ending with `$` are silent. The last statement's result is rendered as LaTeX when it ends with `;`. End the last statement with `$` to suppress all output.
 
-Best practice: run each cell immediately after creating it (using run_cell) to verify the output before proceeding.")]
+Best practice: run each cell immediately after creating it (using run_cell) to verify the output before proceeding."
+    )]
     async fn add_cell(
         &self,
         Parameters(params): Parameters<AddCellParams>,
     ) -> Result<String, String> {
-        let ctx = self.core.resolve_context(params.notebook_id.as_deref()).await?;
+        let ctx = self
+            .core
+            .resolve_context(params.notebook_id.as_deref())
+            .await?;
         let cell_type = match params.cell_type.as_deref() {
             Some("markdown") => CellType::Markdown,
             _ => CellType::Code,
@@ -921,18 +982,23 @@ Best practice: run each cell immediately after creating it (using run_cell) to v
         success_json(&serde_json::json!({ "cell_id": cell_id }))
     }
 
-    #[tool(description = "Update a cell's content, type, or both in a single call. Provide only the fields you want to change.
+    #[tool(
+        description = "Update a cell's content, type, or both in a single call. Provide only the fields you want to change.
 
 Unicode Greek letters (α, β, γ, θ, π, etc.) are supported in code cells and translated to Maxima symbols automatically. For markdown cells: use real newlines (not literal \\n) for line breaks, and single backslashes for LaTeX commands (e.g. \\sin, \\varphi).
 
 Output works like normal Maxima: statements ending with `;` display their result, statements ending with `$` are silent. The last statement's result is rendered as LaTeX when it ends with `;`. End the last statement with `$` to suppress all output.
 
-Best practice: run each cell immediately after updating it (using run_cell) to verify the output before moving on.")]
+Best practice: run each cell immediately after updating it (using run_cell) to verify the output before moving on."
+    )]
     async fn update_cell(
         &self,
         Parameters(params): Parameters<UpdateCellParams>,
     ) -> Result<String, String> {
-        let ctx = self.core.resolve_context(params.notebook_id.as_deref()).await?;
+        let ctx = self
+            .core
+            .resolve_context(params.notebook_id.as_deref())
+            .await?;
         let mut nb = ctx.notebook.lock().await;
         let mut last_effect = None;
         // Apply input update if provided
@@ -970,7 +1036,10 @@ Best practice: run each cell immediately after updating it (using run_cell) to v
         &self,
         Parameters(params): Parameters<CellIdParams>,
     ) -> Result<String, String> {
-        let ctx = self.core.resolve_context(params.notebook_id.as_deref()).await?;
+        let ctx = self
+            .core
+            .resolve_context(params.notebook_id.as_deref())
+            .await?;
         let mut nb = ctx.notebook.lock().await;
         let effect = nb.apply(NotebookCommand::DeleteCell {
             cell_id: params.cell_id.clone(),
@@ -978,9 +1047,7 @@ Best practice: run each cell immediately after updating it (using run_cell) to v
         drop(nb);
         self.core.notify_notebook_change(&ctx.id, effect.clone());
         match effect {
-            CommandEffect::NoOp { reason } => {
-                error_result(reason)
-            }
+            CommandEffect::NoOp { reason } => error_result(reason),
             _ => success_json(&serde_json::json!({ "deleted": true })),
         }
     }
@@ -990,7 +1057,10 @@ Best practice: run each cell immediately after updating it (using run_cell) to v
         &self,
         Parameters(params): Parameters<MoveCellParams>,
     ) -> Result<String, String> {
-        let ctx = self.core.resolve_context(params.notebook_id.as_deref()).await?;
+        let ctx = self
+            .core
+            .resolve_context(params.notebook_id.as_deref())
+            .await?;
         let mut nb = ctx.notebook.lock().await;
         let effect = nb.apply(NotebookCommand::MoveCell {
             cell_id: params.cell_id.clone(),
@@ -999,27 +1069,30 @@ Best practice: run each cell immediately after updating it (using run_cell) to v
         drop(nb);
         self.core.notify_notebook_change(&ctx.id, effect.clone());
         match effect {
-            CommandEffect::NoOp { reason } => {
-                error_result(reason)
-            }
+            CommandEffect::NoOp { reason } => error_result(reason),
             _ => success_json(&serde_json::json!({ "moved": true })),
         }
     }
 
     // ── Execution tools ───────────────────────────────────────────
 
-    #[tool(description = "Execute a notebook cell. Auto-starts the Maxima session if needed. Returns the evaluation result including text output, LaTeX, plots, and errors.
+    #[tool(
+        description = "Execute a notebook cell. Auto-starts the Maxima session if needed. Returns the evaluation result including text output, LaTeX, plots, and errors.
 
 Output works like normal Maxima: statements ending with `;` display their result, statements ending with `$` are silent. The last statement's result is rendered as LaTeX when it ends with `;`. End the last statement with `$` to suppress all output.
 
 Plots: plot2d and plot3d produce inline SVG returned in the result. Prefer these over the draw package, which outputs to gnuplot directly and won't be captured.
 
-Best practice: run each cell immediately after creating it before moving on to the next. This ensures earlier definitions are available to later cells and lets you catch errors early.")]
+Best practice: run each cell immediately after creating it before moving on to the next. This ensures earlier definitions are available to later cells and lets you catch errors early."
+    )]
     async fn run_cell(
         &self,
         Parameters(params): Parameters<CellIdParams>,
     ) -> Result<String, String> {
-        let ctx = self.core.resolve_context(params.notebook_id.as_deref()).await?;
+        let ctx = self
+            .core
+            .resolve_context(params.notebook_id.as_deref())
+            .await?;
 
         // The trust check; in connected mode a blocked cell also shows the
         // window's trust banner
@@ -1060,51 +1133,48 @@ Best practice: run each cell immediately after creating it before moving on to t
         )
         .await
         {
-            Ok(result) => {
-                success_json(&serde_json::json!({
-                    "cell_id": params.cell_id,
-                    "execution_count": result.execution_count,
-                    "text_output": result.cell_output.text_output,
-                    "latex": result.cell_output.latex,
-                    "plot_svg": result.cell_output.plot_svg,
-                    "plot_data": result.cell_output.plot_data,
-                    "image_png": result.cell_output.image_png,
-                    "error": result.cell_output.error,
-                    "is_error": result.cell_output.is_error,
-                    "duration_ms": result.cell_output.duration_ms,
-                    "output_label": result.cell_output.output_label,
-                }))
-            }
-            Err(AppError::CellIsRaw) => {
-                success_json(&serde_json::json!({
-                    "cell_id": params.cell_id,
-                    "message": "Raw cell: nothing to execute"
-                }))
-            }
-            Err(AppError::CellIsMarkdown) => {
-                success_json(&serde_json::json!({
-                    "cell_id": params.cell_id,
-                    "message": "Markdown cell — nothing to execute"
-                }))
-            }
-            Err(AppError::EmptyInput) => {
-                success_json(&serde_json::json!({
-                    "cell_id": params.cell_id,
-                    "message": "Empty cell — nothing to execute"
-                }))
-            }
+            Ok(result) => success_json(&serde_json::json!({
+                "cell_id": params.cell_id,
+                "execution_count": result.execution_count,
+                "text_output": result.cell_output.text_output,
+                "latex": result.cell_output.latex,
+                "plot_svg": result.cell_output.plot_svg,
+                "plot_data": result.cell_output.plot_data,
+                "image_png": result.cell_output.image_png,
+                "error": result.cell_output.error,
+                "is_error": result.cell_output.is_error,
+                "duration_ms": result.cell_output.duration_ms,
+                "output_label": result.cell_output.output_label,
+            })),
+            Err(AppError::CellIsRaw) => success_json(&serde_json::json!({
+                "cell_id": params.cell_id,
+                "message": "Raw cell: nothing to execute"
+            })),
+            Err(AppError::CellIsMarkdown) => success_json(&serde_json::json!({
+                "cell_id": params.cell_id,
+                "message": "Markdown cell — nothing to execute"
+            })),
+            Err(AppError::EmptyInput) => success_json(&serde_json::json!({
+                "cell_id": params.cell_id,
+                "message": "Empty cell — nothing to execute"
+            })),
             Err(e) => error_result(format!("Evaluation failed: {e}")),
         }
     }
 
-    #[tool(description = "Execute all code cells in the notebook in order. Stops at the first cell that errors, fails to run, or is blocked because the notebook is untrusted; later cells are reported with status \"not_run\". Check the top-level `success` field: it is true only when every code cell ran without error. When it is false, `stop_reason` says why: \"error\", \"needs_trust\", \"failed\", or \"cancelled\" (the user stopped the run from the desktop window).
+    #[tool(
+        description = "Execute all code cells in the notebook in order. Stops at the first cell that errors, fails to run, or is blocked because the notebook is untrusted; later cells are reported with status \"not_run\". Check the top-level `success` field: it is true only when every code cell ran without error. When it is false, `stop_reason` says why: \"error\", \"needs_trust\", \"failed\", or \"cancelled\" (the user stopped the run from the desktop window).
 
-Each entry in `results` has a `status`: \"ok\" (ran cleanly), \"empty\" (nothing to execute), \"error\" (Maxima reported an error; see `error`), \"needs_trust\" (skipped because the notebook is untrusted; see `dangerous_functions` and trust the notebook in the GUI), \"failed\" (could not run; see `error`), or \"not_run\" (skipped because an earlier cell stopped the run). When building a notebook, prefer running cells individually with run_cell to verify each result before proceeding.")]
+Each entry in `results` has a `status`: \"ok\" (ran cleanly), \"empty\" (nothing to execute), \"error\" (Maxima reported an error; see `error`), \"needs_trust\" (skipped because the notebook is untrusted; see `dangerous_functions` and trust the notebook in the GUI), \"failed\" (could not run; see `error`), or \"not_run\" (skipped because an earlier cell stopped the run). When building a notebook, prefer running cells individually with run_cell to verify each result before proceeding."
+    )]
     async fn run_all_cells(
         &self,
         Parameters(params): Parameters<NotebookIdParam>,
     ) -> Result<String, String> {
-        let ctx = self.core.resolve_context(params.notebook_id.as_deref()).await?;
+        let ctx = self
+            .core
+            .resolve_context(params.notebook_id.as_deref())
+            .await?;
         if let Err(e) = self.core.ensure_session(&ctx).await {
             return error_result(format!("Failed to start session: {e}"));
         }
@@ -1120,21 +1190,29 @@ Each entry in `results` has a `status`: \"ok\" (ran cleanly), \"empty\" (nothing
         success_json(&run_all_summary(&report, self.core.trust_mode))
     }
 
-    #[tool(description = "Evaluate a Maxima expression without creating a notebook cell. Good for quick calculations and checks. Auto-starts the session if needed. The expression is ephemeral (no cell is created), but session state persists — variables and definitions set here are available to subsequent cells and expressions.
+    #[tool(
+        description = "Evaluate a Maxima expression without creating a notebook cell. Good for quick calculations and checks. Auto-starts the session if needed. The expression is ephemeral (no cell is created), but session state persists — variables and definitions set here are available to subsequent cells and expressions.
 
-Unicode Greek letters (α, β, γ, θ, π, etc.) are translated to Maxima symbols automatically. Statements ending with `;` display their result, statements ending with `$` are silent. The last statement's result is rendered as LaTeX when it ends with `;`. End the last statement with `$` to suppress all output.")]
+Unicode Greek letters (α, β, γ, θ, π, etc.) are translated to Maxima symbols automatically. Statements ending with `;` display their result, statements ending with `$` are silent. The last statement's result is rendered as LaTeX when it ends with `;`. End the last statement with `$` to suppress all output."
+    )]
     async fn evaluate_expression(
         &self,
         Parameters(params): Parameters<EvaluateExpressionParams>,
     ) -> Result<String, String> {
         self.core
-            .do_evaluate_expression(&params.expression, params.notebook_id.as_deref(), ExpressionLabels::Notebook)
+            .do_evaluate_expression(
+                &params.expression,
+                params.notebook_id.as_deref(),
+                ExpressionLabels::Notebook,
+            )
             .await
     }
 
     // ── Session tools ─────────────────────────────────────────────
 
-    #[tool(description = "Get the current Maxima session status: Starting, Ready, Busy, Stopped, or Error.")]
+    #[tool(
+        description = "Get the current Maxima session status: Starting, Ready, Busy, Stopped, or Error."
+    )]
     async fn get_session_status(
         &self,
         Parameters(params): Parameters<NotebookIdParam>,
@@ -1144,7 +1222,9 @@ Unicode Greek letters (α, β, γ, θ, π, etc.) are translated to Maxima symbol
             .await
     }
 
-    #[tool(description = "Restart the Maxima session. Kills the current process and starts a new one. All session state is lost, including variables, function definitions, and loaded packages. You will need to re-run cells or re-load packages after restarting.")]
+    #[tool(
+        description = "Restart the Maxima session. Kills the current process and starts a new one. All session state is lost, including variables, function definitions, and loaded packages. You will need to re-run cells or re-load packages after restarting."
+    )]
     async fn restart_session(
         &self,
         Parameters(params): Parameters<NotebookIdParam>,
@@ -1154,7 +1234,9 @@ Unicode Greek letters (α, β, γ, θ, π, etc.) are translated to Maxima symbol
             .await
     }
 
-    #[tool(description = "List all user-defined variables in the current Maxima session. Internal Maxima and package variables are filtered out — only variables you have explicitly assigned are shown.")]
+    #[tool(
+        description = "List all user-defined variables in the current Maxima session. Internal Maxima and package variables are filtered out — only variables you have explicitly assigned are shown."
+    )]
     async fn list_variables(
         &self,
         Parameters(params): Parameters<NotebookIdParam>,
@@ -1164,7 +1246,9 @@ Unicode Greek letters (α, β, γ, θ, π, etc.) are translated to Maxima symbol
             .await
     }
 
-    #[tool(description = "Remove a variable from the Maxima session (equivalent to `kill(name)` in Maxima). For reproducible notebooks, prefer adding a code cell with kill(name)$ instead, so the operation is visible and re-runnable.")]
+    #[tool(
+        description = "Remove a variable from the Maxima session (equivalent to `kill(name)` in Maxima). For reproducible notebooks, prefer adding a code cell with kill(name)$ instead, so the operation is visible and re-runnable."
+    )]
     async fn kill_variable(
         &self,
         Parameters(params): Parameters<KillVariableParams>,
@@ -1176,12 +1260,17 @@ Unicode Greek letters (α, β, γ, θ, π, etc.) are translated to Maxima symbol
 
     // ── Log tools ─────────────────────────────────────────────────
 
-    #[tool(description = "Get the raw Maxima I/O log for a specific cell, showing stdin/stdout/stderr streams. Useful for debugging unexpected output or protocol-level issues when a cell's parsed result doesn't match expectations.")]
+    #[tool(
+        description = "Get the raw Maxima I/O log for a specific cell, showing stdin/stdout/stderr streams. Useful for debugging unexpected output or protocol-level issues when a cell's parsed result doesn't match expectations."
+    )]
     async fn get_cell_output_log(
         &self,
         Parameters(params): Parameters<CellIdParams>,
     ) -> Result<String, String> {
-        let ctx = self.core.resolve_context(params.notebook_id.as_deref()).await?;
+        let ctx = self
+            .core
+            .resolve_context(params.notebook_id.as_deref())
+            .await?;
         let nb = ctx.notebook.lock().await;
         match nb.get_cell(&params.cell_id) {
             Some(cell) => {
@@ -1202,7 +1291,9 @@ Unicode Greek letters (α, β, γ, θ, π, etc.) are translated to Maxima symbol
         }
     }
 
-    #[tool(description = "Get the server-wide Maxima output log. Useful for debugging session startup or crash issues. Supports optional stream filter (\"stdout\", \"stderr\", or \"stdin\") and a limit on the number of entries returned.")]
+    #[tool(
+        description = "Get the server-wide Maxima output log. Useful for debugging session startup or crash issues. Supports optional stream filter (\"stdout\", \"stderr\", or \"stdin\") and a limit on the number of entries returned."
+    )]
     async fn get_server_log(
         &self,
         Parameters(params): Parameters<GetServerLogParams>,
@@ -1218,12 +1309,17 @@ Unicode Greek letters (α, β, γ, θ, π, etc.) are translated to Maxima symbol
 
     // ── Notebook I/O tools ────────────────────────────────────────
 
-    #[tool(description = "Save the current notebook to a file in Jupyter .ipynb format. The saved file is compatible with Jupyter and other .ipynb tools.")]
+    #[tool(
+        description = "Save the current notebook to a file in Jupyter .ipynb format. The saved file is compatible with Jupyter and other .ipynb tools."
+    )]
     async fn save_notebook(
         &self,
         Parameters(params): Parameters<NotebookPathParams>,
     ) -> Result<String, String> {
-        let ctx = self.core.resolve_context(params.notebook_id.as_deref()).await?;
+        let ctx = self
+            .core
+            .resolve_context(params.notebook_id.as_deref())
+            .await?;
         let nb = ctx.notebook.lock().await;
         let saved = notebook_io::save(std::path::Path::new(&params.path), &nb);
         drop(nb);
@@ -1241,12 +1337,17 @@ Unicode Greek letters (α, β, γ, θ, π, etc.) are translated to Maxima symbol
         }
     }
 
-    #[tool(description = "Open a Jupyter .ipynb notebook file and load it into the editor, replacing the current notebook state. Supports standard .ipynb format from Jupyter and other compatible tools.")]
+    #[tool(
+        description = "Open a Jupyter .ipynb notebook file and load it into the editor, replacing the current notebook state. Supports standard .ipynb format from Jupyter and other compatible tools."
+    )]
     async fn open_notebook(
         &self,
         Parameters(params): Parameters<NotebookPathParams>,
     ) -> Result<String, String> {
-        let ctx = self.core.resolve_context(params.notebook_id.as_deref()).await?;
+        let ctx = self
+            .core
+            .resolve_context(params.notebook_id.as_deref())
+            .await?;
         let path = std::path::Path::new(&params.path);
         match notebook_io::open(path, &self.core.catalog, &self.core.packages) {
             Ok(file) => {
@@ -1266,7 +1367,9 @@ Unicode Greek letters (α, β, γ, θ, π, etc.) are translated to Maxima symbol
         }
     }
 
-    #[tool(description = "List available notebook templates with their IDs, titles, and descriptions.")]
+    #[tool(
+        description = "List available notebook templates with their IDs, titles, and descriptions."
+    )]
     async fn list_templates(&self) -> Result<String, String> {
         let templates = notebook_data::list_templates();
         let items: Vec<serde_json::Value> = templates
@@ -1283,12 +1386,17 @@ Unicode Greek letters (α, β, γ, θ, π, etc.) are translated to Maxima symbol
         success_json(&serde_json::json!({ "templates": items }))
     }
 
-    #[tool(description = "Load a template into the notebook, replacing current content. Use list_templates first to see available template IDs and descriptions. Warning: this replaces all existing cells in the notebook.")]
+    #[tool(
+        description = "Load a template into the notebook, replacing current content. Use list_templates first to see available template IDs and descriptions. Warning: this replaces all existing cells in the notebook."
+    )]
     async fn load_template(
         &self,
         Parameters(params): Parameters<LoadTemplateParams>,
     ) -> Result<String, String> {
-        let ctx = self.core.resolve_context(params.notebook_id.as_deref()).await?;
+        let ctx = self
+            .core
+            .resolve_context(params.notebook_id.as_deref())
+            .await?;
         match notebook_data::template_file(&params.template_id) {
             Some(file) => {
                 let mut nb = ctx.notebook.lock().await;
@@ -1444,9 +1552,17 @@ fn trust_hint(mode: TrustMode) -> &'static str {
 /// Build the top-level `run_all_cells` response.
 pub(crate) fn run_all_summary(report: &RunAllReport, mode: TrustMode) -> serde_json::Value {
     let count = |statuses: &[CellRunStatus]| {
-        report.cells.iter().filter(|c| statuses.contains(&c.status)).count()
+        report
+            .cells
+            .iter()
+            .filter(|c| statuses.contains(&c.status))
+            .count()
     };
-    let cells_run = count(&[CellRunStatus::Ok, CellRunStatus::Empty, CellRunStatus::Error]);
+    let cells_run = count(&[
+        CellRunStatus::Ok,
+        CellRunStatus::Empty,
+        CellRunStatus::Error,
+    ]);
     let cells_not_run = count(&[CellRunStatus::NeedsTrust, CellRunStatus::NotRun]);
     let cells_total = report.cells.len();
 
@@ -1470,8 +1586,11 @@ pub(crate) fn run_all_summary(report: &RunAllReport, mode: TrustMode) -> serde_j
         _ => format!("All {cells_total} code cell(s) ran without error."),
     };
 
-    let results: Vec<serde_json::Value> =
-        report.cells.iter().map(|run| cell_run_entry(run, mode)).collect();
+    let results: Vec<serde_json::Value> = report
+        .cells
+        .iter()
+        .map(|run| cell_run_entry(run, mode))
+        .collect();
     serde_json::json!({
         "success": report.success(),
         "cells_total": cells_total,

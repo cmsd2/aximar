@@ -125,6 +125,12 @@ pub struct Notebook {
     trusted: bool,
 }
 
+impl Default for Notebook {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Notebook {
     pub fn new() -> Self {
         let initial_cell = Cell {
@@ -175,8 +181,20 @@ impl Notebook {
         self.trusted = trusted;
     }
 
-    pub fn add_cell(&mut self, cell_type: CellType, input: String, after_cell_id: Option<&str>, before_cell_id: Option<&str>) -> String {
-        self.add_cell_with_id(new_cell_id(), cell_type, input, after_cell_id, before_cell_id)
+    pub fn add_cell(
+        &mut self,
+        cell_type: CellType,
+        input: String,
+        after_cell_id: Option<&str>,
+        before_cell_id: Option<&str>,
+    ) -> String {
+        self.add_cell_with_id(
+            new_cell_id(),
+            cell_type,
+            input,
+            after_cell_id,
+            before_cell_id,
+        )
     }
 
     /// Like `add_cell` but uses the provided ID instead of generating one.
@@ -219,7 +237,12 @@ impl Notebook {
         id
     }
 
-    pub fn update_cell(&mut self, id: &str, input: Option<String>, cell_type: Option<CellType>) -> bool {
+    pub fn update_cell(
+        &mut self,
+        id: &str,
+        input: Option<String>,
+        cell_type: Option<CellType>,
+    ) -> bool {
         if let Some(cell) = self.get_cell_mut(id) {
             if let Some(input) = input {
                 cell.input = input;
@@ -272,7 +295,8 @@ impl Notebook {
 
     pub fn record_label(&mut self, execution_count: u32, label: String, cell_id: &str) {
         self.label_map.insert(execution_count, label);
-        self.label_cells.insert(execution_count, cell_id.to_string());
+        self.label_cells
+            .insert(execution_count, cell_id.to_string());
     }
 
     /// Start numbering afresh for a new Maxima process: forget every
@@ -384,7 +408,12 @@ impl Notebook {
                 before_cell_id,
             } => {
                 self.push_undo_snapshot();
-                let id = self.add_cell(cell_type, input, after_cell_id.as_deref(), before_cell_id.as_deref());
+                let id = self.add_cell(
+                    cell_type,
+                    input,
+                    after_cell_id.as_deref(),
+                    before_cell_id.as_deref(),
+                );
                 Ok(CommandEffect::CellAdded { cell_id: id })
             }
 
@@ -402,10 +431,7 @@ impl Notebook {
                 Ok(CommandEffect::CellDeleted { cell_id })
             }
 
-            NotebookCommand::MoveCell {
-                cell_id,
-                direction,
-            } => {
+            NotebookCommand::MoveCell { cell_id, direction } => {
                 // Pre-check if move is possible
                 let pos = self
                     .cells
@@ -481,7 +507,7 @@ impl Notebook {
                 } else {
                     CellStatus::Success
                 };
-                cell.output = Some(output);
+                cell.output = Some(*output);
                 cell.raw_output = raw_output;
                 // Not undoable — no snapshot pushed
                 Ok(CommandEffect::CellOutputUpdated { cell_id })
@@ -603,7 +629,15 @@ impl Notebook {
         self.trusted = false;
         // Numbering starts at 1 whatever the loaded outputs show: they came
         // from a session that no longer exists, and record no labels (#8)
-        for LoadedCell { id, cell_type, input, metadata, extra, output } in incoming {
+        for LoadedCell {
+            id,
+            cell_type,
+            input,
+            metadata,
+            extra,
+            output,
+        } in incoming
+        {
             let status = match &output {
                 Some(out) if out.is_error => CellStatus::Error,
                 Some(_) => CellStatus::Success,
@@ -663,12 +697,14 @@ mod tests {
     #[test]
     fn add_cell_basic() {
         let mut n = nb();
-        let effect = n.apply(NotebookCommand::AddCell {
-            cell_type: CellType::Code,
-            input: "x: 42;".into(),
-            after_cell_id: None,
-            before_cell_id: None,
-        }).unwrap();
+        let effect = n
+            .apply(NotebookCommand::AddCell {
+                cell_type: CellType::Code,
+                input: "x: 42;".into(),
+                after_cell_id: None,
+                before_cell_id: None,
+            })
+            .unwrap();
         assert!(matches!(effect, CommandEffect::CellAdded { .. }));
         assert_eq!(n.cells().len(), 2);
         assert_eq!(n.cells()[1].input, "x: 42;");
@@ -678,12 +714,14 @@ mod tests {
     fn add_cell_after() {
         let mut n = nb();
         let first = first_cell_id(&n);
-        let effect = n.apply(NotebookCommand::AddCell {
-            cell_type: CellType::Markdown,
-            input: "# Title".into(),
-            after_cell_id: Some(first.clone()),
-            before_cell_id: None,
-        }).unwrap();
+        let effect = n
+            .apply(NotebookCommand::AddCell {
+                cell_type: CellType::Markdown,
+                input: "# Title".into(),
+                after_cell_id: Some(first.clone()),
+                before_cell_id: None,
+            })
+            .unwrap();
         let new_id = match effect {
             CommandEffect::CellAdded { ref cell_id } => cell_id.clone(),
             _ => panic!("Expected CellAdded"),
@@ -697,12 +735,14 @@ mod tests {
     fn add_cell_before() {
         let mut n = nb();
         let first = first_cell_id(&n);
-        let effect = n.apply(NotebookCommand::AddCell {
-            cell_type: CellType::Code,
-            input: "before first".into(),
-            after_cell_id: None,
-            before_cell_id: Some(first.clone()),
-        }).unwrap();
+        let effect = n
+            .apply(NotebookCommand::AddCell {
+                cell_type: CellType::Code,
+                input: "before first".into(),
+                after_cell_id: None,
+                before_cell_id: Some(first.clone()),
+            })
+            .unwrap();
         let new_id = match effect {
             CommandEffect::CellAdded { ref cell_id } => cell_id.clone(),
             _ => panic!("Expected CellAdded"),
@@ -721,10 +761,13 @@ mod tests {
             input: "".into(),
             after_cell_id: None,
             before_cell_id: None,
-        }).unwrap();
+        })
+        .unwrap();
         assert_eq!(n.cells().len(), 2);
         let id = n.cells()[1].id.clone();
-        let effect = n.apply(NotebookCommand::DeleteCell { cell_id: id }).unwrap();
+        let effect = n
+            .apply(NotebookCommand::DeleteCell { cell_id: id })
+            .unwrap();
         assert!(matches!(effect, CommandEffect::CellDeleted { .. }));
         assert_eq!(n.cells().len(), 1);
     }
@@ -734,7 +777,9 @@ mod tests {
         let mut n = nb();
         assert_eq!(n.cells().len(), 1);
         let id = first_cell_id(&n);
-        let effect = n.apply(NotebookCommand::DeleteCell { cell_id: id }).unwrap();
+        let effect = n
+            .apply(NotebookCommand::DeleteCell { cell_id: id })
+            .unwrap();
         assert!(matches!(effect, CommandEffect::NoOp { .. }));
         assert_eq!(n.cells().len(), 1);
     }
@@ -743,21 +788,25 @@ mod tests {
     fn move_cell() {
         let mut n = nb();
         let first = first_cell_id(&n);
-        let effect = n.apply(NotebookCommand::AddCell {
-            cell_type: CellType::Code,
-            input: "second".into(),
-            after_cell_id: None,
-            before_cell_id: None,
-        }).unwrap();
+        let effect = n
+            .apply(NotebookCommand::AddCell {
+                cell_type: CellType::Code,
+                input: "second".into(),
+                after_cell_id: None,
+                before_cell_id: None,
+            })
+            .unwrap();
         let second = match effect {
             CommandEffect::CellAdded { cell_id } => cell_id,
             _ => panic!(),
         };
         // Move second cell up
-        let effect = n.apply(NotebookCommand::MoveCell {
-            cell_id: second.clone(),
-            direction: "up".into(),
-        }).unwrap();
+        let effect = n
+            .apply(NotebookCommand::MoveCell {
+                cell_id: second.clone(),
+                direction: "up".into(),
+            })
+            .unwrap();
         assert!(matches!(effect, CommandEffect::CellMoved { .. }));
         assert_eq!(n.cells()[0].id, second);
         assert_eq!(n.cells()[1].id, first);
@@ -767,10 +816,12 @@ mod tests {
     fn move_cell_boundary_is_noop() {
         let mut n = nb();
         let first = first_cell_id(&n);
-        let effect = n.apply(NotebookCommand::MoveCell {
-            cell_id: first,
-            direction: "up".into(),
-        }).unwrap();
+        let effect = n
+            .apply(NotebookCommand::MoveCell {
+                cell_id: first,
+                direction: "up".into(),
+            })
+            .unwrap();
         assert!(matches!(effect, CommandEffect::NoOp { .. }));
     }
 
@@ -779,9 +830,13 @@ mod tests {
         let mut n = nb();
         let id = first_cell_id(&n);
         assert_eq!(n.cells()[0].cell_type, CellType::Code);
-        n.apply(NotebookCommand::ToggleCellType { cell_id: id.clone() }).unwrap();
+        n.apply(NotebookCommand::ToggleCellType {
+            cell_id: id.clone(),
+        })
+        .unwrap();
         assert_eq!(n.cells()[0].cell_type, CellType::Markdown);
-        n.apply(NotebookCommand::ToggleCellType { cell_id: id }).unwrap();
+        n.apply(NotebookCommand::ToggleCellType { cell_id: id })
+            .unwrap();
         assert_eq!(n.cells()[0].cell_type, CellType::Code);
     }
 
@@ -789,11 +844,12 @@ mod tests {
     fn update_cell_input() {
         let mut n = nb();
         let id = first_cell_id(&n);
-        let effect = n.apply(NotebookCommand::UpdateCellInput {
-            cell_id: id.clone(),
-            input: "y: 10;".into(),
-
-        }).unwrap();
+        let effect = n
+            .apply(NotebookCommand::UpdateCellInput {
+                cell_id: id.clone(),
+                input: "y: 10;".into(),
+            })
+            .unwrap();
         assert!(matches!(effect, CommandEffect::CellInputUpdated { .. }));
         assert_eq!(n.cells()[0].input, "y: 10;");
     }
@@ -802,11 +858,12 @@ mod tests {
     fn update_cell_input_unchanged_is_noop() {
         let mut n = nb();
         let id = first_cell_id(&n);
-        let effect = n.apply(NotebookCommand::UpdateCellInput {
-            cell_id: id,
-            input: "".into(),
-
-        }).unwrap();
+        let effect = n
+            .apply(NotebookCommand::UpdateCellInput {
+                cell_id: id,
+                input: "".into(),
+            })
+            .unwrap();
         assert!(matches!(effect, CommandEffect::NoOp { .. }));
     }
 
@@ -817,7 +874,8 @@ mod tests {
         n.apply(NotebookCommand::SetCellStatus {
             cell_id: id.clone(),
             status: CellStatus::Running,
-        }).unwrap();
+        })
+        .unwrap();
         assert_eq!(n.cells()[0].status, CellStatus::Running);
         // Not undoable: no undo snapshot
         assert!(!n.can_undo());
@@ -832,7 +890,8 @@ mod tests {
             input: "x".into(),
             after_cell_id: None,
             before_cell_id: None,
-        }).unwrap();
+        })
+        .unwrap();
         assert_eq!(n.cells().len(), 2);
         n.apply(NotebookCommand::NewNotebook).unwrap();
         assert_eq!(n.cells().len(), 1);
@@ -862,7 +921,8 @@ mod tests {
             input: "added".into(),
             after_cell_id: None,
             before_cell_id: None,
-        }).unwrap();
+        })
+        .unwrap();
         assert_eq!(n.cells().len(), 2);
         assert!(n.can_undo());
 
@@ -903,7 +963,8 @@ mod tests {
             input: "".into(),
             after_cell_id: None,
             before_cell_id: None,
-        }).unwrap();
+        })
+        .unwrap();
         n.apply(NotebookCommand::Undo).unwrap();
         assert!(n.can_redo());
 
@@ -913,7 +974,8 @@ mod tests {
             input: "new".into(),
             after_cell_id: None,
             before_cell_id: None,
-        }).unwrap();
+        })
+        .unwrap();
         assert!(!n.can_redo());
     }
 
@@ -924,8 +986,8 @@ mod tests {
             n.apply(NotebookCommand::UpdateCellInput {
                 cell_id: first_cell_id(&n),
                 input: format!("v{}", i),
-    
-            }).unwrap();
+            })
+            .unwrap();
         }
         // Should cap at MAX_UNDO
         assert_eq!(n.undo_past.len(), MAX_UNDO);
@@ -940,7 +1002,8 @@ mod tests {
             input: "".into(),
             after_cell_id: None,
             before_cell_id: None,
-        }).unwrap();
+        })
+        .unwrap();
         let result = n.apply(NotebookCommand::DeleteCell {
             cell_id: "nonexistent".into(),
         });
@@ -961,7 +1024,7 @@ mod tests {
         }
         n.apply(NotebookCommand::SetCellOutput {
             cell_id: cell_id.to_string(),
-            output: CellOutput::from_eval_result(&result, count),
+            output: Box::new(CellOutput::from_eval_result(&result, count)),
             raw_output: Vec::new(),
         })
         .unwrap();
@@ -1029,7 +1092,8 @@ mod tests {
             {"id": "c", "cell_type": "code", "source": "1;", "metadata": {"tags": ["t"]}, "execution_count": null, "outputs": []}]}"#;
         let file = crate::notebooks::format::read(text).unwrap();
         let mut n = nb();
-        n.apply(NotebookCommand::LoadNotebook { file: file.into() }).unwrap();
+        n.apply(NotebookCommand::LoadNotebook { file: file.into() })
+            .unwrap();
         let check = |n: &Notebook| {
             assert_eq!(n.metadata()["jupytext"]["formats"], "ipynb");
             assert_eq!(n.cells()[0].cell_type, CellType::Raw);
@@ -1038,7 +1102,11 @@ mod tests {
         };
         check(&n);
         // An undoable edit, undone and redone
-        n.apply(NotebookCommand::UpdateCellInput { cell_id: "c".into(), input: "2;".into() }).unwrap();
+        n.apply(NotebookCommand::UpdateCellInput {
+            cell_id: "c".into(),
+            input: "2;".into(),
+        })
+        .unwrap();
         n.apply(NotebookCommand::Undo).unwrap();
         check(&n);
         n.apply(NotebookCommand::Redo).unwrap();
@@ -1056,8 +1124,14 @@ mod tests {
         let text = r#"{"nbformat": 4, "nbformat_minor": 5, "metadata": {}, "cells": [
             {"id": "r", "cell_type": "raw", "source": "x;", "metadata": {}}]}"#;
         let mut n = nb();
-        n.apply(NotebookCommand::LoadNotebook { file: crate::notebooks::format::read(text).unwrap().into() }).unwrap();
-        n.apply(NotebookCommand::ToggleCellType { cell_id: "r".into() }).unwrap();
+        n.apply(NotebookCommand::LoadNotebook {
+            file: crate::notebooks::format::read(text).unwrap().into(),
+        })
+        .unwrap();
+        n.apply(NotebookCommand::ToggleCellType {
+            cell_id: "r".into(),
+        })
+        .unwrap();
         assert_eq!(n.cells()[0].cell_type, CellType::Code);
     }
 
@@ -1071,12 +1145,23 @@ mod tests {
              "outputs": [{"output_type": "execute_result", "execution_count": 7, "data": {"text/latex": "2"}, "metadata": {}}]},
             {"id": "c", "cell_type": "code", "source": "%;", "metadata": {}, "execution_count": null, "outputs": []}]}"#;
         let mut n = nb();
-        n.apply(NotebookCommand::LoadNotebook { file: crate::notebooks::format::read(text).unwrap().into() }).unwrap();
+        n.apply(NotebookCommand::LoadNotebook {
+            file: crate::notebooks::format::read(text).unwrap().into(),
+        })
+        .unwrap();
         assert!(n.label_map().is_empty());
 
         // The first run is In[1], whatever the file showed
         run(&mut n, "b", Some("%o5"));
-        assert_eq!(n.get_cell("b").unwrap().output.as_ref().unwrap().execution_count, Some(1));
+        assert_eq!(
+            n.get_cell("b")
+                .unwrap()
+                .output
+                .as_ref()
+                .unwrap()
+                .execution_count,
+            Some(1)
+        );
         // %o1 now means that run, not a's stale Out[1]
         assert_eq!(n.label_map().get(&1).map(String::as_str), Some("%o5"));
         assert_eq!(n.previous_output_label("c").as_deref(), Some("%o5"));
@@ -1110,7 +1195,12 @@ mod tests {
         assert_eq!(ctx.previous_output_label, None);
         let a = n.next_execution_count();
         n.record_client_run("a", a, Some("%o4".into()));
-        assert_eq!(n.client_cell_label_context(&ids(&["a", "old"])).previous_output_label.as_deref(), Some("%o4"));
+        assert_eq!(
+            n.client_cell_label_context(&ids(&["a", "old"]))
+                .previous_output_label
+                .as_deref(),
+            Some("%o4")
+        );
     }
 
     #[test]
@@ -1120,7 +1210,11 @@ mod tests {
         n.record_client_run("a", first, Some("%o4".into()));
         let second = n.next_execution_count();
         n.record_client_run("a", second, None);
-        assert_eq!(n.client_cell_label_context(&ids(&["a"])).previous_output_label, None);
+        assert_eq!(
+            n.client_cell_label_context(&ids(&["a"]))
+                .previous_output_label,
+            None
+        );
         // %o1 still names the first run, as in the window
         assert_eq!(n.label_map().get(&1).map(String::as_str), Some("%o4"));
     }
@@ -1131,7 +1225,11 @@ mod tests {
         let a = n.next_execution_count();
         n.record_client_run("a", a, Some("%o4".into()));
         n.start_new_session();
-        assert_eq!(n.client_cell_label_context(&ids(&["a"])).previous_output_label, None);
+        assert_eq!(
+            n.client_cell_label_context(&ids(&["a"]))
+                .previous_output_label,
+            None
+        );
         assert_eq!(n.next_execution_count(), 1);
     }
 }
