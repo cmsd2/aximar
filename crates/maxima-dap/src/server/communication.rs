@@ -179,9 +179,8 @@ impl DapServer {
     /// Get the backtrace from Maxima.
     /// Returns (raw lines, args text per frame, canonical paths per frame index).
     ///
-    /// Delegates to the strategy's `resolve_frame_paths` method — Enhanced
-    /// mode issues `:frame N` per frame to get canonical absolute paths;
-    /// Legacy mode returns an empty map (heuristic resolution).
+    /// Delegates to the strategy's `resolve_frame_paths` method, which
+    /// issues `:frame N` per frame to get canonical absolute paths.
     pub(super) async fn get_backtrace(
         &mut self,
     ) -> Result<(Vec<String>, Vec<String>, HashMap<u32, CanonicalLocation>), AppError> {

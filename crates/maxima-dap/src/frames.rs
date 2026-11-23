@@ -66,7 +66,7 @@ pub fn parse_backtrace(
     frames
 }
 
-/// Resolve source from a canonical location (Enhanced mode).
+/// Resolve source from a canonical location (from `:frame N`).
 ///
 /// Uses the absolute path directly, applying remaps to translate
 /// temp file paths back to original sources.
@@ -74,13 +74,11 @@ fn resolve_canonical_source(
     canonical: &CanonicalLocation,
     path_remaps: &HashMap<PathBuf, PathBuf>,
 ) -> (Option<Source>, i64) {
-    let canonical_path = PathBuf::from(&canonical.file);
-
-    // Check if this canonical path should be remapped (e.g. temp file → original).
-    let resolved = path_remaps
-        .get(&canonical_path)
-        .cloned()
-        .unwrap_or(canonical_path);
+    // Check if this canonical path should be remapped (e.g. Legacy's temp
+    // file → original). Match by file name too: Maxima reports the real
+    // path, which on macOS is /private/var/... for a temp file under /var.
+    let resolved = find_remap(&canonical.file, path_remaps)
+        .unwrap_or_else(|| PathBuf::from(&canonical.file));
 
     let display_name = resolved
         .file_name()
