@@ -7,8 +7,8 @@ on:
       - 'docs/**'
       - '**/*.md'
       - 'LICENSE*'
+  # Every base branch, so a PR stacked on another PR's branch gets checked too
   pull_request:
-    branches: [master]
     paths-ignore:
       - 'docs/**'
       - '**/*.md'
@@ -20,6 +20,21 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
+  # Its own job: it needs no system packages, so it fails within a minute
+  fmt:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+
   test:
     runs-on: ubuntu-latest
 
@@ -28,6 +43,8 @@ jobs:
 
       - name: Install Rust stable
         uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
 
       - name: Cargo cache
         uses: Swatinem/rust-cache@v2
@@ -58,6 +75,10 @@ jobs:
       - name: Build frontend
         run: npm run build
 
+      # After the frontend build: src-tauri needs dist/ to compile
+      - name: Clippy
+        run: cargo clippy --workspace --all-targets -- -D warnings
+
       # Tests that need a real Maxima are #[ignore]d or gated on
       # AXIMAR_RUN_LIVE_TESTS, so this runs without Maxima installed.
       - name: Run tests
@@ -67,6 +88,10 @@ jobs:
       # checked against the shared test notebooks
       - name: Add the wasm target
         run: rustup target add wasm32-unknown-unknown
+
+      # The wasm feature's code, which the workspace clippy run doesn't build
+      - name: Clippy for the wasm build
+        run: cargo clippy -p aximar-notebook-format --features wasm --target wasm32-unknown-unknown --all-targets -- -D warnings
 
       - name: Install wasm-pack
         uses: taiki-e/install-action@v2
