@@ -7,14 +7,7 @@ see the `v*` releases on GitHub.
 
 ## [Unreleased]
 
-### maxima-dap
-
-- **A program's top-level code runs before `evaluate` with stock Maxima**:
-  Legacy mode (Maxima without the enhanced debugger) loaded only the
-  program's definitions and then ran `evaluate`, so top-level `load`s,
-  settings and globals were skipped whenever `evaluate` was set. Calls into
-  a package loaded that way did nothing, and Step Into ran to the end.
-  Enhanced mode already ran the file first.
+## [0.6.0] — 2026-11-23
 
 ### aximar-mcp
 
@@ -51,7 +44,6 @@ see the `v*` releases on GitHub.
   counts as a known package, like Maxima's own share packages. The desktop
   app's trust banner no longer appears for these loads either. Paths and
   other files still need trust.
-
 - **Catalog tools cover functions that only a package provides**:
   `search_functions` lists functions it finds by name after the catalog's
   ranked results, without a score, marking those with no documentation
@@ -119,10 +111,22 @@ see the `v*` releases on GitHub.
 
 ### maxima-dap and maxima-lsp
 
-- **`--version` and `--help`**: both print and exit. Before, they started
-  the server and waited for an editor on stdin, so `maxima-dap --version`
-  hung. Run from a terminal, either server now says on stderr that an editor
-  starts it. `--stdio` is accepted, for editors that pass it.
+- **The debugger opens package files outside the program's folder with stock
+  Maxima** (#43): stepping into a function from a package found on
+  `file_search_maxima` showed "the file was not found", because `:bt` gives
+  only a file name. maxima-dap now takes each frame's full path from
+  `:frame N`, as it already did with the enhanced debugger.
+- **A program's top-level code runs before `evaluate` with stock Maxima**:
+  maxima-dap's Legacy mode (Maxima without the enhanced debugger) loaded only
+  the program's definitions and then ran `evaluate`, so top-level `load`s,
+  settings and globals were skipped whenever `evaluate` was set. Calls into
+  a package loaded that way did nothing, and Step Into ran to the end.
+  Enhanced mode already ran the file first.
+- **`--version` and `--help`**: both servers print and exit. Before, they
+  started the server and waited for an editor on stdin, so
+  `maxima-dap --version` hung. Run from a terminal, either server now says on
+  stderr that an editor starts it. `--stdio` is accepted, for editors that
+  pass it.
 
 ### aximar-core
 
