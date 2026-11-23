@@ -2,6 +2,11 @@
 
 - When making significant changes, update the relevant docs in `docs/`.
 - When writing or editing Maxima `.mac` files, refer to [`docs/maxima-mac-syntax.md`](docs/maxima-mac-syntax.md) for syntax rules and common pitfalls.
+- Before every commit, these must pass with no warnings. Fix the cause; don't add `#[allow]`.
+  - `cargo fmt --all -- --check`
+  - `cargo clippy --workspace --all-targets`
+  - `npm run build` when the frontend changed (it runs `tsc`)
+- A branch from before the workspace was formatted conflicts on formatting: rebase, run `cargo fmt --all`, then resolve what's left.
 
 ## Releases
 
