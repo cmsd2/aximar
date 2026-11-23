@@ -1,16 +1,16 @@
-use std::sync::Arc;
 use serde::Serialize;
+use std::sync::Arc;
 use tauri::{Emitter, State};
 
+use crate::commands::config::read_session_settings;
+use crate::state::AppState;
+use crate::tauri_output::{emit_app_log, TauriEnvelopeObserver, TauriOutputSink};
 use aximar_core::error::AppError;
 use aximar_core::maxima::envelope::EnvelopeObserver;
 use aximar_core::maxima::output::{MultiOutputSink, OutputSink};
 use aximar_core::maxima::types::SessionStatus;
 use aximar_core::registry::NotebookContextRef;
 use aximar_core::session_ops::{self, SessionStatusCallback};
-use crate::commands::config::read_session_settings;
-use crate::state::AppState;
-use crate::tauri_output::{emit_app_log, TauriEnvelopeObserver, TauriOutputSink};
 
 #[derive(Clone, Serialize)]
 struct SessionStatusEvent {
@@ -56,11 +56,10 @@ pub fn build_session_status_callback(state: &AppState) -> SessionStatusCallback 
 /// Build a composite output sink that feeds both the Tauri frontend and the MCP
 /// capture sink so that both GUI and MCP see all Maxima I/O.
 fn build_output_sink(state: &AppState, ctx: &NotebookContextRef) -> Arc<dyn OutputSink> {
-    let tauri_sink: Arc<dyn OutputSink> =
-        Arc::new(TauriOutputSink::with_notebook_id(
-            state.app_handle.clone(),
-            ctx.id.clone(),
-        ));
+    let tauri_sink: Arc<dyn OutputSink> = Arc::new(TauriOutputSink::with_notebook_id(
+        state.app_handle.clone(),
+        ctx.id.clone(),
+    ));
     let capture_sink: Arc<dyn OutputSink> = ctx.capture_sink.clone();
     Arc::new(MultiOutputSink::new(vec![tauri_sink, capture_sink]))
 }
@@ -142,7 +141,13 @@ pub async fn stop_session(
 ) -> Result<SessionStatus, AppError> {
     let ctx = resolve_context(&state, notebook_id).await?;
     ctx.session.stop().await?;
-    emit_app_log(&state.app_handle, &state.app_log, "info", "Maxima session stopped", "session");
+    emit_app_log(
+        &state.app_handle,
+        &state.app_log,
+        "info",
+        "Maxima session stopped",
+        "session",
+    );
     Ok(SessionStatus::Stopped)
 }
 

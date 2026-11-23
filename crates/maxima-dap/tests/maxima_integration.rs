@@ -365,12 +365,9 @@ async fn backtrace_frame_has_source_line() {
         .unwrap();
     proc.read_until_sentinel(sentinel).await.unwrap();
 
-    proc.write_stdin(&format!(
-        "batchload(\"{}\")$\n",
-        path.replace('\\', "/")
-    ))
-    .await
-    .unwrap();
+    proc.write_stdin(&format!("batchload(\"{}\")$\n", path.replace('\\', "/")))
+        .await
+        .unwrap();
     proc.write_stdin(&format!("print(\"{}\")$\n", sentinel))
         .await
         .unwrap();
@@ -438,7 +435,14 @@ async fn backtrace_frame_has_source_line() {
     let program_path = Path::new(&path);
     let remaps = std::collections::HashMap::new();
     let canonical_paths = std::collections::HashMap::new();
-    let dap_frames = maxima_dap::frames::parse_backtrace(&bt_lines, &source_index, program_path, &remaps, None, &canonical_paths);
+    let dap_frames = maxima_dap::frames::parse_backtrace(
+        &bt_lines,
+        &source_index,
+        program_path,
+        &remaps,
+        None,
+        &canonical_paths,
+    );
 
     assert!(!dap_frames.is_empty(), "expected DAP stack frames");
     let dap_top = &dap_frames[0];
@@ -447,11 +451,11 @@ async fn backtrace_frame_has_source_line() {
         "DAP frame line should match backtrace line directly"
     );
     // Source path should be set
-    let source = dap_top.source.as_ref().expect("DAP frame should have source");
-    assert!(
-        source.path.is_some(),
-        "DAP frame source should have a path"
-    );
+    let source = dap_top
+        .source
+        .as_ref()
+        .expect("DAP frame should have source");
+    assert!(source.path.is_some(), "DAP frame source should have a path");
 
     proc.kill().await.unwrap();
 }
@@ -540,12 +544,9 @@ async fn next_stays_in_debugger() {
         .unwrap();
     proc.read_until_sentinel(sentinel).await.unwrap();
 
-    proc.write_stdin(&format!(
-        "batchload(\"{}\")$\n",
-        path.replace('\\', "/")
-    ))
-    .await
-    .unwrap();
+    proc.write_stdin(&format!("batchload(\"{}\")$\n", path.replace('\\', "/")))
+        .await
+        .unwrap();
     proc.write_stdin(&format!("print(\"{}\")$\n", sentinel))
         .await
         .unwrap();
@@ -565,12 +566,18 @@ async fn next_stays_in_debugger() {
     );
     proc.write_stdin(&wrapped).await.unwrap();
     let (_lines, prompt) = proc.read_dap_response(Some(eval_sentinel)).await.unwrap();
-    assert!(matches!(prompt, PromptKind::Debugger { .. }), "should hit breakpoint");
+    assert!(
+        matches!(prompt, PromptKind::Debugger { .. }),
+        "should hit breakpoint"
+    );
 
     // Send :bt (like VS Code's stackTrace request)
     proc.write_stdin(":bt\n").await.unwrap();
     let (_bt_lines, prompt) = proc.read_dap_response(None).await.unwrap();
-    assert!(matches!(prompt, PromptKind::Debugger { .. }), "should stay in debugger after :bt");
+    assert!(
+        matches!(prompt, PromptKind::Debugger { .. }),
+        "should stay in debugger after :bt"
+    );
 
     // Send :next (Step Over) — should stay in the debugger
     proc.write_stdin(":next\n").await.unwrap();
@@ -611,12 +618,9 @@ async fn next_at_last_statement_completes() {
         .unwrap();
     proc.read_until_sentinel(sentinel).await.unwrap();
 
-    proc.write_stdin(&format!(
-        "batchload(\"{}\")$\n",
-        path.replace('\\', "/")
-    ))
-    .await
-    .unwrap();
+    proc.write_stdin(&format!("batchload(\"{}\")$\n", path.replace('\\', "/")))
+        .await
+        .unwrap();
     proc.write_stdin(&format!("print(\"{}\")$\n", sentinel))
         .await
         .unwrap();
@@ -682,12 +686,9 @@ async fn next_multi_step_through_function() {
         .unwrap();
     proc.read_until_sentinel(sentinel).await.unwrap();
 
-    proc.write_stdin(&format!(
-        "batchload(\"{}\")$\n",
-        path.replace('\\', "/")
-    ))
-    .await
-    .unwrap();
+    proc.write_stdin(&format!("batchload(\"{}\")$\n", path.replace('\\', "/")))
+        .await
+        .unwrap();
     proc.write_stdin(&format!("print(\"{}\")$\n", sentinel))
         .await
         .unwrap();
@@ -769,12 +770,9 @@ async fn top_level_code_hits_breakpoint() {
         .unwrap();
     proc.read_until_sentinel(sentinel).await.unwrap();
 
-    proc.write_stdin(&format!(
-        "batchload(\"{}\")$\n",
-        path.replace('\\', "/")
-    ))
-    .await
-    .unwrap();
+    proc.write_stdin(&format!("batchload(\"{}\")$\n", path.replace('\\', "/")))
+        .await
+        .unwrap();
     proc.write_stdin(&format!("print(\"{}\")$\n", sentinel))
         .await
         .unwrap();
@@ -936,9 +934,7 @@ async fn enhanced_deferred_breakpoint() {
         .unwrap();
     let (lines, _) = proc.read_until_sentinel(sentinel).await.unwrap();
     // Should get a "Deferred" message
-    let has_deferred = lines
-        .iter()
-        .any(|l| l.to_lowercase().contains("deferred"));
+    let has_deferred = lines.iter().any(|l| l.to_lowercase().contains("deferred"));
     assert!(
         has_deferred,
         "expected deferred breakpoint message, got: {:?}",
@@ -1088,7 +1084,9 @@ async fn parse_error_detected_not_hanging() {
             );
         }
         Err(_) => {
-            panic!("read_dap_response hung for >10s on parse error — error detection did not trigger");
+            panic!(
+                "read_dap_response hung for >10s on parse error — error detection did not trigger"
+            );
         }
     }
 
@@ -1152,7 +1150,9 @@ async fn runtime_error_enters_debugger() {
             eprintln!("Got error (acceptable): {}", e);
         }
         Err(_) => {
-            panic!("read_dap_response hung for >10s — neither debugger nor error detection triggered");
+            panic!(
+                "read_dap_response hung for >10s — neither debugger nor error detection triggered"
+            );
         }
     }
 
@@ -1594,7 +1594,11 @@ async fn legacy_frame_paths_find_package_outside_program_dir() {
         .filter_map(|l| debugger::parse_backtrace_frame(l))
         .map(|f| f.index)
         .collect();
-    assert!(indices.len() >= 2, "expected pkg_fn and caller frames, got: {:?}", bt_lines);
+    assert!(
+        indices.len() >= 2,
+        "expected pkg_fn and caller frames, got: {:?}",
+        bt_lines
+    );
 
     let source_index = SourceIndex::new();
     let state = DebugState::Running;
@@ -1628,7 +1632,11 @@ async fn legacy_frame_paths_find_package_outside_program_dir() {
     // rather than caller's 4.
     proc.write_stdin("x;\n").await.unwrap();
     let (lines, _) = proc.read_dap_response(None).await.unwrap();
-    assert!(lines.iter().any(|l| l.contains("40")), "expected 40, got: {:?}", lines);
+    assert!(
+        lines.iter().any(|l| l.contains("40")),
+        "expected 40, got: {:?}",
+        lines
+    );
 
     proc.write_stdin(":resume\n").await.unwrap();
     let _ = proc.read_dap_response(Some(eval_sentinel)).await;

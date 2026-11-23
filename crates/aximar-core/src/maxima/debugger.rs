@@ -19,8 +19,7 @@ static DEBUGGER_PROMPT_RE: LazyLock<Regex> =
 /// Matches the SBCL Lisp debugger prompt `N]` (e.g. `0]`, `1]`).
 /// This appears when Maxima hits a Lisp-level error that bypasses the
 /// Maxima debugger entirely.
-static SBCL_DEBUGGER_RE: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"^(\d+)\]\s*$").unwrap());
+static SBCL_DEBUGGER_RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^(\d+)\]\s*$").unwrap());
 
 /// Matches a breakpoint-hit message.
 ///
@@ -30,9 +29,8 @@ static BREAKPOINT_HIT_RE: LazyLock<Regex> = LazyLock::new(|| {
 });
 
 /// Matches a backtrace frame: `#N: func(args) (file.mac line M)`
-static BACKTRACE_FRAME_RE: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r"#(\d+):\s+(\w+)\((.*?)\)\s+\((\S+)\s+line\s+(\d+)\)").unwrap()
-});
+static BACKTRACE_FRAME_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"#(\d+):\s+(\w+)\((.*?)\)\s+\((\S+)\s+line\s+(\d+)\)").unwrap());
 
 /// Matches a backtrace frame without source location: `#N: func(args)`
 static BACKTRACE_FRAME_NO_SRC_RE: LazyLock<Regex> =
@@ -305,10 +303,8 @@ mod tests {
 
     #[test]
     fn parse_breakpoint_hit_basic() {
-        let hit = parse_breakpoint_hit(
-            "Bkpt 0: (test_debug.mac line 3, in function $ADD)",
-        )
-        .unwrap();
+        let hit =
+            parse_breakpoint_hit("Bkpt 0: (test_debug.mac line 3, in function $ADD)").unwrap();
         assert_eq!(hit.breakpoint_id, 0);
         assert_eq!(hit.function, "add");
         assert_eq!(hit.line, 3);
@@ -316,10 +312,8 @@ mod tests {
 
     #[test]
     fn parse_breakpoint_hit_underscore_name() {
-        let hit = parse_breakpoint_hit(
-            "Bkpt  2: (file.mac line 10, in function $BAR_BAZ)",
-        )
-        .unwrap();
+        let hit =
+            parse_breakpoint_hit("Bkpt  2: (file.mac line 10, in function $BAR_BAZ)").unwrap();
         assert_eq!(hit.breakpoint_id, 2);
         assert_eq!(hit.function, "bar_baz");
         assert_eq!(hit.line, 10);
@@ -334,8 +328,7 @@ mod tests {
 
     #[test]
     fn parse_frame_with_source() {
-        let frame =
-            parse_backtrace_frame("#0: foo(x = 5, y = 10) (test.mac line 7)").unwrap();
+        let frame = parse_backtrace_frame("#0: foo(x = 5, y = 10) (test.mac line 7)").unwrap();
         assert_eq!(frame.index, 0);
         assert_eq!(frame.function, "foo");
         assert_eq!(frame.args, "x = 5, y = 10");
@@ -363,28 +356,31 @@ mod tests {
     #[test]
     fn parse_bindings_simple() {
         let bindings = parse_variable_bindings("x = 5, y = 10");
-        assert_eq!(bindings, vec![
-            ("x".into(), "5".into()),
-            ("y".into(), "10".into()),
-        ]);
+        assert_eq!(
+            bindings,
+            vec![("x".into(), "5".into()), ("y".into(), "10".into()),]
+        );
     }
 
     #[test]
     fn parse_bindings_with_list() {
         let bindings = parse_variable_bindings("x = 5, y = [1, 2, 3]");
-        assert_eq!(bindings, vec![
-            ("x".into(), "5".into()),
-            ("y".into(), "[1, 2, 3]".into()),
-        ]);
+        assert_eq!(
+            bindings,
+            vec![("x".into(), "5".into()), ("y".into(), "[1, 2, 3]".into()),]
+        );
     }
 
     #[test]
     fn parse_bindings_nested() {
         let bindings = parse_variable_bindings("a = [[1, 2], [3, 4]], b = f(x, y)");
-        assert_eq!(bindings, vec![
-            ("a".into(), "[[1, 2], [3, 4]]".into()),
-            ("b".into(), "f(x, y)".into()),
-        ]);
+        assert_eq!(
+            bindings,
+            vec![
+                ("a".into(), "[[1, 2], [3, 4]]".into()),
+                ("b".into(), "f(x, y)".into()),
+            ]
+        );
     }
 
     #[test]

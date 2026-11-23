@@ -4,14 +4,16 @@ use serde::Serialize;
 use tauri::{AppHandle, Emitter, State};
 
 use aximar_core::error::AppError;
-use aximar_core::evaluation::{check_cell_trust, evaluate_cell, run_all, RunAllOptions, RunAllReport};
+use aximar_core::evaluation::{
+    check_cell_trust, evaluate_cell, run_all, RunAllOptions, RunAllReport,
+};
 use aximar_core::maxima::types::EvalResult;
 use aximar_core::safety::{TrustDecision, TrustMode};
 
 use aximar_core::commands::{CommandEffect, EffectSink, NotebookCommand};
 use aximar_core::notebook::CellType;
-use aximar_core::notebooks::{data as notebook_data, io as notebook_io};
 use aximar_core::notebook::Notebook;
+use aximar_core::notebooks::{data as notebook_data, io as notebook_io};
 use aximar_core::registry::{NotebookContextRef, NotebookInfo};
 
 use crate::mcp::sync::{notebook_state_payload, SyncCell};
@@ -47,11 +49,18 @@ pub fn emit_notebook_state(
     nb: &Notebook,
     effect: &CommandEffect,
 ) {
-    let _ = app_handle.emit("notebook-state-changed", notebook_state_event(notebook_id, nb, effect));
+    let _ = app_handle.emit(
+        "notebook-state-changed",
+        notebook_state_event(notebook_id, nb, effect),
+    );
 }
 
 /// The event payload for an effect on a notebook.
-fn notebook_state_event(notebook_id: &str, nb: &Notebook, effect: &CommandEffect) -> NotebookStateEvent {
+fn notebook_state_event(
+    notebook_id: &str,
+    nb: &Notebook,
+    effect: &CommandEffect,
+) -> NotebookStateEvent {
     let payload = notebook_state_payload(nb);
     NotebookStateEvent {
         notebook_id: notebook_id.to_string(),
@@ -182,10 +191,7 @@ pub async fn nb_move_cell(
     let ctx = resolve_context(&state, notebook_id).await?;
     let mut nb = ctx.notebook.lock().await;
     let effect = nb
-        .apply(NotebookCommand::MoveCell {
-            cell_id,
-            direction,
-        })
+        .apply(NotebookCommand::MoveCell { cell_id, direction })
         .map_err(|e| AppError::CommunicationError(e))?;
     emit_notebook_state(&app, &ctx.id, &nb, &effect);
     Ok(())
@@ -410,7 +416,9 @@ pub async fn nb_run_cell(
     )
     .await?;
     if let TrustDecision::NeedsTrust { functions } = decision {
-        return Ok(RunCellResult::NeedsNotebookTrust { dangerous_functions: functions });
+        return Ok(RunCellResult::NeedsNotebookTrust {
+            dangerous_functions: functions,
+        });
     }
 
     let settings = read_session_settings(&app);
@@ -465,7 +473,8 @@ pub async fn nb_trust_notebook(
 ) -> Result<(), AppError> {
     let ctx = resolve_context(&state, notebook_id).await?;
     let mut nb = ctx.notebook.lock().await;
-    let effect = nb.apply(NotebookCommand::TrustNotebook { trusted })
+    let effect = nb
+        .apply(NotebookCommand::TrustNotebook { trusted })
         .map_err(|e| AppError::CommunicationError(e))?;
     emit_notebook_state(&app, &ctx.id, &nb, &effect);
     Ok(())
@@ -479,19 +488,14 @@ pub struct NbCreateResult {
 }
 
 #[tauri::command]
-pub async fn nb_create(
-    state: State<'_, AppState>,
-) -> Result<NbCreateResult, AppError> {
+pub async fn nb_create(state: State<'_, AppState>) -> Result<NbCreateResult, AppError> {
     let mut reg = state.registry.lock().await;
     let id = reg.create();
     Ok(NbCreateResult { notebook_id: id })
 }
 
 #[tauri::command]
-pub async fn nb_close(
-    state: State<'_, AppState>,
-    notebook_id: String,
-) -> Result<(), AppError> {
+pub async fn nb_close(state: State<'_, AppState>, notebook_id: String) -> Result<(), AppError> {
     let ctx = {
         let mut reg = state.registry.lock().await;
         reg.close(&notebook_id)
@@ -503,9 +507,7 @@ pub async fn nb_close(
 }
 
 #[tauri::command]
-pub async fn nb_list(
-    state: State<'_, AppState>,
-) -> Result<Vec<NotebookInfo>, AppError> {
+pub async fn nb_list(state: State<'_, AppState>) -> Result<Vec<NotebookInfo>, AppError> {
     let reg = state.registry.lock().await;
     Ok(reg.list())
 }

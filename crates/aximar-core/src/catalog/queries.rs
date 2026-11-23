@@ -31,9 +31,15 @@ pub struct FunctionHit {
 /// What is known about a function name.
 pub enum FunctionDocs<'a> {
     /// Documented in the catalog.
-    Documented { package: &'a str, entry: &'a SymbolEntry },
+    Documented {
+        package: &'a str,
+        entry: &'a SymbolEntry,
+    },
     /// Not documented, but installed packages provide it (usually one).
-    InPackages { packages: Vec<&'a PackageInfo>, signature: Option<&'a str> },
+    InPackages {
+        packages: Vec<&'a PackageInfo>,
+        signature: Option<&'a str>,
+    },
     /// Unknown.  Holds names that are close, from both sources.
     NotFound { suggestions: Vec<String> },
 }
@@ -87,7 +93,11 @@ pub fn search(catalog: &Catalog, packages: &PackageCatalog, query: &str) -> Vec<
 }
 
 /// Look up one function by name (case-insensitive).
-pub fn docs<'a>(catalog: &'a Catalog, packages: &'a PackageCatalog, name: &str) -> FunctionDocs<'a> {
+pub fn docs<'a>(
+    catalog: &'a Catalog,
+    packages: &'a PackageCatalog,
+    name: &str,
+) -> FunctionDocs<'a> {
     if let Some((package, entry)) = catalog.get(name) {
         return FunctionDocs::Documented { package, entry };
     }
@@ -101,18 +111,30 @@ pub fn docs<'a>(catalog: &'a Catalog, packages: &'a PackageCatalog, name: &str) 
                 .and_then(|f| package.signatures.get(f))
                 .map(String::as_str)
         });
-        return FunctionDocs::InPackages { packages: providing, signature };
+        return FunctionDocs::InPackages {
+            packages: providing,
+            signature,
+        };
     }
-    FunctionDocs::NotFound { suggestions: suggestions(catalog, packages, name) }
+    FunctionDocs::NotFound {
+        suggestions: suggestions(catalog, packages, name),
+    }
 }
 
 /// Complete a name prefix from both sources.  Catalog completions come
 /// first.  A name listed by the catalog and by packages, or by several
 /// packages, appears once, and says every package that provides it.
-pub fn complete(catalog: &Catalog, packages: &PackageCatalog, prefix: &str) -> Vec<CompletionResult> {
+pub fn complete(
+    catalog: &Catalog,
+    packages: &PackageCatalog,
+    prefix: &str,
+) -> Vec<CompletionResult> {
     let mut seen = HashSet::new();
-    let mut results: Vec<CompletionResult> =
-        catalog.complete(prefix).into_iter().filter(|c| seen.insert(c.name.to_lowercase())).collect();
+    let mut results: Vec<CompletionResult> = catalog
+        .complete(prefix)
+        .into_iter()
+        .filter(|c| seen.insert(c.name.to_lowercase()))
+        .collect();
     for mut completion in packages.complete_functions(prefix) {
         if !seen.insert(completion.name.to_lowercase()) {
             continue;
@@ -132,7 +154,10 @@ pub fn load_hint(providing: &[&PackageInfo]) -> String {
     if providing.iter().any(|p| p.builtin) {
         return "It is loaded automatically.".to_string();
     }
-    let loads: Vec<String> = providing.iter().map(|p| format!("load(\"{}\")$", p.name)).collect();
+    let loads: Vec<String> = providing
+        .iter()
+        .map(|p| format!("load(\"{}\")$", p.name))
+        .collect();
     format!("Load it with {}.", loads.join(" or "))
 }
 
@@ -160,7 +185,11 @@ fn description(package: &PackageInfo) -> Option<&str> {
 }
 
 fn package_names(providing: &[&PackageInfo]) -> String {
-    providing.iter().map(|p| p.name.as_str()).collect::<Vec<_>>().join(" or ")
+    providing
+        .iter()
+        .map(|p| p.name.as_str())
+        .collect::<Vec<_>>()
+        .join(" or ")
 }
 
 /// Every package that lists `name` (case-insensitive), in catalog order.
@@ -231,13 +260,19 @@ mod tests {
             .count();
         assert!(listing > 1, "gradient is in {listing} package(s)");
         let completions = complete(&CATALOG, &PACKAGES, "gradien");
-        assert_eq!(count(completions.into_iter().map(|c| c.name), "gradient"), 1);
+        assert_eq!(
+            count(completions.into_iter().map(|c| c.name), "gradient"),
+            1
+        );
     }
 
     #[test]
     fn search_finds_undocumented_package_functions_after_documented_ones() {
         let hits = search(&CATALOG, &PACKAGES, "jcubic");
-        let jcubic = hits.iter().find(|h| h.name == "jcubic").expect("jcubic is found");
+        let jcubic = hits
+            .iter()
+            .find(|h| h.name == "jcubic")
+            .expect("jcubic is found");
         assert!(!jcubic.documented);
         // Ranked hits first, then the ones found by name
         let first_unranked = hits.iter().position(|h| h.score.is_none()).unwrap();
@@ -246,9 +281,14 @@ mod tests {
 
     #[test]
     fn docs_for_each_kind_of_name() {
-        assert!(matches!(docs(&CATALOG, &PACKAGES, "Integrate"), FunctionDocs::Documented { .. }));
+        assert!(matches!(
+            docs(&CATALOG, &PACKAGES, "Integrate"),
+            FunctionDocs::Documented { .. }
+        ));
         match docs(&CATALOG, &PACKAGES, "jcubic") {
-            FunctionDocs::InPackages { packages, .. } => assert_eq!(packages[0].name, "affine/macbasic"),
+            FunctionDocs::InPackages { packages, .. } => {
+                assert_eq!(packages[0].name, "affine/macbasic")
+            }
             _ => panic!("jcubic should come from a package"),
         }
     }
@@ -260,7 +300,10 @@ mod tests {
             _ => panic!("integrat is not a function"),
         }
         match docs(&CATALOG, &PACKAGES, "jcubik") {
-            FunctionDocs::NotFound { suggestions } => assert!(suggestions.contains(&"jcubic".to_string()), "{suggestions:?}"),
+            FunctionDocs::NotFound { suggestions } => assert!(
+                suggestions.contains(&"jcubic".to_string()),
+                "{suggestions:?}"
+            ),
             _ => panic!("jcubik is not a function"),
         }
     }
@@ -270,7 +313,10 @@ mod tests {
         // The catalog's ranking for "pdf_" leaves pdf_student_t out of its top
         // results; the package search finds it, and its docs still apply
         let hits = search(&CATALOG, &PACKAGES, "pdf_");
-        let student = hits.iter().find(|h| h.name == "pdf_student_t").expect("pdf_student_t is found");
+        let student = hits
+            .iter()
+            .find(|h| h.name == "pdf_student_t")
+            .expect("pdf_student_t is found");
         assert!(student.documented, "{student:?}");
         assert!(student.summary.contains("Student"), "{student:?}");
     }
@@ -279,16 +325,28 @@ mod tests {
     fn every_package_that_provides_a_name_is_named() {
         let completions = complete(&CATALOG, &PACKAGES, "gradien");
         let gradient = completions.iter().find(|c| c.name == "gradient").unwrap();
-        assert!(gradient.description.contains("calculus/optmiz"), "{gradient:?}");
-        assert!(gradient.description.contains("calculus/qual"), "{gradient:?}");
+        assert!(
+            gradient.description.contains("calculus/optmiz"),
+            "{gradient:?}"
+        );
+        assert!(
+            gradient.description.contains("calculus/qual"),
+            "{gradient:?}"
+        );
     }
 
     #[test]
     fn placeholder_descriptions_are_left_out() {
         let macbasic = PACKAGES.get("affine/macbasic").unwrap();
-        assert_eq!(provided_by(&[macbasic]), "From the affine/macbasic package.");
+        assert_eq!(
+            provided_by(&[macbasic]),
+            "From the affine/macbasic package."
+        );
         let distrib = PACKAGES.get("distrib").unwrap();
         assert!(provided_by(&[distrib]).starts_with("From the distrib package: Probability"));
-        assert_eq!(load_hint(&[macbasic]), "Load it with load(\"affine/macbasic\")$.");
+        assert_eq!(
+            load_hint(&[macbasic]),
+            "Load it with load(\"affine/macbasic\")$."
+        );
     }
 }

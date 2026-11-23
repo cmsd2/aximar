@@ -6,10 +6,7 @@ use crate::state::AppState;
 static WINDOW_COUNTER: AtomicU32 = AtomicU32::new(1);
 
 #[tauri::command]
-pub async fn create_window(
-    app: AppHandle,
-    notebook_id: Option<String>,
-) -> Result<String, String> {
+pub async fn create_window(app: AppHandle, notebook_id: Option<String>) -> Result<String, String> {
     let n = WINDOW_COUNTER.fetch_add(1, Ordering::Relaxed);
     let label = format!("window-{n}");
 

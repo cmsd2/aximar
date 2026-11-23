@@ -18,9 +18,7 @@ use std::sync::Arc;
 use crate::types;
 
 use emmy_dap_types::base_message::{BaseMessage, Sendable};
-use emmy_dap_types::events::{
-    BreakpointEventBody, Event, OutputEventBody, StoppedEventBody,
-};
+use emmy_dap_types::events::{BreakpointEventBody, Event, OutputEventBody, StoppedEventBody};
 use emmy_dap_types::requests::{Command, InitializeArguments, Request};
 use emmy_dap_types::responses::{
     ContinueResponse, EvaluateResponse, Response, ResponseBody, ScopesResponse,

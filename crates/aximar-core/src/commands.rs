@@ -40,14 +40,18 @@ pub enum NotebookCommand {
         raw_output: Vec<OutputEvent>,
     },
     /// Non-undoable: set notebook-level trust flag
-    TrustNotebook { trusted: bool },
+    TrustNotebook {
+        trusted: bool,
+    },
     NewNotebook,
     LoadCells {
         cells: Vec<(String, CellType, String, Option<CellOutput>)>,
     },
     /// Replace the notebook with one read from a file
     /// (`notebooks::format::read`), keeping its metadata.
-    LoadNotebook { file: Box<NotebookFile> },
+    LoadNotebook {
+        file: Box<NotebookFile>,
+    },
     Undo,
     Redo,
 }
@@ -56,24 +60,45 @@ pub enum NotebookCommand {
 #[derive(Debug, Clone, Serialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum CommandEffect {
-    CellAdded { cell_id: String },
-    CellDeleted { cell_id: String },
-    CellMoved { cell_id: String },
-    CellTypeToggled { cell_id: String },
-    CellInputUpdated { cell_id: String },
-    CellStatusUpdated { cell_id: String },
-    CellOutputUpdated { cell_id: String },
+    CellAdded {
+        cell_id: String,
+    },
+    CellDeleted {
+        cell_id: String,
+    },
+    CellMoved {
+        cell_id: String,
+    },
+    CellTypeToggled {
+        cell_id: String,
+    },
+    CellInputUpdated {
+        cell_id: String,
+    },
+    CellStatusUpdated {
+        cell_id: String,
+    },
+    CellOutputUpdated {
+        cell_id: String,
+    },
     /// A run was blocked because the notebook is untrusted; the window asks
     /// the user to trust it.  Changes nothing in the notebook.
-    TrustRequired { cell_id: String, functions: Vec<String> },
+    TrustRequired {
+        cell_id: String,
+        functions: Vec<String>,
+    },
     /// The notebook's file path was set by opening or saving, or cleared
     /// (`None`) because its cells no longer match the file.
-    PathChanged { path: Option<String> },
+    PathChanged {
+        path: Option<String>,
+    },
     NotebookTrusted,
     NotebookReplaced,
     Undone,
     Redone,
-    NoOp { reason: String },
+    NoOp {
+        reason: String,
+    },
 }
 
 impl CommandEffect {

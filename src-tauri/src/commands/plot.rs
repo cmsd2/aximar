@@ -8,10 +8,7 @@ fn validate_path(path: &Path, allowed_extensions: &[&str]) -> Result<(), String>
             return Err("Invalid path: directory traversal not allowed".to_string());
         }
     }
-    let ext = path
-        .extension()
-        .and_then(|e| e.to_str())
-        .unwrap_or("");
+    let ext = path.extension().and_then(|e| e.to_str()).unwrap_or("");
     if !allowed_extensions.contains(&ext) {
         return Err(format!(
             "Invalid path: file must have one of these extensions: {}",

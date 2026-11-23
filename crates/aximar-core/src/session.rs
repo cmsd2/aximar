@@ -3,9 +3,9 @@ use std::sync::Mutex as StdMutex;
 
 use tokio::sync::{Mutex, MutexGuard};
 
+use crate::error::AppError;
 #[cfg(unix)]
 use crate::maxima::envelope::cancel_pipe::CancelHandle;
-use crate::error::AppError;
 use crate::maxima::process::MaximaProcess;
 use crate::maxima::types::SessionStatus;
 
@@ -379,10 +379,7 @@ mod tests {
     async fn set_error_stores_message() {
         let mgr = SessionManager::new();
         mgr.set_error("spawn failed".into()).await;
-        assert_eq!(
-            mgr.status(),
-            SessionStatus::Error("spawn failed".into())
-        );
+        assert_eq!(mgr.status(), SessionStatus::Error("spawn failed".into()));
     }
 
     #[tokio::test]

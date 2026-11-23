@@ -14,12 +14,27 @@ const INTERACTIVE_PLOTTING: &str = include_str!("interactive-plotting.json");
 const THREE_D_PLOTTING: &str = include_str!("3d-plotting.json");
 const STATISTICAL_PLOTTING: &str = include_str!("statistical-plotting.json");
 
-const TEMPLATES: [&str; 12] = [WELCOME, CALCULUS, LINEAR_ALGEBRA, EQUATIONS, PROGRAMMING, PLOTTING, INTERACTIVE_PLOTTING, THREE_D_PLOTTING, STATISTICAL_PLOTTING, VECTOR_CALCULUS, COMPLEX_NUMBERS, OUTPUT_DISPLAY];
+const TEMPLATES: [&str; 12] = [
+    WELCOME,
+    CALCULUS,
+    LINEAR_ALGEBRA,
+    EQUATIONS,
+    PROGRAMMING,
+    PLOTTING,
+    INTERACTIVE_PLOTTING,
+    THREE_D_PLOTTING,
+    STATISTICAL_PLOTTING,
+    VECTOR_CALCULUS,
+    COMPLEX_NUMBERS,
+    OUTPUT_DISPLAY,
+];
 
 fn load_all() -> Vec<Notebook> {
     TEMPLATES
         .iter()
-        .map(|json| serde_json::from_str(json).expect("embedded notebook template must be valid JSON"))
+        .map(|json| {
+            serde_json::from_str(json).expect("embedded notebook template must be valid JSON")
+        })
         .collect()
 }
 
@@ -80,8 +95,12 @@ mod tests {
         use crate::maxima::unicode::unicode_to_maxima;
         use crate::notebooks::types::{CellSource, CellType};
 
-        let demo_path = concat!(env!("CARGO_MANIFEST_DIR"), "/../../docs/examples/demo1.macnb");
-        let demo: Notebook = serde_json::from_str(&std::fs::read_to_string(demo_path).unwrap()).unwrap();
+        let demo_path = concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/../../docs/examples/demo1.macnb"
+        );
+        let demo: Notebook =
+            serde_json::from_str(&std::fs::read_to_string(demo_path).unwrap()).unwrap();
         let mut notebooks = load_all();
         notebooks.push(demo);
         for nb in &notebooks {
@@ -121,7 +140,10 @@ mod tests {
         assert!(file.metadata["aximar"].is_object());
         // Cells should be code or markdown
         for cell in &file.cells {
-            assert!(matches!(cell.cell_type, crate::notebook::CellType::Code | crate::notebook::CellType::Markdown));
+            assert!(matches!(
+                cell.cell_type,
+                crate::notebook::CellType::Code | crate::notebook::CellType::Markdown
+            ));
         }
     }
 }

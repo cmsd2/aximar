@@ -1,4 +1,4 @@
-use crate::lexer::{self, Token, Spanned};
+use crate::lexer::{self, Spanned, Token};
 use crate::types::{ParseErrorKind, Severity};
 
 /// Intermediate types with byte-offset spans (converted to Position/Span in lib.rs)
@@ -47,7 +47,6 @@ pub struct RawParseError {
     pub span: lexer::Span,
     pub severity: Severity,
 }
-
 
 impl<'src> RawItem<'src> {
     pub fn span(&self) -> lexer::Span {

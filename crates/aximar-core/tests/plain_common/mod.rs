@@ -11,7 +11,12 @@ use aximar_core::registry::{NotebookContextRef, NotebookRegistry};
 use aximar_core::session_ops::{ensure_session, SessionSettings};
 
 /// Add a code cell holding `input` and run it.
-async fn run(ctx: &NotebookContextRef, catalog: &Catalog, packages: &PackageCatalog, input: &str) -> CellOutput {
+async fn run(
+    ctx: &NotebookContextRef,
+    catalog: &Catalog,
+    packages: &PackageCatalog,
+    input: &str,
+) -> CellOutput {
     let cell_id = {
         let mut nb = ctx.notebook.lock().await;
         let effect = nb
@@ -24,7 +29,10 @@ async fn run(ctx: &NotebookContextRef, catalog: &Catalog, packages: &PackageCata
             .unwrap();
         effect.cell_id().unwrap().to_string()
     };
-    evaluate_cell(ctx, &cell_id, catalog, packages, 30, &NoEffects).await.unwrap().cell_output
+    evaluate_cell(ctx, &cell_id, catalog, packages, 30, &NoEffects)
+        .await
+        .unwrap()
+        .cell_output
 }
 
 /// Run cells in a fresh session and check their one-line forms.
@@ -33,7 +41,11 @@ pub async fn check_plain_forms() {
     let id = registry.create();
     let ctx = registry.get(&id).unwrap();
     let (catalog, packages) = (Catalog::load(), PackageCatalog::load());
-    let settings = SessionSettings { backend: Backend::Local, maxima_path: None, eval_timeout: 30 };
+    let settings = SessionSettings {
+        backend: Backend::Local,
+        maxima_path: None,
+        eval_timeout: 30,
+    };
     ensure_session(
         &ctx,
         &settings,
@@ -52,7 +64,10 @@ pub async fn check_plain_forms() {
     // A long result stays one line
     let out = run(&ctx, &catalog, &packages, "expand((x+y)^30);").await;
     let plain = out.text_plain.expect("a one-line form");
-    assert!(plain.starts_with("y^30+30*x*y^29") && !plain.contains('\n'), "{plain}");
+    assert!(
+        plain.starts_with("y^30+30*x*y^29") && !plain.contains('\n'),
+        "{plain}"
+    );
 
     // A string keeps its quotes.  The legacy path shows no value for a
     // string and the kernel-events path does, so check only that the

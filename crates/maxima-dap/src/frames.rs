@@ -39,13 +39,7 @@ pub fn parse_backtrace(
         let (source, dap_line) = if let Some(canonical) = canonical_paths.get(&bt_frame.index) {
             resolve_canonical_source(canonical, path_remaps)
         } else {
-            resolve_frame_source(
-                &bt_frame,
-                source_index,
-                program_dir,
-                cwd,
-                path_remaps,
-            )
+            resolve_frame_source(&bt_frame, source_index, program_dir, cwd, path_remaps)
         };
 
         frames.push(StackFrame {
@@ -77,8 +71,8 @@ fn resolve_canonical_source(
     // Check if this canonical path should be remapped (e.g. Legacy's temp
     // file → original). Match by file name too: Maxima reports the real
     // path, which on macOS is /private/var/... for a temp file under /var.
-    let resolved = find_remap(&canonical.file, path_remaps)
-        .unwrap_or_else(|| PathBuf::from(&canonical.file));
+    let resolved =
+        find_remap(&canonical.file, path_remaps).unwrap_or_else(|| PathBuf::from(&canonical.file));
 
     let display_name = resolved
         .file_name()
@@ -136,7 +130,10 @@ fn resolve_frame_source(
         path: Some(p.to_string_lossy().to_string()),
         ..Default::default()
     });
-    (source.or_else(|| make_source(file_name, cwd, program_dir)), bt_line as i64)
+    (
+        source.or_else(|| make_source(file_name, cwd, program_dir)),
+        bt_line as i64,
+    )
 }
 
 /// Check if a file name from Maxima output matches any remapped path.
@@ -167,7 +164,11 @@ fn find_remap(file_name: &str, remaps: &HashMap<PathBuf, PathBuf>) -> Option<Pat
 /// Tries `cwd` first (where user files are loaded from), then
 /// `program_dir` (where the temp/program file lives). Prefers the
 /// directory where the file actually exists on disk.
-fn resolve_file_path(file_name: &str, cwd: Option<&Path>, program_dir: Option<&Path>) -> Option<PathBuf> {
+fn resolve_file_path(
+    file_name: &str,
+    cwd: Option<&Path>,
+    program_dir: Option<&Path>,
+) -> Option<PathBuf> {
     let path = Path::new(file_name);
     if path.is_absolute() {
         return Some(path.to_path_buf());
@@ -222,7 +223,14 @@ mod tests {
         let source_index = SourceIndex::new();
         let remaps = HashMap::new();
         let canonical = HashMap::new();
-        let frames = parse_backtrace(&[], &source_index, Path::new("/test/file.mac"), &remaps, None, &canonical);
+        let frames = parse_backtrace(
+            &[],
+            &source_index,
+            Path::new("/test/file.mac"),
+            &remaps,
+            None,
+            &canonical,
+        );
         assert!(frames.is_empty());
     }
 
@@ -236,7 +244,14 @@ mod tests {
         let source_index = SourceIndex::new();
         let remaps = HashMap::new();
         let canonical = HashMap::new();
-        let frames = parse_backtrace(&lines, &source_index, Path::new("/test/file.mac"), &remaps, None, &canonical);
+        let frames = parse_backtrace(
+            &lines,
+            &source_index,
+            Path::new("/test/file.mac"),
+            &remaps,
+            None,
+            &canonical,
+        );
         assert_eq!(frames.len(), 2);
         assert_eq!(frames[0].name, "foo");
         assert_eq!(frames[0].id, 0);
@@ -253,21 +268,44 @@ mod tests {
         let source_index = SourceIndex::new();
         let remaps = HashMap::new();
         let mut canonical = HashMap::new();
-        canonical.insert(0, CanonicalLocation { file: "/abs/path/test.mac".to_string(), line: 3 });
-        canonical.insert(1, CanonicalLocation { file: "/abs/path/other.mac".to_string(), line: 10 });
-        let frames = parse_backtrace(&lines, &source_index, Path::new("/test/file.mac"), &remaps, None, &canonical);
+        canonical.insert(
+            0,
+            CanonicalLocation {
+                file: "/abs/path/test.mac".to_string(),
+                line: 3,
+            },
+        );
+        canonical.insert(
+            1,
+            CanonicalLocation {
+                file: "/abs/path/other.mac".to_string(),
+                line: 10,
+            },
+        );
+        let frames = parse_backtrace(
+            &lines,
+            &source_index,
+            Path::new("/test/file.mac"),
+            &remaps,
+            None,
+            &canonical,
+        );
         assert_eq!(frames.len(), 2);
-        assert_eq!(frames[0].source.as_ref().unwrap().path.as_deref(), Some("/abs/path/test.mac"));
+        assert_eq!(
+            frames[0].source.as_ref().unwrap().path.as_deref(),
+            Some("/abs/path/test.mac")
+        );
         assert_eq!(frames[0].line, 3);
-        assert_eq!(frames[1].source.as_ref().unwrap().path.as_deref(), Some("/abs/path/other.mac"));
+        assert_eq!(
+            frames[1].source.as_ref().unwrap().path.as_deref(),
+            Some("/abs/path/other.mac")
+        );
         assert_eq!(frames[1].line, 10);
     }
 
     #[test]
     fn parse_backtrace_canonical_with_remap() {
-        let lines = vec![
-            "#0: foo(x = 5) (tmp12345.mac line 3)".to_string(),
-        ];
+        let lines = vec!["#0: foo(x = 5) (tmp12345.mac line 3)".to_string()];
         let source_index = SourceIndex::new();
         let mut remaps = HashMap::new();
         remaps.insert(
@@ -275,11 +313,30 @@ mod tests {
             PathBuf::from("/home/user/myfile.mac"),
         );
         let mut canonical = HashMap::new();
-        canonical.insert(0, CanonicalLocation { file: "/tmp/tmp12345.mac".to_string(), line: 3 });
-        let frames = parse_backtrace(&lines, &source_index, Path::new("/test/file.mac"), &remaps, None, &canonical);
+        canonical.insert(
+            0,
+            CanonicalLocation {
+                file: "/tmp/tmp12345.mac".to_string(),
+                line: 3,
+            },
+        );
+        let frames = parse_backtrace(
+            &lines,
+            &source_index,
+            Path::new("/test/file.mac"),
+            &remaps,
+            None,
+            &canonical,
+        );
         assert_eq!(frames.len(), 1);
-        assert_eq!(frames[0].source.as_ref().unwrap().path.as_deref(), Some("/home/user/myfile.mac"));
-        assert_eq!(frames[0].source.as_ref().unwrap().name.as_deref(), Some("myfile.mac"));
+        assert_eq!(
+            frames[0].source.as_ref().unwrap().path.as_deref(),
+            Some("/home/user/myfile.mac")
+        );
+        assert_eq!(
+            frames[0].source.as_ref().unwrap().name.as_deref(),
+            Some("myfile.mac")
+        );
         assert_eq!(frames[0].line, 3);
     }
 

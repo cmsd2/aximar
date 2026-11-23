@@ -17,10 +17,7 @@ impl DapServer {
 
         // Clear any existing breakpoints for this file in Maxima
         if let Some(existing) = self.breakpoints.get(&source_path) {
-            let ids_to_delete: Vec<u32> = existing
-                .iter()
-                .filter_map(|bp| bp.maxima_id)
-                .collect();
+            let ids_to_delete: Vec<u32> = existing.iter().filter_map(|bp| bp.maxima_id).collect();
             if !ids_to_delete.is_empty() {
                 if let (Some(strategy), Some(process)) =
                     (self.strategy.as_ref(), self.process.as_mut())
@@ -53,7 +50,6 @@ impl DapServer {
             .map(|s| s.supports_deferred_breakpoints())
             .unwrap_or(false);
 
-
         for src_bp in source_breakpoints {
             let line = src_bp.line;
             let bp_id = self.next_breakpoint_id;
@@ -71,8 +67,7 @@ impl DapServer {
                         state: &self.state,
                         source_index: &self.source_index,
                     };
-                    let result =
-                        strategy.set_breakpoint(&mut ctx, &source_path, line).await;
+                    let result = strategy.set_breakpoint(&mut ctx, &source_path, line).await;
 
                     let display_line = result.actual_line.unwrap_or(line);
                     dap_breakpoints.push(Breakpoint {
@@ -125,11 +120,7 @@ impl DapServer {
                 }
             } else {
                 // Legacy mode: map line to function+offset, set if file loaded
-                let mapping = LegacyStrategy::map_line(
-                    &self.source_index,
-                    &source_path,
-                    line,
-                );
+                let mapping = LegacyStrategy::map_line(&self.source_index, &source_path, line);
                 tracing::debug!(
                     "setBreakpoints: line {} -> func={:?} offset={:?}",
                     line,
@@ -147,9 +138,8 @@ impl DapServer {
                                 state: &self.state,
                                 source_index: &self.source_index,
                             };
-                            let result = strategy
-                                .set_breakpoint(&mut ctx, &source_path, line)
-                                .await;
+                            let result =
+                                strategy.set_breakpoint(&mut ctx, &source_path, line).await;
                             (result.verified, result.maxima_id)
                         } else {
                             (false, None)
@@ -248,10 +238,7 @@ impl DapServer {
             .strategy
             .as_ref()
             .ok_or(AppError::CommunicationError("no strategy set".to_string()))?;
-        let process = self
-            .process
-            .as_mut()
-            .ok_or(AppError::ProcessNotRunning)?;
+        let process = self.process.as_mut().ok_or(AppError::ProcessNotRunning)?;
 
         let mut ctx = StrategyContext {
             process,

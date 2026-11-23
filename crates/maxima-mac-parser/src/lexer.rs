@@ -55,38 +55,34 @@ pub fn lexer<'src>(
 ) -> impl Parser<'src, &'src str, Vec<Spanned<Token<'src>>>, extra::Err<Rich<'src, char>>> {
     // Nested block comment: /* ... /* ... */ ... */
     // Use just("/*") as guard, then custom() for depth-tracking body
-    let comment_body =
-        custom::<_, &'src str, (), extra::Err<Rich<'src, char>>>(|inp| {
-            let mut depth: u32 = 1;
-            while depth > 0 {
-                match inp.peek() {
-                    None => break, // unterminated comment
-                    Some('/') => {
+    let comment_body = custom::<_, &'src str, (), extra::Err<Rich<'src, char>>>(|inp| {
+        let mut depth: u32 = 1;
+        while depth > 0 {
+            match inp.peek() {
+                None => break, // unterminated comment
+                Some('/') => {
+                    inp.skip();
+                    if inp.peek() == Some('*') {
                         inp.skip();
-                        if inp.peek() == Some('*') {
-                            inp.skip();
-                            depth += 1;
-                        }
-                    }
-                    Some('*') => {
-                        inp.skip();
-                        if inp.peek() == Some('/') {
-                            inp.skip();
-                            depth -= 1;
-                        }
-                    }
-                    _ => {
-                        inp.skip();
+                        depth += 1;
                     }
                 }
+                Some('*') => {
+                    inp.skip();
+                    if inp.peek() == Some('/') {
+                        inp.skip();
+                        depth -= 1;
+                    }
+                }
+                _ => {
+                    inp.skip();
+                }
             }
-            Ok(())
-        });
+        }
+        Ok(())
+    });
 
-    let nested_comment = just("/*")
-        .then(comment_body)
-        .to_slice()
-        .map(Token::Comment);
+    let nested_comment = just("/*").then(comment_body).to_slice().map(Token::Comment);
 
     // String literal: "..." with \" escapes
     let string = just('"')
@@ -175,17 +171,10 @@ pub fn lexer<'src>(
     .map_with(|tok, e| tok.map(|t| (t, e.span())));
 
     // Whitespace padding between tokens
-    let ws = any()
-        .filter(|c: &char| c.is_ascii_whitespace())
-        .repeated();
+    let ws = any().filter(|c: &char| c.is_ascii_whitespace()).repeated();
 
-    ws.ignore_then(
-        element
-            .then_ignore(ws)
-            .repeated()
-            .collect::<Vec<_>>(),
-    )
-    .map(|v| v.into_iter().flatten().collect())
+    ws.ignore_then(element.then_ignore(ws).repeated().collect::<Vec<_>>())
+        .map(|v| v.into_iter().flatten().collect())
 }
 
 #[cfg(test)]
@@ -248,7 +237,9 @@ mod tests {
     fn nested_comment() {
         let tokens = tokenize("/* outer /* inner */ still outer */ x");
         assert_eq!(tokens.len(), 2); // Comment, Ident
-        assert!(matches!(tokens[0].0, Token::Comment(s) if s == "/* outer /* inner */ still outer */"));
+        assert!(
+            matches!(tokens[0].0, Token::Comment(s) if s == "/* outer /* inner */ still outer */")
+        );
         assert!(matches!(tokens[1].0, Token::Ident("x")));
     }
 
@@ -265,10 +256,7 @@ mod tests {
     #[test]
     fn load_call() {
         let kinds = tok_kinds(r#"load("stringproc")$"#);
-        assert_eq!(
-            kinds,
-            vec!["Ident", "LParen", "Str", "RParen", "Dollar"]
-        );
+        assert_eq!(kinds, vec!["Ident", "LParen", "Str", "RParen", "Dollar"]);
     }
 
     #[test]

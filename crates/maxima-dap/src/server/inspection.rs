@@ -12,19 +12,26 @@ impl DapServer {
             Ok(result) => result,
             Err(e) => {
                 return self
-                    .send_error_response(
-                        request.seq,
-                        &format!("failed to get backtrace: {}", e),
-                    )
+                    .send_error_response(request.seq, &format!("failed to get backtrace: {}", e))
                     .await;
             }
         };
 
         let program_path = self.program_path.clone().unwrap_or_default();
         let path_remaps = self.build_path_remaps();
-        let cwd = self.launch_args.as_ref().and_then(|a| a.cwd.as_deref()).map(Path::new);
-        let mut stack_frames =
-            frames::parse_backtrace(&bt_lines, &self.source_index, &program_path, &path_remaps, cwd, &canonical_paths);
+        let cwd = self
+            .launch_args
+            .as_ref()
+            .and_then(|a| a.cwd.as_deref())
+            .map(Path::new);
+        let mut stack_frames = frames::parse_backtrace(
+            &bt_lines,
+            &self.source_index,
+            &program_path,
+            &path_remaps,
+            cwd,
+            &canonical_paths,
+        );
 
         // When the backtrace is empty (e.g. top-level error outside any
         // function), synthesize a frame from the stopped state so the user
@@ -37,47 +44,43 @@ impl DapServer {
                 ..
             } = self.state
             {
-                let (source, line) = if let (Some(file), Some(ln)) =
-                    (canonical_file, canonical_line)
-                {
-                    let file_path = PathBuf::from(file);
-                    let resolved = path_remaps
-                        .get(&file_path)
-                        .cloned()
-                        .unwrap_or(file_path);
-                    let name = resolved
-                        .file_name()
-                        .map(|n| n.to_string_lossy().to_string())
-                        .unwrap_or_else(|| file.clone());
-                    (
-                        Some(Source {
-                            name: Some(name),
-                            path: Some(resolved.to_string_lossy().to_string()),
-                            ..Default::default()
-                        }),
-                        ln as i64,
-                    )
-                } else if !program_path.as_os_str().is_empty() {
-                    let name = program_path
-                        .file_name()
-                        .map(|n| n.to_string_lossy().to_string())
-                        .unwrap_or_default();
-                    // Remap temp file paths back to the original source.
-                    let resolved = path_remaps
-                        .get(&program_path)
-                        .cloned()
-                        .unwrap_or_else(|| program_path.clone());
-                    (
-                        Some(Source {
-                            name: Some(name),
-                            path: Some(resolved.to_string_lossy().to_string()),
-                            ..Default::default()
-                        }),
-                        1, // line 1 — we don't know the exact line, but 0 causes bad remapping
-                    )
-                } else {
-                    (None, 1)
-                };
+                let (source, line) =
+                    if let (Some(file), Some(ln)) = (canonical_file, canonical_line) {
+                        let file_path = PathBuf::from(file);
+                        let resolved = path_remaps.get(&file_path).cloned().unwrap_or(file_path);
+                        let name = resolved
+                            .file_name()
+                            .map(|n| n.to_string_lossy().to_string())
+                            .unwrap_or_else(|| file.clone());
+                        (
+                            Some(Source {
+                                name: Some(name),
+                                path: Some(resolved.to_string_lossy().to_string()),
+                                ..Default::default()
+                            }),
+                            ln as i64,
+                        )
+                    } else if !program_path.as_os_str().is_empty() {
+                        let name = program_path
+                            .file_name()
+                            .map(|n| n.to_string_lossy().to_string())
+                            .unwrap_or_default();
+                        // Remap temp file paths back to the original source.
+                        let resolved = path_remaps
+                            .get(&program_path)
+                            .cloned()
+                            .unwrap_or_else(|| program_path.clone());
+                        (
+                            Some(Source {
+                                name: Some(name),
+                                path: Some(resolved.to_string_lossy().to_string()),
+                                ..Default::default()
+                            }),
+                            1, // line 1 — we don't know the exact line, but 0 causes bad remapping
+                        )
+                    } else {
+                        (None, 1)
+                    };
 
                 let frame_name = match error_context {
                     Some(ref err) => {
@@ -133,8 +136,12 @@ impl DapServer {
         // Create a variable reference for this frame's locals
         let var_ref = self.next_var_ref;
         self.next_var_ref += 1;
-        self.var_refs
-            .insert(var_ref, VariableRef::FrameLocals { frame_index: frame_id });
+        self.var_refs.insert(
+            var_ref,
+            VariableRef::FrameLocals {
+                frame_index: frame_id,
+            },
+        );
 
         let scopes = vec![Scope {
             name: "Locals".to_string(),
@@ -282,10 +289,7 @@ impl DapServer {
         // Suppress Maxima stdout for non-REPL evaluations (watch, hover,
         // variables panel) — these are internal queries whose raw output
         // should not leak to the Debug Console.
-        let is_repl = matches!(
-            args.context,
-            Some(EvaluateArgumentsContext::Repl) | None
-        );
+        let is_repl = matches!(args.context, Some(EvaluateArgumentsContext::Repl) | None);
         if !is_repl {
             self.suppress_output = true;
         }

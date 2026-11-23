@@ -27,8 +27,11 @@ async fn notebook_with(inputs: &[&str], catalog: &Catalog) -> (NotebookContextRe
         let mut nb = ctx.notebook.lock().await;
         // A new notebook has one empty cell, which can't be deleted: use it
         let first = nb.cells()[0].id.clone();
-        nb.apply(NotebookCommand::UpdateCellInput { cell_id: first.clone(), input: inputs[0].into() })
-            .unwrap();
+        nb.apply(NotebookCommand::UpdateCellInput {
+            cell_id: first.clone(),
+            input: inputs[0].into(),
+        })
+        .unwrap();
         let mut ids = vec![first];
         for input in &inputs[1..] {
             let effect = nb
@@ -43,7 +46,11 @@ async fn notebook_with(inputs: &[&str], catalog: &Catalog) -> (NotebookContextRe
         }
         ids
     };
-    let settings = SessionSettings { backend: Backend::Local, maxima_path: None, eval_timeout: 30 };
+    let settings = SessionSettings {
+        backend: Backend::Local,
+        maxima_path: None,
+        eval_timeout: 30,
+    };
     ensure_session(
         &ctx,
         &settings,
@@ -67,7 +74,10 @@ struct Recorder(Mutex<Vec<String>>);
 
 impl EffectSink for Recorder {
     fn effect(&self, _notebook_id: &str, _nb: &Notebook, effect: &CommandEffect) {
-        self.0.lock().unwrap().push(effect.effect_name().to_string());
+        self.0
+            .lock()
+            .unwrap()
+            .push(effect.effect_name().to_string());
     }
 }
 
@@ -89,7 +99,14 @@ async fn stops_at_an_error_in_the_middle() {
     assert_eq!(statuses(&report), vec![Ok, Empty, Error, NotRun]);
     assert_eq!(report.stop_reason, Some(StopReason::Error));
     assert_eq!(report.stopped_at.as_deref(), Some(ids[2].as_str()));
-    assert!(report.cells[2].error.as_deref().unwrap().contains("0 to a negative exponent"), "{report:?}");
+    assert!(
+        report.cells[2]
+            .error
+            .as_deref()
+            .unwrap()
+            .contains("0 to a negative exponent"),
+        "{report:?}"
+    );
 
     // The cell after the error never ran, so b is still unbound
     let check = {
@@ -104,16 +121,22 @@ async fn stops_at_an_error_in_the_middle() {
             .unwrap();
         effect.cell_id().unwrap().to_string()
     };
-    let result = evaluate_cell(&ctx, &check, &catalog, &packages, 30, &NoEffects).await.unwrap();
-    assert_eq!(result.cell_output.latex.as_deref(), Some("b"), "{:?}", result.cell_output);
+    let result = evaluate_cell(&ctx, &check, &catalog, &packages, 30, &NoEffects)
+        .await
+        .unwrap();
+    assert_eq!(
+        result.cell_output.latex.as_deref(),
+        Some("b"),
+        "{:?}",
+        result.cell_output
+    );
 }
 
 #[tokio::test]
 #[ignore = "requires Maxima to be installed"]
 async fn stops_at_a_trust_block_and_asks_for_trust() {
     let (catalog, packages) = (Catalog::load(), PackageCatalog::load());
-    let (ctx, ids) =
-        notebook_with(&["a: 1;", "load(\"helpers.mac\");", "b: 2;"], &catalog).await;
+    let (ctx, ids) = notebook_with(&["a: 1;", "load(\"helpers.mac\");", "b: 2;"], &catalog).await;
     ctx.notebook.lock().await.set_trusted(false);
     let sink = Recorder::default();
     let opts = RunAllOptions {
@@ -129,8 +152,15 @@ async fn stops_at_a_trust_block_and_asks_for_trust() {
     assert_eq!(statuses(&report), vec![Ok, NeedsTrust, NotRun]);
     assert_eq!(report.stop_reason, Some(StopReason::NeedsTrust));
     assert_eq!(report.stopped_at.as_deref(), Some(ids[1].as_str()));
-    assert_eq!(report.cells[1].dangerous_functions, vec!["load".to_string()]);
-    assert!(sink.0.lock().unwrap().contains(&"trust_required".to_string()));
+    assert_eq!(
+        report.cells[1].dangerous_functions,
+        vec!["load".to_string()]
+    );
+    assert!(sink
+        .0
+        .lock()
+        .unwrap()
+        .contains(&"trust_required".to_string()));
 }
 
 #[tokio::test]

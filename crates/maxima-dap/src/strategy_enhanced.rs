@@ -93,11 +93,7 @@ impl BreakpointStrategy for EnhancedStrategy {
         parse_enhanced_breakpoint_response(&lines, line)
     }
 
-    async fn delete_breakpoint(
-        &self,
-        ctx: &mut StrategyContext<'_>,
-        maxima_id: u32,
-    ) {
+    async fn delete_breakpoint(&self, ctx: &mut StrategyContext<'_>, maxima_id: u32) {
         let cmd = format!(":delete {}", maxima_id);
         if matches!(ctx.state, crate::types::DebugState::Stopped { .. }) {
             let _ = ctx.send_debugger_command_raw(&cmd).await;
@@ -146,7 +142,10 @@ impl BreakpointStrategy for EnhancedStrategy {
 /// - `Line N has no executable code; adjusted to line M` — line-snapping info (precedes Bkpt)
 /// - `No function in FILE contains line N` — error
 /// - `No executable code found near line N of FILE` — error
-fn parse_enhanced_breakpoint_response(lines: &[String], requested_line: i64) -> SetBreakpointResult {
+fn parse_enhanced_breakpoint_response(
+    lines: &[String],
+    requested_line: i64,
+) -> SetBreakpointResult {
     let bkpt_re = Regex::new(r"Bkpt\s+(\d+)").unwrap();
     let adjusted_re = Regex::new(r"adjusted to line\s+(\d+)").unwrap();
     // Actual Enhanced Maxima format: "Breakpoint at FILE line N deferred (file not yet loaded)"
@@ -172,7 +171,9 @@ fn parse_enhanced_breakpoint_response(lines: &[String], requested_line: i64) -> 
                 // Extract line number from "line M" or "at line M"
                 let in_line_re = Regex::new(r"(?:at |in .+ )line\s+(\d+)").unwrap();
                 if let Some(line_caps) = in_line_re.captures(line) {
-                    if let Some(l) = line_caps.get(1).and_then(|m| m.as_str().parse::<i64>().ok())
+                    if let Some(l) = line_caps
+                        .get(1)
+                        .and_then(|m| m.as_str().parse::<i64>().ok())
                     {
                         actual_line = Some(l);
                     }
@@ -251,29 +252,44 @@ pub fn parse_breakpoint_resolutions(lines: &[String]) -> Vec<ResolvedBreakpoint>
                 // Try breakpoint-hit format first: "(in /path/file.mac line M)"
                 if let Some(file_caps) = in_file_re.captures(trimmed) {
                     let file = file_caps.get(1).map(|m| m.as_str().to_string());
-                    if let Some(l) =
-                        file_caps.get(2).and_then(|m| m.as_str().parse::<i64>().ok())
+                    if let Some(l) = file_caps
+                        .get(2)
+                        .and_then(|m| m.as_str().parse::<i64>().ok())
                     {
-                        results.push(ResolvedBreakpoint { maxima_id: id, line: l, file });
+                        results.push(ResolvedBreakpoint {
+                            maxima_id: id,
+                            line: l,
+                            file,
+                        });
                         continue;
                     }
                 }
                 // Try :info :bkpt format: "(file.mac line M)"
                 if let Some(file_caps) = info_file_re.captures(trimmed) {
                     let file = file_caps.get(1).map(|m| m.as_str().to_string());
-                    if let Some(l) =
-                        file_caps.get(2).and_then(|m| m.as_str().parse::<i64>().ok())
+                    if let Some(l) = file_caps
+                        .get(2)
+                        .and_then(|m| m.as_str().parse::<i64>().ok())
                     {
-                        results.push(ResolvedBreakpoint { maxima_id: id, line: l, file });
+                        results.push(ResolvedBreakpoint {
+                            maxima_id: id,
+                            line: l,
+                            file,
+                        });
                         continue;
                     }
                 }
                 // Fallback: "at line M" (no file info)
                 if let Some(line_caps) = at_line_re.captures(trimmed) {
-                    if let Some(l) =
-                        line_caps.get(1).and_then(|m| m.as_str().parse::<i64>().ok())
+                    if let Some(l) = line_caps
+                        .get(1)
+                        .and_then(|m| m.as_str().parse::<i64>().ok())
                     {
-                        results.push(ResolvedBreakpoint { maxima_id: id, line: l, file: None });
+                        results.push(ResolvedBreakpoint {
+                            maxima_id: id,
+                            line: l,
+                            file: None,
+                        });
                     }
                 }
             }
@@ -332,8 +348,7 @@ mod tests {
 
     #[test]
     fn parse_rejected_no_executable_code() {
-        let lines =
-            vec!["No executable code found near line 10 of /tmp/test.mac".to_string()];
+        let lines = vec!["No executable code found near line 10 of /tmp/test.mac".to_string()];
         let result = parse_enhanced_breakpoint_response(&lines, 10);
         assert!(!result.verified);
         assert_eq!(result.maxima_id, None);
@@ -386,9 +401,7 @@ mod tests {
 
     #[test]
     fn info_bkpt_legacy_format() {
-        let lines = vec![
-            "Bkpt 0:(test.mac 3)".to_string(),
-        ];
+        let lines = vec!["Bkpt 0:(test.mac 3)".to_string()];
         // Legacy format has no "line" keyword — should not match
         let result = parse_breakpoint_resolutions(&lines);
         assert_eq!(result.len(), 0);
@@ -396,9 +409,7 @@ mod tests {
 
     #[test]
     fn info_bkpt_at_line_format() {
-        let lines = vec![
-            "Bkpt 2 for $add at line 14".to_string(),
-        ];
+        let lines = vec!["Bkpt 2 for $add at line 14".to_string()];
         let result = parse_breakpoint_resolutions(&lines);
         assert_eq!(result.len(), 1);
         assert_eq!(result[0].maxima_id, 2);

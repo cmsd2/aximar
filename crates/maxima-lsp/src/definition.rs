@@ -49,10 +49,7 @@ fn find_definition_in_doc(
     None
 }
 
-pub fn find_references(
-    word: &str,
-    documents: &DashMap<Url, DocumentState>,
-) -> Vec<Location> {
+pub fn find_references(word: &str, documents: &DashMap<Url, DocumentState>) -> Vec<Location> {
     let mut locations = Vec::new();
 
     for entry in documents.iter() {
@@ -65,8 +62,7 @@ pub fn find_references(
         let mut search_from = 0;
         while let Some(pos) = content[search_from..].find(word) {
             let abs_pos = search_from + pos;
-            let before_ok = abs_pos == 0
-                || !is_ident_char(content_bytes[abs_pos - 1] as char);
+            let before_ok = abs_pos == 0 || !is_ident_char(content_bytes[abs_pos - 1] as char);
             let after_pos = abs_pos + word.len();
             let after_ok = after_pos >= content_bytes.len()
                 || !is_ident_char(content_bytes[after_pos] as char);

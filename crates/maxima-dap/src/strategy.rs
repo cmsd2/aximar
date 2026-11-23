@@ -50,10 +50,7 @@ pub struct StrategyContext<'a> {
 impl<'a> StrategyContext<'a> {
     /// Send a command to Maxima's stdin and read until sentinel or
     /// debugger prompt (in debug mode).
-    pub async fn send_maxima(
-        &mut self,
-        cmd: &str,
-    ) -> Result<(Vec<String>, PromptKind), AppError> {
+    pub async fn send_maxima(&mut self, cmd: &str) -> Result<(Vec<String>, PromptKind), AppError> {
         let sentinel = "__MAXIMA_DAP_DONE__";
         self.process.write_stdin(cmd).await?;
         self.process
@@ -101,11 +98,7 @@ pub trait BreakpointStrategy: Send {
     ) -> SetBreakpointResult;
 
     /// Delete a breakpoint by its Maxima-assigned ID.
-    async fn delete_breakpoint(
-        &self,
-        ctx: &mut StrategyContext<'_>,
-        maxima_id: u32,
-    );
+    async fn delete_breakpoint(&self, ctx: &mut StrategyContext<'_>, maxima_id: u32);
 
     /// Get the expression to evaluate after loading.
     ///

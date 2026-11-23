@@ -131,14 +131,13 @@ fn convert_node(node: Node, ctx: &mut MarkdownContext) {
         "math" => convert_inline_math(node, ctx),
         "sc" => convert_smallcaps(node, ctx),
         "key" => convert_kbd(node, ctx),
-        "kbd" | "samp" | "command" | "env" | "file" | "option" => {
-            convert_inline_code(node, ctx)
-        }
+        "kbd" | "samp" | "command" | "env" | "file" | "option" => convert_inline_code(node, ctx),
         "footnote" => { /* skip footnotes in markdown output */ }
         "sup" | "sub" => convert_children(node, ctx),
         "itemformat" => convert_children(node, ctx), // @table @code wraps items in this
         "item" => convert_children(node, ctx),
-        "formattingcommand" | "itemprepend" | "prepend" | "need" | "beforefirstitem" => { /* skip */ }
+        "formattingcommand" | "itemprepend" | "prepend" | "need" | "beforefirstitem" => { /* skip */
+        }
         "columnfractions" | "columnfraction" => { /* skip — multitable metadata */ }
         _ => {
             // For unknown elements, just recurse into children
@@ -348,13 +347,7 @@ fn convert_multitable(node: Node, ctx: &mut MarkdownContext) {
 
     // Calculate column widths
     let col_widths: Vec<usize> = (0..num_cols)
-        .map(|c| {
-            rows.iter()
-                .map(|r| r[c].len())
-                .max()
-                .unwrap_or(3)
-                .max(3)
-        })
+        .map(|c| rows.iter().map(|r| r[c].len()).max().unwrap_or(3).max(3))
         .collect();
 
     // Render header row (first row if has_header, or synthesized)
@@ -501,8 +494,8 @@ fn convert_ref(node: Node, ctx: &mut MarkdownContext) {
             // Use custom fn: scheme for internal cross-references
             ctx.push("[");
             // Use xrefnodename child text if available, otherwise label
-            let display = find_child_text(node, "xrefnodename")
-                .unwrap_or_else(|| label.to_string());
+            let display =
+                find_child_text(node, "xrefnodename").unwrap_or_else(|| label.to_string());
             ctx.push(&display);
             ctx.push("](fn:");
             ctx.push(label);
@@ -776,7 +769,9 @@ mod tests {
 
     #[test]
     fn test_inline_code() {
-        let md = parse_and_convert("<root><para>Use <code>diff(x)</code> to differentiate.</para></root>");
+        let md = parse_and_convert(
+            "<root><para>Use <code>diff(x)</code> to differentiate.</para></root>",
+        );
         assert!(md.contains("`diff(x)`"));
     }
 
@@ -856,9 +851,7 @@ mod tests {
 
     #[test]
     fn test_figure() {
-        let md = parse_and_convert(
-            "<root><html>(Figure plotting1: A simple plot)</html></root>",
-        );
+        let md = parse_and_convert("<root><html>(Figure plotting1: A simple plot)</html></root>");
         assert!(md.contains("![A simple plot](figures/plotting1.png)"));
     }
 
@@ -883,7 +876,10 @@ mod tests {
 
     #[test]
     fn test_normalize_inline_whitespace() {
-        assert_eq!(normalize_inline_whitespace("  hello   world  "), "hello world ");
+        assert_eq!(
+            normalize_inline_whitespace("  hello   world  "),
+            "hello world "
+        );
     }
 
     #[test]

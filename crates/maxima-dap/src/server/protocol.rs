@@ -240,8 +240,10 @@ impl DapServer {
         }
 
         // Bare words from batchload/debugmode/backend detection/lisp probes.
-        if matches!(line, "done" | "true" | "false" | "NIL" | "T"
-            | "SBCL" | "GCL" | "CLISP" | "ECL") {
+        if matches!(
+            line,
+            "done" | "true" | "false" | "NIL" | "T" | "SBCL" | "GCL" | "CLISP" | "ECL"
+        ) {
             return true;
         }
 

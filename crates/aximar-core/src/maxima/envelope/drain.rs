@@ -66,10 +66,7 @@ async fn recv_maybe(
 /// Non-unix stub: no envelope channel, so the drain degenerates to
 /// just awaiting `main` with an empty collected-vec.
 #[cfg(not(unix))]
-pub async fn drive_with_envelope_drain<F, T>(
-    main: F,
-    _events_rx: &mut Option<()>,
-) -> (T, Vec<()>)
+pub async fn drive_with_envelope_drain<F, T>(main: F, _events_rx: &mut Option<()>) -> (T, Vec<()>)
 where
     F: std::future::Future<Output = T>,
 {

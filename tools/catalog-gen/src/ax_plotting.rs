@@ -155,9 +155,7 @@ pub fn generate_typescript(ctx: &DrawContext) -> String {
     // Draw objects per group
     for (group, objects) in &ctx.draw_objects {
         let const_name = format!("DRAW_OBJECTS_{}", group.to_uppercase());
-        out.push_str(&format!(
-            "export const {const_name}: Completion[] = [\n"
-        ));
+        out.push_str(&format!("export const {const_name}: Completion[] = [\n"));
         for obj in objects {
             write_draw_object(&mut out, obj);
         }
@@ -174,9 +172,7 @@ pub fn generate_typescript(ctx: &DrawContext) -> String {
     // Layout options per group
     for (group, opts) in &ctx.layout_options {
         let const_name = format!("LAYOUT_OPTIONS_{}", group.to_uppercase());
-        out.push_str(&format!(
-            "export const {const_name}: Completion[] = [\n"
-        ));
+        out.push_str(&format!("export const {const_name}: Completion[] = [\n"));
         for opt in opts {
             write_option(&mut out, opt);
         }
@@ -221,18 +217,9 @@ fn write_draw_object(out: &mut String, obj: &DrawObject) {
     let snippet_str = format!("{}({})", obj.name, snippet_args.join(", "));
 
     out.push_str("  {\n");
-    out.push_str(&format!(
-        "    label: {},\n",
-        json_string(&obj.name)
-    ));
-    out.push_str(&format!(
-        "    detail: {},\n",
-        json_string(&obj.detail)
-    ));
-    out.push_str(&format!(
-        "    info: {},\n",
-        json_string(&obj.info)
-    ));
+    out.push_str(&format!("    label: {},\n", json_string(&obj.name)));
+    out.push_str(&format!("    detail: {},\n", json_string(&obj.detail)));
+    out.push_str(&format!("    info: {},\n", json_string(&obj.info)));
     out.push_str("    type: \"function\",\n");
     out.push_str(&format!(
         "    apply: snippet({}),\n",

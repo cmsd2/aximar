@@ -1,5 +1,5 @@
-use std::sync::Mutex as StdMutex;
 use serde::{Deserialize, Serialize};
+use std::sync::Mutex as StdMutex;
 use tauri::Emitter;
 
 use crate::state::SharedAppHandle;
@@ -32,10 +32,7 @@ impl TauriOutputSink {
         }
     }
 
-    pub fn with_notebook_id(
-        app_handle: SharedAppHandle,
-        notebook_id: String,
-    ) -> Self {
+    pub fn with_notebook_id(app_handle: SharedAppHandle, notebook_id: String) -> Self {
         TauriOutputSink {
             app_handle,
             notebook_id: Some(notebook_id),
@@ -78,11 +75,11 @@ pub struct TauriEnvelopeObserver {
 }
 
 impl TauriEnvelopeObserver {
-    pub fn new(
-        app_handle: SharedAppHandle,
-        notebook_id: String,
-    ) -> Self {
-        TauriEnvelopeObserver { app_handle, notebook_id }
+    pub fn new(app_handle: SharedAppHandle, notebook_id: String) -> Self {
+        TauriEnvelopeObserver {
+            app_handle,
+            notebook_id,
+        }
     }
 }
 

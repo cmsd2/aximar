@@ -1,9 +1,9 @@
 use tauri::State;
 
+use crate::state::AppState;
 use aximar_core::error::AppError;
 use aximar_core::maxima::protocol;
 use aximar_core::registry::NotebookContextRef;
-use crate::state::AppState;
 
 /// Resolve notebook context: if notebook_id is provided, use it; otherwise use the active notebook.
 async fn resolve_context(

@@ -20,8 +20,14 @@ use crate::state::SharedAppHandle;
 
 /// A change to show in the window.
 pub enum GuiEvent {
-    NotebookChanged { notebook_id: String, effect: CommandEffect },
-    Lifecycle { notebook_id: String, event: String },
+    NotebookChanged {
+        notebook_id: String,
+        effect: CommandEffect,
+    },
+    Lifecycle {
+        notebook_id: String,
+        event: String,
+    },
 }
 
 pub type GuiEventSender = mpsc::UnboundedSender<GuiEvent>;
@@ -69,7 +75,10 @@ async fn deliver(
 ) {
     while let Some(event) = rx.recv().await {
         match event {
-            GuiEvent::NotebookChanged { notebook_id, effect } => {
+            GuiEvent::NotebookChanged {
+                notebook_id,
+                effect,
+            } => {
                 let notebook = match registry.lock().await.get(&notebook_id) {
                     Ok(ctx) => ctx.notebook.clone(),
                     // Closed since the change: nothing left to show
@@ -106,7 +115,10 @@ mod tests {
         }
 
         fn lifecycle(&self, notebook_id: &str, event: &str) {
-            self.0.lock().unwrap().push(format!("{notebook_id} {event}"));
+            self.0
+                .lock()
+                .unwrap()
+                .push(format!("{notebook_id} {event}"));
         }
     }
 
@@ -117,8 +129,11 @@ mod tests {
         let notebook = registry.lock().await.get(&id).unwrap().notebook.clone();
         let (tx, rx) = mpsc::unbounded_channel();
 
-        tx.send(GuiEvent::Lifecycle { notebook_id: id.clone(), event: "created".into() })
-            .unwrap();
+        tx.send(GuiEvent::Lifecycle {
+            notebook_id: id.clone(),
+            event: "created".into(),
+        })
+        .unwrap();
         for _ in 0..50 {
             let effect = notebook
                 .lock()
@@ -130,10 +145,17 @@ mod tests {
                     before_cell_id: None,
                 })
                 .unwrap();
-            tx.send(GuiEvent::NotebookChanged { notebook_id: id.clone(), effect }).unwrap();
-        }
-        tx.send(GuiEvent::Lifecycle { notebook_id: id.clone(), event: "active_changed".into() })
+            tx.send(GuiEvent::NotebookChanged {
+                notebook_id: id.clone(),
+                effect,
+            })
             .unwrap();
+        }
+        tx.send(GuiEvent::Lifecycle {
+            notebook_id: id.clone(),
+            event: "active_changed".into(),
+        })
+        .unwrap();
         drop(tx);
 
         let recorder = Arc::new(Recorder::default());
@@ -142,7 +164,9 @@ mod tests {
         let seen = recorder.0.lock().unwrap().clone();
         assert_eq!(seen.len(), 52);
         assert_eq!(seen[0], format!("{id} created"));
-        assert!(seen[1..51].iter().all(|s| s.starts_with(&format!("{id} cell_added"))));
+        assert!(seen[1..51]
+            .iter()
+            .all(|s| s.starts_with(&format!("{id} cell_added"))));
         assert_eq!(seen[51], format!("{id} active_changed"));
     }
 
@@ -156,7 +180,9 @@ mod tests {
         for notebook_id in [gone.clone(), keep.clone()] {
             tx.send(GuiEvent::NotebookChanged {
                 notebook_id,
-                effect: CommandEffect::NoOp { reason: "test".into() },
+                effect: CommandEffect::NoOp {
+                    reason: "test".into(),
+                },
             })
             .unwrap();
         }

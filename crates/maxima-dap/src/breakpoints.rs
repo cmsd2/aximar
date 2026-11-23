@@ -239,7 +239,10 @@ bar(x) := x * 2$
     #[test]
     fn reverse_mapping_not_found() {
         let file = parse_test_file();
-        assert_eq!(function_offset_to_source_line(&file, "nonexistent", 0), None);
+        assert_eq!(
+            function_offset_to_source_line(&file, "nonexistent", 0),
+            None
+        );
     }
 
     #[test]

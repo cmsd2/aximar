@@ -57,7 +57,8 @@ pub fn unicode_to_maxima(input: &str) -> Result<String, UnsupportedCharacter> {
             Span::Code(code) => {
                 let first_line = out.matches('\n').count() + 1;
                 let line = |chars: &[char], at: usize| {
-                    multi_line.then(|| first_line + chars[..at].iter().filter(|&&c| c == '\n').count())
+                    multi_line
+                        .then(|| first_line + chars[..at].iter().filter(|&&c| c == '\n').count())
                 };
                 translate_code(code, &line, &mut out)?;
             }
@@ -123,7 +124,11 @@ fn variant_of(c: char) -> Option<char> {
         // Mathematical italic Greek small letters α..ω, then symbols
         '\u{1D6FC}'..='\u{1D714}' => {
             let letter = shift(c, 0x3B1 - 0x1D6FC);
-            if letter == 'ς' { 'σ' } else { letter }
+            if letter == 'ς' {
+                'σ'
+            } else {
+                letter
+            }
         }
         '\u{1D715}' => '∂',
         '\u{1D716}' => 'ε',
@@ -417,8 +422,12 @@ fn translate_code(
 ) -> Result<(), UnsupportedCharacter> {
     let chars = normalise(code);
     let reject = |at: usize, subject: String, hint: &str| {
-        let place = line(&chars, at).map(|n| format!(" on line {n}")).unwrap_or_default();
-        UnsupportedCharacter(format!("{subject}{place} can't be used in Maxima code: {hint}"))
+        let place = line(&chars, at)
+            .map(|n| format!(" on line {n}"))
+            .unwrap_or_default();
+        UnsupportedCharacter(format!(
+            "{subject}{place} can't be used in Maxima code: {hint}"
+        ))
     };
     let next_non_space = |from: usize| chars[from..].iter().copied().find(|c| !c.is_whitespace());
     let token_end = |from: usize| {
@@ -451,7 +460,8 @@ fn translate_code(
         } else if subscript(c).is_some() {
             let mut index = String::new();
             while let Some(ascii) = chars.get(i).copied().and_then(subscript) {
-                if ascii.is_ascii_alphabetic() && index.ends_with(|p: char| p.is_ascii_alphabetic()) {
+                if ascii.is_ascii_alphabetic() && index.ends_with(|p: char| p.is_ascii_alphabetic())
+                {
                     return Err(reject(
                         i,
                         char_subject(chars[i]),
@@ -466,7 +476,11 @@ fn translate_code(
             out.push(']');
         } else if c == '√' {
             let (root, next) = square_root(&chars, i + 1, &next_non_space).ok_or_else(|| {
-                reject(i, char_subject(c), "write `sqrt(...)` with brackets, for example `sqrt(x^2)`.")
+                reject(
+                    i,
+                    char_subject(c),
+                    "write `sqrt(...)` with brackets, for example `sqrt(x^2)`.",
+                )
             })?;
             out.push_str(&root);
             i = next;
@@ -595,7 +609,10 @@ mod tests {
     #[test]
     fn uppercase_greek() {
         assert_eq!(tr("Ω"), "Omega");
-        assert_eq!(tr("Δ + Θ + Λ + Ξ + Π + Σ + Φ + Ψ"), "Delta + Theta + Lambda + Xi + Pi + Sigma + Phi + Psi");
+        assert_eq!(
+            tr("Δ + Θ + Λ + Ξ + Π + Σ + Φ + Ψ"),
+            "Delta + Theta + Lambda + Xi + Pi + Sigma + Phi + Psi"
+        );
     }
 
     #[test]
@@ -626,7 +643,10 @@ mod tests {
 
     #[test]
     fn multiple_strings() {
-        assert_eq!(tr(r#"f(τ) + "τ" + g(τ) + "τ""#), r#"f(tau) + "τ" + g(tau) + "τ""#);
+        assert_eq!(
+            tr(r#"f(τ) + "τ" + g(τ) + "τ""#),
+            r#"f(tau) + "τ" + g(tau) + "τ""#
+        );
     }
 
     #[test]
@@ -664,13 +684,19 @@ mod tests {
 
     #[test]
     fn comments_stay_as_typed() {
-        assert_eq!(tr("/* α is the angle */ α: 1;"), "/* α is the angle */ alpha: 1;");
+        assert_eq!(
+            tr("/* α is the angle */ α: 1;"),
+            "/* α is the angle */ alpha: 1;"
+        );
         assert_eq!(tr("/* ≈ /* nested ∑ */ */ x;"), "/* ≈ /* nested ∑ */ */ x;");
     }
 
     #[test]
     fn rejected_characters_in_strings_are_fine() {
-        assert_eq!(tr(r#"print("≈ “quoted” 30°");"#), r#"print("≈ “quoted” 30°");"#);
+        assert_eq!(
+            tr(r#"print("≈ “quoted” 30°");"#),
+            r#"print("≈ “quoted” 30°");"#
+        );
     }
 
     // ── Greek letters as names ──
@@ -678,11 +704,29 @@ mod tests {
     #[test]
     fn every_lowercase_letter() {
         let pairs = [
-            ("α", "alpha"), ("β", "beta"), ("γ", "gamma"), ("δ", "delta"), ("ε", "epsilon"),
-            ("ζ", "zeta"), ("η", "eta"), ("θ", "theta"), ("ι", "iota"), ("κ", "kappa"),
-            ("λ", "lambda"), ("μ", "mu"), ("ν", "nu"), ("ξ", "xi"), ("π", "%pi"), ("ρ", "rho"),
-            ("σ", "sigma"), ("τ", "tau"), ("υ", "upsilon"), ("φ", "phi"), ("χ", "chi"),
-            ("ψ", "psi"), ("ω", "omega"),
+            ("α", "alpha"),
+            ("β", "beta"),
+            ("γ", "gamma"),
+            ("δ", "delta"),
+            ("ε", "epsilon"),
+            ("ζ", "zeta"),
+            ("η", "eta"),
+            ("θ", "theta"),
+            ("ι", "iota"),
+            ("κ", "kappa"),
+            ("λ", "lambda"),
+            ("μ", "mu"),
+            ("ν", "nu"),
+            ("ξ", "xi"),
+            ("π", "%pi"),
+            ("ρ", "rho"),
+            ("σ", "sigma"),
+            ("τ", "tau"),
+            ("υ", "upsilon"),
+            ("φ", "phi"),
+            ("χ", "chi"),
+            ("ψ", "psi"),
+            ("ω", "omega"),
         ];
         for (letter, name) in pairs {
             assert_eq!(tr(letter), name, "{letter}");
@@ -723,8 +767,16 @@ mod tests {
     #[test]
     fn variant_forms_are_their_letter() {
         let pairs = [
-            ("ϐ", "beta"), ("ϑ", "theta"), ("ϕ", "phi"), ("ϰ", "kappa"), ("ϱ", "rho"),
-            ("ϴ", "Theta"), ("ϵ", "epsilon"), ("ς", "sigma"), ("µ", "mu"), ("\u{2126}", "Omega"),
+            ("ϐ", "beta"),
+            ("ϑ", "theta"),
+            ("ϕ", "phi"),
+            ("ϰ", "kappa"),
+            ("ϱ", "rho"),
+            ("ϴ", "Theta"),
+            ("ϵ", "epsilon"),
+            ("ς", "sigma"),
+            ("µ", "mu"),
+            ("\u{2126}", "Omega"),
             ("∆", "Delta"),
         ];
         for (variant, name) in pairs {
@@ -762,7 +814,10 @@ mod tests {
 
     #[test]
     fn square_roots() {
-        assert_eq!(tr("√2 + √(x+1) + √α;"), "sqrt(2) + sqrt(x+1) + sqrt(alpha);");
+        assert_eq!(
+            tr("√2 + √(x+1) + √α;"),
+            "sqrt(2) + sqrt(x+1) + sqrt(alpha);"
+        );
         assert_eq!(tr("√2.5"), "sqrt(2.5)");
         rejects("√x²", "sqrt(");
         rejects("√2x", "sqrt(");
@@ -797,8 +852,20 @@ mod tests {
     #[test]
     fn lookalike_capitals_and_omicron() {
         for (greek, latin) in [
-            ("Α", "A"), ("Β", "B"), ("Ε", "E"), ("Ζ", "Z"), ("Η", "H"), ("Ι", "I"), ("Κ", "K"),
-            ("Μ", "M"), ("Ν", "N"), ("Ο", "O"), ("Ρ", "P"), ("Τ", "T"), ("Υ", "Y"), ("Χ", "X"),
+            ("Α", "A"),
+            ("Β", "B"),
+            ("Ε", "E"),
+            ("Ζ", "Z"),
+            ("Η", "H"),
+            ("Ι", "I"),
+            ("Κ", "K"),
+            ("Μ", "M"),
+            ("Ν", "N"),
+            ("Ο", "O"),
+            ("Ρ", "P"),
+            ("Τ", "T"),
+            ("Υ", "Y"),
+            ("Χ", "X"),
             ("ο", "o"),
         ] {
             rejects(&format!("{greek} + 1;"), &format!("Type `{latin}`"));
@@ -825,13 +892,32 @@ mod tests {
     #[test]
     fn rejected_symbols_have_hints() {
         let cases = [
-            ("∑ k", "sum("), ("∏ k", "product("), ("∫ f", "integrate("), ("∂f", "diff("),
-            ("∇f", "grad"), ("∛x", "x^(1/3)"), ("a ± b", "both cases"), ("a ≡ b", "is(equal"),
-            ("a ≔ 1", ":="), ("x → 0", "limit("), ("x ↦ x", "lambda("), ("x ∈ S", "elementp("),
-            ("A ⊂ B", "subsetp("), ("A ∪ B", "union("), ("A ∩ B", "intersection("),
-            ("A ∖ B", "setdifference("), ("∅", "{}"), ("∀x", "quantifiers"), ("f′(x)", "diff("),
-            ("sin(30°)", "30*%pi/180"), ("½", "1/2"), ("5‰", "/1000"), ("a – b", "`-`"),
-            ("a — b", "`-`"), ("“text”", "straight quotes"), ("’a", "quote is"),
+            ("∑ k", "sum("),
+            ("∏ k", "product("),
+            ("∫ f", "integrate("),
+            ("∂f", "diff("),
+            ("∇f", "grad"),
+            ("∛x", "x^(1/3)"),
+            ("a ± b", "both cases"),
+            ("a ≡ b", "is(equal"),
+            ("a ≔ 1", ":="),
+            ("x → 0", "limit("),
+            ("x ↦ x", "lambda("),
+            ("x ∈ S", "elementp("),
+            ("A ⊂ B", "subsetp("),
+            ("A ∪ B", "union("),
+            ("A ∩ B", "intersection("),
+            ("A ∖ B", "setdifference("),
+            ("∅", "{}"),
+            ("∀x", "quantifiers"),
+            ("f′(x)", "diff("),
+            ("sin(30°)", "30*%pi/180"),
+            ("½", "1/2"),
+            ("5‰", "/1000"),
+            ("a – b", "`-`"),
+            ("a — b", "`-`"),
+            ("“text”", "straight quotes"),
+            ("’a", "quote is"),
             ("a\u{202E}b", "bidirectional"),
         ];
         for (input, hint) in cases {
@@ -902,7 +988,10 @@ mod tests {
             // Subscripts and superscripts follow a name; their `maxima` is
             // only a guide (`^(-`)
             if maxima.starts_with('[') || maxima.starts_with('^') {
-                assert!(unicode_to_maxima(&format!("x{unicode}")).is_ok(), "{unicode}");
+                assert!(
+                    unicode_to_maxima(&format!("x{unicode}")).is_ok(),
+                    "{unicode}"
+                );
                 continue;
             }
             // √ needs something to take the root of
@@ -911,7 +1000,11 @@ mod tests {
                 continue;
             }
             let got = tr(unicode);
-            assert_eq!(got.trim(), maxima, "{unicode} becomes {got:?}, the list says {maxima:?}");
+            assert_eq!(
+                got.trim(),
+                maxima,
+                "{unicode} becomes {got:?}, the list says {maxima:?}"
+            );
         }
         assert!(checked > 50, "only {checked} entries found");
     }

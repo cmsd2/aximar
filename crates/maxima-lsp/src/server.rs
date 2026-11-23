@@ -57,22 +57,14 @@ impl MaximaLsp {
 
 #[tower_lsp::async_trait]
 impl LanguageServer for MaximaLsp {
-    async fn initialize(
-        &self,
-        _params: InitializeParams,
-    ) -> jsonrpc::Result<InitializeResult> {
+    async fn initialize(&self, _params: InitializeParams) -> jsonrpc::Result<InitializeResult> {
         Ok(InitializeResult {
             capabilities: ServerCapabilities {
                 text_document_sync: Some(TextDocumentSyncCapability::Kind(
                     TextDocumentSyncKind::FULL,
                 )),
                 completion_provider: Some(CompletionOptions {
-                    trigger_characters: Some(vec![
-                        "(".into(),
-                        ",".into(),
-                        "_".into(),
-                        "%".into(),
-                    ]),
+                    trigger_characters: Some(vec!["(".into(), ",".into(), "_".into(), "%".into()]),
                     resolve_provider: Some(false),
                     ..Default::default()
                 }),
@@ -86,9 +78,7 @@ impl LanguageServer for MaximaLsp {
                 definition_provider: Some(OneOf::Left(true)),
                 references_provider: Some(OneOf::Left(true)),
                 workspace_symbol_provider: Some(OneOf::Left(true)),
-                folding_range_provider: Some(FoldingRangeProviderCapability::Simple(
-                    true,
-                )),
+                folding_range_provider: Some(FoldingRangeProviderCapability::Simple(true)),
                 execute_command_provider: Some(ExecuteCommandOptions {
                     commands: vec![
                         "maxima.searchFunctions".into(),
@@ -154,9 +144,7 @@ impl LanguageServer for MaximaLsp {
         let uri = params.text_document.uri;
         self.documents.remove(&uri);
         // Clear diagnostics for closed file
-        self.client
-            .publish_diagnostics(uri, vec![], None)
-            .await;
+        self.client.publish_diagnostics(uri, vec![], None).await;
     }
 
     async fn did_change_watched_files(&self, _params: DidChangeWatchedFilesParams) {
@@ -181,9 +169,7 @@ impl LanguageServer for MaximaLsp {
         let prefix = self
             .documents
             .get(&uri)
-            .and_then(|doc| {
-                helpers::word_at_position(&doc.content, pos.line, pos.character)
-            })
+            .and_then(|doc| helpers::word_at_position(&doc.content, pos.line, pos.character))
             .unwrap_or_default();
 
         if prefix.is_empty() {
@@ -191,27 +177,17 @@ impl LanguageServer for MaximaLsp {
         }
 
         let catalog = self.catalog();
-        let items = completion::completions(
-            &prefix,
-            &catalog,
-            &self.packages,
-            &self.documents,
-            &uri,
-        );
+        let items =
+            completion::completions(&prefix, &catalog, &self.packages, &self.documents, &uri);
         Ok(Some(CompletionResponse::Array(items)))
     }
 
-    async fn hover(
-        &self,
-        params: HoverParams,
-    ) -> jsonrpc::Result<Option<Hover>> {
+    async fn hover(&self, params: HoverParams) -> jsonrpc::Result<Option<Hover>> {
         let pos = params.text_document_position_params.position;
         let uri = params.text_document_position_params.text_document.uri;
 
         let word = match self.documents.get(&uri) {
-            Some(doc) => {
-                helpers::word_at_position(&doc.content, pos.line, pos.character)
-            }
+            Some(doc) => helpers::word_at_position(&doc.content, pos.line, pos.character),
             None => None,
         };
 
@@ -237,9 +213,7 @@ impl LanguageServer for MaximaLsp {
         let uri = params.text_document_position_params.text_document.uri;
 
         let call = match self.documents.get(&uri) {
-            Some(doc) => {
-                helpers::find_enclosing_call(&doc.content, pos.line, pos.character)
-            }
+            Some(doc) => helpers::find_enclosing_call(&doc.content, pos.line, pos.character),
             None => None,
         };
 
@@ -278,9 +252,7 @@ impl LanguageServer for MaximaLsp {
         let uri = params.text_document_position_params.text_document.uri;
 
         let word = match self.documents.get(&uri) {
-            Some(doc) => {
-                helpers::word_at_position(&doc.content, pos.line, pos.character)
-            }
+            Some(doc) => helpers::word_at_position(&doc.content, pos.line, pos.character),
             None => None,
         };
 
@@ -293,17 +265,12 @@ impl LanguageServer for MaximaLsp {
         Ok(loc.map(GotoDefinitionResponse::Scalar))
     }
 
-    async fn references(
-        &self,
-        params: ReferenceParams,
-    ) -> jsonrpc::Result<Option<Vec<Location>>> {
+    async fn references(&self, params: ReferenceParams) -> jsonrpc::Result<Option<Vec<Location>>> {
         let pos = params.text_document_position.position;
         let uri = params.text_document_position.text_document.uri;
 
         let word = match self.documents.get(&uri) {
-            Some(doc) => {
-                helpers::word_at_position(&doc.content, pos.line, pos.character)
-            }
+            Some(doc) => helpers::word_at_position(&doc.content, pos.line, pos.character),
             None => None,
         };
 
@@ -337,12 +304,8 @@ impl LanguageServer for MaximaLsp {
                         name: name.to_string(),
                         kind: match item {
                             maxima_mac_parser::MacItem::FunctionDef(_)
-                            | maxima_mac_parser::MacItem::MacroDef(_) => {
-                                SymbolKind::FUNCTION
-                            }
-                            maxima_mac_parser::MacItem::VariableAssign(_) => {
-                                SymbolKind::VARIABLE
-                            }
+                            | maxima_mac_parser::MacItem::MacroDef(_) => SymbolKind::FUNCTION,
+                            maxima_mac_parser::MacItem::VariableAssign(_) => SymbolKind::VARIABLE,
                         },
                         location: Location {
                             uri: uri.clone(),
@@ -408,8 +371,10 @@ impl LanguageServer for MaximaLsp {
                 }
 
                 // Search package functions (deduped)
-                let existing: std::collections::HashSet<String> =
-                    results.iter().filter_map(|r| r.get("name")?.as_str().map(|n| n.to_lowercase())).collect();
+                let existing: std::collections::HashSet<String> = results
+                    .iter()
+                    .filter_map(|r| r.get("name")?.as_str().map(|n| n.to_lowercase()))
+                    .collect();
                 for pfr in self.packages.search_functions(query) {
                     let name_lower = pfr.function_name.to_lowercase();
                     if !existing.contains(&name_lower) {
@@ -454,8 +419,7 @@ impl LanguageServer for MaximaLsp {
                     } else {
                         let md = entry.body_md.clone();
                         // Inline relative image references as base64 data URIs
-                        let doc_dir = doc_index::maxima_userdir()
-                            .map(|d| d.join(pkg).join("doc"));
+                        let doc_dir = doc_index::maxima_userdir().map(|d| d.join(pkg).join("doc"));
                         Some(inline_images(&md, doc_dir.as_deref()))
                     };
                     return Ok(Some(serde_json::json!({

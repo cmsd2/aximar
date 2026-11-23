@@ -51,9 +51,7 @@ pub fn word_at_position(content: &str, line: u32, character: u32) -> Option<Stri
     // Scan backwards to find start of identifier
     let mut start = offset;
     while start > 0 {
-        let prev = content[..start]
-            .chars()
-            .next_back()?;
+        let prev = content[..start].chars().next_back()?;
         if is_ident_continue(prev) || (start == offset && is_ident_start(prev)) {
             start -= prev.len_utf8();
         } else {
@@ -81,11 +79,7 @@ pub fn word_at_position(content: &str, line: u32, character: u32) -> Option<Stri
 /// Find the enclosing function call at the given position.
 /// Returns `(function_name, active_param_index)` where active_param_index
 /// is the 0-based index of the parameter the cursor is currently in.
-pub fn find_enclosing_call(
-    content: &str,
-    line: u32,
-    character: u32,
-) -> Option<(String, usize)> {
+pub fn find_enclosing_call(content: &str, line: u32, character: u32) -> Option<(String, usize)> {
     let offset = position_to_offset(content, line, character)?;
     let before = &content[..offset];
 
@@ -205,10 +199,7 @@ mod tests {
 
     #[test]
     fn word_at_position_percent() {
-        assert_eq!(
-            word_at_position("%pi + 1", 0, 1),
-            Some("%pi".to_string())
-        );
+        assert_eq!(word_at_position("%pi + 1", 0, 1), Some("%pi".to_string()));
     }
 
     #[test]

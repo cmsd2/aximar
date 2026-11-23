@@ -16,13 +16,20 @@ use aximar_core::session_ops::{ensure_session, SessionSettings};
 async fn expr(ctx: &NotebookContextRef, catalog: &Catalog, input: &str) -> EvalResult {
     let mut guard = ctx.session.lock().await;
     let process = guard.try_begin_eval().unwrap();
-    let result = protocol::evaluate(process, "expr", input, catalog, 30).await.unwrap();
+    let result = protocol::evaluate(process, "expr", input, catalog, 30)
+        .await
+        .unwrap();
     guard.end_eval();
     result
 }
 
 /// Add a code cell holding `input` and run it.
-async fn cell(ctx: &NotebookContextRef, catalog: &Catalog, packages: &PackageCatalog, input: &str) -> CellOutput {
+async fn cell(
+    ctx: &NotebookContextRef,
+    catalog: &Catalog,
+    packages: &PackageCatalog,
+    input: &str,
+) -> CellOutput {
     let cell_id = {
         let mut nb = ctx.notebook.lock().await;
         let effect = nb
@@ -35,7 +42,10 @@ async fn cell(ctx: &NotebookContextRef, catalog: &Catalog, packages: &PackageCat
             .unwrap();
         effect.cell_id().unwrap().to_string()
     };
-    evaluate_cell(ctx, &cell_id, catalog, packages, 30, &NoEffects).await.unwrap().cell_output
+    evaluate_cell(ctx, &cell_id, catalog, packages, 30, &NoEffects)
+        .await
+        .unwrap()
+        .cell_output
 }
 
 /// Maxima's `%` holds the last result after each evaluation, as in plain
@@ -45,10 +55,21 @@ pub async fn check_percent() {
     let id = registry.create();
     let ctx = registry.get(&id).unwrap();
     let (catalog, packages) = (Catalog::load(), PackageCatalog::load());
-    let settings = SessionSettings { backend: Backend::Local, maxima_path: None, eval_timeout: 30 };
-    ensure_session(&ctx, &settings, |ctx| ctx.capture_sink.clone() as Arc<dyn OutputSink>, |_| None, &catalog, None)
-        .await
-        .expect("Maxima starts");
+    let settings = SessionSettings {
+        backend: Backend::Local,
+        maxima_path: None,
+        eval_timeout: 30,
+    };
+    ensure_session(
+        &ctx,
+        &settings,
+        |ctx| ctx.capture_sink.clone() as Arc<dyn OutputSink>,
+        |_| None,
+        &catalog,
+        None,
+    )
+    .await
+    .expect("Maxima starts");
 
     expr(&ctx, &catalog, "7;").await;
     let r = expr(&ctx, &catalog, "% + 1;").await;
@@ -76,6 +97,16 @@ pub async fn check_percent() {
     assert_eq!(a.latex.as_deref(), Some("3"));
     let b = cell(&ctx, &catalog, &packages, "% * 2;").await;
     assert_eq!(b.latex.as_deref(), Some("6"), "{b:?}");
-    let c = cell(&ctx, &catalog, &packages, &format!("%o{} + %o{};", a.execution_count.unwrap(), b.execution_count.unwrap())).await;
+    let c = cell(
+        &ctx,
+        &catalog,
+        &packages,
+        &format!(
+            "%o{} + %o{};",
+            a.execution_count.unwrap(),
+            b.execution_count.unwrap()
+        ),
+    )
+    .await;
     assert_eq!(c.latex.as_deref(), Some("9"), "{c:?}");
 }

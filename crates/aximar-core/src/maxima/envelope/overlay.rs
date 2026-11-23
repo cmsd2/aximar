@@ -62,11 +62,7 @@ pub fn apply_error_envelopes(
 
     result.error = Some(err.message.clone());
     result.is_error = true;
-    result.error_info = error_enhance::enhance_error_with_packages(
-        &err.message,
-        catalog,
-        packages,
-    );
+    result.error_info = error_enhance::enhance_error_with_packages(&err.message, catalog, packages);
     // Output label has no meaning when the eval errored — no %oN was
     // assigned.  The legacy parser also clears this in the same case.
     result.output_label = None;
@@ -226,4 +222,3 @@ pub fn apply_eval_result_envelopes(
     _backend: &crate::maxima::backend::Backend,
 ) {
 }
-

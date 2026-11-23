@@ -1,17 +1,15 @@
+use regex::Regex;
 use std::env;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{Arc, LazyLock};
 use std::time::{SystemTime, UNIX_EPOCH};
-use regex::Regex;
 use tokio::io::{AsyncBufReadExt, AsyncReadExt, AsyncWriteExt, BufReader};
 use tokio::process::{Child, Command};
 
 use crate::error::AppError;
 use crate::maxima::backend::Backend;
 use crate::maxima::debugger::{self, PromptKind};
-#[cfg(unix)]
-use std::os::fd::AsRawFd;
 #[cfg(unix)]
 use crate::maxima::envelope::cancel_pipe::{pre_exec_dup_to_fd4, CancelHandle, CancelPipe};
 #[cfg(unix)]
@@ -20,6 +18,8 @@ use crate::maxima::envelope::events_pipe::{pre_exec_dup_to_fd3, spawn_reader_tas
 use crate::maxima::envelope::types::Envelope;
 use crate::maxima::noconsole::hide_console_window;
 use crate::maxima::output::{OutputEvent, OutputSink};
+#[cfg(unix)]
+use std::os::fd::AsRawFd;
 
 /// Detects interactive assumption questions from Maxima (e.g. "Is x positive,
 /// negative or zero?") that would block the process waiting for user input.
@@ -126,11 +126,20 @@ fn kernel_events_enabled() -> bool {
 }
 
 impl MaximaProcess {
-    pub async fn spawn(backend: Backend, custom_path: Option<String>, output_sink: Arc<dyn OutputSink>) -> Result<Self, AppError> {
+    pub async fn spawn(
+        backend: Backend,
+        custom_path: Option<String>,
+        output_sink: Arc<dyn OutputSink>,
+    ) -> Result<Self, AppError> {
         Self::spawn_with_cwd_and_observer(backend, custom_path, output_sink, None, None).await
     }
 
-    pub async fn spawn_with_cwd(backend: Backend, custom_path: Option<String>, output_sink: Arc<dyn OutputSink>, cwd: Option<&std::path::Path>) -> Result<Self, AppError> {
+    pub async fn spawn_with_cwd(
+        backend: Backend,
+        custom_path: Option<String>,
+        output_sink: Arc<dyn OutputSink>,
+        cwd: Option<&std::path::Path>,
+    ) -> Result<Self, AppError> {
         Self::spawn_with_cwd_and_observer(backend, custom_path, output_sink, cwd, None).await
     }
 
@@ -199,8 +208,7 @@ impl MaximaProcess {
                     match EventsPipe::new() {
                         Ok(pipe) => {
                             let raw_write = pipe.write_end.as_raw_fd();
-                            let (tx, rx) =
-                                tokio::sync::mpsc::unbounded_channel::<Envelope>();
+                            let (tx, rx) = tokio::sync::mpsc::unbounded_channel::<Envelope>();
                             spawn_reader_task(pipe.read_end, tx, envelope_observer.clone());
                             events_rx_slot = Some(rx);
                             cmd.env("MAXIMA_EVENTS_FD", "3");
@@ -230,32 +238,31 @@ impl MaximaProcess {
                 // cancel signal).  Parent retains the write end so the
                 // host can fire `request_cancel`; child reads from fd 4.
                 #[cfg(unix)]
-                let parent_cancel_read: Option<std::os::fd::OwnedFd> = if kernel_events_enabled()
-                    && parent_write_end.is_some()
-                {
-                    match CancelPipe::new() {
-                        Ok(pipe) => {
-                            let raw_read = pipe.read_end.as_raw_fd();
-                            cancel_write_slot = Some(pipe.write_end);
-                            cmd.env("MAXIMA_CANCEL_FD", "4");
-                            // SAFETY: pre_exec_dup_to_fd4 only calls
-                            // async-signal-safe libc functions.
-                            unsafe {
-                                cmd.pre_exec(pre_exec_dup_to_fd4(raw_read));
+                let parent_cancel_read: Option<std::os::fd::OwnedFd> =
+                    if kernel_events_enabled() && parent_write_end.is_some() {
+                        match CancelPipe::new() {
+                            Ok(pipe) => {
+                                let raw_read = pipe.read_end.as_raw_fd();
+                                cancel_write_slot = Some(pipe.write_end);
+                                cmd.env("MAXIMA_CANCEL_FD", "4");
+                                // SAFETY: pre_exec_dup_to_fd4 only calls
+                                // async-signal-safe libc functions.
+                                unsafe {
+                                    cmd.pre_exec(pre_exec_dup_to_fd4(raw_read));
+                                }
+                                Some(pipe.read_end)
                             }
-                            Some(pipe.read_end)
+                            Err(e) => {
+                                eprintln!(
+                                    "[events] failed to open cancel pipe, cancel disabled: {}",
+                                    e
+                                );
+                                None
+                            }
                         }
-                        Err(e) => {
-                            eprintln!(
-                                "[events] failed to open cancel pipe, cancel disabled: {}",
-                                e
-                            );
-                            None
-                        }
-                    }
-                } else {
-                    None
-                };
+                    } else {
+                        None
+                    };
                 // Detach from the controlling terminal so SBCL cannot
                 // open /dev/tty.  Without this, *debug-io* on Linux
                 // writes to /dev/tty (bypassing our piped stdout/stderr)
@@ -275,7 +282,8 @@ impl MaximaProcess {
                     }
                 }
                 hide_console_window(&mut cmd);
-                let child = cmd.spawn()
+                let child = cmd
+                    .spawn()
                     .map_err(|e| AppError::ProcessStartFailed(format!("{}: {}", maxima_path, e)))?;
 
                 // Parent no longer needs the write end now that the
@@ -320,10 +328,7 @@ impl MaximaProcess {
 
                 let volume_mount = format!(
                     "{}:{}",
-                    backend
-                        .host_temp_dir()
-                        .unwrap()
-                        .to_string_lossy(),
+                    backend.host_temp_dir().unwrap().to_string_lossy(),
                     Backend::container_temp_dir()
                 );
 
@@ -333,14 +338,13 @@ impl MaximaProcess {
                 // profile that adds only these specific personality values
                 // rather than disabling seccomp entirely.
                 let seccomp_path = Backend::write_seccomp_profile().map_err(|e| {
-                    AppError::ProcessStartFailed(format!(
-                        "Failed to write seccomp profile: {}", e
-                    ))
+                    AppError::ProcessStartFailed(format!("Failed to write seccomp profile: {}", e))
                 })?;
                 let seccomp_opt = format!("seccomp={}", seccomp_path.display());
 
                 let mut docker_cmd = Command::new(engine);
-                docker_cmd.args([
+                docker_cmd
+                    .args([
                         "run",
                         "--rm",
                         "-i",
@@ -352,8 +356,10 @@ impl MaximaProcess {
                         &seccomp_opt,
                         "--name",
                         &container_name,
-                        "-e", "LANG=en_US.UTF-8",
-                        "-e", "LC_ALL=en_US.UTF-8",
+                        "-e",
+                        "LANG=en_US.UTF-8",
+                        "-e",
+                        "LC_ALL=en_US.UTF-8",
                         "-v",
                         &volume_mount,
                         image,
@@ -368,10 +374,9 @@ impl MaximaProcess {
                     docker_cmd.creation_flags(0x00000200); // CREATE_NEW_PROCESS_GROUP
                 }
                 hide_console_window(&mut docker_cmd);
-                let child = docker_cmd.spawn()
-                    .map_err(|e| {
-                        AppError::ProcessStartFailed(format!("{} run {}: {}", engine, image, e))
-                    })?;
+                let child = docker_cmd.spawn().map_err(|e| {
+                    AppError::ProcessStartFailed(format!("{} run {}: {}", engine, image, e))
+                })?;
 
                 (child, Some(container_name))
             }
@@ -403,7 +408,14 @@ impl MaximaProcess {
                 if !distro.is_empty() {
                     cmd.args(["-d", distro]);
                 }
-                cmd.args(["--", "env", "LANG=en_US.UTF-8", "LC_ALL=en_US.UTF-8", "maxima", "--very-quiet"]);
+                cmd.args([
+                    "--",
+                    "env",
+                    "LANG=en_US.UTF-8",
+                    "LC_ALL=en_US.UTF-8",
+                    "maxima",
+                    "--very-quiet",
+                ]);
                 cmd.stdin(std::process::Stdio::piped())
                     .stdout(std::process::Stdio::piped())
                     .stderr(std::process::Stdio::piped())
@@ -414,23 +426,26 @@ impl MaximaProcess {
                 }
                 hide_console_window(&mut cmd);
 
-                let child = cmd.spawn().map_err(|e| {
-                    AppError::ProcessStartFailed(format!("wsl maxima: {}", e))
-                })?;
+                let child = cmd
+                    .spawn()
+                    .map_err(|e| AppError::ProcessStartFailed(format!("wsl maxima: {}", e)))?;
 
                 (child, None)
             }
         };
 
-        let stdin = child.stdin.take().ok_or_else(|| {
-            AppError::ProcessStartFailed("Failed to capture stdin".into())
-        })?;
-        let stdout = child.stdout.take().ok_or_else(|| {
-            AppError::ProcessStartFailed("Failed to capture stdout".into())
-        })?;
-        let stderr = child.stderr.take().ok_or_else(|| {
-            AppError::ProcessStartFailed("Failed to capture stderr".into())
-        })?;
+        let stdin = child
+            .stdin
+            .take()
+            .ok_or_else(|| AppError::ProcessStartFailed("Failed to capture stdin".into()))?;
+        let stdout = child
+            .stdout
+            .take()
+            .ok_or_else(|| AppError::ProcessStartFailed("Failed to capture stdout".into()))?;
+        let stderr = child
+            .stderr
+            .take()
+            .ok_or_else(|| AppError::ProcessStartFailed("Failed to capture stderr".into()))?;
         let stdout_reader = BufReader::new(stdout);
         let stderr_reader = BufReader::new(stderr);
 
@@ -537,9 +552,7 @@ impl MaximaProcess {
     /// concurrently with `read_until_sentinel`, which itself takes
     /// `&mut self`) without splitting the struct.
     #[cfg(unix)]
-    pub fn take_events_rx(
-        &mut self,
-    ) -> Option<tokio::sync::mpsc::UnboundedReceiver<Envelope>> {
+    pub fn take_events_rx(&mut self) -> Option<tokio::sync::mpsc::UnboundedReceiver<Envelope>> {
         self.events_rx.take()
     }
 
@@ -686,7 +699,8 @@ impl MaximaProcess {
 
         let read_fut = self.read_until_sentinel(INIT_DONE_SENTINEL);
         let (_read_result, mut envelopes) =
-            crate::maxima::envelope::drain::drive_with_envelope_drain(read_fut, &mut events_rx).await;
+            crate::maxima::envelope::drain::drive_with_envelope_drain(read_fut, &mut events_rx)
+                .await;
 
         if let Some(rx) = events_rx.as_mut() {
             let idle = std::time::Duration::from_millis(50);
@@ -897,8 +911,13 @@ impl MaximaProcess {
             line.clear();
             match tokio::time::timeout(
                 std::time::Duration::from_millis(50),
-                self.stderr_reader.as_mut().expect("stderr_reader required on this code path").read_line(&mut line),
-            ).await {
+                self.stderr_reader
+                    .as_mut()
+                    .expect("stderr_reader required on this code path")
+                    .read_line(&mut line),
+            )
+            .await
+            {
                 Ok(Ok(n)) if n > 0 => {
                     let trimmed = line.trim_end().to_string();
                     if !trimmed.is_empty() {
@@ -1144,7 +1163,13 @@ impl MaximaProcess {
             let mut line = String::new();
             loop {
                 line.clear();
-                match self.stdout_reader.as_mut().expect("stdout_reader required on this code path").read_line(&mut line).await {
+                match self
+                    .stdout_reader
+                    .as_mut()
+                    .expect("stdout_reader required on this code path")
+                    .read_line(&mut line)
+                    .await
+                {
                     Ok(0) => break,
                     Ok(_) => {
                         let trimmed = line.trim();
@@ -1382,8 +1407,7 @@ impl MaximaProcess {
         self.child.kill().await.map_err(AppError::Io)?;
 
         // For Docker/Podman, also force-remove the container as a safety net
-        if let (Backend::Docker { engine, .. }, Some(name)) =
-            (&self.backend, &self.container_name)
+        if let (Backend::Docker { engine, .. }, Some(name)) = (&self.backend, &self.container_name)
         {
             let mut rm_cmd = tokio::process::Command::new(engine);
             rm_cmd.args(["rm", "-f", name]);
@@ -1417,13 +1441,12 @@ impl MaximaProcess {
                     .stdout(std::process::Stdio::null())
                     .stderr(std::process::Stdio::piped());
                 hide_console_window(&mut cmd);
-                let output = cmd.output().await
-                    .map_err(|e| {
-                        AppError::ProcessStartFailed(format!(
-                            "'{}' not found. Is {} installed and running? {}",
-                            engine, engine, e
-                        ))
-                    })?;
+                let output = cmd.output().await.map_err(|e| {
+                    AppError::ProcessStartFailed(format!(
+                        "'{}' not found. Is {} installed and running? {}",
+                        engine, engine, e
+                    ))
+                })?;
 
                 if !output.status.success() {
                     let stderr = String::from_utf8_lossy(&output.stderr);
@@ -1441,13 +1464,12 @@ impl MaximaProcess {
                         .stdout(std::process::Stdio::null())
                         .stderr(std::process::Stdio::piped());
                     hide_console_window(&mut cmd);
-                    let output = cmd.output().await
-                        .map_err(|e| {
-                            AppError::ProcessStartFailed(format!(
-                                "Failed to check image '{}': {}",
-                                image, e
-                            ))
-                        })?;
+                    let output = cmd.output().await.map_err(|e| {
+                        AppError::ProcessStartFailed(format!(
+                            "Failed to check image '{}': {}",
+                            image, e
+                        ))
+                    })?;
 
                     if !output.status.success() {
                         return Err(AppError::ProcessStartFailed(format!(
@@ -1466,13 +1488,12 @@ impl MaximaProcess {
                     .stdout(std::process::Stdio::null())
                     .stderr(std::process::Stdio::piped());
                 hide_console_window(&mut cmd);
-                let output = cmd.output().await
-                    .map_err(|e| {
-                        AppError::ProcessStartFailed(format!(
-                            "'wsl' not found. Is WSL installed? {}",
-                            e
-                        ))
-                    })?;
+                let output = cmd.output().await.map_err(|e| {
+                    AppError::ProcessStartFailed(format!(
+                        "'wsl' not found. Is WSL installed? {}",
+                        e
+                    ))
+                })?;
 
                 if !output.status.success() {
                     return Err(AppError::ProcessStartFailed(
@@ -1487,13 +1508,12 @@ impl MaximaProcess {
                         .stdout(std::process::Stdio::null())
                         .stderr(std::process::Stdio::piped());
                     hide_console_window(&mut cmd);
-                    let output = cmd.output().await
-                        .map_err(|e| {
-                            AppError::ProcessStartFailed(format!(
-                                "Failed to check WSL distro '{}': {}",
-                                distro, e
-                            ))
-                        })?;
+                    let output = cmd.output().await.map_err(|e| {
+                        AppError::ProcessStartFailed(format!(
+                            "Failed to check WSL distro '{}': {}",
+                            distro, e
+                        ))
+                    })?;
 
                     if !output.status.success() {
                         return Err(AppError::ProcessStartFailed(format!(
@@ -1513,13 +1533,12 @@ impl MaximaProcess {
                     cmd.stdout(std::process::Stdio::null())
                         .stderr(std::process::Stdio::piped());
                     hide_console_window(&mut cmd);
-                    let output = cmd.output().await
-                        .map_err(|e| {
-                            AppError::ProcessStartFailed(format!(
-                                "Failed to check for maxima in WSL: {}",
-                                e
-                            ))
-                        })?;
+                    let output = cmd.output().await.map_err(|e| {
+                        AppError::ProcessStartFailed(format!(
+                            "Failed to check for maxima in WSL: {}",
+                            e
+                        ))
+                    })?;
 
                     if !output.status.success() {
                         let distro_hint = if distro.is_empty() {
@@ -1572,7 +1591,6 @@ pub fn find_maxima_binary() -> String {
 
     "maxima".to_string()
 }
-
 
 #[cfg(test)]
 mod tests {

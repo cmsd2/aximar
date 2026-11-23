@@ -43,13 +43,8 @@ impl Default for ContainerEngine {
 #[derive(Debug, Clone)]
 pub enum Backend {
     Local,
-    Docker {
-        engine: String,
-        image: String,
-    },
-    Wsl {
-        distro: String,
-    },
+    Docker { engine: String, image: String },
+    Wsl { distro: String },
 }
 
 impl Backend {
@@ -144,12 +139,8 @@ impl Backend {
     /// fetched from the WSL filesystem.
     pub fn host_temp_dir(&self) -> Option<PathBuf> {
         match self {
-            Backend::Docker { .. } => {
-                Some(std::env::temp_dir().join("aximar-docker"))
-            }
-            Backend::Wsl { .. } => {
-                Some(std::env::temp_dir().join("aximar-wsl"))
-            }
+            Backend::Docker { .. } => Some(std::env::temp_dir().join("aximar-docker")),
+            Backend::Wsl { .. } => Some(std::env::temp_dir().join("aximar-wsl")),
             _ => None,
         }
     }

@@ -67,7 +67,13 @@ impl DapServer {
 
         tracing::debug!("configurationDone: evaluating {:?}", expr);
         match self.send_maxima_and_wait(&expr).await {
-            Ok((PromptKind::Debugger { level, error_context }, canonical)) => {
+            Ok((
+                PromptKind::Debugger {
+                    level,
+                    error_context,
+                },
+                canonical,
+            )) => {
                 tracing::debug!("configurationDone: hit breakpoint at level {}", level);
                 self.state = DebugState::Stopped {
                     level,
@@ -79,12 +85,15 @@ impl DapServer {
                 // that batchload has resolved them.
                 self.refresh_breakpoint_status().await?;
                 let (reason, desc, text) = if let Some(ref err) = error_context {
-                    (StoppedEventReason::Exception, Some(err.clone()), Some(err.clone()))
+                    (
+                        StoppedEventReason::Exception,
+                        Some(err.clone()),
+                        Some(err.clone()),
+                    )
                 } else {
                     (StoppedEventReason::Breakpoint, None, None)
                 };
-                self.send_stopped_event(reason, desc, text)
-                    .await?;
+                self.send_stopped_event(reason, desc, text).await?;
             }
             Ok((PromptKind::Normal, _)) => {
                 tracing::debug!("configurationDone: expression completed without breakpoint");
@@ -110,10 +119,7 @@ impl DapServer {
         Ok(())
     }
 
-    pub(super) async fn handle_threads(
-        &mut self,
-        request: &Request,
-    ) -> Result<(), TransportError> {
+    pub(super) async fn handle_threads(&mut self, request: &Request) -> Result<(), TransportError> {
         // Maxima is single-threaded
         self.send_response(
             request,
@@ -141,7 +147,13 @@ impl DapServer {
         .await?;
 
         match self.send_debugger_command(":resume").await {
-            Ok((PromptKind::Debugger { level, error_context }, canonical)) => {
+            Ok((
+                PromptKind::Debugger {
+                    level,
+                    error_context,
+                },
+                canonical,
+            )) => {
                 self.state = DebugState::Stopped {
                     level,
                     canonical_file: canonical.as_ref().map(|c| c.file.clone()),
@@ -151,12 +163,15 @@ impl DapServer {
                 self.refresh_breakpoint_status().await?;
                 self.flush_output().await?;
                 let (reason, desc, text) = if let Some(ref err) = error_context {
-                    (StoppedEventReason::Exception, Some(err.clone()), Some(err.clone()))
+                    (
+                        StoppedEventReason::Exception,
+                        Some(err.clone()),
+                        Some(err.clone()),
+                    )
                 } else {
                     (StoppedEventReason::Breakpoint, None, None)
                 };
-                self.send_stopped_event(reason, desc, text)
-                    .await?;
+                self.send_stopped_event(reason, desc, text).await?;
             }
             Ok((PromptKind::Normal, _)) => {
                 self.state = DebugState::Terminated;
@@ -165,11 +180,8 @@ impl DapServer {
             }
             Err(e) => {
                 self.flush_output().await?;
-                self.send_output_event(
-                    &format!("Error: {}\n", e),
-                    OutputEventCategory::Stderr,
-                )
-                .await?;
+                self.send_output_event(&format!("Error: {}\n", e), OutputEventCategory::Stderr)
+                    .await?;
                 self.state = DebugState::Terminated;
                 self.send_event(Event::Terminated(None)).await?;
             }
@@ -188,7 +200,13 @@ impl DapServer {
 
         tracing::debug!("handle_next: sending :next (state={:?})", self.state);
         match self.send_debugger_command(":next").await {
-            Ok((PromptKind::Debugger { level, error_context }, canonical)) => {
+            Ok((
+                PromptKind::Debugger {
+                    level,
+                    error_context,
+                },
+                canonical,
+            )) => {
                 tracing::debug!("handle_next: stopped at debugger level {}", level);
                 self.state = DebugState::Stopped {
                     level,
@@ -199,7 +217,11 @@ impl DapServer {
                 self.refresh_breakpoint_status().await?;
                 self.flush_output().await?;
                 let (reason, desc, text) = if let Some(ref err) = error_context {
-                    (StoppedEventReason::Exception, Some(err.clone()), Some(err.clone()))
+                    (
+                        StoppedEventReason::Exception,
+                        Some(err.clone()),
+                        Some(err.clone()),
+                    )
                 } else {
                     (StoppedEventReason::Step, None, None)
                 };
@@ -214,11 +236,8 @@ impl DapServer {
             Err(e) => {
                 tracing::error!("handle_next: error: {}", e);
                 self.flush_output().await?;
-                self.send_output_event(
-                    &format!("Error: {}\n", e),
-                    OutputEventCategory::Stderr,
-                )
-                .await?;
+                self.send_output_event(&format!("Error: {}\n", e), OutputEventCategory::Stderr)
+                    .await?;
                 self.state = DebugState::Terminated;
                 self.send_event(Event::Terminated(None)).await?;
             }
@@ -236,7 +255,13 @@ impl DapServer {
             .await?;
 
         match self.send_debugger_command(":step").await {
-            Ok((PromptKind::Debugger { level, error_context }, canonical)) => {
+            Ok((
+                PromptKind::Debugger {
+                    level,
+                    error_context,
+                },
+                canonical,
+            )) => {
                 self.state = DebugState::Stopped {
                     level,
                     canonical_file: canonical.as_ref().map(|c| c.file.clone()),
@@ -246,7 +271,11 @@ impl DapServer {
                 self.refresh_breakpoint_status().await?;
                 self.flush_output().await?;
                 let (reason, desc, text) = if let Some(ref err) = error_context {
-                    (StoppedEventReason::Exception, Some(err.clone()), Some(err.clone()))
+                    (
+                        StoppedEventReason::Exception,
+                        Some(err.clone()),
+                        Some(err.clone()),
+                    )
                 } else {
                     (StoppedEventReason::Step, None, None)
                 };
@@ -259,11 +288,8 @@ impl DapServer {
             }
             Err(e) => {
                 self.flush_output().await?;
-                self.send_output_event(
-                    &format!("Error: {}\n", e),
-                    OutputEventCategory::Stderr,
-                )
-                .await?;
+                self.send_output_event(&format!("Error: {}\n", e), OutputEventCategory::Stderr)
+                    .await?;
                 self.state = DebugState::Terminated;
                 self.send_event(Event::Terminated(None)).await?;
             }

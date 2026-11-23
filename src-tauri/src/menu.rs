@@ -93,9 +93,7 @@ pub fn setup_menu(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>
 
     // --- Window submenu ---
 
-    let window_submenu = SubmenuBuilder::new(app, "Window")
-        .minimize()
-        .build()?;
+    let window_submenu = SubmenuBuilder::new(app, "Window").minimize().build()?;
 
     // --- Assemble menu bar ---
 

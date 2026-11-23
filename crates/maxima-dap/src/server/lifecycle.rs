@@ -89,18 +89,21 @@ impl DapServer {
             .as_deref()
             .map(Path::new)
             .or_else(|| program_path.parent());
-        let process =
-            match MaximaProcess::spawn_with_cwd(backend, custom_path, self.output_sink.clone(), cwd).await {
-                Ok(p) => p,
-                Err(e) => {
-                    return self
-                        .send_error_response(
-                            request.seq,
-                            &format!("failed to start Maxima: {}", e),
-                        )
-                        .await;
-                }
-            };
+        let process = match MaximaProcess::spawn_with_cwd(
+            backend,
+            custom_path,
+            self.output_sink.clone(),
+            cwd,
+        )
+        .await
+        {
+            Ok(p) => p,
+            Err(e) => {
+                return self
+                    .send_error_response(request.seq, &format!("failed to start Maxima: {}", e))
+                    .await;
+            }
+        };
 
         self.process = Some(process);
         self.program_path = Some(program_path.clone());
@@ -109,10 +112,7 @@ impl DapServer {
         // Enable debug mode
         if let Err(e) = self.send_maxima("debugmode(true)$\n").await {
             return self
-                .send_error_response(
-                    request.seq,
-                    &format!("failed to enable debug mode: {}", e),
-                )
+                .send_error_response(request.seq, &format!("failed to enable debug mode: {}", e))
                 .await;
         }
         // Switch to chunk-based reading so read_until_sentinel can detect

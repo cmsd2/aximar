@@ -214,7 +214,8 @@ fn main() {
 
             // Parse and write catalog
             let xml = read_file(&xml_path);
-            let functions = parse_and_merge(&xml, merge_path.as_deref(), log_unmapped, min_description);
+            let functions =
+                parse_and_merge(&xml, merge_path.as_deref(), log_unmapped, min_description);
             write_catalog(&functions, &output);
 
             // Copy figures
@@ -232,8 +233,8 @@ fn main() {
                     &catalog_for_search,
                     Some(&functions),
                 );
-                let pkg_json = serde_json::to_string_pretty(&packages)
-                    .expect("failed to serialize packages");
+                let pkg_json =
+                    serde_json::to_string_pretty(&packages).expect("failed to serialize packages");
                 fs::write(&packages_output, &pkg_json).unwrap_or_else(|e| {
                     fatal(&format!("Error writing {}: {e}", packages_output.display()));
                 });
@@ -337,11 +338,7 @@ fn main() {
             fs::write(&output, &json).unwrap_or_else(|e| {
                 fatal(&format!("Error writing {}: {e}", output.display()));
             });
-            eprintln!(
-                "Wrote {} packages to {}",
-                packages.len(),
-                output.display()
-            );
+            eprintln!("Wrote {} packages to {}", packages.len(), output.display());
         }
 
         Commands::ShareFiles {
@@ -362,7 +359,10 @@ fn main() {
                     resolved_share_dir.display()
                 ));
             }
-            write_share_files(&resolved_share_dir, &resolve_output(output, SHARE_FILES_REL));
+            write_share_files(
+                &resolved_share_dir,
+                &resolve_output(output, SHARE_FILES_REL),
+            );
         }
 
         Commands::AxPlotting { input } => {
@@ -388,8 +388,7 @@ fn main() {
 
             // Generate docs
             let docs = ax_plotting::generate_docs(&ctx);
-            let docs_json =
-                serde_json::to_string_pretty(&docs).expect("failed to serialize docs");
+            let docs_json = serde_json::to_string_pretty(&docs).expect("failed to serialize docs");
             fs::write(&docs_output, &docs_json).unwrap_or_else(|e| {
                 fatal(&format!("Error writing {}: {e}", docs_output.display()));
             });
@@ -427,7 +426,8 @@ fn main() {
             let merge_path = if merge { Some(output.clone()) } else { None };
 
             let xml = read_file(&input);
-            let functions = parse_and_merge(&xml, merge_path.as_deref(), log_unmapped, min_description);
+            let functions =
+                parse_and_merge(&xml, merge_path.as_deref(), log_unmapped, min_description);
             write_catalog(&functions, &output);
         }
     }
@@ -463,24 +463,25 @@ fn resolve_maxima_source(explicit: Option<&Path>, git_ref: &str) -> PathBuf {
 fn ensure_maxima_source(dest: &Path, git_ref: &str) {
     if dest.join(".git").exists() {
         eprintln!("Found existing clone at {}, updating...", dest.display());
-        run_cmd_in(
-            "git",
-            &["fetch", "origin", git_ref],
-            dest,
-            "git fetch",
-        );
-        run_cmd_in(
-            "git",
-            &["reset", "--hard", "FETCH_HEAD"],
-            dest,
-            "git reset",
-        );
+        run_cmd_in("git", &["fetch", "origin", git_ref], dest, "git fetch");
+        run_cmd_in("git", &["reset", "--hard", "FETCH_HEAD"], dest, "git reset");
         eprintln!("Updated to latest HEAD.");
     } else {
-        eprintln!("Cloning {MAXIMA_GIT_URL} (ref: {git_ref}) into {}...", dest.display());
+        eprintln!(
+            "Cloning {MAXIMA_GIT_URL} (ref: {git_ref}) into {}...",
+            dest.display()
+        );
         run_cmd(
             "git",
-            &["clone", "--depth", "1", "--branch", git_ref, MAXIMA_GIT_URL, &dest.to_string_lossy()],
+            &[
+                "clone",
+                "--depth",
+                "1",
+                "--branch",
+                git_ref,
+                MAXIMA_GIT_URL,
+                &dest.to_string_lossy(),
+            ],
             "git clone",
         );
         eprintln!("Clone complete.");
@@ -517,7 +518,8 @@ fn generate_texi_includes(doc_info_dir: &Path, src_dir: &Path) {
     let cat_macros_path = doc_info_dir.join("category-macros.texi");
     let mut cat_macros = fs::read_to_string(&cat_macros_path).unwrap();
     if !cat_macros.contains("@ifxml") {
-        cat_macros.push_str(r#"
+        cat_macros.push_str(
+            r#"
 
 @c --- XML output: provide no-op definitions for figure macros ---
 @ifxml
@@ -536,7 +538,8 @@ fn generate_texi_includes(doc_info_dir: &Path, src_dir: &Path) {
 (Figure \file\: \text\)
 @end macro
 @end ifxml
-"#);
+"#,
+        );
         fs::write(&cat_macros_path, &cat_macros).unwrap_or_else(|e| {
             fatal(&format!("Error patching category-macros.texi: {e}"));
         });
@@ -633,7 +636,8 @@ fn generate_m4_texi_files(doc_info_dir: &Path) {
             // Skip if output already exists and is newer than source
             if output_path.exists() {
                 if let (Ok(src_meta), Ok(dst_meta)) = (path.metadata(), output_path.metadata()) {
-                    if let (Ok(src_time), Ok(dst_time)) = (src_meta.modified(), dst_meta.modified()) {
+                    if let (Ok(src_time), Ok(dst_time)) = (src_meta.modified(), dst_meta.modified())
+                    {
                         if dst_time >= src_time {
                             continue;
                         }
@@ -709,7 +713,10 @@ fn parse_and_merge(
     eprintln!("Extracted {} definitions from XML", functions.len());
 
     if let Some(merge_path) = merge_path {
-        eprintln!("Merging with existing catalog from {}...", merge_path.display());
+        eprintln!(
+            "Merging with existing catalog from {}...",
+            merge_path.display()
+        );
         let existing_json = fs::read_to_string(merge_path).unwrap_or_else(|e| {
             fatal(&format!("Error reading {}: {e}", merge_path.display()));
         });
@@ -730,7 +737,11 @@ fn write_catalog(functions: &[MaximaFunction], output: &Path) {
     fs::write(output, &json).unwrap_or_else(|e| {
         fatal(&format!("Error writing {}: {e}", output.display()));
     });
-    eprintln!("Wrote {} functions to {}", functions.len(), output.display());
+    eprintln!(
+        "Wrote {} functions to {}",
+        functions.len(),
+        output.display()
+    );
 }
 
 fn copy_figures(src: &Path, dest: &Path) {
@@ -797,7 +808,9 @@ fn generate_seccomp(upstream_url: &str, output: &Path) {
         });
 
     let mut profile: serde_json::Value = serde_json::from_str(&body).unwrap_or_else(|e| {
-        fatal(&format!("Failed to parse upstream seccomp profile as JSON: {e}"));
+        fatal(&format!(
+            "Failed to parse upstream seccomp profile as JSON: {e}"
+        ));
     });
 
     let (inserted, total_entries) = {

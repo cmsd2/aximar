@@ -70,10 +70,7 @@ impl DapTransport {
         let value: serde_json::Value =
             serde_json::from_slice(&body).map_err(TransportError::Json)?;
 
-        tracing::debug!(
-            "← {}",
-            serde_json::to_string(&value).unwrap_or_default()
-        );
+        tracing::debug!("← {}", serde_json::to_string(&value).unwrap_or_default());
 
         Ok(Some(value))
     }

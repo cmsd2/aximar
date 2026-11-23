@@ -23,8 +23,7 @@ pub struct LabelContext {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct UnresolvedLabel(pub String);
 
-static DISPLAY_LABEL_RE: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"%([oi])(\d+)").unwrap());
+static DISPLAY_LABEL_RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"%([oi])(\d+)").unwrap());
 
 /// Rewrite label references in a Maxima expression.
 ///
@@ -223,10 +222,7 @@ mod tests {
 
     #[test]
     fn bare_percent_after_comma() {
-        assert_eq!(
-            rw("[%, %]", &ctx_bare(Some("%o6"))),
-            "[%o6, %o6]"
-        );
+        assert_eq!(rw("[%, %]", &ctx_bare(Some("%o6"))), "[%o6, %o6]");
     }
 
     #[test]
@@ -270,10 +266,7 @@ mod tests {
 
     #[test]
     fn multiple_bare_percent() {
-        assert_eq!(
-            rw("% * % + %", &ctx_bare(Some("%o6"))),
-            "%o6 * %o6 + %o6"
-        );
+        assert_eq!(rw("% * % + %", &ctx_bare(Some("%o6"))), "%o6 * %o6 + %o6");
     }
 
     // ── Special % forms preserved ───────────────────────────────────
@@ -285,10 +278,7 @@ mod tests {
 
     #[test]
     fn percent_pi_preserved() {
-        assert_eq!(
-            rw("%pi * 2", &ctx_bare(Some("%o6"))),
-            "%pi * 2"
-        );
+        assert_eq!(rw("%pi * 2", &ctx_bare(Some("%o6"))), "%pi * 2");
     }
 
     #[test]
@@ -303,18 +293,12 @@ mod tests {
 
     #[test]
     fn percent_th_preserved() {
-        assert_eq!(
-            rw("%th(1)", &ctx_bare(Some("%o6"))),
-            "%th(1)"
-        );
+        assert_eq!(rw("%th(1)", &ctx_bare(Some("%o6"))), "%th(1)");
     }
 
     #[test]
     fn percent_gamma_preserved() {
-        assert_eq!(
-            rw("%gamma", &ctx_bare(Some("%o6"))),
-            "%gamma"
-        );
+        assert_eq!(rw("%gamma", &ctx_bare(Some("%o6"))), "%gamma");
     }
 
     #[test]
@@ -324,10 +308,7 @@ mod tests {
 
     #[test]
     fn percent_with_underscore() {
-        assert_eq!(
-            rw("%_var", &ctx_bare(Some("%o6"))),
-            "%_var"
-        );
+        assert_eq!(rw("%_var", &ctx_bare(Some("%o6"))), "%_var");
     }
 
     // ── Display %oN / %iN rewriting ────────────────────────────────
@@ -376,18 +357,12 @@ mod tests {
 
     #[test]
     fn label_in_expression() {
-        assert_eq!(
-            rw("diff(%o1, x)", &ctx_map(&[(1, "%o6")])),
-            "diff(%o6, x)"
-        );
+        assert_eq!(rw("diff(%o1, x)", &ctx_map(&[(1, "%o6")])), "diff(%o6, x)");
     }
 
     #[test]
     fn multidigit_label() {
-        assert_eq!(
-            rw("%o12", &ctx_map(&[(12, "%o24")])),
-            "%o24"
-        );
+        assert_eq!(rw("%o12", &ctx_map(&[(12, "%o24")])), "%o24");
     }
 
     // ── Combined & edge cases ───────────────────────────────────────
@@ -407,10 +382,7 @@ mod tests {
 
     #[test]
     fn no_labels_passthrough() {
-        assert_eq!(
-            rw("x^2 + 1", &ctx_full(None, &[])),
-            "x^2 + 1"
-        );
+        assert_eq!(rw("x^2 + 1", &ctx_full(None, &[])), "x^2 + 1");
     }
 
     #[test]
@@ -433,10 +405,7 @@ mod tests {
 
     #[test]
     fn percent_in_string_literal() {
-        assert_eq!(
-            rw("\"hello %\"", &ctx_bare(Some("%o6"))),
-            "\"hello %\""
-        );
+        assert_eq!(rw("\"hello %\"", &ctx_bare(Some("%o6"))), "\"hello %\"");
     }
 
     #[test]
@@ -491,10 +460,7 @@ mod tests {
         // Bare % → %o6, but execution count 6 maps to %o99.
         // Because display labels are replaced FIRST (on the original input),
         // the bare % expansion to %o6 is NOT re-matched.
-        assert_eq!(
-            rw("%", &ctx_full(Some("%o6"), &[(6, "%o99")])),
-            "%o6"
-        );
+        assert_eq!(rw("%", &ctx_full(Some("%o6"), &[(6, "%o99")])), "%o6");
     }
 
     // ── Unicode preservation ────────────────────────────────────────

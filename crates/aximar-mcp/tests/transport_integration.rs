@@ -166,9 +166,7 @@ async fn spawn_http_server(extra_args: &[&str]) -> (tokio::process::Child, Strin
             Ok(Ok(_)) => {
                 if let Some(start) = line.find("http://") {
                     let rest = &line[start..];
-                    let end = rest
-                        .find(|c: char| c.is_whitespace())
-                        .unwrap_or(rest.len());
+                    let end = rest.find(|c: char| c.is_whitespace()).unwrap_or(rest.len());
                     url = rest[..end].to_string();
                     break;
                 }
@@ -286,9 +284,7 @@ impl McpHttpClient {
                             if let Some(data) = line.strip_prefix("data:") {
                                 let data = data.trim();
                                 if !data.is_empty() {
-                                    if let Ok(v) =
-                                        serde_json::from_str::<serde_json::Value>(data)
-                                    {
+                                    if let Ok(v) = serde_json::from_str::<serde_json::Value>(data) {
                                         if v.get("result").is_some() || v.get("error").is_some() {
                                             return (status, data.to_string());
                                         }
@@ -329,7 +325,11 @@ async fn http_round_trip() {
 
     // Tool call
     let (status, body) = client
-        .send_json(&tool_call_request(2, "get_session_status", serde_json::json!({})))
+        .send_json(&tool_call_request(
+            2,
+            "get_session_status",
+            serde_json::json!({}),
+        ))
         .await;
     assert_eq!(status, 200);
     let resp = assert_json(&body, "tool call");

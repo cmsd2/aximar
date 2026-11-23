@@ -1,9 +1,9 @@
 use tauri::State;
 
+use crate::state::AppState;
 use aximar_core::catalog::doc_index::SymbolEntry;
 use aximar_core::catalog::queries::{self, FunctionDocs};
 use aximar_core::catalog::types::*;
-use crate::state::AppState;
 
 /// Convert a doc-index SymbolEntry to a MaximaFunction for frontend compatibility.
 fn symbol_to_function(name: &str, entry: &SymbolEntry) -> MaximaFunction {
@@ -93,16 +93,14 @@ pub fn list_categories(state: State<AppState>) -> Vec<CategoryGroup> {
                     .symbols
                     .into_iter()
                     .filter_map(|(name, _sig)| {
-                        state.catalog.get(&name).map(|(_, entry)| {
-                            MaximaFunction {
-                                name,
-                                signatures: vec![entry.signature.clone()],
-                                description: entry.summary.clone(),
-                                category,
-                                examples: Vec::new(),
-                                see_also: Vec::new(),
-                                search_keywords: String::new(),
-                            }
+                        state.catalog.get(&name).map(|(_, entry)| MaximaFunction {
+                            name,
+                            signatures: vec![entry.signature.clone()],
+                            description: entry.summary.clone(),
+                            category,
+                            examples: Vec::new(),
+                            see_also: Vec::new(),
+                            search_keywords: String::new(),
                         })
                     })
                     .collect(),
@@ -137,11 +135,17 @@ pub fn get_package(state: State<AppState>, name: String) -> Option<PackageInfo> 
 
 #[tauri::command]
 pub fn package_for_function(state: State<AppState>, name: String) -> Option<String> {
-    state.packages.package_for_function(&name).map(|s| s.to_string())
+    state
+        .packages
+        .package_for_function(&name)
+        .map(|s| s.to_string())
 }
 
 #[tauri::command]
-pub fn search_package_functions(state: State<AppState>, query: String) -> Vec<PackageFunctionSearchResult> {
+pub fn search_package_functions(
+    state: State<AppState>,
+    query: String,
+) -> Vec<PackageFunctionSearchResult> {
     state.packages.search_functions(&query)
 }
 
