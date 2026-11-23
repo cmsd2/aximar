@@ -1,7 +1,31 @@
+use std::io::IsTerminal;
+
+use clap::Parser;
 use tower_lsp::{LspService, Server};
+
+/// Language server for Maxima. An editor starts it and speaks the Language
+/// Server Protocol over stdin and stdout.
+#[derive(Parser)]
+#[command(
+    version,
+    after_help = "Environment:\n  RUST_LOG  log filter, e.g. debug or maxima_lsp=trace (default info)"
+)]
+struct Cli {
+    /// Accepted for editors that pass it; stdio is the only transport
+    #[arg(long, hide = true)]
+    stdio: bool,
+}
 
 #[tokio::main]
 async fn main() {
+    Cli::parse();
+    if std::io::stdin().is_terminal() {
+        eprintln!(
+            "maxima-lsp speaks the Language Server Protocol on stdin and stdout; \
+             an editor starts it. See maxima-lsp --help."
+        );
+    }
+
     // Init tracing to stderr (stdout is LSP JSON-RPC transport)
     tracing_subscriber::fmt()
         .with_env_filter(

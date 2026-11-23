@@ -2557,6 +2557,7 @@ version = "0.5.0"
 dependencies = [
  "async-trait",
  "aximar-core",
+ "clap",
  "emmy_dap_types",
  "maxima-mac-parser",
  "regex",
@@ -2575,6 +2576,7 @@ version = "0.5.0"
 dependencies = [
  "aximar-core",
  "base64 0.22.1",
+ "clap",
  "dashmap 6.1.0",
  "maxima-mac-parser",
  "regex",
