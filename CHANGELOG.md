@@ -9,6 +9,13 @@ see the `v*` releases on GitHub.
 
 ### aximar-mcp
 
+- **`cargo install --git` builds again**: without `--locked`, cargo picked
+  rmcp 1.3 or later, where `StreamableHttpServerConfig` can no longer be
+  built with struct syntax, and the build failed. aximar-mcp now uses
+  rmcp 1.8 and its builder methods. With 1.8, a server listening on loopback
+  (the default) answers only requests whose `Host` is `localhost`,
+  `127.0.0.1` or `::1`, which stops DNS rebinding; a server given another
+  `--address` accepts any `Host` and relies on its bearer token, as before.
 - **`aximar-mcp run` runs every cell**: batch runs no longer apply the
   dangerous-call check. Running the command is the decision to run the
   notebook, as with `maxima -b` or `jupyter nbconvert --execute`, and the
