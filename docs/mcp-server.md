@@ -160,6 +160,8 @@ These answer from the same core API as the desktop window (`catalog::queries`), 
   window's Run All follows the same rule.
 - **evaluate_expression(expression)** -- Quick evaluation without creating a cell. The expression is prepared like a cell: Unicode is translated (see `docs/unicode-input.md`) and `%oN` / `%iN` refer to the cells' gutter numbers. A bare `%` keeps Maxima's meaning, the last result.
 
+`run_cell` and `evaluate_expression` return the run's output: `text_output` (print text), `latex` and `text_plain` (the final value as LaTeX, and in Maxima's one-line form, as `string()` writes it), `plot_svg`, `plot_data` (Plotly JSON), `image_png` (base64), `error` and `is_error`. Notebook files keep `text_plain` as the result's `text/plain` (see `docs/notebook-format.md`).
+
 ### Session
 
 - **get_session_status()** -- Get current status (Starting/Ready/Busy/Stopped/Error).

@@ -456,6 +456,7 @@ impl ServerCore {
             Ok(eval_result) => success_json(&serde_json::json!({
                 "text_output": eval_result.text_output,
                 "latex": eval_result.latex,
+                "text_plain": eval_result.text_plain,
                 "plot_svg": eval_result.plot_svg,
                 "plot_data": eval_result.plot_data,
                 "image_png": eval_result.image_png,
@@ -1138,6 +1139,7 @@ Best practice: run each cell immediately after creating it before moving on to t
                 "execution_count": result.execution_count,
                 "text_output": result.cell_output.text_output,
                 "latex": result.cell_output.latex,
+                "text_plain": result.cell_output.text_plain,
                 "plot_svg": result.cell_output.plot_svg,
                 "plot_data": result.cell_output.plot_data,
                 "image_png": result.cell_output.image_png,
