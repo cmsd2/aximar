@@ -7,6 +7,7 @@
 
 use std::collections::HashMap;
 use std::path::Path;
+use std::sync::LazyLock;
 
 use aximar_core::error::AppError;
 use aximar_core::maxima::debugger::{self, CanonicalLocation};
@@ -120,96 +121,76 @@ impl BreakpointStrategy for LegacyStrategy {
         source_path: &Path,
         line: i64,
     ) -> SetBreakpointResult {
-        let mac_file = ctx.source_index.get(source_path);
-        let mapping = mac_file.map(|f| breakpoints::map_line_to_breakpoint(f, line as u64));
+        let unverified = |message: String| SetBreakpointResult {
+            verified: false,
+            maxima_id: None,
+            actual_line: None,
+            message: Some(message),
+        };
+        let Some(mac_file) = ctx.source_index.get(source_path) else {
+            return unverified("Could not parse source file".to_string());
+        };
+        let function_name = match breakpoints::map_line_to_breakpoint(mac_file, line as u64) {
+            BreakpointMapping::Mapped { function_name, .. } => function_name,
+            BreakpointMapping::NotInFunction { message } => return unverified(message),
+        };
+        // This line, then the function's later lines: Maxima's debugger
+        // can't stop on some lines (see `evaluator_skips`), so the
+        // breakpoint moves to the first one it can stop on, as Enhanced
+        // mode's line-snapping does
+        let candidates: Vec<(i64, u32)> = (line..)
+            .map_while(
+                |l| match breakpoints::map_line_to_breakpoint(mac_file, l as u64) {
+                    BreakpointMapping::Mapped {
+                        function_name: f,
+                        offset,
+                    } if f == function_name => Some((l, offset)),
+                    _ => None,
+                },
+            )
+            .collect();
         tracing::debug!(
-            "LegacyStrategy::set_breakpoint: line {} -> {:?}",
+            "LegacyStrategy::set_breakpoint: line {} in {}, candidates {:?}",
             line,
-            mapping
+            function_name,
+            candidates
         );
 
-        match mapping {
-            Some(BreakpointMapping::Mapped {
-                function_name,
-                offset,
-            }) => {
-                let cmd = format!(":break {} {}", function_name, offset);
-                tracing::debug!("LegacyStrategy::set_breakpoint: {}", cmd);
-                let lines = if matches!(ctx.state, crate::types::DebugState::Stopped { .. }) {
-                    match ctx.send_debugger_command_raw(&cmd).await {
-                        Ok((lines, _)) => lines,
-                        Err(_) => {
-                            return SetBreakpointResult {
-                                verified: false,
-                                maxima_id: None,
-                                actual_line: None,
-                                message: Some(format!(
-                                    "Could not set breakpoint in {}",
-                                    function_name
-                                )),
-                            };
-                        }
-                    }
-                } else {
-                    match ctx.send_maxima(&format!("{}\n", cmd)).await {
-                        Ok((lines, _)) => lines,
-                        Err(_) => {
-                            return SetBreakpointResult {
-                                verified: false,
-                                maxima_id: None,
-                                actual_line: None,
-                                message: Some(format!(
-                                    "Could not set breakpoint in {}",
-                                    function_name
-                                )),
-                            };
-                        }
-                    }
-                };
-
-                tracing::debug!(
-                    "LegacyStrategy::set_breakpoint: response lines: {:?}",
-                    lines
-                );
-                let bkpt_re = Regex::new(r"Bkpt\s+(\d+)").unwrap();
-                for l in &lines {
-                    if let Some(caps) = bkpt_re.captures(l) {
-                        if let Some(id) = caps.get(1).and_then(|m| m.as_str().parse::<u32>().ok()) {
-                            tracing::debug!(
-                                "LegacyStrategy::set_breakpoint: confirmed, maxima_id={}",
-                                id
-                            );
-                            return SetBreakpointResult {
-                                verified: true,
-                                maxima_id: Some(id),
-                                actual_line: None,
-                                message: None,
-                            };
-                        }
-                    }
-                }
-
-                tracing::warn!("LegacyStrategy::set_breakpoint: no Bkpt confirmation in response");
-                SetBreakpointResult {
-                    verified: false,
-                    maxima_id: None,
-                    actual_line: None,
-                    message: Some(format!("Could not set breakpoint in {}", function_name)),
-                }
+        for (candidate, offset) in candidates {
+            let cmd = format!(":break {} {}", function_name, offset);
+            let Ok(lines) = send_command(ctx, &cmd).await else {
+                return unverified(format!("Could not set breakpoint in {}", function_name));
+            };
+            tracing::debug!("LegacyStrategy::set_breakpoint: {} -> {:?}", cmd, lines);
+            // No Bkpt: nothing on this line to stop on, such as a bare value
+            let Some(id) = bkpt_id(&lines) else {
+                continue;
+            };
+            let query = format!(
+                ":lisp (princ (caar (car (aref maxima::*break-points* {}))))",
+                id
+            );
+            let skipped = match send_command(ctx, &query).await {
+                Ok(lines) => evaluator_skips(&lines),
+                Err(_) => false,
+            };
+            if skipped {
+                self.delete_breakpoint(ctx, id).await;
+                continue;
             }
-            Some(BreakpointMapping::NotInFunction { message }) => SetBreakpointResult {
-                verified: false,
-                maxima_id: None,
-                actual_line: None,
-                message: Some(message),
-            },
-            None => SetBreakpointResult {
-                verified: false,
-                maxima_id: None,
-                actual_line: None,
-                message: Some("Could not parse source file".to_string()),
-            },
+            return SetBreakpointResult {
+                verified: true,
+                maxima_id: Some(id),
+                actual_line: (candidate != line).then_some(candidate),
+                message: None,
+            };
         }
+        unverified(format!(
+            "Maxima's debugger can't stop on this line or any later line of {}: \
+             it skips lines that start with arithmetic (+, -, *, /, ^) or a bare value. \
+             Put the breakpoint on an assignment or a function call.",
+            function_name
+        ))
     }
 
     async fn delete_breakpoint(&self, ctx: &mut StrategyContext<'_>, maxima_id: u32) {
@@ -311,6 +292,40 @@ impl LegacyStrategy {
     }
 }
 
+/// Send a command at whichever prompt Maxima is at.
+async fn send_command(ctx: &mut StrategyContext<'_>, cmd: &str) -> Result<Vec<String>, AppError> {
+    if matches!(ctx.state, crate::types::DebugState::Stopped { .. }) {
+        ctx.send_debugger_command_raw(cmd)
+            .await
+            .map(|(lines, _)| lines)
+    } else {
+        ctx.send_maxima(&format!("{}\n", cmd))
+            .await
+            .map(|(lines, _)| lines)
+    }
+}
+
+static BKPT_RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"Bkpt\s+(\d+)").unwrap());
+
+/// The ID in Maxima's reply to `:break`, as in `Bkpt 0 for f (in file line 3)`.
+fn bkpt_id(lines: &[String]) -> Option<u32> {
+    lines
+        .iter()
+        .find_map(|l| BKPT_RE.captures(l))
+        .and_then(|caps| caps[1].parse().ok())
+}
+
+/// Whether the form a breakpoint is on is one Maxima's evaluator never
+/// checks for breakpoints, from the operator `:lisp` printed. `meval1`
+/// evaluates `+`, `*`, `^` and `.` (MPLUS, MTIMES, MEXPT, MNCTIMES)
+/// before its debugger hook, so a breakpoint on such a form never fires
+/// and `:step` never stops there.
+fn evaluator_skips(lines: &[String]) -> bool {
+    lines
+        .iter()
+        .any(|l| matches!(l.trim(), "MPLUS" | "MTIMES" | "MEXPT" | "MNCTIMES"))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -360,5 +375,27 @@ mod tests {
         let source = "f(x) := x + 1$\n";
         assert_eq!(expression(source, Some("f(2)")).as_deref(), Some("f(2)"));
         assert_eq!(expression(source, None), None);
+    }
+
+    fn lines(text: &str) -> Vec<String> {
+        text.lines().map(str::to_string).collect()
+    }
+
+    #[test]
+    fn reads_the_breakpoint_id_from_maxima_s_reply() {
+        let reply = lines("Bkpt 12 for helper (in /tmp/main.mac line 3) ");
+        assert_eq!(bkpt_id(&reply), Some(12));
+        let none = lines(" No instructions recorded for this line 3 of mid");
+        assert_eq!(bkpt_id(&none), None);
+    }
+
+    #[test]
+    fn arithmetic_forms_are_ones_the_evaluator_skips() {
+        // :lisp (princ ...) prints the operator, then its value
+        assert!(evaluator_skips(&lines("MTIMES\nMTIMES")));
+        assert!(evaluator_skips(&lines("MEXPT")));
+        assert!(!evaluator_skips(&lines("MSETQ\nMSETQ")));
+        assert!(!evaluator_skips(&lines("$PRINT")));
+        assert!(!evaluator_skips(&[]));
     }
 }

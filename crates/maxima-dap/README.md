@@ -81,6 +81,7 @@ crates/maxima-dap/src/
 
 - **SBCL required** — Stack traces and variable inspection only work with the SBCL backend
 - **Breakpoints only inside functions** — Top-level lines are marked unverified
+- **Some lines can't stop** — With stock Maxima, a breakpoint on a line that starts with arithmetic or holds only a value moves to the function's next line that can stop, or is marked unverified
 - **No step-out** — Use Continue to run to the next breakpoint instead
 - **Built-in name conflicts** — Names like `factorial` cannot be redefined; use e.g. `my_factorial`
 - **`errcatch` suppresses breakpoints** — Breakpoints inside `errcatch()` blocks may not fire

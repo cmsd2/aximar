@@ -7,6 +7,16 @@ see the `v*` releases on GitHub.
 
 ## [Unreleased]
 
+### maxima-dap
+
+- **Breakpoints no longer sit on lines Maxima can't stop on**: with stock
+  Maxima, a breakpoint on a line that starts with arithmetic (`w * 2`, `v^2`)
+  or holds only a value showed as set but never fired, because Maxima's
+  evaluator skips its debugger hook for those. maxima-dap now moves such a
+  breakpoint to the function's next line that can stop, or marks it
+  unverified, with the reason, when there's none.
+  `examples/18_lines_maxima_skips.mac` shows it.
+
 ## [0.6.1] — 2026-11-25
 
 ### aximar-mcp
