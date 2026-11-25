@@ -403,6 +403,18 @@ mod tests {
 
     #[tokio::test]
     #[ignore = "requires Maxima to be installed"]
+    async fn a_result_comes_with_its_one_line_form() {
+        // Clients write it as the result's text/plain in notebook files
+        let s = server();
+        let v = run(&s, "x^2/2;", "a", &[]).await.unwrap();
+        assert_eq!(v["text_plain"], "x^2/2", "{v}");
+        assert!(v["latex"].is_string(), "{v}");
+        let v = run(&s, "x: 1$", "b", &["a"]).await.unwrap();
+        assert!(v["text_plain"].is_null(), "{v}");
+    }
+
+    #[tokio::test]
+    #[ignore = "requires Maxima to be installed"]
     async fn a_plain_expression_keeps_maxima_s_labels() {
         // As in a plain Maxima session, and as tools-v0.5.0 did: clients
         // that resolve labels themselves send Maxima's real labels

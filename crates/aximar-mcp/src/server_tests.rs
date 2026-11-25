@@ -1472,6 +1472,21 @@ async fn expression_with_a_label_from_no_cell_is_reported() {
 
 #[tokio::test]
 #[ignore = "requires Maxima to be installed"]
+async fn run_cell_returns_the_result_s_one_line_form() {
+    let s = build_server();
+    let cell_id = add_code_cell(&s, "x^2/2;").await;
+    let v = parse_ok(
+        s.run_cell(Parameters(CellIdParams {
+            cell_id,
+            notebook_id: None,
+        }))
+        .await,
+    );
+    assert_eq!(v["text_plain"], "x^2/2", "{v:#}");
+}
+
+#[tokio::test]
+#[ignore = "requires Maxima to be installed"]
 async fn expression_can_use_a_cells_output_label() {
     let s = build_server();
     let cell_id = add_code_cell(&s, "6 * 7;").await;

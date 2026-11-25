@@ -7,6 +7,13 @@ see the `v*` releases on GitHub.
 
 ## [Unreleased]
 
+### aximar-mcp
+
+- **Results come with their one-line form**: `evaluate_expression` and
+  `run_cell` return `text_plain`, the final value as Maxima's `string()`
+  writes it (`x^2/2`). The VS Code extension saves it as the result's
+  `text/plain` in notebook files, which Jupyter shows.
+
 ## [0.6.0] — 2026-11-23
 
 ### aximar-mcp
