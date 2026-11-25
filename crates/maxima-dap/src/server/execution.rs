@@ -1,4 +1,7 @@
-//! Execution control: configurationDone, threads, continue, next, step_in.
+//! Execution control: configurationDone, threads, continue, next, step_in,
+//! step_out.
+
+use crate::stepping::{self, AfterStep, StepOutStart};
 
 use super::*;
 
@@ -146,46 +149,9 @@ impl DapServer {
         )
         .await?;
 
-        match self.send_debugger_command(":resume").await {
-            Ok((
-                PromptKind::Debugger {
-                    level,
-                    error_context,
-                },
-                canonical,
-            )) => {
-                self.state = DebugState::Stopped {
-                    level,
-                    canonical_file: canonical.as_ref().map(|c| c.file.clone()),
-                    canonical_line: canonical.as_ref().map(|c| c.line),
-                    error_context: error_context.clone(),
-                };
-                self.refresh_breakpoint_status().await?;
-                self.flush_output().await?;
-                let (reason, desc, text) = if let Some(ref err) = error_context {
-                    (
-                        StoppedEventReason::Exception,
-                        Some(err.clone()),
-                        Some(err.clone()),
-                    )
-                } else {
-                    (StoppedEventReason::Breakpoint, None, None)
-                };
-                self.send_stopped_event(reason, desc, text).await?;
-            }
-            Ok((PromptKind::Normal, _)) => {
-                self.state = DebugState::Terminated;
-                self.flush_output().await?;
-                self.send_event(Event::Terminated(None)).await?;
-            }
-            Err(e) => {
-                self.flush_output().await?;
-                self.send_output_event(&format!("Error: {}\n", e), OutputEventCategory::Stderr)
-                    .await?;
-                self.state = DebugState::Terminated;
-                self.send_event(Event::Terminated(None)).await?;
-            }
-        }
+        let outcome = self.send_debugger_command(":resume").await;
+        self.report_stop(outcome, StoppedEventReason::Breakpoint)
+            .await?;
 
         Ok(())
     }
@@ -199,49 +165,8 @@ impl DapServer {
             .await?;
 
         tracing::debug!("handle_next: sending :next (state={:?})", self.state);
-        match self.send_debugger_command(":next").await {
-            Ok((
-                PromptKind::Debugger {
-                    level,
-                    error_context,
-                },
-                canonical,
-            )) => {
-                tracing::debug!("handle_next: stopped at debugger level {}", level);
-                self.state = DebugState::Stopped {
-                    level,
-                    canonical_file: canonical.as_ref().map(|c| c.file.clone()),
-                    canonical_line: canonical.as_ref().map(|c| c.line),
-                    error_context: error_context.clone(),
-                };
-                self.refresh_breakpoint_status().await?;
-                self.flush_output().await?;
-                let (reason, desc, text) = if let Some(ref err) = error_context {
-                    (
-                        StoppedEventReason::Exception,
-                        Some(err.clone()),
-                        Some(err.clone()),
-                    )
-                } else {
-                    (StoppedEventReason::Step, None, None)
-                };
-                self.send_stopped_event(reason, desc, text).await?;
-            }
-            Ok((PromptKind::Normal, _)) => {
-                tracing::debug!("handle_next: expression completed (sentinel reached)");
-                self.state = DebugState::Terminated;
-                self.flush_output().await?;
-                self.send_event(Event::Terminated(None)).await?;
-            }
-            Err(e) => {
-                tracing::error!("handle_next: error: {}", e);
-                self.flush_output().await?;
-                self.send_output_event(&format!("Error: {}\n", e), OutputEventCategory::Stderr)
-                    .await?;
-                self.state = DebugState::Terminated;
-                self.send_event(Event::Terminated(None)).await?;
-            }
-        }
+        let outcome = self.send_debugger_command(":next").await;
+        self.report_stop(outcome, StoppedEventReason::Step).await?;
 
         Ok(())
     }
@@ -254,7 +179,87 @@ impl DapServer {
         self.send_response(request, Some(ResponseBody::StepIn))
             .await?;
 
-        match self.send_debugger_command(":step").await {
+        let outcome = self.send_debugger_command(":step").await;
+        self.report_stop(outcome, StoppedEventReason::Step).await?;
+
+        Ok(())
+    }
+
+    /// Maxima has no step-out command: step until the run is back in a
+    /// caller (see `crate::stepping`). From top-level code there's no
+    /// function to leave, so the run continues.
+    pub(super) async fn handle_step_out(
+        &mut self,
+        request: &Request,
+        _args: &emmy_dap_types::requests::StepOutArguments,
+    ) -> Result<(), TransportError> {
+        self.send_response(request, Some(ResponseBody::StepOut))
+            .await?;
+
+        let start = match self.send_debugger_command_raw(":bt").await {
+            Ok((lines, _)) => StepOutStart::from_backtrace(&lines),
+            Err(e) => return self.report_stop(Err(e), StoppedEventReason::Step).await,
+        };
+        let Some(start) = start else {
+            let outcome = self.send_debugger_command(":resume").await;
+            return self
+                .report_stop(outcome, StoppedEventReason::Breakpoint)
+                .await;
+        };
+        tracing::debug!("handle_step_out: from {:?}", start);
+
+        loop {
+            let (prompt, canonical, lines) = match self.send_debugger_command_lines(":step").await {
+                Ok(result) => result,
+                Err(e) => return self.report_stop(Err(e), StoppedEventReason::Step).await,
+            };
+            // The run ended or failed: report it as it is
+            let PromptKind::Debugger {
+                error_context: None,
+                ..
+            } = prompt
+            else {
+                return self
+                    .report_stop(Ok((prompt, canonical)), StoppedEventReason::Step)
+                    .await;
+            };
+            let on_breakpoint = canonical.as_ref().is_some_and(|stop| {
+                stepping::at_breakpoint(stop, &self.build_path_remaps(), &self.breakpoints)
+            });
+            let decision = if on_breakpoint {
+                AfterStep::AtBreakpoint
+            } else {
+                start.after_step(&lines)
+            };
+            match decision {
+                AfterStep::Inside => continue,
+                AfterStep::AtBreakpoint => {
+                    return self
+                        .report_stop(Ok((prompt, canonical)), StoppedEventReason::Breakpoint)
+                        .await
+                }
+                AfterStep::CheckDepth => match self.send_debugger_command_raw(":bt").await {
+                    Ok((bt, _)) if start.is_out(stepping::depth(&bt)) => {
+                        return self
+                            .report_stop(Ok((prompt, canonical)), StoppedEventReason::Step)
+                            .await
+                    }
+                    Ok(_) => continue,
+                    Err(e) => return self.report_stop(Err(e), StoppedEventReason::Step).await,
+                },
+            }
+        }
+    }
+
+    /// Report where a debugger command left the run, as continue, next and
+    /// step_in do: stopped (with `reason`, or as an exception on an error),
+    /// ended, or failed.
+    async fn report_stop(
+        &mut self,
+        outcome: Result<(PromptKind, Option<CanonicalLocation>), AppError>,
+        reason: StoppedEventReason,
+    ) -> Result<(), TransportError> {
+        match outcome {
             Ok((
                 PromptKind::Debugger {
                     level,
@@ -270,31 +275,24 @@ impl DapServer {
                 };
                 self.refresh_breakpoint_status().await?;
                 self.flush_output().await?;
-                let (reason, desc, text) = if let Some(ref err) = error_context {
-                    (
-                        StoppedEventReason::Exception,
-                        Some(err.clone()),
-                        Some(err.clone()),
-                    )
-                } else {
-                    (StoppedEventReason::Step, None, None)
+                let (reason, desc, text) = match error_context {
+                    Some(err) => (StoppedEventReason::Exception, Some(err.clone()), Some(err)),
+                    None => (reason, None, None),
                 };
-                self.send_stopped_event(reason, desc, text).await?;
+                self.send_stopped_event(reason, desc, text).await
             }
             Ok((PromptKind::Normal, _)) => {
                 self.state = DebugState::Terminated;
                 self.flush_output().await?;
-                self.send_event(Event::Terminated(None)).await?;
+                self.send_event(Event::Terminated(None)).await
             }
             Err(e) => {
                 self.flush_output().await?;
                 self.send_output_event(&format!("Error: {}\n", e), OutputEventCategory::Stderr)
                     .await?;
                 self.state = DebugState::Terminated;
-                self.send_event(Event::Terminated(None)).await?;
+                self.send_event(Event::Terminated(None)).await
             }
         }
-
-        Ok(())
     }
 }
