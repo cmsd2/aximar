@@ -170,5 +170,5 @@ Maxima's own labels (`%o167`) are not stored. They mean nothing in a new session
 
 - **Older Aximar versions** open these files: they ignore `id`, `error` outputs, `text/plain` copies and metadata they don't know, and lose those parts when they save.
 - **Files from older Aximar versions** open normally: they get new cell IDs, and the next save writes the current format. The desktop app wrote `nbformat_minor` 0 and no IDs; aximar-mcp wrote 5 without IDs.
-- **Files from older versions of the VS Code extension** open normally: their `text/plain` copies of plots are ignored, and their `error` outputs read as errors. The extension's cell metadata (`outputLabel`, `executionCount`) is kept but not used.
+- **Files from older versions of the VS Code extension** open normally: their `text/plain` copies of plots are ignored, a `text/plain` copy of a result's LaTeX isn't taken for its one-line form, and their `error` outputs read as errors. The extension's cell metadata (`outputLabel`, `executionCount`) is kept but not used.
 - **Jupyter** opens these files as notebooks for an unknown kernel, and shows each result's `text/plain` copy.

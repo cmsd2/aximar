@@ -30,6 +30,9 @@ test("gives plain objects with nulls for missing values", () => {
   assert.equal(plot.output.textOutput, "");
   assert.equal(plot.output.latex, null);
   assert.equal(plot.output.stale, true);
+  // The old extension's text/plain copy of the LaTeX isn't a one-line form
+  const result = file.cells.find((c) => c.input.endsWith("integrate(x, x);"));
+  assert.equal(result.output.textPlain, null);
   const failed = file.cells.find((c) => c.input === "1/0;");
   assert.equal(failed.output.isError, true);
   assert.match(failed.output.error, /^expt: undefined/);

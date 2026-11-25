@@ -85,6 +85,11 @@ Within one `execute_result` or `display_data` bundle, a reader SHALL take one va
 - **WHEN** a bundle holds `image/svg+xml` and a `text/plain` copy of the same SVG source
 - **THEN** the cell SHALL show the plot, and no text
 
+#### Scenario: Result saved by the VS Code extension
+
+- **WHEN** an `execute_result` holds `text/latex` and a `text/plain` with the same text
+- **THEN** the reader SHALL take the LaTeX and no one-line form, so the copy isn't written back as one
+
 ### Requirement: Loaded outputs are stale
 
 Outputs read from a file SHALL be marked stale until their cell runs again. The window SHALL show stale outputs as coming from an earlier session.
