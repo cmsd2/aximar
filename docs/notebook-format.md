@@ -1,6 +1,6 @@
 # Notebook file format
 
-Status: **draft**, part of the OpenSpec change `s1-notebook-format`. The requirements are in `openspec/changes/s1-notebook-format/specs/notebook-format/spec.md`; this page describes the format field by field, for anyone writing a tool that reads or writes Maxima notebooks.
+The requirements are in `openspec/specs/notebook-format/spec.md`; this page describes the format field by field, for anyone writing a tool that reads or writes Maxima notebooks.
 
 A Maxima notebook is a [Jupyter nbformat 4](https://nbformat.readthedocs.io/en/latest/format_description.html) JSON file. Aximar uses the extension `.macnb`; `.ipynb` files with the same content open the same way. The desktop app, its MCP server, batch runs (`aximar-mcp run`) and the VS Code extension all follow this page, and the test notebooks in `packages/aximar-notebook-format/fixtures/` check that they do. `fixtures/spec-example.macnb` shows every part of the format in one file.
 
