@@ -68,6 +68,8 @@ Goal: every host reads and writes `.macnb` identically, and nothing gets lost in
 
 Fixes F3 to F7.
 
+*Status, November 2026:* done. The spec is `docs/notebook-format.md` (#79). One serializer, the `aximar-notebook-format` crate, serves the window, aximar-mcp and batch runs (#81, #82), and is published as the npm package `aximar-notebook-format` (#89), which the VS Code extension uses (cmsd2/maxima-notebook#3, in its 0.5.0 pre-release). Both apps number opened notebooks from 1, and the extension's cells are aximar-mcp client cells, so `%oN` and `%` mean the same in both (#85, #87, #90, cmsd2/maxima-notebook#1). An Aximar → VS Code → Aximar round trip of all 47 demo notebooks gives back the same bytes (cmsd2/maxima-notebook, `test/roundTrip.test.ts`). The change is archived as `openspec/changes/archive/*-s1-notebook-format`, and its requirements are in `openspec/specs/notebook-format/`.
+
 ### S2 Packages
 
 Issues: [#18](https://github.com/cmsd2/aximar/issues/18), [maxima-mxpm#3](https://github.com/cmsd2/maxima-mxpm/issues/3), [#19](https://github.com/cmsd2/aximar/issues/19), [#20](https://github.com/cmsd2/aximar/issues/20), [#21](https://github.com/cmsd2/aximar/issues/21).

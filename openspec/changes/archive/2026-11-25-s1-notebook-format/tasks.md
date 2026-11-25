@@ -34,11 +34,11 @@ Each numbered group is one pull request. Aximar groups run `cargo test --workspa
 
 ## 6. The VS Code extension (vscode-extension repository)
 
-- [ ] 6.1 Replace the extension's serializer with the package; write IDs, keep errors, and write `text/plain` copies by the spec's rule (the one-line result, or a plot description) instead of copying the first MIME type; verify with the extension's tests against the fixtures
-- [ ] 6.2 Send cell source unchanged with the cell's ID and the IDs of the code cells above to `evaluate_expression`, show the returned `execution_count`, and delete `labels.ts` and the extension's own numbering and label map; verify with the extension's tests and by hand that `%o1` and `%` work in a VS Code notebook again
-- [ ] 6.3 Check the server's `tools/list` for `cell_id` on `evaluate_expression`; when it's missing, say aximar-mcp needs updating, offer the download, and don't run cells; make the download pick a release with the features the extension needs; verify with the extension's tests of the check
+- [x] 6.1 Replace the extension's serializer with the package; write IDs, keep errors, and write `text/plain` copies by the spec's rule (the one-line result, or a plot description) instead of copying the first MIME type; verify with the extension's tests against the fixtures
+- [x] 6.2 Send cell source unchanged with the cell's ID and the IDs of the code cells above to `evaluate_expression`, show the returned `execution_count`, and delete `labels.ts` and the extension's own numbering and label map; verify with the extension's tests and by hand that `%o1` and `%` work in a VS Code notebook again
+- [x] 6.3 Check the server's `tools/list` for `cell_id` on `evaluate_expression`; when it's missing, say aximar-mcp needs updating, offer the download, and don't run cells; make the download pick a release with the features the extension needs; verify with the extension's tests of the check
 
 ## 7. Round trip and close-out
 
-- [ ] 7.1 Add the round-trip script and run it over every notebook in `demos/notebooks` (Aximar → extension → Aximar); verify it reports no differences
-- [ ] 7.2 Update `docs/project-plan.md` (S1 done), `docs/mcp-server.md` (file behaviour, and `cell_id` and `cells_above`) and `docs/code-audit.md` (bug 8, the ipynb theme); archive this change with `openspec archive s1-notebook-format` and check that `openspec/specs/` gains `notebook-format`
+- [x] 7.1 Add the round-trip script and run it over every notebook in `demos/notebooks` (Aximar → extension → Aximar); verify it reports no differences
+- [x] 7.2 Update `docs/project-plan.md` (S1 done), `docs/mcp-server.md` (file behaviour, and `cell_id` and `cells_above`) and `docs/code-audit.md` (bug 8, the ipynb theme); archive this change with `openspec archive s1-notebook-format` and check that `openspec/specs/` gains `notebook-format`

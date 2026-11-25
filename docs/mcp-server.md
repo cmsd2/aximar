@@ -31,6 +31,10 @@ The `aximar-mcp` binary runs independently with its own Maxima session, using st
 | `AXIMAR_WSL_DISTRO` | (empty) | WSL distribution name (when backend=wsl) |
 | `AXIMAR_CONTAINER_ENGINE` | `docker` | `docker` or `podman` |
 
+**Tool sets.** By default the standalone binary offers the session-oriented tools ("simple mode"): `evaluate_expression`, session and log tools, and documentation search. `--notebook` offers the full notebook tool set described under [Available tools](#available-tools-24). The connected mode always offers the full set.
+
+In simple mode, **evaluate_expression(expression, session_id?, cell_id?, cells_above?)** can run the expression as a cell of a notebook the client keeps itself, such as the VS Code extension's. Pass the cell's `cell_id`, which stays the same while the notebook is open, and `cells_above`, the IDs of the code cells above it in order. The server then numbers the runs (`execution_count` in the result, the gutter number), and resolves `%oN` as that notebook's `Out[N]` and a bare `%` as the output of the nearest cell above that has one in this session, as the Aximar window does. Without `cell_id`, the expression keeps Maxima's own labels, as clients that resolve labels themselves expect. Clients detect support from the tool's input schema, which lists `cell_id` and `cells_above` (tools 0.6.0 and later).
+
 ### Connected mode (embedded in Tauri app)
 
 When the Aximar desktop app is running, it can host an MCP streamable HTTP server that shares the GUI's Maxima session and notebook state, so MCP-triggered changes appear live in the app.
@@ -178,6 +182,8 @@ These answer from the same core API as the desktop window (`catalog::queries`), 
 
 - **save_notebook(path)** -- Save as Jupyter .ipynb, and record `path` as the notebook's file.
 - **open_notebook(path)** -- Open a .ipynb file, and record `path` as the notebook's file.
+
+  Files are read and written as `docs/notebook-format.md` describes, by the same code as the desktop window and the VS Code extension: nbformat 4.5, every cell's `id` kept (a missing, invalid or repeated one is replaced), notebook and cell metadata and raw cells kept, and `error` outputs read back as errors. Outputs read from a file are stale: opening a notebook numbers runs from 1 again, and `%oN` for a stale output reports that it has no value in this session.
 
   The recorded path shows in `list_notebooks` and, in connected mode, as the window's tab title and save path. Maxima runs in the file's folder, so `load("helpers.mac")` finds a file next to the notebook. A session already running keeps its folder until `restart_session`.
 - **list_templates()** -- List available notebook templates.
