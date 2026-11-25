@@ -59,6 +59,7 @@ export function CellOutput({ output, cellId }: CellOutputProps) {
       <EnhancedErrorOutput
         error={output.error}
         errorInfo={output.errorInfo}
+        errorTranslated={output.errorTranslated ?? null}
         cellId={cellId}
       />
     );

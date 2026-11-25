@@ -22,6 +22,8 @@ export interface SyncCellOutput {
   /** Maxima's one-line form of the result */
   text_plain: string | null;
   error_info: ErrorInfo | null;
+  /** Maxima's error message in the user's language, when it has one */
+  error_translated?: string | null;
   /** Read from a file, from an earlier session */
   stale: boolean;
 }

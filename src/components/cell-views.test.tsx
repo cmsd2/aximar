@@ -55,3 +55,39 @@ describe("a raw cell", () => {
     expect(html).not.toContain("cm-content");
   });
 });
+
+describe("an error with Maxima's message in the user's language", () => {
+  const english = "diff: wrong number of arguments.\n -- an error. To debug this try: debugmode(true);";
+  const spanish = "diff: número de argumentos equivocados.";
+
+  it("shows the translation, with the English one click away", () => {
+    const html = renderToStaticMarkup(
+      <CellOutput output={output({ isError: true, error: english, errorTranslated: spanish })} cellId="c1" />,
+    );
+    expect(html).toContain(spanish);
+    expect(html).toContain("Show original");
+    expect(html).not.toContain("wrong number of arguments");
+  });
+
+  it("shows the translation above Aximar's explanation", () => {
+    const errorInfo = {
+      title: "Wrong Argument Count",
+      explanation: "diff was called with the wrong number of arguments.",
+      suggestion: null,
+      example: null,
+      did_you_mean: [],
+      correct_signatures: [],
+    };
+    const html = renderToStaticMarkup(
+      <CellOutput output={output({ isError: true, error: english, errorInfo, errorTranslated: spanish })} cellId="c1" />,
+    );
+    expect(html.indexOf(spanish)).toBeGreaterThan(html.indexOf("Wrong Argument Count"));
+    expect(html.indexOf(spanish)).toBeLessThan(html.indexOf("diff was called"));
+  });
+
+  it("shows the English alone when there's no translation", () => {
+    const html = renderToStaticMarkup(<CellOutput output={output({ isError: true, error: english })} cellId="c1" />);
+    expect(html).toContain("wrong number of arguments");
+    expect(html).not.toContain("Show original");
+  });
+});

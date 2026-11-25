@@ -10,6 +10,7 @@ use crate::catalog::search::Catalog;
 use crate::error::AppError;
 use crate::maxima::backend::Backend;
 use crate::maxima::envelope::EnvelopeObserver;
+use crate::maxima::messages::{messages_lisp_stdin, set_language_code};
 use crate::maxima::output::OutputSink;
 use crate::maxima::plotting::{plotting_init_code, plotting_lisp_stdin};
 use crate::maxima::process::MaximaProcess;
@@ -103,9 +104,22 @@ pub async fn spawn_and_init_session(
                 // Load Lisp helpers for plotting (ax__mktemp)
                 let lisp_init = plotting_lisp_stdin();
                 p.write_stdin(lisp_init).await.ok();
+                // Maxima's error messages in the user's language, as well as
+                // the English Aximar reads (ax_messages.lisp).  Sent before
+                // the next evaluation, which reads the :lisp lines' replies.
+                p.write_stdin(messages_lisp_stdin()).await.ok();
                 // Load Aximar plotting functions (ax_plot2d, ax_draw2d, ax_draw3d)
                 let plot_init = plotting_init_code();
                 let _ = protocol::evaluate(p, "__init__", plot_init, catalog, eval_timeout).await;
+                // For now the language of Maxima's translated error messages
+                // comes from AXIMAR_LANGUAGE (such as `es`); a setting will
+                // replace it.
+                if let Some(set) = std::env::var("AXIMAR_LANGUAGE")
+                    .ok()
+                    .and_then(|l| set_language_code(&l))
+                {
+                    let _ = protocol::evaluate(p, "__init__", &set, catalog, eval_timeout).await;
+                }
             }
             drop(guard);
 

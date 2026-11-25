@@ -32,21 +32,21 @@ pub fn plotting_lisp_code() -> &'static str {
 /// dance.
 pub fn plotting_lisp_stdin() -> &'static str {
     static CACHED: OnceLock<String> = OnceLock::new();
-    CACHED
-        .get_or_init(|| {
-            // Strip `;` comments (CL line-comment syntax) and join on
-            // spaces.  The Lisp file contains no `;` inside strings,
-            // so the naive split is safe — if that ever changes, this
-            // needs a real lexer.
-            let stripped: String = AX_PLOTTING_LISP
-                .lines()
-                .map(|line| line.split(';').next().unwrap_or("").trim_end())
-                .filter(|s| !s.is_empty())
-                .collect::<Vec<_>>()
-                .join(" ");
-            format!(":lisp (progn {})\n", stripped)
-        })
-        .as_str()
+    CACHED.get_or_init(|| lisp_stdin_line(AX_PLOTTING_LISP))
+}
+
+/// Lisp source as a single `:lisp (progn …)` line: `;` line comments
+/// stripped and the rest joined with spaces, since Maxima's `:lisp`
+/// directive reads one form per line.  The source must have no `;` inside
+/// strings: the naive split would cut them, and would need a real lexer.
+pub(crate) fn lisp_stdin_line(source: &str) -> String {
+    let stripped: String = source
+        .lines()
+        .map(|line| line.split(';').next().unwrap_or("").trim_end())
+        .filter(|s| !s.is_empty())
+        .collect::<Vec<_>>()
+        .join(" ");
+    format!(":lisp (progn {})\n", stripped)
 }
 
 /// Returns the Maxima code to be evaluated during session init.

@@ -47,6 +47,10 @@ pub struct CellOutput {
     /// A friendly explanation of the error, for the window.
     #[serde(default)]
     pub error_info: Option<ErrorInfo>,
+    /// Maxima's error message in the user's language, for the window.
+    /// Not written to files.
+    #[serde(default)]
+    pub error_translated: Option<String>,
     /// Read from a file: the output of a session that no longer exists.
     #[serde(default)]
     pub stale: bool,
@@ -72,6 +76,7 @@ impl CellOutput {
             execution_count: Some(execution_count),
             text_plain: result.text_plain.clone(),
             error_info: result.error_info.clone(),
+            error_translated: result.error_translated.clone(),
             stale: false,
             other_outputs: Vec::new(),
         }

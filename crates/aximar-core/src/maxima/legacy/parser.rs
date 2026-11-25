@@ -6,6 +6,7 @@ use std::sync::LazyLock;
 use crate::catalog::search::Catalog;
 use crate::maxima::backend::Backend;
 use crate::maxima::errors;
+use crate::maxima::messages;
 use crate::maxima::types::EvalResult;
 
 static LABEL_RE: LazyLock<Regex> =
@@ -275,6 +276,8 @@ fn parse_output_inner(
     let mut output_label: Option<String> = None;
     // The result's one-line form, printed by the protocol before its tex()
     let mut plain: Option<String> = None;
+    // Maxima's error message in the user's language, if it printed one
+    let mut translated: Option<String> = None;
     // Accumulator for multi-line LaTeX (tex() wraps long output)
     let mut latex_buf: Option<String> = None;
     // Track \begin{verbatim}...\end{verbatim} blocks from tex() on function defs
@@ -357,6 +360,13 @@ fn parse_output_inner(
             .and_then(|rest| rest.strip_suffix("__AXIMAR_PLAIN_END__"))
         {
             plain = Some(inner.to_string());
+            continue;
+        }
+
+        // Maxima's error message in the user's language (ax_messages.lisp).
+        // The last one belongs to the error that stopped the evaluation.
+        if let Some(message) = messages::parse_translated_line(trimmed) {
+            translated = Some(message);
             continue;
         }
 
@@ -635,12 +645,45 @@ fn parse_output_inner(
         duration_ms,
         output_label,
         text_plain,
+        error_translated: if has_error { translated } else { None },
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn translated_error_message_goes_with_the_error() {
+        let lines = vec![
+            "diff: wrong number of arguments.".to_string(),
+            "__AXIMAR_MSG__diff: número de argumentos equivocados.__AXIMAR_MSG_END__".to_string(),
+            " -- an error. To debug this try: debugmode(true);".to_string(),
+        ];
+        let result = parse_output("c1", &lines, 0, &catalog(), &Backend::Local);
+        assert!(result.is_error);
+        assert_eq!(
+            result.error.as_deref(),
+            Some("diff: wrong number of arguments.\n -- an error. To debug this try: debugmode(true);")
+        );
+        assert_eq!(
+            result.error_translated.as_deref(),
+            Some("diff: número de argumentos equivocados.")
+        );
+    }
+
+    #[test]
+    fn translated_message_of_a_caught_error_is_dropped() {
+        // errcatch() printed the message, but the evaluation succeeded
+        let lines = vec![
+            "diff: wrong number of arguments.".to_string(),
+            "__AXIMAR_MSG__diff: número de argumentos equivocados.__AXIMAR_MSG_END__".to_string(),
+        ];
+        let result = parse_output("c1", &lines, 0, &catalog(), &Backend::Local);
+        assert!(!result.is_error);
+        assert_eq!(result.text_output, "diff: wrong number of arguments.");
+        assert_eq!(result.error_translated, None);
+    }
 
     fn catalog() -> Catalog {
         Catalog::load()
