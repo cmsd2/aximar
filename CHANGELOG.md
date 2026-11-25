@@ -7,6 +7,15 @@ see the `v*` releases on GitHub.
 
 ## [Unreleased]
 
+### Notebook files
+
+- **A result's LaTeX is no longer kept as its one-line form**: the VS Code
+  extension up to v0.3.0 saved a copy of each result's LaTeX as its
+  `text/plain`. Reading such a file took the copy for Maxima's one-line form
+  and saved it again, so Jupyter showed LaTeX source as the result. A
+  `text/plain` the same as the `text/latex` is now ignored. This applies to
+  aximar-mcp, the desktop app and the `aximar-notebook-format` package.
+
 ## [0.6.0] — 2026-11-23
 
 ### aximar-mcp

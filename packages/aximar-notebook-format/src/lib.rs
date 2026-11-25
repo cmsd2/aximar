@@ -288,8 +288,10 @@ fn read_outputs(outputs: &[Value], execution_count: Option<u32>) -> Option<Outpu
                     if out.latex.is_some() {
                         others.push(output.clone());
                     } else {
+                        // The VS Code extension up to v0.3.0 copied the
+                        // LaTeX into text/plain: that's no one-line form
+                        out.text_plain = get(PLAIN).filter(|plain| *plain != v);
                         out.latex = Some(v);
-                        out.text_plain = get(PLAIN);
                     }
                 } else if let Some(v) = get(PLAIN) {
                     let counted = output.get("execution_count").is_some_and(|n| !n.is_null());

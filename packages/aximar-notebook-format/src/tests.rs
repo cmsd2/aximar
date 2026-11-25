@@ -97,6 +97,18 @@ fn the_vscode_file_reads_plots_as_plots_and_keeps_errors() {
     let out = result.output.as_ref().unwrap();
     assert_eq!(out.text_output, "working");
     assert_eq!(out.latex.as_deref(), Some("{{x^2}\\over{2}}"));
+    // Its text/plain copy of the LaTeX is no one-line form, so it isn't
+    // read as one or written back as one
+    assert_eq!(out.text_plain, None);
+    let written = json(&write(&file));
+    let value = written["cells"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .flat_map(|c| c["outputs"].as_array().cloned().unwrap_or_default())
+        .find(|o| o["output_type"] == "execute_result")
+        .unwrap();
+    assert_eq!(value["data"], json!({ "text/latex": ["{{x^2}\\over{2}}"] }));
     // The extension's own metadata is kept
     assert_eq!(result.metadata["outputLabel"], "%o8");
     // Its error output is an error (#7)
