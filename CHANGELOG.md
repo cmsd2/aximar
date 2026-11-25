@@ -9,6 +9,12 @@ see the `v*` releases on GitHub.
 
 ### maxima-dap
 
+- **Step Out works**: VS Code waited forever after Step Out (Shift+F11),
+  because maxima-dap acknowledged the request and did nothing. Maxima's
+  debugger has no step-out command, so maxima-dap now steps until the run is
+  back in a caller, stopping at the caller's next statement, at a breakpoint
+  on the way, or at the end of the program. Recursive functions are handled
+  by stack depth. `examples/17_step_out.mac` shows it.
 - **Breakpoints no longer sit on lines Maxima can't stop on**: with stock
   Maxima, a breakpoint on a line that starts with arithmetic (`w * 2`, `v^2`)
   or holds only a value showed as set but never fired, because Maxima's

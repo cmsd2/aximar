@@ -159,10 +159,10 @@ It has **no code** — purely declarative (package.json + grammar JSON + languag
 | Continue (F5) | `continue` | `:resume` |
 | Step Over (F10) | `next` | `:next` |
 | Step Into (F11) | `stepIn` | `:step` |
-| Step Out (Shift+F11) | `stepOut` | `:resume` (to next breakpoint) |
+| Step Out (Shift+F11) | `stepOut` | `:step` until back in a caller |
 | Stop (Shift+F5) | `disconnect` | `:top` |
 
-**Limitation:** Maxima has no native "step out" command. The DAP server implements it as `:resume`, which continues to the next breakpoint rather than returning from the current function. A more sophisticated implementation could temporarily set a breakpoint at the caller and then resume.
+**Limitation:** Maxima has no native "step out" command. The DAP server repeats `:step` until the run is back in a caller (see `docs/maxima-dap.md`), so it stops at the caller's next statement, or runs on when the caller has none.
 
 ### 3.3 Inspecting the Call Stack
 
@@ -359,7 +359,7 @@ GCL (the default on many Linux distros) has broken backtrace output and unreliab
 
 ### No step-out
 
-Maxima's debugger has `:step` (into) and `:next` (over) but no step-out. The DAP server can approximate it by setting a temporary breakpoint at the calling frame and resuming, but this is fragile if the caller is in non-user code.
+Maxima's debugger has `:step` (into) and `:next` (over) but no step-out. The DAP server repeats `:step` until the stack is shallower than where it started (see `docs/maxima-dap.md`).
 
 ### File-path breakpoints are unreliable
 

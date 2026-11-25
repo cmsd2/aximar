@@ -1644,6 +1644,83 @@ async fn legacy_frame_paths_find_package_outside_program_dir() {
 }
 
 // ---------------------------------------------------------------------------
+// Leaving a function (17_step_out.mac): what Step Out relies on
+// ---------------------------------------------------------------------------
+
+/// Stop at `scale`'s entry, called from `report([1, 2, 3])`.
+async fn stopped_in_scale(sentinel: &str) -> MaximaProcess {
+    let mut proc = spawn_maxima().await;
+    let path = example_path("17_step_out.mac");
+    let setup = "__SETUP_DONE__";
+    for line in [
+        "debugmode(true)$".to_string(),
+        format!("load(\"{}\")$", path.replace('\\', "/")),
+        ":break scale 0".to_string(),
+    ] {
+        proc.write_stdin(&format!("{line}\n")).await.unwrap();
+        proc.write_stdin(&format!("print(\"{setup}\")$\n"))
+            .await
+            .unwrap();
+        proc.read_until_sentinel(setup).await.unwrap();
+    }
+    let wrapped = format!(
+        "block([__dap_r__], __dap_r__: (report([1, 2, 3])), print(\"{sentinel}\"), __dap_r__)$\n"
+    );
+    proc.write_stdin(&wrapped).await.unwrap();
+    let (_lines, prompt) = proc.read_dap_response(Some(sentinel)).await.unwrap();
+    assert!(
+        matches!(prompt, PromptKind::Debugger { .. }),
+        "breakpoint in scale"
+    );
+    proc
+}
+
+#[tokio::test]
+#[ignore]
+async fn step_leaves_a_function_into_its_caller() {
+    // maxima-dap's Step Out repeats :step until the stack is shallower:
+    // :step after a function's last statement stops in the caller
+    let sentinel = "__EVAL_DONE__";
+    let mut proc = stopped_in_scale(sentinel).await;
+    let mut seen = Vec::new();
+    for _ in 0..10 {
+        proc.write_stdin(":step\n").await.unwrap();
+        let (lines, prompt) = proc.read_dap_response(Some(sentinel)).await.unwrap();
+        assert!(matches!(prompt, PromptKind::Debugger { .. }), "{lines:?}");
+        let function = maxima_dap::stepping::stopped_in(&lines);
+        seen.push(function.clone());
+        if function.as_deref() == Some("report") {
+            proc.kill().await.unwrap();
+            return;
+        }
+    }
+    panic!("never stopped in report: {seen:?}");
+}
+
+#[tokio::test]
+#[ignore]
+async fn next_after_a_functions_last_statement_runs_on() {
+    // Why Step Out can't use :next: from scale's last statement it doesn't
+    // stop in report, so a Step Out built on it would run past the
+    // caller
+    let sentinel = "__EVAL_DONE__";
+    let mut proc = stopped_in_scale(sentinel).await;
+    for _ in 0..10 {
+        proc.write_stdin(":next\n").await.unwrap();
+        let (lines, prompt) = proc.read_dap_response(Some(sentinel)).await.unwrap();
+        if prompt == PromptKind::Normal {
+            proc.kill().await.unwrap();
+            return;
+        }
+        assert_ne!(
+            maxima_dap::stepping::stopped_in(&lines).as_deref(),
+            Some("report"),
+            "{lines:?}"
+        );
+    }
+    panic!(":next never finished");
+
+// ---------------------------------------------------------------------------
 // Lines Maxima's debugger can't stop on (18_lines_maxima_skips.mac)
 // ---------------------------------------------------------------------------
 

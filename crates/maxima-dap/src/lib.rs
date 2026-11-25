@@ -7,7 +7,7 @@
 //! # Known limitations
 //!
 //! - **SBCL required** — `:bt` and `:frame` produce no output on GCL.
-//! - **No step-out** — Maxima has no native step-out. `:resume` continues to next breakpoint.
+//! - **No native step-out** — Step Out repeats `:step` until the run is back in a caller (see [`stepping`]).
 //! - **Top-level breakpoints impossible** — Lines outside function definitions are marked unverified.
 //! - **`errcatch` suppresses breakpoints** — Breakpoints inside `errcatch()` don't fire.
 //! - **Function redefinition clears breakpoints** (Legacy only) — Reloading a file invalidates breakpoints.
@@ -23,6 +23,7 @@
 pub mod breakpoints;
 pub mod frames;
 pub mod server;
+pub mod stepping;
 pub mod strategy;
 pub mod strategy_enhanced;
 pub mod strategy_legacy;

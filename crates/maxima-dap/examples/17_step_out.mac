@@ -1,0 +1,37 @@
+/* 17_step_out.mac
+ *
+ * Scenario: Step Out of a function, back to its caller
+ *
+ * What to try:
+ *   1. Set a breakpoint on the "scaled : scale(v, 2)" line inside report
+ *   2. Launch (the top-level call at the bottom runs report)
+ *   3. Use Step Into (F11) to enter scale
+ *   4. Use Step Out (Shift+F11): the rest of scale runs, and the debugger
+ *      stops back in report, on the "total : sum_all(scaled)" line
+ *
+ * Maxima's debugger has no step-out command of its own: the debugger
+ * steps until it's back in a caller. It stops at a breakpoint on the way,
+ * as Continue would.
+ */
+
+scale(v, k) := block(
+    [out],
+    out : k * v,
+    out
+)$
+
+sum_all(v) := block(
+    [s],
+    s : apply("+", v),
+    s
+)$
+
+report(v) := block(
+    [scaled, total],
+    scaled : scale(v, 2),
+    total : sum_all(scaled),
+    print("total:", total),
+    total
+)$
+
+report([1, 2, 3])$

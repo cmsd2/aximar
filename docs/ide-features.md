@@ -212,7 +212,7 @@ This requires the same `.mac` parser used by the LSP (another reason to share cr
 | `continue` | `:resume` | |
 | `next` | `:next` | Step over |
 | `stepIn` | `:step` | Step into |
-| `stepOut` | `:resume` to next breakpoint | No native step-out |
+| `stepOut` | `:step` until back in a caller | No native step-out; emulated (see `docs/maxima-dap.md`) |
 | `stackTrace` | `:bt` | Parse text frames |
 | `scopes` | `:frame N` | Parse frame variables |
 | `variables` | Evaluate expressions | At debugger prompt |

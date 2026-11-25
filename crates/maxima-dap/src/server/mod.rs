@@ -204,6 +204,7 @@ impl DapServer {
             Command::Continue(args) => self.handle_continue(&request, args).await,
             Command::Next(args) => self.handle_next(&request, args).await,
             Command::StepIn(args) => self.handle_step_in(&request, args).await,
+            Command::StepOut(args) => self.handle_step_out(&request, args).await,
             Command::StackTrace(args) => self.handle_stack_trace(&request, args).await,
             Command::Scopes(args) => self.handle_scopes(&request, args).await,
             Command::Variables(args) => self.handle_variables(&request, args).await,

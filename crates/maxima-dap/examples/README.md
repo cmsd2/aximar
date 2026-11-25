@@ -17,6 +17,7 @@ These example `.mac` files show how to use the VS Code debugger with Maxima. Eac
 4. When the debugger stops at your breakpoint, you can:
    - **Step Over (F10)** — run the current line and move to the next one
    - **Step Into (F11)** — dive into a function call to see what happens inside
+   - **Step Out (Shift+F11)** — finish the current function and stop back in its caller
    - **Continue (F5)** — run until the next breakpoint or until the program finishes
 5. Look at the **Variables** panel (left side) to see argument values and local variables.
 6. Type Maxima expressions in the **Debug Console** (bottom panel) to evaluate them interactively.
@@ -67,6 +68,7 @@ Start with the first few examples and work your way up. Each file has a comment 
 | `13_deep_call_stack.mac` | Navigate a deep call stack in the Stack Trace panel |
 | `14_debug_console_eval.mac` | Evaluate expressions in the Debug Console while stopped |
 | `15_unverified_breakpoints.mac` | Understand why breakpoints outside functions appear grey |
+| `17_step_out.mac` | Step out of a function, back to its caller, with Shift+F11 |
 | `18_lines_maxima_skips.mac` | See breakpoints move off lines Maxima can't stop on |
 
 ## Tips
@@ -86,6 +88,6 @@ Start with the first few examples and work your way up. Each file has a comment 
 ## Known limitations
 
 - **SBCL required** — Stack traces and variable inspection only work with the SBCL Lisp backend, not GCL or ECL.
-- **No step-out** — Use Continue (F5) to run to the next breakpoint instead.
+- **Step Out stops at statements** — Step Out stops at the caller's next statement. If the caller has none left, the run goes on to the next breakpoint or the end.
 - **`errcatch` suppresses breakpoints** — Breakpoints inside `errcatch()` blocks may not fire.
 - **Function redefinition** — Reloading a file clears breakpoints on redefined functions. The debugger avoids this by loading only definitions, but it's worth knowing.
