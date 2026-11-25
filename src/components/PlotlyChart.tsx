@@ -5,6 +5,7 @@ import {
   type ReactiveBlock,
   type ReactiveSignalMeta,
 } from "../lib/reactive-client";
+import { fixAxesForFrames, keepEveryLinePoint, type Figure } from "../lib/plotly-animation";
 
 interface PlotlyChartProps {
   plotData: string;
@@ -36,6 +37,11 @@ export function PlotlyChart({ plotData }: PlotlyChartProps) {
     if (!containerRef.current || !spec) return;
     setRenderError(null);
 
+    // Animations: steady axes, and every point of each line (see
+    // plotly-animation.ts)
+    const figure = keepEveryLinePoint(spec as Figure) as PlotlySpec;
+    const figureLayout = fixAxesForFrames(figure) as Partial<Plotly.Layout> | undefined;
+
     const computedStyle = getComputedStyle(document.documentElement);
     const textColor = computedStyle.getPropertyValue("--text-primary").trim() || "#e0e0e0";
     const gridColor = computedStyle.getPropertyValue("--border-color").trim() || "#333";
@@ -45,19 +51,19 @@ export function PlotlyChart({ plotData }: PlotlyChartProps) {
     const hasFixedSize = spec.layout?.width || spec.layout?.height;
 
     const layout: Partial<Plotly.Layout> = {
-      ...spec.layout,
+      ...figureLayout,
       autosize: !hasFixedSize,
       margin: { l: 50, r: 30, t: 40, b: 50 },
       paper_bgcolor: "transparent",
       plot_bgcolor: "transparent",
       font: { color: textColor },
       xaxis: {
-        ...(spec.layout?.xaxis as object),
+        ...(figureLayout?.xaxis as object),
         gridcolor: gridColor,
         zerolinecolor: gridColor,
       },
       yaxis: {
-        ...(spec.layout?.yaxis as object),
+        ...(figureLayout?.yaxis as object),
         gridcolor: gridColor,
         zerolinecolor: gridColor,
       },
@@ -82,15 +88,15 @@ export function PlotlyChart({ plotData }: PlotlyChartProps) {
     };
 
     try {
-      Plotly.newPlot(containerRef.current, spec.data, layout, config)
+      Plotly.newPlot(containerRef.current, figure.data, layout, config)
         .then(() => {
           // Animated figures (ax-plots `animate(...)`) carry a top-level
           // `frames` array plus layout.sliders / layout.updatemenus.  The
           // slider steps reference frames by name; addFrames registers them
           // so the play button and slider scrub actually animate.
           if (cancelled || !containerRef.current) return;
-          if (spec.frames && spec.frames.length > 0) {
-            Plotly.addFrames(containerRef.current, spec.frames);
+          if (figure.frames && figure.frames.length > 0) {
+            Plotly.addFrames(containerRef.current, figure.frames);
           }
         })
         .catch(failed);
