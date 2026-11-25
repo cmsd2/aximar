@@ -1,23 +1,41 @@
+## Purpose
+
+How Aximar explains Maxima's errors, notes and questions: stable message IDs with named parameters, questions that stop a cell instead of hanging it, Lisp errors that keep their cause, notes in plain language, and an output in every failed cell.
+
 ## ADDED Requirements
 
 ### Requirement: Friendly messages have stable IDs
 
-Every friendly message Aximar shows for Maxima's output (an error explanation, a note, a question) SHALL have a stable ID and named parameters, and SHALL take its English text from one table in aximar-core by rendering the ID's templates with the parameters. `docs/maxima-messages.md` SHALL list every ID with the Maxima text it covers, its parameters and its English text. An ID SHALL NOT change meaning once released.
+Every friendly message Aximar shows for Maxima's output (an error explanation, a note, a question) SHALL have a stable ID and named parameters, and SHALL be an entry in Aximar's translation catalog whose context is the ID and whose source text is the English template. Errors and notes SHALL carry the ID, the parameters and the English text rendered from the template. `docs/maxima-messages.md` SHALL list every ID with the Maxima text it covers, its parameters and its English text, and SHALL be generated from the catalog. An ID SHALL NOT change meaning once released.
 
 #### Scenario: An explanation carries its ID
 
 - **WHEN** a cell fails with `expt: undefined: 0 to a negative exponent.`
-- **THEN** its `error_info` SHALL have `id` `error.division_by_zero`, and its `title` and `explanation` SHALL be the table's English text for that ID
+- **THEN** its `error_info` SHALL have `id` `error.division_by_zero`, and its `title` and `explanation` SHALL be the catalog's English text for that ID
 
 #### Scenario: Parameters fill the text
 
 - **WHEN** a cell fails with `Too many arguments supplied to f(x); found: [1,2]`
 - **THEN** its `error_info` SHALL have `id` `error.arg_count` with parameters naming `f`, its definition `f(x)` and the arguments `[1,2]`, and the English text SHALL contain them
 
-#### Scenario: The table and the code agree
+#### Scenario: The catalog and the code agree
 
 - **WHEN** the unit tests run
-- **THEN** every ID the code can produce SHALL have an entry in the English table, every placeholder in an entry SHALL be a parameter the code sets, and `docs/maxima-messages.md` SHALL list every ID
+- **THEN** every ID the code can produce SHALL have an entry in the catalog's template, every placeholder in an entry SHALL be a parameter the code sets, and `docs/maxima-messages.md` SHALL match what the generator produces from the template
+
+### Requirement: Syntax errors are explained
+
+When a cell fails with one of Maxima's syntax errors, its `error_info` SHALL explain it with an ID for the parser message it matches (such as a missing parenthesis, or input that ends too early), with the parser's details as parameters. A parser message Aximar doesn't recognise SHALL get `error.syntax` with Maxima's text as a parameter.
+
+#### Scenario: Missing parenthesis (needs Maxima)
+
+- **WHEN** a cell runs `f(x;`
+- **THEN** its `error_info` SHALL have an ID for a missing delimiter, with `)` as a parameter
+
+#### Scenario: Input ends too early (needs Maxima)
+
+- **WHEN** a cell runs `1+;`
+- **THEN** its `error_info` SHALL have `id` `error.incomplete_input`
 
 ### Requirement: Questions stop the cell with the fix
 
