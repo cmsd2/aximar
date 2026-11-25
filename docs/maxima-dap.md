@@ -240,6 +240,12 @@ The Maxima debugger features (`:bt`, `:frame`, line info in backtraces) only wor
 
 Maxima's debugger can only set breakpoints on function bodies. In Legacy mode, this uses `:break funcname offset`; in Enhanced mode, `:break "file" LINE`. In both modes, lines at the top level of a `.mac` file (outside any function or macro definition) cannot have breakpoints. The DAP server marks these as **unverified** with the message "Line N is not inside a function definition" (Legacy) or an appropriate error from Maxima (Enhanced).
 
+### Some lines inside functions can't stop (Legacy)
+
+Stock Maxima's evaluator (`meval1` in `src/mlisp.lisp`) evaluates `+`, `*`, `^` and `.` (`mplus`, `mtimes`, `mexpt`, `mnctimes`) before its debugger hook, and never reaches the hook for a bare value. A breakpoint on a line that starts with arithmetic (`w * 2`, `v^2`) or holds only a value (a function's final `total`) is accepted by `:break` but never fires, and `:step` never stops there.
+
+So in Legacy mode, after `:break` the DAP server asks Maxima for the operator of the form the breakpoint is on (`:lisp (caar (car (aref *break-points* N)))`). If the evaluator skips it, or Maxima answers "No instructions recorded for this line", the server deletes the breakpoint and tries the function's next line, as Enhanced mode's line-snapping does. The breakpoint moves to the first line that can stop; if there's none left in the function, it's **unverified** with a message saying why. `examples/18_lines_maxima_skips.mac` shows both.
+
 ### Step Out stops at the caller's next statement
 
 Step Out is emulated (see [Step Out](#step-out-repeated-step)). It stops at the next point in a caller where Maxima's debugger can stop; when the caller has none left, the run continues to the next breakpoint or the end.

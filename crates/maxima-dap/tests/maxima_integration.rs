@@ -1720,3 +1720,63 @@ async fn next_after_a_functions_last_statement_runs_on() {
     }
     panic!(":next never finished");
 }
+
+// ---------------------------------------------------------------------------
+// Lines Maxima's debugger can't stop on (18_lines_maxima_skips.mac)
+// ---------------------------------------------------------------------------
+
+#[tokio::test]
+#[ignore]
+async fn legacy_breakpoints_move_past_lines_maxima_skips() {
+    // meval1 evaluates +, *, ^ and . before its debugger hook, so a
+    // breakpoint on "w * 2" would never fire; it moves to the next line
+    // that can stop. On the last line there's none, so it's unverified.
+    let mut proc = spawn_maxima().await;
+    let sentinel = "__TEST_DONE__";
+    proc.write_stdin("debugmode(true)$\n").await.unwrap();
+    proc.write_stdin(&format!("print(\"{}\")$\n", sentinel))
+        .await
+        .unwrap();
+    proc.read_until_sentinel(sentinel).await.unwrap();
+
+    let program_path =
+        Path::new(env!("CARGO_MANIFEST_DIR")).join("examples/18_lines_maxima_skips.mac");
+    let mut source_index = SourceIndex::new();
+    source_index.index_file(&program_path).unwrap();
+    let state = DebugState::Running;
+    let mut ctx = StrategyContext {
+        process: &mut proc,
+        state: &state,
+        source_index: &source_index,
+    };
+    LegacyStrategy
+        .load_program(&mut ctx, &program_path)
+        .await
+        .expect("load_program should succeed");
+
+    // "w : x," (line 21) is an assignment: it stays where it is
+    let r = LegacyStrategy
+        .set_breakpoint(&mut ctx, &program_path, 21)
+        .await;
+    assert!(r.verified && r.actual_line.is_none(), "{:?}", r.message);
+
+    // "w * 2," (line 22) moves to the print on line 23
+    let r = LegacyStrategy
+        .set_breakpoint(&mut ctx, &program_path, 22)
+        .await;
+    assert!(r.verified, "{:?}", r.message);
+    assert_eq!(r.actual_line, Some(23));
+
+    // "w * k" (line 24) is the last line: nothing to move to
+    let r = LegacyStrategy
+        .set_breakpoint(&mut ctx, &program_path, 24)
+        .await;
+    assert!(!r.verified);
+    assert!(
+        r.message.as_deref().unwrap_or("").contains("can't stop"),
+        "{:?}",
+        r.message
+    );
+
+    proc.kill().await.unwrap();
+}

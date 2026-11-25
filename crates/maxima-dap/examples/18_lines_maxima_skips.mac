@@ -1,0 +1,27 @@
+/* 18_lines_maxima_skips.mac
+ *
+ * Scenario: lines inside a function where Maxima's debugger can't stop
+ *
+ * With stock Maxima, the debugger never stops on a line that starts with
+ * arithmetic (+, -, *, /, ^) or holds only a value, such as a function's
+ * final result. A breakpoint on such a line moves down to the function's
+ * next line that can stop, or stays grey (unverified) if there's none.
+ *
+ * What to try:
+ *   1. Set a breakpoint on the "w * 2," line in scale: it moves down to
+ *      the print line
+ *   2. Set a breakpoint on the final "w * k" line: it stays grey; hover
+ *      over it to see why
+ *   3. Launch (the top-level call at the bottom runs scale): the debugger
+ *      stops on the print line
+ */
+
+scale(x, k) := block(
+    [w],
+    w : x,
+    w * 2,
+    print("w is", w),
+    w * k
+)$
+
+scale(5, 3)$

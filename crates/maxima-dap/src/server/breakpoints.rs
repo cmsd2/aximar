@@ -311,6 +311,7 @@ impl DapServer {
 
                     bp.verified = result.verified;
                     bp.maxima_id = result.maxima_id;
+                    bp.actual_line = result.actual_line;
                     bp.message = result.message;
                 } else {
                     let function = bp.function.as_ref().unwrap().clone();
@@ -323,7 +324,7 @@ impl DapServer {
                     breakpoint: Breakpoint {
                         id: Some(bp.dap_id),
                         verified: bp.verified,
-                        line: Some(bp.line),
+                        line: Some(bp.actual_line.unwrap_or(bp.line)),
                         message: bp.message.clone(),
                         source: Some(Source {
                             path: Some(path.to_string_lossy().to_string()),

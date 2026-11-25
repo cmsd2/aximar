@@ -69,6 +69,7 @@ Start with the first few examples and work your way up. Each file has a comment 
 | `14_debug_console_eval.mac` | Evaluate expressions in the Debug Console while stopped |
 | `15_unverified_breakpoints.mac` | Understand why breakpoints outside functions appear grey |
 | `17_step_out.mac` | Step out of a function, back to its caller, with Shift+F11 |
+| `18_lines_maxima_skips.mac` | See breakpoints move off lines Maxima can't stop on |
 
 ## Tips
 
@@ -78,7 +79,8 @@ Start with the first few examples and work your way up. Each file has a comment 
 
 ## Troubleshooting
 
-- **Breakpoint shows grey (unverified):** The line is outside a function body. Move the breakpoint inside a function.
+- **Breakpoint shows grey (unverified):** The line is outside a function body, or it's a line Maxima can't stop on (arithmetic or a bare value) with no later line in the function to move to. Hover over it for the reason.
+- **Breakpoint moved down a line or two:** Maxima can't stop on the line you chose, so the debugger moved it to the function's next line that can stop.
 - **"Error loading definitions":** Your file may use a reserved Maxima name. Check the error message and rename the conflicting function.
 - **No variables visible:** Make sure you're stopped at a breakpoint (the yellow arrow in the gutter), not just paused.
 - **Step Over immediately ends:** You're at the last statement in the function. See the tip above.
