@@ -20,6 +20,10 @@ pub struct EvalResult {
     /// Maxima's one-line form of the final value, as `string(%)` gives it
     #[serde(default)]
     pub text_plain: Option<String>,
+    /// Maxima's error message in the user's language, from its own
+    /// catalog, when it has one (see `ax_messages.lisp`)
+    #[serde(default)]
+    pub error_translated: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

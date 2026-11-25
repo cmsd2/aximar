@@ -5,12 +5,15 @@ import { useNotebookStore } from "../store/notebookStore";
 interface EnhancedErrorOutputProps {
   error: string;
   errorInfo: ErrorInfo | null;
+  /** Maxima's message in the user's language; `error` keeps the English */
+  errorTranslated?: string | null;
   cellId: string;
 }
 
 export function EnhancedErrorOutput({
   error,
   errorInfo,
+  errorTranslated,
   cellId,
 }: EnhancedErrorOutputProps) {
   const [showRaw, setShowRaw] = useState(false);
@@ -19,7 +22,20 @@ export function EnhancedErrorOutput({
   if (!errorInfo) {
     return (
       <div className="error-output">
-        <pre>{error}</pre>
+        {errorTranslated ? (
+          <>
+            <pre>{errorTranslated}</pre>
+            <button
+              className="enhanced-error-toggle"
+              onClick={() => setShowRaw(!showRaw)}
+            >
+              {showRaw ? "Hide" : "Show"} original
+            </button>
+            {showRaw && <pre className="enhanced-error-raw">{error}</pre>}
+          </>
+        ) : (
+          <pre>{error}</pre>
+        )}
       </div>
     );
   }
@@ -27,6 +43,9 @@ export function EnhancedErrorOutput({
   return (
     <div className="enhanced-error">
       <div className="enhanced-error-title">{errorInfo.title}</div>
+      {errorTranslated && (
+        <pre className="enhanced-error-translated">{errorTranslated}</pre>
+      )}
       <div className="enhanced-error-explanation">{errorInfo.explanation}</div>
 
       {errorInfo.suggestion && (

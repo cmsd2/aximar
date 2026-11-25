@@ -8,6 +8,8 @@ export interface CellOutput {
   imagePng: string | null;
   error: string | null;
   errorInfo: ErrorInfo | null;
+  /** Maxima's error message in the user's language, when it has one */
+  errorTranslated?: string | null;
   isError: boolean;
   durationMs: number;
   /** Maxima output label (e.g. "%o6") for stable back-references in formulas */

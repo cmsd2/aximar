@@ -160,6 +160,7 @@ export function mapSyncCells(syncCells: SyncCell[]) {
         imagePng: sc.output.image_png,
         error: sc.output.error,
         errorInfo: sc.output.error_info,
+        errorTranslated: sc.output.error_translated ?? null,
         isError: sc.output.is_error,
         durationMs: sc.output.duration_ms,
         outputLabel: sc.output.output_label,
