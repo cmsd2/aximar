@@ -1719,6 +1719,7 @@ async fn next_after_a_functions_last_statement_runs_on() {
         );
     }
     panic!(":next never finished");
+}
 
 // ---------------------------------------------------------------------------
 // Lines Maxima's debugger can't stop on (18_lines_maxima_skips.mac)
