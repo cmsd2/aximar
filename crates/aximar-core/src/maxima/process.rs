@@ -41,6 +41,17 @@ fn assumption_answer(question: &str) -> &'static str {
     }
 }
 
+/// Keeps Maxima's messages in English whatever the user's locale.
+///
+/// Aximar reads Maxima's output to tell when a cell failed (see
+/// `debugger::ERROR_MARKERS` and `legacy::parser`), and Maxima
+/// translates those messages: under a Spanish locale "incorrect syntax:"
+/// becomes "sintaxis no correcta:". Maxima picks its language from the
+/// first of `LANGUAGE`, `LC_ALL`, `LC_MESSAGES` and `LANG` that's set, so
+/// setting `LANGUAGE` wins over the rest. It leaves the C library's
+/// locale, and so the UTF-8 character set, alone.
+const MAXIMA_LANGUAGE: (&str, &str) = ("LANGUAGE", "en");
+
 const READY_SENTINEL: &str = "__AXIMAR_READY__";
 const INIT_DONE_SENTINEL: &str = "__AXIMAR_INIT_DONE__";
 
@@ -179,6 +190,7 @@ impl MaximaProcess {
 
                 let mut cmd = Command::new(&maxima_path);
                 cmd.arg("--very-quiet")
+                    .env(MAXIMA_LANGUAGE.0, MAXIMA_LANGUAGE.1)
                     .stdin(std::process::Stdio::piped())
                     .stdout(std::process::Stdio::piped())
                     .stderr(std::process::Stdio::piped())
@@ -360,6 +372,8 @@ impl MaximaProcess {
                         "LANG=en_US.UTF-8",
                         "-e",
                         "LC_ALL=en_US.UTF-8",
+                        "-e",
+                        "LANGUAGE=en",
                         "-v",
                         &volume_mount,
                         image,
@@ -413,6 +427,7 @@ impl MaximaProcess {
                     "env",
                     "LANG=en_US.UTF-8",
                     "LC_ALL=en_US.UTF-8",
+                    "LANGUAGE=en",
                     "maxima",
                     "--very-quiet",
                 ]);
