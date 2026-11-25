@@ -7,6 +7,15 @@ see the `v*` releases on GitHub.
 
 ## [Unreleased]
 
+### aximar-mcp and maxima-dap
+
+- **Errors are recognised under any locale**: Maxima translates its error
+  messages, and the tools read them to tell when an evaluation failed. With
+  the system language set to Spanish, a failed evaluation came back as a
+  result (the one before it), and the debugger hung on a syntax error. The
+  tools now start Maxima with `LANGUAGE=en`, which Maxima reads before
+  `LC_ALL`, `LC_MESSAGES` and `LANG`.
+
 ## [0.6.2] — 2026-11-25
 
 ### maxima-dap
