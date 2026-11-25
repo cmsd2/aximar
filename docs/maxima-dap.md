@@ -204,6 +204,8 @@ Maxima's debugger has no step-out command, so the DAP server emulates one (`crat
 
 It can't use `:next`: from a function's last statement, `:next` doesn't stop in the caller, it runs to the end of the program.
 
+VS Code enables Step Out only when the stopped thread has more than one stack frame (its `threadHasMultipleStackFrames` context key). Top-level code isn't a frame, so in a function called from top-level code Step Out is greyed out; the adapter would only have continued to the next breakpoint or the end anyway.
+
 Maxima stops only at some points in a statement, so Step Out stops at the caller's next such point. When the caller has none left (its remaining code is a bare value such as `total`, or the rest of the statement that made the call), the run goes on to the next breakpoint, or to the end. `examples/17_step_out.mac` shows a Step Out.
 
 ## Maxima Version Compatibility

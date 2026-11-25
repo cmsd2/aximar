@@ -17,7 +17,7 @@ These example `.mac` files show how to use the VS Code debugger with Maxima. Eac
 4. When the debugger stops at your breakpoint, you can:
    - **Step Over (F10)** — run the current line and move to the next one
    - **Step Into (F11)** — dive into a function call to see what happens inside
-   - **Step Out (Shift+F11)** — finish the current function and stop back in its caller
+   - **Step Out (Shift+F11)** — finish the current function and stop back in its caller. VS Code greys it out when the call stack has a single frame: a function called from top-level code has no caller frame to return to
    - **Continue (F5)** — run until the next breakpoint or until the program finishes
 5. Look at the **Variables** panel (left side) to see argument values and local variables.
 6. Type Maxima expressions in the **Debug Console** (bottom panel) to evaluate them interactively.
