@@ -7,6 +7,8 @@ see the `v*` releases on GitHub.
 
 ## [Unreleased]
 
+## [0.6.2] — 2026-11-25
+
 ### maxima-dap
 
 - **Step Out works**: VS Code waited forever after Step Out (Shift+F11),
@@ -412,6 +414,7 @@ Initial standalone release of the Maxima language tools.
 - Dangerous function safety gates
 - Structured JSON startup output for VS Code integration
 
+[0.6.2]: https://github.com/cmsd2/aximar/releases/tag/tools-v0.6.2
 [0.6.1]: https://github.com/cmsd2/aximar/releases/tag/tools-v0.6.1
 [0.6.0]: https://github.com/cmsd2/aximar/releases/tag/tools-v0.6.0
 [0.5.0]: https://github.com/cmsd2/aximar/releases/tag/tools-v0.5.0
