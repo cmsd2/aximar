@@ -117,6 +117,15 @@ impl DapServer {
         &mut self,
         cmd: &str,
     ) -> Result<(PromptKind, Option<CanonicalLocation>), AppError> {
+        let (prompt_kind, canonical, _lines) = self.send_debugger_command_lines(cmd).await?;
+        Ok((prompt_kind, canonical))
+    }
+
+    /// As `send_debugger_command`, also returning Maxima's output lines.
+    pub(super) async fn send_debugger_command_lines(
+        &mut self,
+        cmd: &str,
+    ) -> Result<(PromptKind, Option<CanonicalLocation>, Vec<String>), AppError> {
         let process = self.process.as_mut().ok_or(AppError::ProcessNotRunning)?;
         let sentinel = "__MAXIMA_DAP_DONE__";
         tracing::debug!("send_debugger_command: sending {:?}", cmd);
@@ -136,7 +145,7 @@ impl DapServer {
             );
         }
         self.pending_resolutions.extend(resolutions);
-        Ok((prompt_kind, canonical))
+        Ok((prompt_kind, canonical, lines))
     }
 
     /// Send a raw debugger command and read until the debugger prompt.

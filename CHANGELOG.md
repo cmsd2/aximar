@@ -7,6 +7,15 @@ see the `v*` releases on GitHub.
 
 ## [Unreleased]
 
+### maxima-dap
+
+- **Step Out works**: VS Code waited forever after Step Out (Shift+F11),
+  because maxima-dap acknowledged the request and did nothing. Maxima's
+  debugger has no step-out command, so maxima-dap now steps until the run is
+  back in a caller, stopping at the caller's next statement, at a breakpoint
+  on the way, or at the end of the program. Recursive functions are handled
+  by stack depth. `examples/17_step_out.mac` shows it.
+
 ## [0.6.1] — 2026-11-25
 
 ### aximar-mcp

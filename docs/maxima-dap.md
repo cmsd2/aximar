@@ -196,7 +196,15 @@ Setting a breakpoint at the function entry and using Step Over walks through `a`
 
 ### Continue (`:resume`)
 
-`:resume` runs until the next breakpoint is hit or the expression completes. There is no "step out" command in Maxima's debugger — `:resume` is the closest equivalent (it continues to the next breakpoint, which may be in a calling function if one is set).
+`:resume` runs until the next breakpoint is hit or the expression completes.
+
+### Step Out (repeated `:step`)
+
+Maxima's debugger has no step-out command, so the DAP server emulates one (`crates/maxima-dap/src/stepping.rs`). It notes the function on top of the stack, then sends `:step` until the run is back in a caller: a stop in the same function steps again, and a stop anywhere else is settled by comparing the stack depth from `:bt`, since `:step` also enters calls. When the function is on the stack more than once (recursion), every stop compares depths. Step Out ends early at a breakpoint, as Continue would; `:step` doesn't announce one, so each stop is checked against the breakpoints the server set. From top-level code there's no function to leave, and Step Out continues.
+
+It can't use `:next`: from a function's last statement, `:next` doesn't stop in the caller, it runs to the end of the program.
+
+Maxima stops only at some points in a statement, so Step Out stops at the caller's next such point. When the caller has none left (its remaining code is a bare value such as `total`, or the rest of the statement that made the call), the run goes on to the next breakpoint, or to the end. `examples/17_step_out.mac` shows a Step Out.
 
 ## Maxima Version Compatibility
 
@@ -232,11 +240,9 @@ The Maxima debugger features (`:bt`, `:frame`, line info in backtraces) only wor
 
 Maxima's debugger can only set breakpoints on function bodies. In Legacy mode, this uses `:break funcname offset`; in Enhanced mode, `:break "file" LINE`. In both modes, lines at the top level of a `.mac` file (outside any function or macro definition) cannot have breakpoints. The DAP server marks these as **unverified** with the message "Line N is not inside a function definition" (Legacy) or an appropriate error from Maxima (Enhanced).
 
-### No Step Out
+### Step Out stops at the caller's next statement
 
-Maxima's debugger has no native step-out command. The closest alternatives are:
-- `:resume` — continues to the next breakpoint (which may be in a different function)
-- `:next` — if you're at the last statement, this exits the current function
+Step Out is emulated (see [Step Out](#step-out-repeated-step)). It stops at the next point in a caller where Maxima's debugger can stop; when the caller has none left, the run continues to the next breakpoint or the end.
 
 ### `errcatch` suppresses breakpoints
 
