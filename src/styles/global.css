@@ -360,15 +360,15 @@
   opacity: 1;
 }
 
-/* The caret: the stretch of the line under the In and Out labels, in the
-   accent colour, blinking on CodeMirror's 1.2s cycle.  It's the line's
-   own 1px and sits exactly on it.  Its right end is flush with the
-   labels: the gutter's 4px padding in from the code, past the card's 1px
-   border in card style. */
+/* The caret: a stretch of the line in the accent colour, blinking on
+   CodeMirror's 1.2s cycle.  It's the line's own 1px and sits exactly on
+   it.  Its left end is flush with the left edge of the input and output,
+   where the new cell's text will start: past the card's 1px border in
+   card style. */
 .cell-gap-caret {
   --caret-length: calc(var(--font-size-mono) * 2.4);
   position: absolute;
-  left: calc(var(--gutter-width) + 1px - var(--space-1) - var(--caret-length));
+  left: calc(var(--gutter-width) + 1px);
   top: 50%;
   z-index: 4;
   width: var(--caret-length);
@@ -380,7 +380,7 @@
 
 /* Bracket style has no card border to step over */
 .insert-bar .cell-gap-caret {
-  left: calc(var(--gutter-width) - var(--space-1) - var(--caret-length));
+  left: var(--gutter-width);
 }
 
 @keyframes cell-gap-blink {
@@ -430,7 +430,7 @@
 
 .cell-gap-plus {
   position: absolute;
-  left: calc(-1 * var(--space-6));
+  left: calc(-1 * var(--space-4));
   top: 50%;
   transform: translateY(-50%);
   z-index: 4;
@@ -462,10 +462,26 @@
   border-color: var(--accent);
 }
 
-/* Bracket style: the + sits at the line's left end, in the gutter */
+/* A gap with its menu open sits above the cells around it, which have
+   stacking layers of their own (bracket style's output area, a card's
+   ring), so the menu covers them */
+.cell-gap.menu-open {
+  z-index: 30;
+}
+
+/* Bracket style: the + sits near the line's left end, in the gutter */
 .insert-bar .cell-gap-plus,
 .insert-bar .cell-gap-menu {
-  left: 0;
+  left: var(--space-2);
+}
+
+/* One gap at a time shows its line and +: the one with its menu open,
+   else the one under the pointer, else the caret's, else the latest
+   result's + with its dot */
+.notebook:has(.cell-gap.menu-open) .cell-gap:not(.menu-open) :is(.cell-gap-line, .cell-gap-plus),
+.notebook:not(:has(.cell-gap.menu-open)):has(.cell-gap:hover) .cell-gap:not(:hover) :is(.cell-gap-line, .cell-gap-plus),
+.notebook:has(.cell-gap.has-caret):not(:has(.cell-gap.menu-open, .cell-gap:hover)) .cell-gap.has-hint:not(.has-caret) .cell-gap-plus {
+  opacity: 0;
 }
 
 /* Under the latest result with suggestions, the + stays in view with a
@@ -500,7 +516,7 @@
 
 .cell-gap-menu {
   position: absolute;
-  left: calc(-1 * var(--space-6));
+  left: calc(-1 * var(--space-4));
   top: calc(50% + var(--space-4));
   z-index: 20;
   min-width: 140px;
