@@ -51,14 +51,29 @@ A note SHALL start with an info icon from the app's icon set, set the code its t
 - **WHEN** an MCP client runs a cell that gives the `note.rat_replaced` note
 - **THEN** the note's `text` reads "Maxima replaced decimals with exact fractions: `0.5 → 1/2`." with backticks
 
-### Requirement: Suggestions sit quietly under the output
+### Requirement: Suggestions are in the + menu of the gap under the result
 
-When suggestions are shown, they SHALL appear as one row of small text buttons, each starting with an arrow, lined up with the cell's output and inside the cell, with no background band. The setting that hides suggestions SHALL keep hiding them.
+Nothing SHALL be drawn under a result for its suggestions. The gap between two cells SHALL hold a single +, in both cell styles, whose menu offers a code cell and a Markdown cell and then, under a heading naming the result above ("From Out [n]"), each suggestion for that result that inserts a cell, as "→ Label". Choosing one SHALL insert a cell in that gap with the suggestion's code and run it. Tab at the caret in a gap SHALL open the same menu. Only one gap SHALL show its line and + at a time. Saving a plot SHALL be in the output's hover toolbar, not the menu. The setting that hides suggestions SHALL remove them from the menu.
 
 #### Scenario: After a result
 
-- **WHEN** a cell's result gets the suggestions Simplify, Integrate and Plot
-- **THEN** they show as "→ Simplify", "→ Integrate" and "→ Plot" under the output, starting where the output starts, with no band wider than the cell
+- **WHEN** a cell's result gets the suggestions Simplify, Integrate and Plot, and the user opens the + in the gap below it
+- **THEN** the menu reads Code, Markdown, "From Out [n]", "→ Simplify", "→ Integrate", "→ Plot", and nothing is drawn under the output
+
+#### Scenario: Choosing a suggestion
+
+- **WHEN** the user chooses "→ Simplify" in that menu
+- **THEN** a code cell with the suggestion's code appears below the result and runs
+
+#### Scenario: Saving a plot
+
+- **WHEN** the user points at a Plotly chart's output
+- **THEN** the output's toolbar offers SVG, PNG and JSON, and no + menu offers to save it
+
+#### Scenario: Suggestions turned off
+
+- **WHEN** suggestions are off in Settings and the user opens a gap's +
+- **THEN** the menu offers only Code and Markdown
 
 ### Requirement: A cell shows whether it's running or queued
 

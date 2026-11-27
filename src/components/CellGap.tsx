@@ -13,8 +13,7 @@ import type { Cell } from "../types/notebook";
  * cell with that text (a Markdown cell if it starts with #).  A + at the
  * line's left end opens a menu: a code or Markdown cell, and the
  * suggestions for the result above, such as "Simplify", which insert a
- * cell here and run it.  The gap under the latest result with
- * suggestions keeps its + in view, with a dot.
+ * cell here and run it.
  */
 export function CellGap({ after }: { after: string | null }) {
   const { t } = useLingui();
@@ -28,7 +27,6 @@ export function CellGap({ after }: { after: string | null }) {
   const showSuggestions = useNotebookStore((s) => s.showSuggestions);
   const above = after === null ? undefined : cells.find((c) => c.id === after);
   const { suggestions, choose } = useCellSuggestions(above?.cellType === "code" ? above : undefined, showSuggestions);
-  const hint = suggestions.length > 0 && latestResult(cells)?.id === after;
 
   const add = useCallback(
     (cellType: "code" | "markdown") => {
@@ -54,7 +52,7 @@ export function CellGap({ after }: { after: string | null }) {
 
   return (
     <div
-      className={`cell-gap${cellStyle === "bracket" ? " insert-bar" : ""}${active ? " has-caret" : ""}${menuOpen ? " menu-open" : ""}${hint ? " has-hint" : ""}`}
+      className={`cell-gap${cellStyle === "bracket" ? " insert-bar" : ""}${active ? " has-caret" : ""}${menuOpen ? " menu-open" : ""}`}
       onMouseDown={place}
       data-testid={`gap-${after ?? "top"}`}
     >
@@ -64,7 +62,7 @@ export function CellGap({ after }: { after: string | null }) {
         aria-haspopup="menu"
         aria-expanded={menuOpen}
         title={
-          hint
+          suggestions.length > 0
             ? t({
                 message: "Insert a cell, or a next step for the result above",
                 comment: "Tooltip of the + between two cells when the result above has suggested next steps, such as Simplify",
@@ -77,7 +75,6 @@ export function CellGap({ after }: { after: string | null }) {
         onClick={() => setMenuOpen((open) => !open)}
       >
         <IconPlus size={14} stroke={1.75} aria-hidden="true" />
-        {hint && <span className="cell-gap-dot" aria-hidden="true" />}
       </button>
       {menuOpen && (
         <GapMenu
@@ -91,16 +88,6 @@ export function CellGap({ after }: { after: string | null }) {
       {active && <Caret point={here} onMenu={() => setMenuOpen(true)} />}
     </div>
   );
-}
-
-/** The cell with the latest result, by run number: the one a fresh result came from */
-function latestResult(cells: Cell[]): Cell | undefined {
-  let latest: Cell | undefined;
-  for (const c of cells) {
-    const n = c.output?.executionCount ?? null;
-    if (n !== null && n > (latest?.output?.executionCount ?? 0)) latest = c;
-  }
-  return latest;
 }
 
 /**

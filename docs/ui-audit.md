@@ -203,9 +203,12 @@ problems:
   - A running cell reads In [\*] with an accent bracket or border, and a
     queued one reads In [·] (item 22).  A definition ending in `$` shows
     no "(no output)".
-  - The suggestion chips are quiet "→ Simplify" buttons in the output
-    area, lined up with the output, with no grey band.  The plot
-    viewer's export buttons use the shared `Button` too.
+  - Nothing sits under a result for its suggestions.  The gap below it
+    has one + (both styles now draw gaps the same way), whose menu
+    offers Code, Markdown and, under "From Out [n]", the result's
+    next steps ("→ Simplify"); Tab at the caret opens it.  Saving a
+    plot moved to the output's hover toolbar (SVG, PNG, JSON).  The
+    plot viewer's export buttons use the shared `Button`.
 
 ## Menus and toolbars
 

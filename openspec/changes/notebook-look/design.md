@@ -1,6 +1,6 @@
 ## Context
 
-A cell's output is drawn by `CellOutput.tsx`, which hands errors to `EnhancedErrorOutput.tsx` (explained) or a `<pre>` in `.error-output` (unexplained), printed text and notes to `TextWithNotes.tsx` and `RichTextOutput.tsx`, and results to `KatexOutput`. Suggestions come from `CellSuggestions.tsx`, rendered after the cell as a full-width band. `Cell.tsx` draws the In and Out labels and the cell's status class (`running`, `queued`, `error`), which bracket style's `.bracket-toggle` and card style's border pick up in `global.css`.
+A cell's output is drawn by `CellOutput.tsx`, which hands errors to `EnhancedErrorOutput.tsx` (explained) or a `<pre>` in `.error-output` (unexplained), printed text and notes to `TextWithNotes.tsx` and `RichTextOutput.tsx`, and results to `KatexOutput`. Suggestions came from `CellSuggestions.tsx`, rendered after the cell as a full-width band. The gap between two cells is `CellGap.tsx`: a caret placed by a click, and in card style a + with a menu of cell types, in bracket style + Code and + Markdown buttons. `Cell.tsx` draws the In and Out labels and the cell's status class (`running`, `queued`, `error`), which bracket style's `.bracket-toggle` and card style's border pick up in `global.css`.
 
 Notes' and explanations' text comes from the core as a template, an ID and parameters (`crates/aximar-core/src/message.rs`); the window looks the template up in the catalog (`lib/messages.ts`) and falls back to the English `text`. MCP clients get the same `text`.
 
@@ -43,9 +43,17 @@ The English fallback `text` the core sends keeps the backticks, which reads as M
 
 *Alternative:* parse the input in the window. Rejected: Maxima's strings and comments make terminators easy to misread, and the core already does it right; logic like this belongs in the core.
 
-### Suggestions: inside the output area
+### Suggestions: in the gap's + menu
 
-`CellSuggestions` renders inside the cell's output area, after the output, as text buttons with an arrow (`→ Simplify`), indented to the output column (`--gutter-width`). The full-width band and its background go. The buttons use the design library's quiet button style in a smaller size.
+A suggestion inserts a cell after its result and runs it, which is what the gap below the result is for, so the suggestions go in that gap's + menu rather than a row under each result. The row was tried first (quiet "→ Simplify" buttons inside the output area); it was clean, but the same buttons repeated after every cell.
+
+- `CellGap` draws one + near the left end of its line in both styles (in the gutter in bracket style, in the margin in card style). Its menu lists Code and Markdown, with their caret keys (⏎, #), then a heading "From Out [n]" and the suggestions for the cell above, each "→ Label" with its description as the tooltip. Tab at the caret opens the menu.
+- The suggestion logic moves from `CellSuggestions` into a `useCellSuggestions` hook that `CellGap` calls for the cell above it. It keeps only the suggestions that insert a cell; the core never sends one placed before its cell (every rule has `position: None`).
+- The core's plot actions (save SVG, PNG, JSON) don't insert anything. The output's hover toolbar gets SVG, PNG and JSON buttons beside TeX and Copy instead, through `lib/plot-save.ts`, which the plot viewer uses too. On a Plotly chart the toolbar sits at the bottom right, clear of Plotly's own.
+- One gap at a time shows its line and +: the one with its menu open, else the one under the pointer, else the caret's. The gap with its menu open sits above the cells around it, whose stacking layers would otherwise draw through the menu.
+- The caret's left end lines up with the left edge of the input and output, where the new cell's text starts.
+
+*Alternative:* keep the + under the latest result in view with a dot. Dropped: it put a mark on the page at rest, and the menu under any result offers the same suggestions.
 
 ### Run states: labels and the bracket
 

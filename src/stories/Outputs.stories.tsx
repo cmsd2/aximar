@@ -177,20 +177,9 @@ const integrated: SyncCell[] = [
   },
 ];
 
-/** Under the latest result with suggestions, the gap's + stays in view with a dot */
-export const SuggestionChips: StoryObj = {
-  loaders: [async () => seedNotebook(integrated)],
-  render: () => (
-    <>
-      <StoryNotebook />
-      <WaitFor selector=".cell-gap.has-hint" />
-    </>
-  ),
-};
-
 /** The gap's + menu: a code or Markdown cell, or a next step for the result above */
 export const NextStepsMenu: StoryObj = {
-  loaders: SuggestionChips.loaders,
+  loaders: [async () => seedNotebook(integrated)],
   render: () => (
     <>
       <StoryNotebook />
@@ -198,7 +187,7 @@ export const NextStepsMenu: StoryObj = {
         selector=".cell-gap-menu .cell-gap-suggestion"
         run={async () => {
           const plus = async (): Promise<HTMLButtonElement> =>
-            document.querySelector<HTMLButtonElement>(".cell-gap.has-hint .cell-gap-plus") ??
+            document.querySelector<HTMLButtonElement>('[data-testid="gap-i1"] .cell-gap-plus') ??
             new Promise((r) => setTimeout(() => r(plus()), 50));
           (await plus()).click();
         }}
@@ -207,11 +196,24 @@ export const NextStepsMenu: StoryObj = {
   ),
 };
 
-/** The same result with suggestions turned off in Settings (issue #44): no dot, and a menu of cell types only */
+/** The same menu with suggestions turned off in Settings (issue #44): cell types only */
 export const SuggestionsOff: StoryObj = {
   parameters: { showSuggestions: false },
-  loaders: SuggestionChips.loaders,
-  render: () => <StoryNotebook />,
+  loaders: NextStepsMenu.loaders,
+  render: () => (
+    <>
+      <StoryNotebook />
+      <WaitFor
+        selector=".cell-gap-menu"
+        run={async () => {
+          const plus = async (): Promise<HTMLButtonElement> =>
+            document.querySelector<HTMLButtonElement>('[data-testid="gap-i1"] .cell-gap-plus') ??
+            new Promise((r) => setTimeout(() => r(plus()), 50));
+          (await plus()).click();
+        }}
+      />
+    </>
+  ),
 };
 
 const silent: SyncCell[] = [

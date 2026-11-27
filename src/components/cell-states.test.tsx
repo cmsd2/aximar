@@ -1,5 +1,7 @@
 // @vitest-environment happy-dom
 // A cell's label and state class while it runs, waits in a Run All, or has run
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
@@ -67,5 +69,16 @@ describe("a cell's run state", () => {
 
   it("reads In [n] once it has run", () => {
     expect(label(render("success", 3))).toBe("In [3]");
+  });
+});
+
+describe("a one-line input", () => {
+  // The 26px buttons fit a one-line row (6px + a 21px line + 6px) only
+  // without padding below them; with it, a one-line input got 5px more
+  // space under it than a multi-line one
+  it("isn't made taller by the cell's buttons", () => {
+    const css = readFileSync(resolve(process.cwd(), "src/styles/global.css"), "utf8");
+    const rule = css.match(/\n\.cell-actions \{([^}]*)\}/)![1];
+    expect(rule).toMatch(/padding: 6px 6px 0;/);
   });
 });

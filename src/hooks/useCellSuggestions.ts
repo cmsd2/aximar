@@ -1,15 +1,10 @@
 // The suggestions for a code cell's result, such as "Simplify" or "Plot",
 // and what choosing one does: insert a cell after it with the
-// suggestion's code and run it, or save the plot.
-import { useState, useEffect, useRef, useCallback } from "react";
-import { invoke } from "@tauri-apps/api/core";
-import { save } from "@tauri-apps/plugin-dialog";
-import { t } from "@lingui/core/macro";
-import Plotly from "plotly.js-dist-min";
+// suggestion's code and run it.
+import { useState, useEffect, useRef } from "react";
 import { useActiveTab, useNotebookStore } from "../store/notebookStore";
 import { useMaxima } from "./useMaxima";
 import { getSuggestions } from "../lib/suggestions-client";
-import { savePlotFile } from "../lib/notebooks-client";
 import { nbAddCell } from "../lib/notebook-commands";
 import type { Suggestion } from "../types/suggestions";
 import type { Cell } from "../types/notebook";
@@ -17,7 +12,7 @@ import type { EvalResult } from "../types/maxima";
 
 export interface CellSuggestionsState {
   suggestions: Suggestion[];
-  /** Insert the suggestion's cell and run it, or do its action */
+  /** Insert the suggestion's cell after the result and run it */
   choose: (suggestion: Suggestion) => void;
 }
 
@@ -33,79 +28,6 @@ export function useCellSuggestions(cell: Cell | undefined, enabled = true): Cell
 
   // Track the cell created by the last suggestion click so we can reuse it
   const lastSuggestionRef = useRef<{ cellId: string; template: string } | null>(null);
-
-  const handleAction = useCallback(
-    async (action: string) => {
-      if (!cell) return;
-      if (action === "save_svg" && cell.output?.plotSvg) {
-        const path = await save({
-          defaultPath: "plot.svg",
-          filters: [
-            {
-              name: t({
-                message: "SVG Image",
-                comment: "File type in the Save dialog when saving a plot as SVG",
-              }),
-              extensions: ["svg"],
-            },
-          ],
-        });
-        if (path) {
-          await invoke("write_plot_svg", { path, content: cell.output.plotSvg });
-        }
-      } else if (action === "save_plotly_json" && cell.output?.plotData) {
-        await savePlotFile(cell.output.plotData, null);
-      } else if (
-        (action === "save_plotly_svg" || action === "save_plotly_png") &&
-        cell.output?.plotData
-      ) {
-        // Find the Plotly chart DOM element for this cell
-        const inputEl = document.querySelector(`[data-cell-id="${cell.id}"]`);
-        const cellEl = inputEl?.closest(".cell");
-        const plotEl = cellEl?.querySelector(".plotly-output") as HTMLElement | null;
-        if (!plotEl) return;
-
-        const isSvg = action === "save_plotly_svg";
-        const format = isSvg ? "svg" : "png";
-        const ext = format;
-        const kind = ext.toUpperCase();
-
-        const path = await save({
-          defaultPath: `plot.${ext}`,
-          filters: [
-            {
-              name: t({
-                message: `${kind} Image`,
-                comment: "File type in the Save dialog when saving a plot. kind is the image format, SVG or PNG",
-              }),
-              extensions: [ext],
-            },
-          ],
-        });
-        if (!path) return;
-
-        const imgData = await Plotly.toImage(plotEl, {
-          format,
-          width: plotEl.clientWidth || 800,
-          height: plotEl.clientHeight || 500,
-        });
-
-        if (isSvg) {
-          // SVG: data URL → text content
-          const svgContent = imgData.startsWith("data:")
-            ? decodeURIComponent(imgData.split(",")[1])
-            : imgData;
-          await invoke("write_plot_svg", { path, content: svgContent });
-        } else {
-          // PNG: data URL → binary via base64
-          const base64 = imgData.split(",")[1];
-          const bytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
-          await invoke("write_binary_file", { path, data: Array.from(bytes) });
-        }
-      }
-    },
-    [cell],
-  );
 
   // Refetch when what the suggestions depend on changes, not on every
   // change to the cell object
@@ -129,8 +51,10 @@ export function useCellSuggestions(cell: Cell | undefined, enabled = true): Cell
       output_label: cell.output.outputLabel,
     };
 
+    // Only the ones that insert a cell: saving a plot is the output's
+    // toolbar's job
     getSuggestions(cell.input, output)
-      .then((found) => setSuggestions(found ?? []))
+      .then((found) => setSuggestions((found ?? []).filter((s) => !s.action)))
       .catch(() => setSuggestions([]));
   }, [enabled, cell?.id, cell?.input, cell?.output, cell?.status]);
 
@@ -166,7 +90,7 @@ export function useCellSuggestions(cell: Cell | undefined, enabled = true): Cell
   };
 
   const choose = (s: Suggestion) => {
-    void (s.action ? handleAction(s.action) : handleSuggestionClick(s));
+    void handleSuggestionClick(s);
   };
 
   return { suggestions, choose };

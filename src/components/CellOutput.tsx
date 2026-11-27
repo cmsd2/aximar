@@ -7,6 +7,7 @@ import { EnhancedErrorOutput } from "./EnhancedErrorOutput";
 import { ErrorBoundary } from "./ErrorBoundary";
 import { sanitizeSvg } from "../lib/sanitize-svg";
 import { PlotlyChart } from "./PlotlyChart";
+import { savePlotSvg, savePlotlyImage, savePlotlyJson } from "../lib/plot-save";
 
 /** Which parts of an output there are to show */
 function outputParts(output: CellOutputType) {
@@ -42,7 +43,8 @@ interface CellOutputProps {
 }
 
 export function CellOutput({ output, cellId }: CellOutputProps) {
-  const { t } = useLingui();
+  const { t, i18n } = useLingui();
+  const outputRef = useRef<HTMLDivElement>(null);
   const [copiedBtn, setCopiedBtn] = useState<"tex" | "text" | null>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
@@ -89,9 +91,17 @@ export function CellOutput({ output, cellId }: CellOutputProps) {
     );
   }
 
+  /** The Plotly chart drawn in this output */
+  const chart = () => outputRef.current?.querySelector<HTMLElement>(".plotly-output") ?? null;
+  const saveTitle = (format: string) =>
+    t({
+      message: `Save the plot as ${format}`,
+      comment: "Tooltip of a button above a plot: saves it to a file. format is SVG, PNG or JSON",
+    });
+
   return (
-    <div className="cell-output">
-      {(hasLatex || hasText || hasPlot || hasPlain) && (
+    <div className="cell-output" ref={outputRef}>
+      {(hasLatex || hasText || hasPlot || hasPlotData || hasPlain) && (
         <div className="copy-actions">
           {hasLatex && (
             <button
@@ -129,6 +139,39 @@ export function CellOutput({ output, cellId }: CellOutputProps) {
                     comment: "Button above a result: copies it to the clipboard as Maxima code. max-length:8",
                   })}
             </button>
+          )}
+          {/* Saving a plot: the gnuplot SVG as it is, or a Plotly chart as drawn */}
+          {hasPlot && (
+            <button className="copy-btn" title={saveTitle("SVG")} onClick={() => void savePlotSvg(i18n, output.plotSvg!)}>
+              SVG
+            </button>
+          )}
+          {hasPlotData && (
+            <>
+              <button
+                className="copy-btn"
+                title={saveTitle("SVG")}
+                onClick={() => {
+                  const el = chart();
+                  if (el) void savePlotlyImage(i18n, el, "svg");
+                }}
+              >
+                SVG
+              </button>
+              <button
+                className="copy-btn"
+                title={saveTitle("PNG")}
+                onClick={() => {
+                  const el = chart();
+                  if (el) void savePlotlyImage(i18n, el, "png");
+                }}
+              >
+                PNG
+              </button>
+              <button className="copy-btn" title={saveTitle("JSON")} onClick={() => void savePlotlyJson(output.plotData!)}>
+                JSON
+              </button>
+            </>
           )}
         </div>
       )}

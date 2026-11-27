@@ -101,11 +101,11 @@
     "editor--completion",
     "editor--find-and-replace",
     "editor--insert-menu",
+    "outputs--next-steps-menu",
     "outputs--plotly-plot",
     "outputs--reactive-controls",
     "outputs--running-and-queued",
     "outputs--silent-and-empty",
-    "outputs--suggestion-chips",
     "outputs--suggestions-off",
     "outputs--svg-plot",
     "screens--drop-mixed",
@@ -320,8 +320,8 @@
     "editor--cell-context-menu",
     "editor--find-and-replace",
     "editor--insert-menu",
+    "outputs--next-steps-menu",
     "outputs--running-and-queued",
-    "outputs--suggestion-chips",
     "outputs--suggestions-off",
     "screens--drop-mixed",
     "screens--drop-notebooks",
@@ -414,7 +414,9 @@
     "errors--all-explanations"
   ],
   "EWPtMO": [
-    "editor--insert-menu"
+    "editor--insert-menu",
+    "outputs--next-steps-menu",
+    "outputs--suggestions-off"
   ],
   "EeBniC": [
     "errors--all-explanations"
@@ -451,6 +453,11 @@
   "FkY3LZ": [
     "panels--docs-empty"
   ],
+  "GGIY9v": [
+    "outputs--plotly-plot",
+    "outputs--reactive-controls",
+    "outputs--svg-plot"
+  ],
   "GMV4UW": [
     "dialogs--templates"
   ],
@@ -469,6 +476,10 @@
   "H3oH0g": [
     "dialogs--keyboard-shortcuts",
     "window--shortcuts"
+  ],
+  "I2IKiU": [
+    "editor--insert-menu",
+    "outputs--next-steps-menu"
   ],
   "Ie7D4l": [
     "dialogs--settings-notebook",
@@ -573,22 +584,24 @@
     "window--variables"
   ],
   "MzfBMa": [
+    "cells--bracket-selection",
     "cells--notebook",
     "cells--print-and-tex",
     "cells--selection",
     "editor--argument-help",
     "editor--caret-between-cells",
+    "editor--caret-bracket-style",
     "editor--cell-context-menu",
     "editor--completion",
     "editor--find-and-replace",
     "editor--insert-menu",
     "editor--new-notebook",
     "outputs--markdown",
+    "outputs--next-steps-menu",
     "outputs--plotly-plot",
     "outputs--reactive-controls",
     "outputs--running-and-queued",
     "outputs--silent-and-empty",
-    "outputs--suggestion-chips",
     "outputs--suggestions-off",
     "outputs--svg-plot",
     "screens--drop-mixed",
@@ -746,11 +759,11 @@
     "editor--find-and-replace",
     "editor--insert-menu",
     "outputs--markdown",
+    "outputs--next-steps-menu",
     "outputs--plotly-plot",
     "outputs--reactive-controls",
     "outputs--running-and-queued",
     "outputs--silent-and-empty",
-    "outputs--suggestion-chips",
     "outputs--suggestions-off",
     "outputs--svg-plot",
     "screens--drop-mixed",
@@ -795,11 +808,11 @@
     "editor--cell-context-menu",
     "editor--find-and-replace",
     "editor--insert-menu",
+    "outputs--next-steps-menu",
     "outputs--plotly-plot",
     "outputs--reactive-controls",
     "outputs--running-and-queued",
     "outputs--silent-and-empty",
-    "outputs--suggestion-chips",
     "outputs--suggestions-off",
     "outputs--svg-plot",
     "screens--drop-mixed",
@@ -828,10 +841,6 @@
   ],
   "UlKSMd": [
     "dialogs--settings-printing"
-  ],
-  "V-9-F1": [
-    "cells--bracket-selection",
-    "editor--caret-bracket-style"
   ],
   "V-xeVI": [
     "dialogs--settings",
@@ -922,11 +931,11 @@
     "editor--cell-context-menu",
     "editor--find-and-replace",
     "editor--insert-menu",
+    "outputs--next-steps-menu",
     "outputs--plotly-plot",
     "outputs--reactive-controls",
     "outputs--running-and-queued",
     "outputs--silent-and-empty",
-    "outputs--suggestion-chips",
     "outputs--suggestions-off",
     "outputs--svg-plot",
     "screens--drop-mixed",
@@ -968,11 +977,11 @@
     "editor--cell-context-menu",
     "editor--find-and-replace",
     "editor--insert-menu",
+    "outputs--next-steps-menu",
     "outputs--plotly-plot",
     "outputs--reactive-controls",
     "outputs--running-and-queued",
     "outputs--silent-and-empty",
-    "outputs--suggestion-chips",
     "outputs--suggestions-off",
     "outputs--svg-plot",
     "screens--drop-mixed",
@@ -1132,9 +1141,9 @@
     "editor--cell-context-menu",
     "editor--find-and-replace",
     "editor--insert-menu",
+    "outputs--next-steps-menu",
     "outputs--running-and-queued",
     "outputs--silent-and-empty",
-    "outputs--suggestion-chips",
     "outputs--suggestions-off",
     "screens--drop-mixed",
     "screens--drop-notebooks",
@@ -1184,6 +1193,27 @@
     "dialogs--settings-printing",
     "dialogs--settings-translation"
   ],
+  "jlgnOE": [
+    "cells--bracket-selection",
+    "cells--notebook",
+    "cells--print-and-tex",
+    "cells--selection",
+    "editor--caret-between-cells",
+    "editor--caret-bracket-style",
+    "editor--cell-context-menu",
+    "editor--find-and-replace",
+    "editor--insert-menu",
+    "outputs--next-steps-menu",
+    "outputs--plotly-plot",
+    "outputs--reactive-controls",
+    "outputs--running-and-queued",
+    "outputs--silent-and-empty",
+    "outputs--svg-plot",
+    "screens--drop-mixed",
+    "screens--drop-notebooks",
+    "screens--drop-refused",
+    "screens--whole-window"
+  ],
   "jpctdh": [
     "dialogs--keyboard-shortcuts"
   ],
@@ -1228,6 +1258,9 @@
   "lVXBhH": [
     "dialogs--settings-notebook"
   ],
+  "mKmHTg": [
+    "dialogs--keyboard-shortcuts"
+  ],
   "mLr7aa": [
     "dialogs--command-palette-commands",
     "editor--cell-context-menu"
@@ -1239,10 +1272,6 @@
   "mkPx6Y": [
     "dialogs--settings-notebook",
     "ui-segmentedcontrol--options"
-  ],
-  "mkn0j1": [
-    "cells--bracket-selection",
-    "editor--caret-bracket-style"
   ],
   "nD-Dyo": [
     "errors--all-explanations"
@@ -1300,9 +1329,9 @@
     "editor--cell-context-menu",
     "editor--find-and-replace",
     "editor--insert-menu",
+    "outputs--next-steps-menu",
     "outputs--running-and-queued",
     "outputs--silent-and-empty",
-    "outputs--suggestion-chips",
     "outputs--suggestions-off",
     "screens--drop-mixed",
     "screens--drop-notebooks",
@@ -1398,7 +1427,9 @@
     "panels--log-maxima-output"
   ],
   "u6Hp4N": [
-    "editor--insert-menu"
+    "editor--insert-menu",
+    "outputs--next-steps-menu",
+    "outputs--suggestions-off"
   ],
   "uHwszI": [
     "errors--all-explanations"

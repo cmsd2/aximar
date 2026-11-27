@@ -1,7 +1,6 @@
 // @vitest-environment happy-dom
 // Next steps for a result, such as "Simplify", live in the + menu of the
-// gap under it; the gap under the latest result keeps its + in view with
-// a dot.  The Settings switch turns them off.
+// gap under it.  The Settings switch turns them off.
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
@@ -97,16 +96,19 @@ describe("next steps in the gap's + menu", () => {
     expect(document.querySelector(".cell-gap-menu")).toBeNull();
   });
 
-  it("mark the gap under the latest result, and only that one", async () => {
-    const latest = await gap("c2");
-    expect(latest.querySelector(".cell-gap")?.classList.contains("has-hint")).toBe(true);
-    expect(latest.querySelector(".cell-gap-dot")).not.toBeNull();
-    act(() => root?.unmount());
+  it("are offered under every result, not only the latest", async () => {
+    const older = await openMenu(await gap("c1"));
+    expect(items(older)).toContain("Simplify");
+    expect(older.querySelector(".cell-gap-menu-heading")?.textContent).toBe("From Out [1]");
+  });
 
-    const older = await gap("c1");
-    expect(older.querySelector(".cell-gap")?.classList.contains("has-hint")).toBe(false);
-    // Its menu still offers them
-    expect(items(await openMenu(older))).toContain("Simplify");
+  it("leave out saving a plot, which the output's toolbar does", async () => {
+    const { invoke } = await import("@tauri-apps/api/core");
+    vi.mocked(invoke).mockImplementationOnce(async () => [
+      { label: "Save SVG", template: "", description: "Save the plot", action: "save_svg" },
+      { label: "Simplify", template: "ratsimp(%);", description: "Simplify the result", position: "after" },
+    ]);
+    expect(items(await openMenu(await gap("c2")))).toEqual(["Code⏎", "Markdown#", "Simplify"]);
   });
 
   it("open from the caret with Tab", async () => {
@@ -122,9 +124,7 @@ describe("next steps in the gap's + menu", () => {
 
   it("don't show when Settings turns them off", async () => {
     useNotebookStore.getState().setShowSuggestions(false);
-    const div = await gap("c2");
-    expect(div.querySelector(".cell-gap")?.classList.contains("has-hint")).toBe(false);
-    const menu = await openMenu(div);
+    const menu = await openMenu(await gap("c2"));
     expect(items(menu)).toEqual(["Code⏎", "Markdown#"]);
     expect(menu.querySelector(".cell-gap-menu-heading")).toBeNull();
   });

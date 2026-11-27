@@ -476,28 +476,10 @@
 }
 
 /* One gap at a time shows its line and +: the one with its menu open,
-   else the one under the pointer, else the caret's, else the latest
-   result's + with its dot */
+   else the one under the pointer, else the caret's */
 .notebook:has(.cell-gap.menu-open) .cell-gap:not(.menu-open) :is(.cell-gap-line, .cell-gap-plus),
-.notebook:not(:has(.cell-gap.menu-open)):has(.cell-gap:hover) .cell-gap:not(:hover) :is(.cell-gap-line, .cell-gap-plus),
-.notebook:has(.cell-gap.has-caret):not(:has(.cell-gap.menu-open, .cell-gap:hover)) .cell-gap.has-hint:not(.has-caret) .cell-gap-plus {
+.notebook:not(:has(.cell-gap.menu-open)):has(.cell-gap:hover) .cell-gap:not(:hover) :is(.cell-gap-line, .cell-gap-plus) {
   opacity: 0;
-}
-
-/* Under the latest result with suggestions, the + stays in view with a
-   dot, so a next step is one click away without a row under every cell */
-.cell-gap.has-hint .cell-gap-plus {
-  opacity: 1;
-}
-
-.cell-gap-dot {
-  position: absolute;
-  top: calc(-1 * var(--space-half));
-  right: calc(-1 * var(--space-half));
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--accent);
 }
 
 /* The heading over the suggestions in the + menu */
@@ -728,11 +710,14 @@
   overflow: visible;
 }
 
+/* No bottom padding: the 26px buttons then fit a one-line input (6px +
+   a 21px line + 6px), so they don't make its row taller than a
+   multi-line one's bottom margin */
 .cell-actions {
   display: flex;
   flex-direction: row;
   gap: 2px;
-  padding: 6px;
+  padding: 6px 6px 0;
   opacity: 0;
   transition: opacity 0.15s;
 }
@@ -833,6 +818,12 @@
 
 .cell-output:hover .copy-actions {
   opacity: 1;
+}
+
+/* A Plotly chart has its own toolbar at the top right */
+.cell-output:has(.plotly-output) .copy-actions {
+  top: auto;
+  bottom: 6px;
 }
 
 .copy-btn {
