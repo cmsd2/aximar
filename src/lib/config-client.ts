@@ -28,6 +28,8 @@ export interface AppConfig {
   languages: string[];
   /** The Settings section shown last, such as `printing` */
   settings_section: string;
+  /** The help's language, or null to follow the app's */
+  docs_language?: string | null;
 }
 
 export interface ConfigResponse {

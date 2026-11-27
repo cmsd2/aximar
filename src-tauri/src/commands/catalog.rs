@@ -8,9 +8,10 @@ use aximar_core::catalog::search::Catalog;
 use aximar_core::catalog::types::*;
 
 /// A documented function in a language chain, for the window.  Its
-/// description is the full documentation where there is some, under the
-/// summary when the summary is in another language (a translated summary
-/// above English documentation), and the summary otherwise.
+/// description is the full documentation where there is some, and the
+/// summary otherwise.  A summary in another language than the full
+/// documentation, such as a Spanish summary above English documentation,
+/// comes separately, in `languages.summary_text`.
 pub fn function_in(catalog: &Catalog, name: &str, chain: &LanguageChain) -> Option<MaximaFunction> {
     catalog
         .resolve(name, chain)
@@ -25,12 +26,12 @@ fn resolved_to_function(name: &str, resolved: Resolved) -> MaximaFunction {
             sigs.push(alt.clone());
         }
     }
-    let description = if entry.body_md.is_empty() {
-        entry.summary.clone()
+    let (description, summary_text) = if entry.body_md.is_empty() {
+        (entry.summary.clone(), None)
     } else if resolved.summary_language != resolved.body_language && !entry.summary.is_empty() {
-        format!("{}\n\n{}", entry.summary, entry.body_md)
+        (entry.body_md.clone(), Some(entry.summary.clone()))
     } else {
-        entry.body_md.clone()
+        (entry.body_md.clone(), None)
     };
     MaximaFunction {
         name: name.to_string(),
@@ -61,6 +62,7 @@ fn resolved_to_function(name: &str, resolved: Resolved) -> MaximaFunction {
             fallback_from: resolved.fallback_from.clone(),
             stale: resolved.stale,
             english_signatures: resolved.english_signatures.clone(),
+            summary_text,
         }),
     }
 }
@@ -149,6 +151,65 @@ pub fn list_categories(state: State<AppState>) -> Vec<CategoryGroup> {
             }
         })
         .collect()
+}
+
+/// A language the help has documentation in
+#[derive(Debug, serde::Serialize)]
+pub struct DocsLanguage {
+    pub tag: String,
+    /// Full documentation, not only summaries
+    pub full: bool,
+    /// The package that adds full documentation in it, when the package
+    /// index lists one
+    pub pack: Option<String>,
+}
+
+/// The help's languages: which is chosen, which is in use, and which have
+/// documentation
+#[derive(Debug, serde::Serialize)]
+pub struct DocsLanguages {
+    /// The language chosen for the help, or null to follow the app's
+    pub choice: Option<String>,
+    /// The language the help is in now
+    pub effective: String,
+    /// English, then every language with documentation
+    pub languages: Vec<DocsLanguage>,
+}
+
+pub fn docs_languages_in(
+    catalog: &Catalog,
+    packages: &aximar_core::catalog::packages::PackageCatalog,
+    choice: Option<String>,
+    effective: String,
+) -> DocsLanguages {
+    let mut tags = vec![aximar_core::catalog::doc_index::ENGLISH.to_string()];
+    tags.extend(catalog.languages());
+    if !tags.contains(&effective) {
+        tags.push(effective.clone());
+    }
+    let languages = tags
+        .into_iter()
+        .map(|tag| {
+            let name = format!("maxima-core-docs-{tag}");
+            DocsLanguage {
+                full: catalog.has_full_documentation(&tag),
+                pack: packages.get(&name).is_some().then_some(name),
+                tag,
+            }
+        })
+        .collect();
+    DocsLanguages {
+        choice,
+        effective,
+        languages,
+    }
+}
+
+#[tauri::command]
+pub fn docs_languages(app: tauri::AppHandle, state: State<AppState>) -> DocsLanguages {
+    let choice = crate::commands::config::read_docs_choice(&app);
+    let effective = crate::commands::config::read_docs_language(&app);
+    docs_languages_in(&state.catalog, &state.packages, choice, effective)
 }
 
 /// A function's full documentation in the help language, where there is any
@@ -258,20 +319,34 @@ mod tests {
     fn spanish_help_shows_the_spanish_summary_above_english_documentation() {
         let (_dir, catalog) = catalog_with_english_docs();
         let integrate = function_in(&catalog, "integrate", &LanguageChain::new(&["es"])).unwrap();
-        assert!(
-            integrate.description.starts_with("Calcula simbólicamente"),
-            "{}",
-            integrate.description
-        );
-        assert!(integrate
-            .description
-            .ends_with("The full English documentation."));
+        assert_eq!(integrate.description, "The full English documentation.");
         let languages = integrate.languages.unwrap();
+        assert!(languages
+            .summary_text
+            .clone()
+            .unwrap()
+            .starts_with("Calcula simbólicamente"));
         assert_eq!(
             (languages.summary.as_str(), languages.body.as_str()),
             ("es", "en")
         );
         assert_eq!(languages.fallback_from, None);
+    }
+
+    #[test]
+    fn the_help_lists_its_languages() {
+        let (_dir, catalog) = catalog_with_english_docs();
+        let packages = aximar_core::catalog::packages::PackageCatalog::load();
+        let info = docs_languages_in(&catalog, &packages, None, "es".into());
+        let tags: Vec<_> = info
+            .languages
+            .iter()
+            .map(|l| (l.tag.as_str(), l.full))
+            .collect();
+        assert_eq!(tags, [("en", true), ("es", false)]);
+        // No Spanish pack in the package index yet
+        assert_eq!(info.languages[1].pack, None);
+        assert_eq!(info.effective, "es");
     }
 
     #[test]

@@ -36,6 +36,10 @@ pub struct DocLanguages {
     /// The English signatures, for a stale translation
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub english_signatures: Vec<String>,
+    /// The summary, when it's in another language than the full
+    /// documentation, which `description` then holds
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub summary_text: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

@@ -1,4 +1,7 @@
 {
+  "-5gSx5": [
+    "docs-panel--not-in-the-help-language"
+  ],
   "-amopq": [
     "errors--all-explanations"
   ],
@@ -34,6 +37,9 @@
   ],
   "1yWRha": [
     "errors--all-explanations"
+  ],
+  "20JSt_": [
+    "docs-panel--summary-above-english"
   ],
   "2AUJEs": [
     "dialogs--command-palette-open"
@@ -180,6 +186,12 @@
   "BrW77_": [
     "errors--all-explanations"
   ],
+  "C7zRQH": [
+    "docs-panel--no-pack-yet",
+    "docs-panel--not-in-the-help-language",
+    "docs-panel--old-translation",
+    "docs-panel--summary-above-english"
+  ],
   "CDTv_S": [
     "errors--all-explanations"
   ],
@@ -257,6 +269,10 @@
   "JiMTQi": [
     "errors--all-explanations"
   ],
+  "Jx4ATq": [
+    "docs-panel--no-pack-yet",
+    "docs-panel--summary-above-english"
+  ],
   "KdQ_-f": [
     "errors--all-explanations"
   ],
@@ -299,6 +315,9 @@
   "M1co_O": [
     "dialogs--settings-ai-assistants"
   ],
+  "MCbDl6": [
+    "docs-panel--no-pack-yet"
+  ],
   "MohnW9": [
     "notes--all-notes"
   ],
@@ -332,6 +351,12 @@
   "OY3pHY": [
     "errors--all-explanations"
   ],
+  "OcoVCB": [
+    "docs-panel--no-pack-yet",
+    "docs-panel--not-in-the-help-language",
+    "docs-panel--old-translation",
+    "docs-panel--summary-above-english"
+  ],
   "Ofdh9s": [
     "errors--all-explanations"
   ],
@@ -352,6 +377,12 @@
   "PmiBrO": [
     "cells--notebook",
     "notes--all-notes"
+  ],
+  "PqoSoA": [
+    "docs-panel--no-pack-yet",
+    "docs-panel--not-in-the-help-language",
+    "docs-panel--old-translation",
+    "docs-panel--summary-above-english"
   ],
   "PyCiwA": [
     "errors--all-explanations"
@@ -417,6 +448,12 @@
   ],
   "UEulME": [
     "dialogs--settings-printing"
+  ],
+  "UTiCbD": [
+    "docs-panel--no-pack-yet",
+    "docs-panel--not-in-the-help-language",
+    "docs-panel--old-translation",
+    "docs-panel--summary-above-english"
   ],
   "UeJ1vj": [
     "errors--all-explanations"
@@ -510,6 +547,9 @@
   "ay_e24": [
     "cells--notebook",
     "cells--print-and-tex"
+  ],
+  "b8NfeK": [
+    "docs-panel--old-translation"
   ],
   "bAvovP": [
     "window--shortcuts"
@@ -621,7 +661,8 @@
   ],
   "he3ygx": [
     "cells--notebook",
-    "cells--print-and-tex"
+    "cells--print-and-tex",
+    "docs-panel--summary-above-english"
   ],
   "i17GIR": [
     "ui-fields--rows"
@@ -632,6 +673,12 @@
   "iAL9tI": [
     "dialogs--settings-ai-assistants",
     "ui-button--variants"
+  ],
+  "iH8pgl": [
+    "docs-panel--no-pack-yet",
+    "docs-panel--not-in-the-help-language",
+    "docs-panel--old-translation",
+    "docs-panel--summary-above-english"
   ],
   "iTylMl": [
     "window--toolbar-and-tabs"
@@ -700,6 +747,12 @@
   "nt-MSq": [
     "errors--all-explanations"
   ],
+  "o08LK6": [
+    "docs-panel--no-pack-yet",
+    "docs-panel--not-in-the-help-language",
+    "docs-panel--old-translation",
+    "docs-panel--summary-above-english"
+  ],
   "ohqUka": [
     "errors--all-explanations"
   ],
@@ -744,6 +797,12 @@
   ],
   "rmV3TY": [
     "notes--all-notes"
+  ],
+  "rxWGWX": [
+    "docs-panel--no-pack-yet",
+    "docs-panel--not-in-the-help-language",
+    "docs-panel--old-translation",
+    "docs-panel--summary-above-english"
   ],
   "s-OGK4": [
     "dialogs--settings-maxima"

@@ -7,9 +7,9 @@
 
 ## 2. The docs panel (aximar, one PR)
 
-- [ ] 2.1 Add `docs_language` to the config (`None` for "Same as Aximar") and the language menu to the docs panel's header, listing languages with documentation by their own names; verify with vitest tests of the menu's choices and that a choice persists through `set_config`
-- [ ] 2.2 Show the fallback note, the stale note with the English signatures, and the strip naming the missing pack with its `mxpm install` command and a copy button; verify with vitest tests for each, and Storybook stories for a translated symbol, a fallback, a stale translation and a missing pack, in English, Spanish and the pseudo-locale
-- [ ] 2.3 Extract the new strings with translator notes, and describe documentation languages in `docs/i18n.md`; verify `scripts/i18n-extract --check` and the catalog test pass
+- [x] 2.1 Add `docs_language` to the config (`None` for "Same as Aximar") and the language menu to the docs panel's header, listing languages with documentation by their own names; verify with vitest tests of the menu's choices and that a choice persists through `set_config`
+- [x] 2.2 Show the fallback note, the stale note with the English signatures, and the strip naming the missing pack with its `mxpm install` command and a copy button; verify with vitest tests for each, and Storybook stories for a translated symbol, a fallback, a stale translation and a missing pack, in English, Spanish and the pseudo-locale
+- [x] 2.3 Extract the new strings with translator notes, and describe documentation languages in `docs/i18n.md`; verify `scripts/i18n-extract --check` and the catalog test pass
 
 ## 3. MCP and the language server (aximar, one PR)
 

@@ -42,6 +42,27 @@ export interface DocLanguages {
   /** A translation whose signatures differ from the English */
   stale: boolean;
   english_signatures?: string[];
+  /** The summary, when it's in another language than the full documentation */
+  summary_text?: string;
+}
+
+/** A language the help has documentation in */
+export interface DocsLanguage {
+  tag: string;
+  /** Full documentation, not only summaries */
+  full: boolean;
+  /** The package that adds full documentation in it, if the index lists one */
+  pack: string | null;
+}
+
+/** The help's languages */
+export interface DocsLanguages {
+  /** The language chosen for the help, or null to follow the app's */
+  choice: string | null;
+  /** The language the help is in now */
+  effective: string;
+  /** English, then every language with documentation */
+  languages: DocsLanguage[];
 }
 
 export interface SearchResult {

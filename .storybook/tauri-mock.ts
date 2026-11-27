@@ -16,10 +16,22 @@ const templates = [
   { id: "linear-algebra", title: "Linear algebra", description: "Matrices and vectors", cell_count: 1 },
 ];
 
+/**
+ * Answers a story sets for itself, by command, ahead of the ones below.
+ * A story's loader replaces them all, so one story's don't reach the next.
+ */
+export const storyAnswers: Record<string, unknown> = {};
+
+export function setStoryAnswers(answers: Record<string, unknown>): void {
+  for (const key of Object.keys(storyAnswers)) delete storyAnswers[key];
+  Object.assign(storyAnswers, answers);
+}
+
 export function installTauriMock(): void {
   mockWindows("main");
   mockIPC(
     (cmd) => {
+      if (cmd in storyAnswers) return storyAnswers[cmd];
       switch (cmd) {
         case "get_config":
           return { config, warnings: [] };

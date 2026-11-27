@@ -74,6 +74,10 @@ When the chosen language has no full documentation installed, the panel shows a 
 
 All new text goes through Lingui with translator notes.
 
+The panel reads `docs_languages`, a command that gives the choice, the language in use and each language's documentation (full or summaries only, and its pack if the index lists one), and `languages` on each function. A translated summary travels as `languages.summary_text`, apart from `description`, so the panel can put the note about the body's language between them. Language names in the notes are in the window's language (Intl), and in the menu each language's own. Stories use per-story answers in the Tauri mock (`setStoryAnswers`).
+
+Building this found an older bug: a `null` in a config update read as "no change", so clearing the Maxima path in Settings left the old path. Updates now read `null` as "clear" for `maxima_path` and `docs_language`.
+
 ### 7. MCP and the LSP
 
 `get_function_docs` and `search_functions` take an optional `language`; results gain `language` per text, and `fallback_from` and `stale` where they apply. Without `language` the chain is English alone, so existing clients get what they get today. maxima-lsp stores `InitializeParams.locale` and builds its chain from it; VS Code sends its display language there.
