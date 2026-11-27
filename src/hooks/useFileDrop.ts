@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { getCurrentWebview } from "@tauri-apps/api/webview";
 import { message } from "@tauri-apps/plugin-dialog";
 import { t } from "@lingui/core/macro";
-import { openDropped, sortDropped } from "../lib/file-drop";
+import { openDropped, replacingBlankTab, sortDropped } from "../lib/file-drop";
 import { openNotebookTab } from "./useNotebookEvents";
 
 /** What a drag over the window holds: how many notebooks, how many other files */
@@ -29,7 +29,7 @@ export function useFileDrop(): DragState | null {
           setDrag(null);
         } else if (payload.type === "drop") {
           setDrag(null);
-          const failed = await openDropped(payload.paths, openNotebookTab);
+          const failed = await replacingBlankTab(() => openDropped(payload.paths, openNotebookTab));
           if (failed.length > 0) {
             await message(failed.map((f) => `${f.path}\n${f.reason}`).join("\n\n"), {
               title: t({

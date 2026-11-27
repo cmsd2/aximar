@@ -206,6 +206,11 @@ export async function getInitialFileArgs(): Promise<string[] | null> {
   return invoke<string[] | null>("get_initial_file_args");
 }
 
+/** Take the files the system asked Aximar to open (a drop on the Dock icon, Open With, a double-click) */
+export async function takePendingOpens(): Promise<string[]> {
+  return invoke<string[]>("take_pending_opens");
+}
+
 // ── Window commands ──────────────────────────────────────────────────
 
 export async function createWindow(notebookId?: string): Promise<string> {

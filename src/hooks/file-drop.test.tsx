@@ -24,11 +24,12 @@ vi.mock("@tauri-apps/api/webview", () => ({
 }));
 vi.mock("@tauri-apps/plugin-dialog", () => ({ message: (...args: unknown[]) => message(...(args as [])) }));
 vi.mock("./useNotebookEvents", () => ({ openNotebookTab: (path: string) => openNotebookTab(path) }));
-vi.mock("../lib/notebook-commands", () => ({ nbSetActive: (id: string) => nbSetActive(id) }));
+const nbClose = vi.fn(async (_id: string) => {});
+vi.mock("../lib/notebook-commands", () => ({ nbSetActive: (id: string) => nbSetActive(id), nbClose: (id: string) => nbClose(id) }));
 
 import { i18n } from "../lib/i18n";
 import { useNotebookStore } from "../store/notebookStore";
-import { openDropped, sortDropped } from "../lib/file-drop";
+import { openDropped, replacingBlankTab, sortDropped } from "../lib/file-drop";
 import { useFileDrop, type DragState } from "./useFileDrop";
 
 // The error dialog's title is translated text
@@ -60,6 +61,49 @@ describe("dropped files", () => {
     const failed = await openDropped(["/a/broken.macnb", "/a/good.macnb"], openNotebookTab);
     expect(openNotebookTab).toHaveBeenCalledTimes(2);
     expect(failed).toEqual([{ path: "/a/broken.macnb", reason: "Error: not a notebook file" }]);
+  });
+});
+
+describe("a blank first tab", () => {
+  const blank = { id: "blank", cellType: "code" as const, input: "", output: null, status: "idle" as const };
+
+  function onlyTab(input: string, path: string | null = null) {
+    useNotebookStore.setState({ notebooks: {}, activeNotebookId: null });
+    const store = useNotebookStore.getState();
+    store.addTab("nb-start");
+    store.setActiveTab("nb-start");
+    store.applyBackendState("nb-start", [{ ...blank, input }], "notebook_replaced");
+    if (path) store.setNotebookPath("nb-start", path);
+    nbClose.mockClear();
+  }
+
+  const openOne = async () => {
+    useNotebookStore.getState().addTab("nb-file");
+  };
+
+  it("is replaced by the file that opens", async () => {
+    onlyTab("");
+    await replacingBlankTab(openOne);
+    expect(Object.keys(useNotebookStore.getState().notebooks)).toEqual(["nb-file"]);
+    expect(nbClose).toHaveBeenCalledWith("nb-start");
+  });
+
+  it("stays when it has text in it", async () => {
+    onlyTab("x: 1;");
+    await replacingBlankTab(openOne);
+    expect(Object.keys(useNotebookStore.getState().notebooks)).toEqual(["nb-start", "nb-file"]);
+  });
+
+  it("stays when it belongs to a file", async () => {
+    onlyTab("", "/a/empty.macnb");
+    await replacingBlankTab(openOne);
+    expect(nbClose).not.toHaveBeenCalled();
+  });
+
+  it("stays when nothing opened", async () => {
+    onlyTab("");
+    await replacingBlankTab(async () => {});
+    expect(Object.keys(useNotebookStore.getState().notebooks)).toEqual(["nb-start"]);
   });
 });
 

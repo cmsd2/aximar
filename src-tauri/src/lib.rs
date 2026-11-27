@@ -82,6 +82,7 @@ pub fn run() {
                     mcp_controller: state.mcp_controller.clone(),
                     app_log: state.app_log.clone(),
                     initial_file_args: state.initial_file_args.clone(),
+                    pending_opens: state.pending_opens.clone(),
                 };
                 let ct = tokio_util::sync::CancellationToken::new();
                 let controller = state.mcp_controller.clone();
@@ -170,10 +171,20 @@ pub fn run() {
             commands::notebook::nb_set_active,
             commands::window::create_window,
             commands::window::get_initial_file_args,
+            commands::window::take_pending_opens,
             commands::window::open_licences,
             commands::translation_preview::load_translation_preview,
             commands::translation_preview::stop_translation_preview,
         ])
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .build(tauri::generate_context!())
+        .expect("error while building tauri application")
+        .run(|app, event| {
+            // macOS hands Aximar files dropped on the Dock icon, chosen with
+            // Open With or double-clicked as URLs, not as arguments
+            #[cfg(any(target_os = "macos", target_os = "ios"))]
+            if let tauri::RunEvent::Opened { urls } = &event {
+                commands::window::queue_opened(app, commands::window::opened_paths(urls));
+            }
+            let _ = (app, event);
+        });
 }

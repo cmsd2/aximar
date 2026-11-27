@@ -1,6 +1,6 @@
 use aximar_core::msg;
 use std::sync::atomic::{AtomicU32, Ordering};
-use tauri::{AppHandle, Manager, WebviewUrl, WebviewWindowBuilder};
+use tauri::{AppHandle, Emitter, Manager, WebviewUrl, WebviewWindowBuilder};
 
 use crate::state::AppState;
 
@@ -34,6 +34,44 @@ pub async fn get_initial_file_args(
     state: tauri::State<'_, AppState>,
 ) -> Result<Option<Vec<String>>, String> {
     Ok(state.initial_file_args.lock().await.clone())
+}
+
+/// The local paths among the URLs the system asked Aximar to open.
+/// macOS sends `file://` URLs; anything else is left alone.
+pub fn opened_paths(urls: &[tauri::Url]) -> Vec<String> {
+    urls.iter()
+        .filter(|u| u.scheme() == "file")
+        .filter_map(|u| u.to_file_path().ok())
+        .map(|p| p.to_string_lossy().into_owned())
+        .collect()
+}
+
+/// Queue files the system asked Aximar to open, bring the main window
+/// forward, and tell it there are files to take.  If the window hasn't
+/// loaded yet, it takes them when it starts.
+pub fn queue_opened(app: &AppHandle, paths: Vec<String>) {
+    if paths.is_empty() {
+        return;
+    }
+    let state = app.state::<AppState>();
+    if let Ok(mut pending) = state.pending_opens.lock() {
+        pending.extend(paths);
+    }
+    if let Some(window) = app.get_webview_window("main") {
+        let _ = window.unminimize();
+        let _ = window.set_focus();
+        let _ = window.emit("files-waiting", ());
+    }
+}
+
+/// Take the files waiting to be opened (see `queue_opened`), leaving none
+#[tauri::command]
+pub fn take_pending_opens(state: tauri::State<'_, AppState>) -> Vec<String> {
+    state
+        .pending_opens
+        .lock()
+        .map(|mut pending| std::mem::take(&mut *pending))
+        .unwrap_or_default()
 }
 
 /// The licences window: its label, page and size
@@ -105,6 +143,22 @@ mod tests {
             .join("../public")
             .join(LICENCES_PAGE);
         assert!(index.exists(), "{} is missing", index.display());
+    }
+
+    #[test]
+    fn opened_files_become_paths() {
+        let urls: Vec<tauri::Url> = [
+            "file:///Users/ana/Calculus%20notes.macnb",
+            "file:///tmp/lab.ipynb",
+            "https://example.com/remote.macnb",
+        ]
+        .iter()
+        .map(|s| tauri::Url::parse(s).unwrap())
+        .collect();
+        assert_eq!(
+            opened_paths(&urls),
+            vec!["/Users/ana/Calculus notes.macnb", "/tmp/lab.ipynb"]
+        );
     }
 
     #[test]
