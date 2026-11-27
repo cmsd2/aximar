@@ -1,6 +1,9 @@
 import { msg } from "@lingui/core/macro";
 import { useLingui } from "@lingui/react/macro";
 import { activateLanguage, languageName } from "../../lib/i18n";
+import { openLicences } from "../../lib/config-client";
+import { useLogStore } from "../../store/logStore";
+import { Button } from "../ui/Button";
 import type { Theme } from "../../store/notebookStore";
 import { Checkbox } from "../ui/Checkbox";
 import { FieldRow } from "../ui/FieldRow";
@@ -70,6 +73,38 @@ export function GeneralSection({ config, update }: SectionProps) {
           <Checkbox id={id} describedBy={describedBy} checked={config.variables_open} onChange={(checked) => update({ variables_open: checked })} />
         )}
       </FieldRow>
+
+      <LicencesRow />
     </>
+  );
+}
+
+/** Opens the licences of the open-source code and fonts Aximar ships */
+function LicencesRow() {
+  const { t } = useLingui();
+  const addLogEntry = useLogStore((s) => s.addEntry);
+  return (
+    <FieldRow
+      divided
+      label={t({ message: "Licences", comment: "Settings, General section: the label of the row that opens the open-source licences" })}
+      hint={t({
+        message: "The open-source software and fonts Aximar uses, and their licences.",
+        comment: "Settings, General section: hint under Licences",
+      })}
+    >
+      {({ id, describedBy }) => (
+        <Button
+          size="sm"
+          id={id}
+          aria-describedby={describedBy}
+          onClick={() => openLicences().catch((e) => addLogEntry("error", `Failed to open the licences: ${e}`, "settings"))}
+        >
+          {t({
+            message: "Show licences",
+            comment: "Settings button: opens a window listing the open-source code and fonts Aximar uses, with their licences",
+          })}
+        </Button>
+      )}
+    </FieldRow>
   );
 }

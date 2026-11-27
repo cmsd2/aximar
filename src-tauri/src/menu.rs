@@ -14,6 +14,7 @@ static WINDOW_COUNTER: AtomicU32 = AtomicU32::new(1);
 /// The menu bar's text in one language
 struct MenuLabels {
     about: String,
+    licences_credit: String,
     settings: String,
     services: String,
     hide: String,
@@ -46,6 +47,8 @@ impl MenuLabels {
         MenuLabels {
             // i18n: App menu (macOS). max-length:30
             about: t(msg!("About Aximar")),
+            // i18n: The About panel (macOS and Linux): where to find the open-source licences. Settings, General and Licences name the window, section and row
+            licences_credit: t(msg!("Open-source licences: Settings, General, Licences")),
             // i18n: App menu on macOS, Edit menu elsewhere: opens the Settings window. max-length:24
             settings: t(msg!("Settings...")),
             // i18n: App menu (macOS): the system's Services submenu. max-length:30
@@ -161,6 +164,10 @@ pub fn set_menu_translations(app: &AppHandle, translations: &Translations) -> ta
         .about_with_text(
             &l.about,
             Some(AboutMetadata {
+                // macOS shows credits, Linux comments
+                credits: Some(l.licences_credit.clone()),
+                comments: Some(l.licences_credit.clone()),
+                license: Some("GPL-3.0-or-later".into()),
                 ..Default::default()
             }),
         )
@@ -311,5 +318,9 @@ msgstr "Salir de Aximar"
         assert_eq!(l.file, "File");
         assert_eq!(l.export_latex, "Export as LaTeX...");
         assert_eq!(l.settings, "Settings...");
+        assert_eq!(
+            l.licences_credit,
+            "Open-source licences: Settings, General, Licences"
+        );
     }
 }

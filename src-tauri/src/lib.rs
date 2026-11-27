@@ -169,6 +169,7 @@ pub fn run() {
             commands::notebook::nb_set_active,
             commands::window::create_window,
             commands::window::get_initial_file_args,
+            commands::window::open_licences,
             commands::translation_preview::load_translation_preview,
             commands::translation_preview::stop_translation_preview,
         ])

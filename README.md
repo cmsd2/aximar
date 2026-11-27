@@ -299,3 +299,5 @@ React Frontend  <->  Tauri IPC  <->  Rust Backend  <->  Maxima subprocess
 ## License
 
 GPL-3.0-or-later
+
+Aximar builds on open-source code and fonts, whose notices ship with the app: open them from Settings, General, Licences. The tools release archives carry the Rust crates' notices as `THIRD-PARTY-RUST.html`. See [docs/licences.md](docs/licences.md) for how they're made and which licences Aximar accepts.

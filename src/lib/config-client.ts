@@ -83,6 +83,11 @@ export async function maximaVersion(path: string): Promise<string | null> {
   return invoke<string | null>("maxima_version", { path });
 }
 
+/** Show the open-source licences Aximar ships, in their own window */
+export async function openLicences(): Promise<void> {
+  return invoke<void>("open_licences");
+}
+
 export async function listWslDistros(): Promise<string[]> {
   return invoke<string[]>("list_wsl_distros");
 }

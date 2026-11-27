@@ -60,6 +60,33 @@ jobs:
             msgfmt --check --output-file=/dev/null "$po"
           done
 
+  # The Rust crates' licence notices, which the app and the tools ship,
+  # must match Cargo.lock.  See docs/licences.md.
+  licences:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install cargo-about
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-about@0.9.3
+
+      - name: Setup Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Test the notices script
+        run: node --test scripts/rust-notices.node-test.mjs
+
+      - name: Check the Rust licence notices are current
+        run: npm run licences:rust -- --check
+
   # The translators' gallery: Storybook, with a screenshot of every story
   # in every language.  Uploaded as an artifact; see docs/i18n.md.
   gallery:

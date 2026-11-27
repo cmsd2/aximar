@@ -932,6 +932,13 @@ msgstr ""
 msgid "Lets AI assistants read and run your notebooks."
 msgstr ""
 
+#. Settings, General section: the label of the row that opens the open-source licences
+#. screen: dialogs--settings
+#. screen: dialogs--settings-translation
+#: src/components/settings/GeneralSection.tsx
+msgid "Licences"
+msgstr ""
+
 #. Settings: theme button for the light theme
 #. screen: dialogs--settings
 #. screen: dialogs--settings-translation
@@ -1430,6 +1437,13 @@ msgstr ""
 msgid "Settings"
 msgstr ""
 
+#. Settings button: opens a window listing the open-source code and fonts Aximar uses, with their licences
+#. screen: dialogs--settings
+#. screen: dialogs--settings-translation
+#: src/components/settings/GeneralSection.tsx
+msgid "Show licences"
+msgstr ""
+
 #. Button on a note in a cell's output: shows the lines Maxima printed, which the note explains
 #. screen: cells--notebook
 #. screen: notes--all-notes
@@ -1560,6 +1574,13 @@ msgstr ""
 #. Settings, Maxima section: hint under WSL distro
 #: src/components/settings/MaximaSection.tsx
 msgid "The Linux distribution that runs Maxima."
+msgstr ""
+
+#. Settings, General section: hint under Licences
+#. screen: dialogs--settings
+#. screen: dialogs--settings-translation
+#: src/components/settings/GeneralSection.tsx
+msgid "The open-source software and fonts Aximar uses, and their licences."
 msgstr ""
 
 #. Settings, Maxima section: hint under Container engine
@@ -2530,6 +2551,11 @@ msgstr ""
 #. i18n: App menu (macOS). max-length:30
 #: src-tauri/src/menu.rs
 msgid "About Aximar"
+msgstr ""
+
+#. i18n: The About panel (macOS and Linux): where to find the open-source licences. Settings, General and Licences name the window, section and row
+#: src-tauri/src/menu.rs
+msgid "Open-source licences: Settings, General, Licences"
 msgstr ""
 
 #. i18n: App menu on macOS, Edit menu elsewhere: opens the Settings window. max-length:24

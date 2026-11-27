@@ -170,6 +170,10 @@
   "BddwrJ": [
     "dialogs--settings-ai-assistants"
   ],
+  "BkgIpt": [
+    "dialogs--settings",
+    "dialogs--settings-translation"
+  ],
   "Bpglf1": [
     "window--shortcuts"
   ],
@@ -487,6 +491,10 @@
     "cells--notebook",
     "cells--print-and-tex"
   ],
+  "_pQZ9b": [
+    "dialogs--settings",
+    "dialogs--settings-translation"
+  ],
   "aHyNBr": [
     "errors--all-explanations"
   ],
@@ -801,6 +809,10 @@
   ],
   "vnXR61": [
     "errors--all-explanations"
+  ],
+  "w62D7B": [
+    "dialogs--settings",
+    "dialogs--settings-translation"
   ],
   "wCssdg": [
     "errors--all-explanations"

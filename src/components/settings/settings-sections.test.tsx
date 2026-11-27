@@ -18,13 +18,13 @@ vi.mock("../../lib/translation-preview", () => ({
 
 import { SettingsModal } from "../SettingsModal";
 import type { SectionId } from "./sections";
-import { answer, baseConfig, button, click, clientsStatus, mount, settle, unmount } from "./settings-test-kit";
+import { answer, baseConfig, button, calls, click, clientsStatus, mount, settle, unmount } from "./settings-test-kit";
 
 const noop = () => {};
 
 /** Each section's settings, by label */
 const LABELS: Record<SectionId, string[]> = {
-  general: ["Language", "Theme", "Variable panel open by default"],
+  general: ["Language", "Theme", "Variable panel open by default", "Licences"],
   notebook: ["Font size", "Cell style", "Argument help", "Markdown font", "Markdown indent"],
   maxima: ["Backend", "Maxima path", "Evaluation timeout"],
   printing: ["Print font size", "Print margins (mm)"],
@@ -90,7 +90,9 @@ describe("the Settings sections", () => {
       shown.push(...labels(container));
       unmount();
     }
-    expect([...shown].sort()).toEqual([...OLD_WINDOW].sort());
+    // Rows added since, which are links rather than settings
+    const added = ["Licences"];
+    expect([...shown].sort()).toEqual([...OLD_WINDOW, ...added].sort());
   });
 
   it("give every setting a hint", async () => {
@@ -206,6 +208,14 @@ describe("the sidebar", () => {
     flags.tools = false;
     const { container } = await open({ settings_section: "translation" });
     expect(container.querySelector(".settings-page")?.getAttribute("data-section")).toBe("general");
+  });
+});
+
+describe("the Licences row", () => {
+  it("opens the licences window", async () => {
+    const { container } = await open({}, "general");
+    await click(button(container, "Show licences"));
+    expect(calls()).toContain("open_licences");
   });
 });
 

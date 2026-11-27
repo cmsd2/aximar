@@ -13,6 +13,7 @@
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",
     "check:tokens": "node scripts/check-css-tokens.mjs",
+    "licences:rust": "node scripts/rust-notices.mjs",
     "i18n:gallery": "storybook build -o storybook-static --quiet && node scripts/i18n-gallery.mjs"
   },
   "dependencies": {
@@ -59,6 +60,7 @@
     "@vitejs/plugin-react": "^4.6.0",
     "happy-dom": "^21.0.4",
     "playwright": "^1.65.0",
+    "rollup-plugin-license": "3.7.2",
     "storybook": "^10.6.7",
     "typescript": "~5.8.3",
     "vite": "^7.0.4",
