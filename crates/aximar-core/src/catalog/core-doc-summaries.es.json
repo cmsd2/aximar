@@ -1515,7 +1515,6 @@
     "poly_normal_form": "poly_normal_form encuentra la forma normal de un polinomio poly respecto de un conjunto de polinomios polylist.",
     "poly_normalize": "Devuelve el polinomio poly dividido por el coeficiente principal. Da por supuesto que la división es posible, lo cual puede no ser siempre cierto en anillos que no son campos.",
     "poly_normalize_list": "poly_normalize_list aplica poly_normalize a cada polinomio de la lista. Esto significa que divide cada polinomio de polylist por su coeficiente principal.",
-    "poly_polysaturation_extension": "<!-- category: Polynomials --> <!-- keywords: poly_primary_elimination_order --> <!-- signatures: poly_primary_elimination_order -->",
     "poly_primary_elimination_order": "Valor por defecto: false",
     "poly_primitive_part": "Devuelve el polinomio poly dividido por el MCD de sus coeficientes.",
     "poly_pseudo_divide": "Realiza la seudo-división del polinomio poly por la lista de $n$ polinomios de polylist. Devuelve varios resultados. El primer resultado es una lista de cocientes $a$. El segundo resultado es el resto $r$. El tercer resultado es un coeficiente escalar $c$, tal que $cpoly$ puede dividirse por polylist* dentro del anillo de coeficientes, el cual no es necesariamente un campo. Por último, el cuarto resultado es un entero que guarda el recuento de reducciones realizadas. El objeto resultante satisface la ecuación:",

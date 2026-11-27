@@ -157,7 +157,7 @@ enum Commands {
 
     /// Help summaries in another language, from Maxima's manual in it
     /// (doc/info/<lang>/), for Aximar's help in the user's language.  Needs
-    /// mxpm and makeinfo on the PATH.
+    /// makeinfo and an mxpm with `doc generate-core-docs --lang` on the PATH.
     Summaries {
         /// Language of the manual, such as `es`
         #[arg(long)]
