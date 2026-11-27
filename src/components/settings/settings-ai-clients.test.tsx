@@ -20,7 +20,7 @@ afterEach(unmount);
 describe("the AI assistant rows", () => {
   it("run no client's program when Settings opens", async () => {
     answer({ get_config: { config: baseConfig, warnings: [] }, mcp_clients_status: clientsStatus });
-    const container = await mount(<SettingsModal onClose={noop} onSetVariablesOpen={noop} />);
+    const container = await mount(<SettingsModal onClose={noop} onSetVariablesOpen={noop} initialSection="ai-assistants" />);
     expect(calls()).toContain("mcp_clients_status");
     expect(calls()).not.toContain("claude_mcp_check");
     expect(calls().filter((c) => c.endsWith("_configure"))).toEqual([]);
@@ -35,7 +35,7 @@ describe("the AI assistant rows", () => {
       mcp_clients_status: clientsStatus,
       claude_mcp_check: { state: "yes" },
     });
-    const container = await mount(<SettingsModal onClose={noop} onSetVariablesOpen={noop} />);
+    const container = await mount(<SettingsModal onClose={noop} onSetVariablesOpen={noop} initialSection="ai-assistants" />);
     await click(button(row(container, "claude"), "Check"));
     expect(calls().filter((c) => c === "claude_mcp_check")).toHaveLength(1);
     expect(row(container, "claude").textContent).toContain("Configured");
@@ -48,7 +48,7 @@ describe("the AI assistant rows", () => {
       claude_mcp_configure: "ok",
       claude_mcp_check: { state: "yes" },
     });
-    const container = await mount(<SettingsModal onClose={noop} onSetVariablesOpen={noop} />);
+    const container = await mount(<SettingsModal onClose={noop} onSetVariablesOpen={noop} initialSection="ai-assistants" />);
     await click(button(row(container, "claude"), "Configure"));
     const after = calls().slice(calls().indexOf("claude_mcp_configure"));
     expect(after).toEqual(["claude_mcp_configure", "claude_mcp_check"]);
@@ -56,7 +56,7 @@ describe("the AI assistant rows", () => {
 
   it("disable Configure for a client that isn't installed", async () => {
     answer({ get_config: { config: baseConfig, warnings: [] }, mcp_clients_status: clientsStatus });
-    const container = await mount(<SettingsModal onClose={noop} onSetVariablesOpen={noop} />);
+    const container = await mount(<SettingsModal onClose={noop} onSetVariablesOpen={noop} initialSection="ai-assistants" />);
     expect(button(row(container, "gemini"), "Configure")?.disabled).toBe(true);
   });
 
@@ -68,7 +68,7 @@ describe("the AI assistant rows", () => {
         codex: { installed: "/bin/codex", configured: { state: "error", file: "/home/u/.codex/config.toml", detail: "bad" } },
       },
     });
-    const container = await mount(<SettingsModal onClose={noop} onSetVariablesOpen={noop} />);
+    const container = await mount(<SettingsModal onClose={noop} onSetVariablesOpen={noop} initialSection="ai-assistants" />);
     expect(row(container, "codex").textContent).toContain("Can't read /home/u/.codex/config.toml");
   });
 });

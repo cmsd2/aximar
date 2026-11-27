@@ -10,21 +10,21 @@
 
 ## 2. Sections, with no change in behaviour (one PR)
 
-- [ ] 2.1 Add `src/lib/apply-config.ts` with the document-styling code from `App.tsx` and `SettingsModal.update()`, and use it in both; verify with a vitest test `apply-config.test.ts` that checks the CSS variables and print margins it sets
-- [ ] 2.2 Add `settings_section` to `AppConfig` with a default of `general`, saved by `set_config`; verify with config tests `settings_section_defaults_to_general` and `an_older_file_without_settings_section_reads`
-- [ ] 2.3 Add `src/components/settings/` with `SettingsShell`, `sections.ts`, `SettingRow`, `ChoiceButtons`, `TextSetting` and the six section components, moving every row from `SettingsModal.tsx`; keep `SettingsModal` as a re-export; verify with a vitest test `settings-sections.test.tsx` that renders each section and checks the full list of config fields appears once across them
-- [ ] 2.4 Keep the Maxima section's backend fields to the chosen backend, as the flat window does; verify with vitest tests `docker_shows_its_fields` and `switching_back_keeps_the_path`
+- [x] 2.1 Add `src/lib/apply-config.ts` with the document-styling code from `App.tsx` and `SettingsModal.update()`, and use it in both; verify with a vitest test `apply-config.test.ts` that checks the CSS variables and print margins it sets
+- [x] 2.2 Add `settings_section` to `AppConfig` with a default of `general`, saved by `set_config`; verify with config tests `settings_section_defaults_to_general` and `an_older_file_without_settings_section_reads`
+- [x] 2.3 Add `src/components/settings/` with `SettingsShell`, `sections.ts`, `SettingRow`, `ChoiceButtons`, `TextSetting` and the six section components, moving every row from `SettingsModal.tsx`; keep `SettingsModal` as a re-export; verify with a vitest test `settings-sections.test.tsx` that renders each section and checks the full list of config fields appears once across them
+- [x] 2.4 Keep the Maxima section's backend fields to the chosen backend, as the flat window does; verify with vitest tests `docker_shows_its_fields` and `switching_back_keeps_the_path`
 - [ ] 2.5 Lay out the sidebar and page in `src/styles/global.css` for both themes and the print stylesheet's exclusion; replace the Settings story with one story per section in `src/stories/Settings.stories.tsx`; verify `npm run build-storybook` and `npm run i18n:gallery` succeed and the gallery shows each section in English, Spanish and pseudo
-- [ ] 2.6 Hide Translation in release builds; verify with a vitest test that mocks `TRANSLATOR_TOOLS` off and on and checks the sidebar's entries
-- [ ] 2.7 Run `scripts/i18n-extract`, commit the template and catalogs, and verify `scripts/i18n-extract --check` and the catalog test pass
+- [x] 2.6 Hide Translation in release builds; verify with a vitest test that mocks `TRANSLATOR_TOOLS` off and on and checks the sidebar's entries
+- [x] 2.7 Run `scripts/i18n-extract`, commit the template and catalogs, and verify `scripts/i18n-extract --check` and the catalog test pass
 
 ## 3. Hints and status lines (one PR)
 
-- [ ] 3.1 Write a one-line hint for every setting, with translator notes, and give each sidebar label a `max-length:16` note; verify with a vitest test that every `SettingRow` in every section has a non-empty hint, and with the catalog test after `scripts/i18n-extract`
+- [x] 3.1 Write a one-line hint for every setting, with translator notes, and give each sidebar label a `max-length:16` note; verify with a vitest test that every `SettingRow` in every section has a non-empty hint, and with the catalog test after `scripts/i18n-extract`
 - [ ] 3.2 Add `locate_maxima` and `MaximaLocation` to `aximar_core::maxima::process`, make `find_maxima_binary` and the Local backend's start use it; verify with core tests `the_setting_wins`, `the_environment_comes_next`, `a_setting_that_names_no_file_is_a_problem` and `nothing_found`, each with a temporary directory and a controlled environment
 - [ ] 3.3 Add the `maxima_status` Tauri command and the Maxima section's status line, including the WSL result from `check_wsl_maxima`; verify with a vitest test that mocks each `MaximaLocation` case and checks the line's text, and by hand that a wrong path shows "doesn't exist" in the app
 - [ ] 3.4 Record `McpServerState` in `McpController`, set it in `startup.rs`, add `mcp_server_status` and the `mcp-server-status` event, and show the status line; verify with a Tauri unit test `a_bind_failure_is_recorded` that binds the port first, and a vitest test of the line's three states
-- [ ] 3.5 Make `TextSetting` save on blur or Enter and restore the saved value on Esc, for the Maxima path, Docker image and listen address; verify with vitest tests `typing_does_not_save_until_blur`, `enter_saves` and `esc_restores_without_closing`
+- [x] 3.5 Make `TextSetting` save on blur or Enter and restore the saved value on Esc, for the Maxima path, Docker image and listen address; verify with vitest tests `typing_does_not_save_until_blur`, `enter_saves` and `esc_restores_without_closing`
 - [ ] 3.6 Add a Spanish translation for every new string in `locales/es.po`; verify the catalog test passes and the Spanish gallery shows no English in Settings apart from product names
 
 ## 4. Deep links, the remembered section and keys (one PR)
@@ -33,7 +33,7 @@
 - [ ] 4.2 Switch the Maxima Not Found dialog to `ask()` with Open Settings, opening the Maxima section; verify with a vitest test that mocks the dialog plugin's `ask` to return true and checks the store opened `maxima`
 - [ ] 4.3 Add the optional `link` field to app log entries, `emit_app_log_with_link`, its use for the MCP bind failure, and the link button in `LogPanel`; verify with a vitest test that renders a log entry with a link and checks that clicking it opens `ai-assistants`
 - [ ] 4.4 Add the Settings menu item with `CmdOrCtrl+,` in `src-tauri/src/menu.rs` (the Aximar menu on macOS, the Edit menu elsewhere), handled in the window's `menu-event` listener; verify with a `menu.rs` test that the labels include Settings, and by hand on macOS, Windows and Linux that the shortcut opens Settings and Esc in an open select menu closes only the menu
-- [ ] 4.5 Make the sidebar a vertical tablist with a roving tab index, Up, Down, Home and End, and Esc closing the window; verify with vitest tests `arrows_move_through_the_sidebar`, `home_and_end_jump` and `esc_closes`
+- [x] 4.5 Make the sidebar a vertical tablist with a roving tab index, Up, Down, Home and End, and Esc closing the window; verify with vitest tests `arrows_move_through_the_sidebar`, `home_and_end_jump` and `esc_closes`
 
 ## 5. Docs (with group 4's PR)
 

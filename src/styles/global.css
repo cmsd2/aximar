@@ -1683,7 +1683,8 @@
 
 /* Settings Modal */
 .settings-modal {
-  width: 480px;
+  width: min(760px, calc(100vw - 48px));
+  height: min(600px, calc(100vh - 48px));
   background: var(--bg-primary);
   border: 1px solid var(--border-color);
   border-radius: 12px;
@@ -1705,15 +1706,70 @@
   margin: 0;
 }
 
-.settings-body {
-  padding: 12px 20px;
+.settings-main {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+}
+
+.settings-sidebar {
+  width: 168px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px 8px;
+  border-right: 1px solid var(--border-color);
+  background: var(--bg-secondary);
   overflow-y: auto;
+}
+
+.settings-tab {
+  padding: 7px 12px;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  color: var(--text-primary);
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.settings-tab:hover {
+  background: var(--bg-cell);
+}
+
+.settings-tab.active {
+  background: var(--accent);
+  color: var(--bg-primary);
+}
+
+.settings-tab:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.settings-page {
+  flex: 1;
+  min-width: 0;
+  padding: 16px 20px;
+  overflow-y: auto;
+}
+
+.settings-page-title {
+  margin: 0 0 14px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
 }
 
 .settings-section {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 16px;
 }
 
 .settings-row {
@@ -1723,15 +1779,77 @@
   gap: 16px;
 }
 
+.settings-row-wide {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+}
+
+.settings-row-wide .settings-token-actions {
+  flex: 1;
+}
+
+.settings-row-wide .settings-token-input {
+  flex: 1;
+  width: auto;
+}
+
+.settings-text {
+  min-width: 0;
+  flex: 1;
+}
+
 .settings-label {
+  display: block;
   font-size: 13px;
   color: var(--text-primary);
-  flex-shrink: 0;
+}
+
+.settings-hint {
+  margin: 2px 0 0;
+  font-size: 12px;
+  line-height: 1.35;
+  color: var(--text-secondary);
 }
 
 .settings-control {
   display: flex;
   align-items: center;
+  flex-shrink: 0;
+}
+
+.settings-status-line {
+  margin: -6px 0 0;
+  font-size: 12px;
+  color: var(--text-secondary);
+  overflow-wrap: anywhere;
+}
+
+.settings-status-line.ok {
+  color: var(--success-color);
+}
+
+.settings-status-line.warn {
+  color: var(--running-color);
+}
+
+.settings-status-line.err {
+  color: var(--error-color);
+}
+
+.settings-advanced {
+  border-top: 1px solid var(--border-color);
+  padding-top: 12px;
+}
+
+.settings-advanced > .settings-section {
+  margin-top: 14px;
+}
+
+.settings-advanced > summary {
+  font-size: 13px;
+  color: var(--text-secondary);
+  cursor: pointer;
 }
 
 .settings-input {
@@ -1774,15 +1892,15 @@
   min-width: 120px;
 }
 
-.settings-wsl-status[title^="Found"] {
-  color: var(--color-success, #22c55e);
+.settings-wsl-status.found {
+  color: var(--success-color);
 }
 
-.settings-wsl-status[title="maxima not found in this distro"] {
-  color: var(--color-error, #ef4444);
+.settings-wsl-status.missing {
+  color: var(--error-color);
 }
 
-.settings-wsl-status[title="Checking..."]::before {
+.settings-wsl-status.checking::before {
   content: "";
   display: inline-block;
   width: 12px;

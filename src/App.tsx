@@ -37,7 +37,8 @@ import {
   openFile,
   savePlotFile,
 } from "./lib/notebooks-client";
-import { getConfig, markdownFontStack, applyPrintMargins } from "./lib/config-client";
+import { getConfig } from "./lib/config-client";
+import { applyConfig } from "./lib/apply-config";
 import { activateLanguage } from "./lib/i18n";
 import { TRANSLATOR_TOOLS, applyPreview, type PreviewCatalog } from "./lib/translation-preview";
 import { useNotebookStore, useActiveAnyTab, getActiveTabState } from "./store/notebookStore";
@@ -79,37 +80,13 @@ function App() {
   useEffect(() => {
     getConfig()
       .then(({ config: cfg, warnings }) => {
-        document.documentElement.style.setProperty(
-          "--font-size-mono",
-          `${cfg.font_size}px`
-        );
-        document.documentElement.style.setProperty(
-          "--print-font-size",
-          `${cfg.print_font_size}px`
-        );
-        document.documentElement.style.setProperty(
-          "--print-font-size-mono",
-          `${cfg.print_font_size - 1}px`
-        );
-        document.documentElement.dataset.cellStyle = cfg.cell_style || "bracket";
-        document.documentElement.style.setProperty(
-          "--font-family-markdown",
-          markdownFontStack(cfg.markdown_font)
-        );
-        document.documentElement.style.setProperty(
-          "--markdown-indent",
-          cfg.markdown_indent === "aligned" ? "var(--gutter-width)" : "16px"
-        );
-        applyPrintMargins(
-          cfg.print_margin_top, cfg.print_margin_bottom,
-          cfg.print_margin_left, cfg.print_margin_right
-        );
-        if (cfg.autocomplete_mode) {
-          useNotebookStore.getState().setAutocompleteMode(
-            cfg.autocomplete_mode as "hint" | "snippet" | "active-hint"
-          );
-        }
-        setVariablesOpen(cfg.variables_open);
+        const store = useNotebookStore.getState();
+        applyConfig(cfg, cfg, {
+          setTheme: store.setTheme,
+          setCellStyle: store.setCellStyle,
+          setAutocompleteMode: store.setAutocompleteMode,
+          setVariablesOpen,
+        });
         void activateLanguage(cfg.language);
         for (const w of warnings) {
           addLogEntry("warning", w, "config");

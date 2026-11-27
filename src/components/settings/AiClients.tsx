@@ -8,6 +8,7 @@ import {
   type McpClient,
   type McpClientsStatus,
 } from "../../lib/config-client";
+import { SettingRow } from "./SettingRow";
 
 const CLIENTS: { id: McpClient; name: string; cli: string }[] = [
   { id: "claude", name: "Claude Code", cli: "claude" },
@@ -108,15 +109,38 @@ function AiClientRow({
     });
 
   const yes = configured?.state === "yes";
+  const command = "claude mcp get aximar";
+  const codexFile = "~/.codex/config.toml";
+  const geminiFile = "~/.gemini/settings.json";
+  const hint =
+    client.id === "claude"
+      ? t({
+          message: `Check runs ${command} to read Claude Code's configuration.`,
+          comment: "Settings, AI assistants section: hint under Claude Code. command is the command Aximar runs",
+        })
+      : client.id === "codex"
+        ? t({
+            message: `Configure adds Aximar to ${codexFile}.`,
+            comment: "Settings, AI assistants section: hint under Codex. codexFile is Codex's configuration file",
+          })
+        : t({
+            message: `Configure adds Aximar to ${geminiFile}.`,
+            comment: "Settings, AI assistants section: hint under Gemini CLI. geminiFile is Gemini CLI's configuration file",
+          });
 
   return (
-    <div className="settings-row" data-client={client.id}>
-      <label className="settings-label" title={installed ?? undefined}>
-        {client.name}
-      </label>
-      <div className="settings-control">
+    <div data-client={client.id} title={installed ?? undefined}>
+      <SettingRow label={client.name} hint={hint}>
+        {({ id, describedBy }) => (
         <div className="settings-claude-setup">
-          <button className="settings-token-btn" disabled={busy !== null || notInstalled} onClick={() => void configure()}>
+          <button
+            id={id}
+            aria-describedby={describedBy}
+            type="button"
+            className="settings-token-btn"
+            disabled={busy !== null || notInstalled}
+            onClick={() => void configure()}
+          >
             {busy === "configure"
               ? t({ message: "Configuring...", comment: "Settings: the Configure button of an AI tool while it adds Aximar's MCP server" })
               : yes
@@ -130,7 +154,7 @@ function AiClientRow({
                   })}
           </button>
           {onCheck && !notInstalled && (
-            <button className="settings-token-btn" disabled={busy !== null} onClick={() => void run("check", onCheck)}>
+            <button type="button" className="settings-token-btn" disabled={busy !== null} onClick={() => void run("check", onCheck)}>
               {busy === "check"
                 ? t({ message: "Checking...", comment: "Settings: the Check button of Claude Code while Aximar asks Claude Code whether it lists Aximar's MCP server" })
                 : t({
@@ -152,7 +176,8 @@ function AiClientRow({
             <ConfiguredStatus configured={configured} />
           )}
         </div>
-      </div>
+        )}
+      </SettingRow>
     </div>
   );
 }

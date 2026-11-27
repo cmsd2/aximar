@@ -8,7 +8,7 @@ export const config = {
   print_margin_bottom: 15, print_margin_left: 15, print_margin_right: 15, backend: "local",
   docker_image: "aximar/maxima", wsl_distro: "Ubuntu", container_engine: "docker",
   mcp_enabled: true, mcp_listen_address: "127.0.0.1:19542", mcp_token: "0123456789abcdef",
-  language: "en", languages: ["en", "es"],
+  language: "en", languages: ["en", "es"], settings_section: "general",
 };
 
 const templates = [

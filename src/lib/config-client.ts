@@ -26,6 +26,8 @@ export interface AppConfig {
   language: string;
   /** The languages with a translation, English first */
   languages: string[];
+  /** The Settings section shown last, such as `printing` */
+  settings_section: string;
 }
 
 export interface ConfigResponse {

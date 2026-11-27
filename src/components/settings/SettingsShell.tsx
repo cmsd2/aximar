@@ -1,0 +1,148 @@
+import { useCallback, useEffect, useRef, useState, type KeyboardEvent } from "react";
+import { useLingui } from "@lingui/react/macro";
+import { getConfig, setConfig, type AppConfig } from "../../lib/config-client";
+import { applyConfig } from "../../lib/apply-config";
+import { useNotebookStore } from "../../store/notebookStore";
+import { useLogStore } from "../../store/logStore";
+import { availableSections, sectionFor, type SectionId } from "./sections";
+
+export interface SettingsProps {
+  onClose: () => void;
+  onSetVariablesOpen: (open: boolean) => void;
+  /** The section to open at; the one shown last if not given */
+  initialSection?: SectionId;
+}
+
+/** The Settings window: a sidebar of sections, and the chosen section's settings */
+export function SettingsShell({ onClose, onSetVariablesOpen, initialSection }: SettingsProps) {
+  const { t, i18n } = useLingui();
+  const [config, setLocalConfig] = useState<AppConfig | null>(null);
+  const [section, setSection] = useState<SectionId | null>(null);
+  const setTheme = useNotebookStore((s) => s.setTheme);
+  const setCellStyle = useNotebookStore((s) => s.setCellStyle);
+  const setAutocompleteMode = useNotebookStore((s) => s.setAutocompleteMode);
+  const addLogEntry = useLogStore((s) => s.addEntry);
+  const tabs = useRef(new Map<SectionId, HTMLButtonElement>());
+
+  useEffect(() => {
+    getConfig()
+      .then((resp) => {
+        setLocalConfig(resp.config);
+        const shown = sectionFor(initialSection ?? resp.config.settings_section);
+        setSection(shown);
+        if (initialSection && initialSection !== resp.config.settings_section) {
+          void setConfig({ settings_section: shown }).catch(() => {});
+        }
+      })
+      .catch((e) => addLogEntry("error", `Failed to load config: ${e}`, "settings"));
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const update = useCallback(
+    (updates: Partial<AppConfig>) => {
+      if (!config) return;
+      const next = { ...config, ...updates };
+      setLocalConfig(next);
+      setConfig(updates).catch((e) => addLogEntry("error", `Failed to save settings: ${e}`, "settings"));
+      applyConfig(updates, next, { setTheme, setCellStyle, setAutocompleteMode, setVariablesOpen: onSetVariablesOpen });
+    },
+    [config, setTheme, setCellStyle, setAutocompleteMode, onSetVariablesOpen, addLogEntry],
+  );
+
+  const sections = availableSections();
+
+  const choose = (id: SectionId, focus = false) => {
+    setSection(id);
+    if (config && config.settings_section !== id) update({ settings_section: id });
+    if (focus) tabs.current.get(id)?.focus();
+  };
+
+  const onSidebarKey = (e: KeyboardEvent) => {
+    const at = sections.findIndex((s) => s.id === section);
+    const to =
+      e.key === "ArrowDown" ? Math.min(at + 1, sections.length - 1)
+      : e.key === "ArrowUp" ? Math.max(at - 1, 0)
+      : e.key === "Home" ? 0
+      : e.key === "End" ? sections.length - 1
+      : null;
+    if (to === null) return;
+    e.preventDefault();
+    choose(sections[to].id, true);
+  };
+
+  const onKey = (e: KeyboardEvent) => {
+    if (e.key !== "Escape" || e.defaultPrevented) return;
+    // Esc in a menu closes the menu
+    if ((e.target as Element).tagName === "SELECT") return;
+    e.stopPropagation();
+    onClose();
+  };
+
+  if (!config || !section) return null;
+  const current = sections.find((s) => s.id === section) ?? sections[0];
+  const Page = current.Component;
+
+  return (
+    <div className="palette-overlay" onClick={onClose}>
+      <div
+        className="settings-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="settings-title"
+        onClick={(e) => e.stopPropagation()}
+        onKeyDown={onKey}
+      >
+        <div className="settings-header">
+          <h2 className="settings-title" id="settings-title">
+            {t({ message: "Settings", comment: "Settings: the title of the settings window" })}
+          </h2>
+        </div>
+        <div className="settings-main">
+          <nav
+            className="settings-sidebar"
+            role="tablist"
+            aria-orientation="vertical"
+            aria-label={t({ message: "Settings sections", comment: "Settings: what a screen reader calls the sidebar of sections" })}
+            onKeyDown={onSidebarKey}
+          >
+            {sections.map((s) => (
+              <button
+                key={s.id}
+                type="button"
+                role="tab"
+                id={`settings-tab-${s.id}`}
+                aria-selected={s.id === current.id}
+                aria-controls="settings-page"
+                tabIndex={s.id === current.id ? 0 : -1}
+                className={`settings-tab${s.id === current.id ? " active" : ""}`}
+                ref={(el) => {
+                  if (el) tabs.current.set(s.id, el);
+                  else tabs.current.delete(s.id);
+                }}
+                onClick={() => choose(s.id)}
+              >
+                {i18n._(s.label)}
+              </button>
+            ))}
+          </nav>
+          <div
+            className="settings-page"
+            id="settings-page"
+            role="tabpanel"
+            aria-labelledby={`settings-tab-${current.id}`}
+            data-section={current.id}
+          >
+            <h3 className="settings-page-title">{i18n._(current.label)}</h3>
+            <div className="settings-section">
+              <Page config={config} update={update} />
+            </div>
+          </div>
+        </div>
+        <div className="settings-footer">
+          <button type="button" className="template-skip" onClick={onClose}>
+            {t({ message: "Close", comment: "Settings button: closes the settings window" })}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}

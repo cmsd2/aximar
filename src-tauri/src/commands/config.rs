@@ -103,6 +103,10 @@ fn generate_mcp_token() -> String {
     bytes.iter().map(|b| format!("{b:02x}")).collect()
 }
 
+fn default_settings_section() -> String {
+    "general".to_string()
+}
+
 fn default_mcp_token() -> String {
     generate_mcp_token()
 }
@@ -157,6 +161,10 @@ struct AppConfig {
     /// which follows the system's language
     #[serde(default)]
     language: Option<String>,
+    /// The Settings section shown last, such as `printing`.  The window
+    /// knows the sections, and shows General for one it doesn't have.
+    #[serde(default = "default_settings_section")]
+    settings_section: String,
 }
 
 impl Default for AppConfig {
@@ -185,6 +193,7 @@ impl Default for AppConfig {
             mcp_listen_address: default_mcp_listen_address(),
             mcp_token: default_mcp_token(),
             language: None,
+            settings_section: default_settings_section(),
         }
     }
 }
@@ -305,6 +314,7 @@ pub struct PublicConfig {
     pub language: String,
     /// The languages with a translation, English first
     pub languages: Vec<String>,
+    pub settings_section: String,
 }
 
 /// Config response with validation warnings
@@ -339,6 +349,7 @@ pub struct ConfigUpdate {
     pub mcp_listen_address: Option<String>,
     pub mcp_token: Option<String>,
     pub language: Option<String>,
+    pub settings_section: Option<String>,
 }
 
 fn config_path(app: &tauri::AppHandle) -> Result<PathBuf, AppError> {
@@ -480,6 +491,7 @@ pub async fn get_config(app: tauri::AppHandle) -> Result<ConfigResponse, AppErro
             mcp_token: config.mcp_token,
             language,
             languages: i18n::languages().iter().map(|l| l.to_string()).collect(),
+            settings_section: config.settings_section,
         },
         warnings,
     })
@@ -563,6 +575,9 @@ pub async fn set_config(app: tauri::AppHandle, updates: ConfigUpdate) -> Result<
     }
     if let Some(mcp_token) = updates.mcp_token {
         config.mcp_token = mcp_token;
+    }
+    if let Some(section) = updates.settings_section {
+        config.settings_section = section;
     }
     write_config(&app, &config)?;
 
@@ -803,6 +818,22 @@ mod tests {
         assert!(matches!(settings.backend, Backend::Local));
         assert_eq!(settings.maxima_path, None);
         assert_eq!(settings.eval_timeout, default_eval_timeout());
+    }
+
+    #[test]
+    fn settings_section_defaults_to_general() {
+        assert_eq!(AppConfig::default().settings_section, "general");
+    }
+
+    #[test]
+    fn an_older_file_without_settings_section_reads() {
+        let text = r#"{"font_size": 20}"#;
+        let (config, warnings) = config_or_defaults(parse_config_file(path(), Some(text)));
+        assert_eq!(config.settings_section, "general");
+        assert!(warnings.is_empty());
+        let text = r#"{"settings_section": "printing"}"#;
+        let (config, _) = config_or_defaults(parse_config_file(path(), Some(text)));
+        assert_eq!(config.settings_section, "printing");
     }
 
     #[test]
