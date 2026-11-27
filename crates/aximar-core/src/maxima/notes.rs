@@ -42,6 +42,9 @@ static PLOT_RE: LazyLock<Regex> = LazyLock::new(|| {
 static QUADRATURE_RE: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"^(quad_\w+): Numerical evaluation of (.+) at (\S+)$").unwrap());
 
+/// The most replacements a note lists
+const MAX_LISTED: usize = 3;
+
 const SOLVE_ARC_TRIG: &str = "solve: using arc-trig functions to get a solution.";
 const ZERO_POWER: &str = "expt: undefined: 0 to a negative exponent.";
 
@@ -77,26 +80,42 @@ fn note_at(lines: &[&str], i: usize) -> Option<Note> {
         end: i + len,
     };
 
-    // Consecutive replacements make one note
+    // Consecutive replacements make one note.  A loop can print hundreds,
+    // often the same one again and again, so a long run names a few and
+    // says how to turn the messages off.
     if RAT_RE.is_match(line) {
-        let mut replacements = Vec::new();
+        let mut replacements: Vec<String> = Vec::new();
         let mut end = i;
         while let Some(caps) = lines.get(end).and_then(|l| RAT_RE.captures(l.trim_end())) {
-            replacements.push(format!("{} → {}", &caps[1], &caps[2]));
+            let replacement = format!("{} → {}", &caps[1], &caps[2]);
+            if !replacements.contains(&replacement) {
+                replacements.push(replacement);
+            }
             end += 1;
         }
-        let replacements = replacements.join(", ");
-        return Some(note(
-            "note.rat_replaced",
+        let count = end - i;
+        let message = if count <= MAX_LISTED {
+            let replacements = replacements.join(", ");
             msg_ctx!(
                 "note.rat_replaced.text",
                 // i18n: Maxima: "rat: replaced 0.5 by 1/2 = 0.5", one line per number.
                 // replacements lists them, such as "0.25 → 1/4, 0.5 → 1/2"
                 "Maxima replaced decimals with exact fractions: {replacements}.",
                 replacements = replacements
-            ),
-            end - i,
-        ));
+            )
+        } else {
+            let examples = replacements[..replacements.len().min(MAX_LISTED)].join(", ");
+            msg_ctx!(
+                "note.rat_replaced.text.many",
+                // i18n: Maxima printed "rat: replaced ..." more than 3 times. count is how
+                // many (always more than 3); examples lists the first few, such as
+                // "0.1 → 1/10, 0.2 → 1/5". "ratprint: false$" is Maxima code
+                "Maxima replaced {count} decimals with exact fractions, such as {examples}. Add ratprint: false$ to hide these messages.",
+                count = count,
+                examples = examples
+            )
+        };
+        return Some(note("note.rat_replaced", message, count));
     }
 
     if line == SOLVE_ARC_TRIG {
@@ -234,6 +253,43 @@ mod tests {
         assert_eq!(note.message.id, "note.rat_replaced.text");
         assert_eq!(note.message.params["replacements"], "0.25 → 1/4, 0.5 → 1/2");
         assert!(note.message.text.contains("0.5 → 1/2"));
+    }
+
+    #[test]
+    fn a_long_run_of_replacements_names_a_few() {
+        let text: Vec<String> = (1..=300)
+            .map(|i| {
+                format!(
+                    "rat: replaced {}.{} by {}/10 = {}.{}",
+                    i / 10,
+                    i % 10,
+                    i,
+                    i / 10,
+                    i % 10
+                )
+            })
+            .collect();
+        let found = notes(&text.join("\n"), true);
+        assert_eq!(found.len(), 1);
+        let note = &found[0];
+        assert_eq!((note.start, note.end), (0, 300));
+        assert_eq!(note.message.id, "note.rat_replaced.text.many");
+        assert_eq!(note.message.params["count"], "300");
+        assert_eq!(
+            note.message.params["examples"],
+            "0.1 → 1/10, 0.2 → 2/10, 0.3 → 3/10"
+        );
+        assert!(note.message.text.len() < 200, "{}", note.message.text);
+        assert!(note.message.text.contains("ratprint: false$"));
+    }
+
+    #[test]
+    fn repeated_replacements_are_listed_once() {
+        let text = "rat: replaced 0.5 by 1/2 = 0.5\nrat: replaced 0.5 by 1/2 = 0.5";
+        let note = &notes(text, true)[0];
+        assert_eq!(note.message.id, "note.rat_replaced.text");
+        assert_eq!(note.message.params["replacements"], "0.5 → 1/2");
+        assert_eq!((note.start, note.end), (0, 2));
     }
 
     #[test]

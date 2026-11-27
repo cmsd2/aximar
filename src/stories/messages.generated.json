@@ -1176,6 +1176,25 @@
     {
       "notes": [
         {
+          "end": 4,
+          "id": "note.rat_replaced",
+          "message": {
+            "id": "note.rat_replaced.text.many",
+            "params": {
+              "count": "4",
+              "examples": "0.1 → 1/10, 0.2 → 1/5, 0.3 → 3/10"
+            },
+            "template": "Maxima replaced {count} decimals with exact fractions, such as {examples}. Add ratprint: false$ to hide these messages.",
+            "text": "Maxima replaced 4 decimals with exact fractions, such as 0.1 → 1/10, 0.2 → 1/5, 0.3 → 3/10. Add ratprint: false$ to hide these messages."
+          },
+          "start": 0
+        }
+      ],
+      "text_output": "rat: replaced 0.1 by 1/10 = 0.1\nrat: replaced 0.2 by 1/5 = 0.2\nrat: replaced 0.3 by 3/10 = 0.3\nrat: replaced 0.4 by 2/5 = 0.4"
+    },
+    {
+      "notes": [
+        {
           "end": 2,
           "id": "note.solve_arc_trig",
           "message": {

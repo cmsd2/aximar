@@ -2075,6 +2075,16 @@ msgctxt "note.rat_replaced.text"
 msgid "Maxima replaced decimals with exact fractions: {replacements}."
 msgstr ""
 
+#. i18n: Maxima printed "rat: replaced ..." more than 3 times. count is how
+#. many (always more than 3); examples lists the first few, such as
+#. "0.1 → 1/10, 0.2 → 1/5". "ratprint: false$" is Maxima code
+#. screen: notes--all-notes
+#: crates/aximar-core/src/maxima/notes.rs
+#, rust-format
+msgctxt "note.rat_replaced.text.many"
+msgid "Maxima replaced {count} decimals with exact fractions, such as {examples}. Add ratprint: false$ to hide these messages."
+msgstr ""
+
 #. i18n: Maxima: "solve: using arc-trig functions to get a solution. Some solutions will be lost."
 #. screen: notes--all-notes
 #: crates/aximar-core/src/maxima/notes.rs

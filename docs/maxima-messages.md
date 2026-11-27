@@ -323,11 +323,12 @@ Parameters: `expr`, `function`, `point`
 
 Covers: "rat: replaced 0.5 by 1/2 = 0.5", one line per number. replacements lists them, such as "0.25 → 1/4, 0.5 → 1/2" screen: cells--notebook screen: notes--all-notes
 
-Parameters: `replacements`
+Parameters: `count`, `examples`, `replacements`
 
 | Field | English |
 |---|---|
 | text | Maxima replaced decimals with exact fractions: {replacements}. |
+| text.many | Maxima replaced {count} decimals with exact fractions, such as {examples}. Add ratprint: false$ to hide these messages. |
 
 ## `note.solve_arc_trig`
 

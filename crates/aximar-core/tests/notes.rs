@@ -85,6 +85,20 @@ async fn notes_in_real_output() {
     assert_eq!(out.notes.len(), 1, "{out:?}");
     assert_eq!(out.notes[0].id, "note.zero_power");
 
+    // A loop's hundreds of replacements: one short note
+    let out = run(
+        &ctx,
+        &catalog,
+        &packages,
+        "makelist(rat(i/10.0), i, 1, 300)$",
+    )
+    .await;
+    assert_eq!(out.notes.len(), 1, "{:?}", out.notes);
+    let note = &out.notes[0];
+    assert_eq!(note.message.id, "note.rat_replaced.text.many");
+    assert_eq!(note.end - note.start, out.text_output.lines().count());
+    assert!(note.message.text.len() < 200, "{}", note.message.text);
+
     // Print text stays text
     let out = run(&ctx, &catalog, &packages, "print(\"rat: my own label\")$").await;
     assert!(out.notes.is_empty(), "{out:?}");

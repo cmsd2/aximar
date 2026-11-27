@@ -64,6 +64,7 @@ const SAMPLES: &[&str] = &[
 /// Text output that reaches every note
 const NOTE_SAMPLES: &[&str] = &[
     "rat: replaced 0.5 by 1/2 = 0.5",
+    "rat: replaced 0.1 by 1/10 = 0.1\nrat: replaced 0.2 by 1/5 = 0.2\nrat: replaced 0.3 by 3/10 = 0.3\nrat: replaced 0.4 by 2/5 = 0.4",
     "solve: using arc-trig functions to get a solution.\nSome solutions will be lost.",
     "solve: dependent equations eliminated: (2)",
     "Principal Value",
