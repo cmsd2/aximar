@@ -37,7 +37,7 @@ None. No existing spec covers the Settings window or MCP client setup.
 - **Core**: `crates/aximar-core` gains a function that resolves which Maxima the Local backend would run and from where, so the status line and the session agree.
 - **MCP**: no change to tools or their results.
 - **Catalog**: new strings and `max-length` notes in `locales/messages.pot` and the catalogs.
-- **Docs**: `docs/i18n.md` (max-length notes), a Settings section in the user docs, `CHANGELOG.md`.
+- **Docs**: `docs/i18n.md` (max-length notes) and a Settings section in the user docs. `CHANGELOG.md` covers only the tools, so it doesn't change.
 - **Issues**: makes room for cmsd2/aximar#22 (kernel-events toggle) in the Maxima section, without closing it.
 
 ## Non-goals

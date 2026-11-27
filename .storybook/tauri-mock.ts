@@ -36,10 +36,12 @@ export function installTauriMock(): void {
         case "search_packages":
         case "list_categories":
           return [];
-        case "claude_mcp_status":
-        case "codex_mcp_status":
-        case "gemini_mcp_status":
-          return { installed: true, configured: false };
+        case "mcp_clients_status":
+          return {
+            claude: { installed: "/usr/local/bin/claude", configured: { state: "unchecked" } },
+            codex: { installed: "/usr/local/bin/codex", configured: { state: "yes" } },
+            gemini: { installed: null, configured: { state: "no" } },
+          };
         case "plugin:event|listen":
           return 1;
         default:

@@ -6,9 +6,10 @@ import { activateLanguage, languageName } from "../lib/i18n";
 import { open as openDialog } from "@tauri-apps/plugin-dialog";
 import { TRANSLATOR_TOOLS, currentPreviewPath, startPreview, stopPreview } from "../lib/translation-preview";
 import { setShowSources, showingSources } from "../lib/show-sources";
-import { getConfig, setConfig, listWslDistros, checkWslMaxima, markdownFontStack, applyPrintMargins, claudeMcpStatus, claudeMcpConfigure, codexMcpStatus, codexMcpConfigure, geminiMcpStatus, geminiMcpConfigure, type AppConfig, type ClaudeMcpStatus, type CodexMcpStatus, type GeminiMcpStatus } from "../lib/config-client";
+import { getConfig, setConfig, listWslDistros, checkWslMaxima, markdownFontStack, applyPrintMargins, type AppConfig } from "../lib/config-client";
 import { useNotebookStore, type Theme, type CellStyle, type AutocompleteMode } from "../store/notebookStore";
 import { useLogStore } from "../store/logStore";
+import { AiClients } from "./settings/AiClients";
 
 interface SettingsModalProps {
   onClose: () => void;
@@ -151,185 +152,6 @@ function McpTokenRow({ token, onRegenerate }: { token: string; onRegenerate: (to
             {t({ message: "Regenerate", comment: "Settings button: replaces the MCP token with a new random one" })}
           </button>
         </div>
-      </div>
-    </div>
-  );
-}
-
-/** The Configure button and status of one AI tool's MCP setup */
-function McpSetupControls({
-  cli,
-  status,
-  loading,
-  error,
-  onConfigure,
-}: {
-  /** The tool's command name, such as claude */
-  cli: string;
-  status: { installed: boolean; configured: boolean } | null;
-  loading: boolean;
-  error: string | null;
-  onConfigure: () => void;
-}) {
-  const { t } = useLingui();
-  const notInstalled = status !== null && !status.installed;
-
-  return (
-    <div className="settings-claude-setup">
-      <button
-        className="settings-token-btn"
-        disabled={loading || notInstalled}
-        onClick={onConfigure}
-      >
-        {loading
-          ? t({ message: "Configuring...", comment: "Settings: the Configure button of an AI tool while it adds Aximar's MCP server" })
-          : status?.configured
-            ? t({
-                message: "Reconfigure",
-                comment: "Settings button: adds Aximar's MCP server to an AI tool's configuration again, with the current address and token",
-              })
-            : t({
-                message: "Configure",
-                comment: "Settings button: adds Aximar's MCP server to an AI tool's configuration, such as Claude Code's",
-              })}
-      </button>
-      {status === null ? null : notInstalled ? (
-        <span className="settings-claude-status settings-claude-warn">
-          {t({
-            message: `${cli} CLI not found`,
-            comment: "Settings: shown beside an AI tool when its command is not installed. cli is the command name, such as claude",
-          })}
-        </span>
-      ) : status.configured ? (
-        <span className="settings-claude-status settings-claude-ok">
-          {t({ message: "Configured", comment: "Settings: shown beside an AI tool whose configuration includes Aximar's MCP server" })}
-        </span>
-      ) : error ? (
-        <span className="settings-claude-status settings-claude-err">{error}</span>
-      ) : (
-        <span className="settings-claude-status settings-claude-warn">
-          {t({
-            message: "Not configured",
-            comment: "Settings: shown beside an AI tool whose configuration does not include Aximar's MCP server",
-          })}
-        </span>
-      )}
-    </div>
-  );
-}
-
-function ClaudeCodeSetup({ address, token }: { address: string; token: string }) {
-  const [status, setStatus] = useState<ClaudeMcpStatus | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const checkStatus = useCallback(() => {
-    claudeMcpStatus()
-      .then((s) => { setStatus(s); setError(null); })
-      .catch(() => setStatus({ installed: false, configured: false }));
-  }, []);
-
-  useEffect(() => { checkStatus(); }, [checkStatus, address, token]);
-
-  const handleConfigure = useCallback(() => {
-    const url = `http://${address}/mcp`;
-    setLoading(true);
-    setError(null);
-    claudeMcpConfigure(url, token)
-      .then(() => { checkStatus(); })
-      .catch((e) => setError(String(e)))
-      .finally(() => setLoading(false));
-  }, [address, token, checkStatus]);
-
-  return (
-    <div className="settings-row">
-      <label className="settings-label">Claude Code</label>
-      <div className="settings-control">
-        <McpSetupControls
-          cli="claude"
-          status={status}
-          loading={loading}
-          error={error}
-          onConfigure={handleConfigure}
-        />
-      </div>
-    </div>
-  );
-}
-
-function CodexSetup({ address, token }: { address: string; token: string }) {
-  const [status, setStatus] = useState<CodexMcpStatus | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const checkStatus = useCallback(() => {
-    codexMcpStatus()
-      .then((s) => { setStatus(s); setError(null); })
-      .catch(() => setStatus({ installed: false, configured: false }));
-  }, []);
-
-  useEffect(() => { checkStatus(); }, [checkStatus, address, token]);
-
-  const handleConfigure = useCallback(() => {
-    const url = `http://${address}/mcp`;
-    setLoading(true);
-    setError(null);
-    codexMcpConfigure(url, token)
-      .then(() => { checkStatus(); })
-      .catch((e) => setError(String(e)))
-      .finally(() => setLoading(false));
-  }, [address, token, checkStatus]);
-
-  return (
-    <div className="settings-row">
-      <label className="settings-label">Codex</label>
-      <div className="settings-control">
-        <McpSetupControls
-          cli="codex"
-          status={status}
-          loading={loading}
-          error={error}
-          onConfigure={handleConfigure}
-        />
-      </div>
-    </div>
-  );
-}
-
-function GeminiSetup({ address, token }: { address: string; token: string }) {
-  const [status, setStatus] = useState<GeminiMcpStatus | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const checkStatus = useCallback(() => {
-    geminiMcpStatus()
-      .then((s) => { setStatus(s); setError(null); })
-      .catch(() => setStatus({ installed: false, configured: false }));
-  }, []);
-
-  useEffect(() => { checkStatus(); }, [checkStatus, address, token]);
-
-  const handleConfigure = useCallback(() => {
-    const url = `http://${address}/mcp`;
-    setLoading(true);
-    setError(null);
-    geminiMcpConfigure(url, token)
-      .then(() => { checkStatus(); })
-      .catch((e) => setError(String(e)))
-      .finally(() => setLoading(false));
-  }, [address, token, checkStatus]);
-
-  return (
-    <div className="settings-row">
-      <label className="settings-label">Gemini CLI</label>
-      <div className="settings-control">
-        <McpSetupControls
-          cli="gemini"
-          status={status}
-          loading={loading}
-          error={error}
-          onConfigure={handleConfigure}
-        />
       </div>
     </div>
   );
@@ -956,9 +778,7 @@ export function SettingsModal({ onClose, onSetVariablesOpen }: SettingsModalProp
 
                 <McpTokenRow token={config.mcp_token} onRegenerate={(newToken) => update({ mcp_token: newToken })} />
 
-                <ClaudeCodeSetup address={config.mcp_listen_address} token={config.mcp_token} />
-                <CodexSetup address={config.mcp_listen_address} token={config.mcp_token} />
-                <GeminiSetup address={config.mcp_listen_address} token={config.mcp_token} />
+                <AiClients address={config.mcp_listen_address} token={config.mcp_token} />
               </>
             )}
 

@@ -1,12 +1,12 @@
 ## 1. AI clients without running them (one PR, lands first)
 
-- [ ] 1.1 Move the MCP client commands from `src-tauri/src/commands/config.rs` into `src-tauri/src/commands/mcp_clients.rs` without changing them; verify `cargo test -p aximar` passes and the window's three rows still work
-- [ ] 1.2 Add `find_command(name)` over PATH plus the extra install directories, using the `which` crate; verify with unit tests `finds_a_command_on_path`, `finds_a_command_in_an_extra_directory` and `a_missing_command_is_none`, each using a temporary directory with an executable file
-- [ ] 1.3 Add `mcp_clients_status`, reading `~/.codex/config.toml` and `~/.gemini/settings.json` from a home directory passed in, with Claude always `Unchecked`; verify with unit tests `codex_configured_from_its_file`, `codex_without_a_file_is_not_configured`, `a_broken_gemini_file_is_an_error` and `claude_is_unchecked`
-- [ ] 1.4 Add `claude_mcp_check` with a 10-second timeout, and make `claude_mcp_configure` run the found path; verify with a test that points it at a stub script that sleeps 20 seconds and expects the timeout result (`#[cfg(unix)]`)
-- [ ] 1.5 Remove `claude_mcp_status`, `codex_mcp_status` and `gemini_mcp_status` and their clients in `src/lib/config-client.ts`; switch the three rows to `mcp_clients_status`, a Check button for Claude Code, and a check after Configure; verify `npm run lint`, `npm test` and `cargo clippy --workspace --all-targets -- -D warnings` are clean
-- [ ] 1.6 Add a vitest test `settings-ai-clients.test.tsx` that mocks `invoke`, opens Settings and asserts only `mcp_clients_status` was called, and that pressing Check calls `claude_mcp_check` once
-- [ ] 1.7 Add a CHANGELOG entry under Unreleased (Changed: opening Settings runs no AI client program; Claude Code is checked on request) and verify by hand that opening Settings on macOS starts no `claude`, `codex` or `gemini` process (`ps` while the window is open)
+- [x] 1.1 Move the MCP client commands from `src-tauri/src/commands/config.rs` into `src-tauri/src/commands/mcp_clients.rs` without changing them; verify `cargo test -p aximar` passes and the window's three rows still work
+- [x] 1.2 Add `find_command(name)` over PATH plus the extra install directories, using the `which` crate; verify with unit tests `finds_a_command_on_path`, `finds_a_command_in_an_extra_directory` and `a_missing_command_is_none`, each using a temporary directory with an executable file
+- [x] 1.3 Add `mcp_clients_status`, reading `~/.codex/config.toml` and `~/.gemini/settings.json` from a home directory passed in, with Claude always `Unchecked`; verify with unit tests `codex_configured_from_its_file`, `codex_without_a_file_is_not_configured`, `a_broken_gemini_file_is_an_error` and `claude_is_unchecked`
+- [x] 1.4 Add `claude_mcp_check` with a 10-second timeout, and make `claude_mcp_configure` run the found path; verify with a test that points it at a stub script that sleeps 20 seconds and expects the timeout result (`#[cfg(unix)]`)
+- [x] 1.5 Remove `claude_mcp_status`, `codex_mcp_status` and `gemini_mcp_status` and their clients in `src/lib/config-client.ts`; switch the three rows to `mcp_clients_status`, a Check button for Claude Code, and a check after Configure; verify `npm run lint`, `npm test` and `cargo clippy --workspace --all-targets -- -D warnings` are clean
+- [x] 1.6 Add a vitest test `settings-ai-clients.test.tsx` that mocks `invoke`, opens Settings and asserts only `mcp_clients_status` was called, and that pressing Check calls `claude_mcp_check` once
+- [ ] 1.7 Verify by hand that opening Settings on macOS starts no `claude`, `codex` or `gemini` process (`ps` while the window is open)
 
 ## 2. Sections, with no change in behaviour (one PR)
 
@@ -38,4 +38,4 @@
 ## 5. Docs (with group 4's PR)
 
 - [ ] 5.1 Describe the sections, the deep links and the AI client checks in the user docs under `docs/`, and add the Settings sidebar's `max-length` limit to `docs/i18n.md`; verify the links in the new text resolve
-- [ ] 5.2 Add CHANGELOG entries for groups 2 to 4 under Unreleased, and verify `openspec validate settings-window` passes before archiving
+- [ ] 5.2 Leave CHANGELOG.md alone, since it covers only the `tools-v*` releases and none of these changes reach the tools, and verify `openspec validate settings-window` passes before archiving

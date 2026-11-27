@@ -129,7 +129,7 @@ Nothing. No MCP tool or result changes, and notebooks don't store settings. The 
 
 - **[Esc in a native select]** WebKit may deliver Esc to the page when a native `<select>` popup closes. → The shell ignores Esc whose target is a `<select>`. The by-hand check (task 4.4) covers macOS, Windows and Linux.
 - **[PATH lookup finds a different claude than the shell]** Extra directories come after PATH, so a user whose shell PATH differs from the app's could see a different binary. → The row's hint shows the path Aximar found, and the check runs that path.
-- **[Unchecked looks like a regression]** Users who saw "Configured" at once now see "Not checked" for Claude Code. → The row's Check button sits next to the status, and Configure checks afterwards. The CHANGELOG entry gives the reason.
+- **[Unchecked looks like a regression]** Users who saw "Configured" at once now see "Not checked" for Claude Code. → The row's Check button sits next to the status, and Configure checks afterwards. The user docs give the reason.
 - **[More strings for translators]** About 30 hints and labels arrive in the catalog. → Each has a note, and the Settings stories put them in the gallery.
 - **[The split changes many lines at once]** → Group 2 moves code without changing behaviour, behind the existing stories and a new test, before later groups change behaviour.
 - **[Group order]** The AI client change (group 1) lands first and works with the current flat window, since it removes the program runs that set off the malware alert. The sections come after it.

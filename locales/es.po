@@ -17,7 +17,7 @@ msgid "(no output)"
 msgstr ""
 
 #. Settings: shown beside an AI tool when its command is not installed. cli is the command name, such as claude
-#: src/components/SettingsModal.tsx
+#: src/components/settings/AiClients.tsx
 msgid "{cli} CLI not found"
 msgstr ""
 
@@ -223,6 +223,11 @@ msgstr ""
 msgid "Busy"
 msgstr ""
 
+#. Settings: shown beside an AI tool whose configuration file isn't valid. file is the file's path; Aximar leaves the file alone
+#: src/components/settings/AiClients.tsx
+msgid "Can't read {file}"
+msgstr ""
+
 #. Button in the Unsaved Changes dialog: keeps the notebooks open
 #. Export as LaTeX button: closes the window without exporting
 #. screen: dialogs--export-latex
@@ -247,8 +252,14 @@ msgstr ""
 msgid "Cell style"
 msgstr ""
 
+#. Settings button: asks Claude Code, by running its claude command, whether its configuration lists Aximar's MCP server
+#: src/components/settings/AiClients.tsx
+msgid "Check"
+msgstr ""
+
+#. Settings: the Check button of Claude Code while Aximar asks Claude Code whether it lists Aximar's MCP server
 #. Settings: tooltip beside the WSL distro menu while Aximar looks for maxima in it
-#: src/components/SettingsModal.tsx
+#: src/components/settings/AiClients.tsx src/components/SettingsModal.tsx
 msgid "Checking..."
 msgstr ""
 
@@ -303,17 +314,17 @@ msgstr ""
 
 #. Settings button: adds Aximar's MCP server to an AI tool's configuration, such as Claude Code's
 #. screen: dialogs--settings
-#: src/components/SettingsModal.tsx
+#: src/components/settings/AiClients.tsx
 msgid "Configure"
 msgstr ""
 
 #. Settings: shown beside an AI tool whose configuration includes Aximar's MCP server
-#: src/components/SettingsModal.tsx
+#: src/components/settings/AiClients.tsx
 msgid "Configured"
 msgstr ""
 
 #. Settings: the Configure button of an AI tool while it adds Aximar's MCP server
-#: src/components/SettingsModal.tsx
+#: src/components/settings/AiClients.tsx
 msgid "Configuring..."
 msgstr ""
 
@@ -905,9 +916,14 @@ msgstr ""
 msgid "No results"
 msgstr ""
 
+#. Settings: shown beside Claude Code until the user presses Check; Aximar doesn't run claude without being asked
+#: src/components/settings/AiClients.tsx
+msgid "Not checked"
+msgstr ""
+
 #. Settings: shown beside an AI tool whose configuration does not include Aximar's MCP server
 #. screen: dialogs--settings
-#: src/components/SettingsModal.tsx
+#: src/components/settings/AiClients.tsx
 msgid "Not configured"
 msgstr ""
 
@@ -1007,7 +1023,7 @@ msgid "Ready"
 msgstr ""
 
 #. Settings button: adds Aximar's MCP server to an AI tool's configuration again, with the current address and token
-#: src/components/SettingsModal.tsx
+#: src/components/settings/AiClients.tsx
 msgid "Reconfigure"
 msgstr ""
 
@@ -1217,6 +1233,11 @@ msgstr ""
 #. screen: window--toolbar-and-tabs
 #: src/components/Toolbar.tsx
 msgid "Templates"
+msgstr ""
+
+#. Settings: shown beside Claude Code when its claude command took too long to answer
+#: src/components/settings/AiClients.tsx
+msgid "The check timed out"
 msgstr ""
 
 #. Settings: the label of the theme buttons
