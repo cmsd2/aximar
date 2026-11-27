@@ -100,7 +100,7 @@ fn note_at(lines: &[&str], i: usize) -> Option<Note> {
                 "note.rat_replaced.text",
                 // i18n: Maxima: "rat: replaced 0.5 by 1/2 = 0.5", one line per number.
                 // replacements lists them, such as "0.25 → 1/4, 0.5 → 1/2"
-                "Maxima replaced decimals with exact fractions: {replacements}.",
+                "Maxima replaced decimals with exact fractions: `{replacements}`.",
                 replacements = replacements
             )
         } else {
@@ -110,7 +110,7 @@ fn note_at(lines: &[&str], i: usize) -> Option<Note> {
                 // i18n: Maxima printed "rat: replaced ..." more than 3 times. count is how
                 // many (always more than 3); examples lists the first few, such as
                 // "0.1 → 1/10, 0.2 → 1/5". "ratprint: false$" is Maxima code
-                "Maxima replaced {count} decimals with exact fractions, such as {examples}. Add ratprint: false$ to hide these messages.",
+                "Maxima replaced {count} decimals with exact fractions, such as `{examples}`. Add `ratprint: false$` to hide these messages.",
                 count = count,
                 examples = examples
             )
@@ -129,7 +129,7 @@ fn note_at(lines: &[&str], i: usize) -> Option<Note> {
             msg_ctx!(
                 "note.solve_arc_trig.text",
                 // i18n: Maxima: "solve: using arc-trig functions to get a solution. Some solutions will be lost."
-                "solve used inverse trigonometric functions, so it gives only some of the solutions."
+                "`solve` used inverse trigonometric functions, so it gives only some of the solutions."
             ),
             len,
         ));
@@ -143,7 +143,7 @@ fn note_at(lines: &[&str], i: usize) -> Option<Note> {
                 "note.solve_dependent.text",
                 // i18n: Maxima: "solve: dependent equations eliminated: (2)".
                 // equations lists their positions, such as (2)
-                "solve dropped equations that follow from the others: {equations}.",
+                "`solve` dropped equations that follow from the others: {equations}.",
                 equations = equations
             ),
             1,
@@ -170,7 +170,7 @@ fn note_at(lines: &[&str], i: usize) -> Option<Note> {
                 "note.plot_non_numeric.text",
                 // i18n: Maxima: "plot2d: expression evaluates to non-numeric value somewhere in plotting range."
                 // function is plot2d or plot3d
-                "{function} left out points where the expression has no real value.",
+                "`{function}` left out points where the expression has no real value.",
                 function = function
             ),
             1,
@@ -186,7 +186,7 @@ fn note_at(lines: &[&str], i: usize) -> Option<Note> {
                     "note.quadrature_undefined.text",
                     // i18n: Maxima: "quad_qags: Numerical evaluation of f at 0.0 is not a float or is not defined".
                     // function is a quadrature function; expr a Maxima expression; point a number
-                    "{function} couldn't evaluate {expr} at {point}, so the result may be inaccurate.",
+                    "`{function}` couldn't evaluate `{expr}` at `{point}`, so the result may be inaccurate.",
                     function = function,
                     expr = expr,
                     point = point
@@ -223,7 +223,7 @@ fn note_at(lines: &[&str], i: usize) -> Option<Note> {
             msg_ctx!(
                 "note.tellsimp_noncommutative.text",
                 // i18n: Maxima: "tellsimp: warning: rule will treat '+' as noncommutative and nonassociative."
-                "tellsimp will treat the rule's main operator as noncommutative and nonassociative, so the rule matches only terms in the order it was written."
+                "`tellsimp` will treat the rule's main operator as noncommutative and nonassociative, so the rule matches only terms in the order it was written."
             ),
             len,
         ));

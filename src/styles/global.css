@@ -1456,25 +1456,42 @@
 
 .output-note-line {
   display: flex;
-  align-items: baseline;
-  gap: 6px;
+  align-items: flex-start;
+  gap: var(--space-1);
   font-size: 13px;
   color: var(--text-secondary);
 }
 
-.output-note-mark {
+/* Level with the first line of the note's text */
+.output-note-icon {
   flex: none;
+  margin-top: var(--space-half);
 }
 
+/* A quiet button after the note's text, like the one under an error */
 .output-note-toggle {
-  flex: none;
+  margin-left: var(--space-1);
   background: none;
   border: none;
   padding: 0;
   font-size: 11px;
   color: var(--text-secondary);
-  text-decoration: underline;
   cursor: pointer;
+}
+
+.output-note-toggle:hover {
+  color: var(--text-primary);
+}
+
+/* Code in an explanation or a note: a template's backticks (lib/messages.ts) */
+.message-code {
+  font-family: var(--font-mono);
+  font-size: 0.92em;
+  color: var(--text-primary);
+  /* A chip, so a one-character span such as ) still reads as code */
+  background: var(--bg-secondary);
+  padding: 0 var(--space-half);
+  border-radius: var(--radius-sm);
 }
 
 .output-note-maxima {
@@ -1485,7 +1502,8 @@
   font-size: 12px;
   white-space: pre-wrap;
   word-break: break-word;
-  margin: 2px 0 0 20px;
+  /* Under the note's text, past the icon */
+  margin: 2px 0 0 calc(15px + var(--space-1));
   color: var(--text-primary);
 }
 

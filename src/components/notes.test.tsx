@@ -1,4 +1,6 @@
 // @vitest-environment happy-dom
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { act } from "react";
 import { createRoot } from "react-dom/client";
@@ -21,14 +23,14 @@ const text = [
   "bye",
 ].join("\n");
 
-const template = "Maxima replaced decimals with exact fractions: {replacements}.";
+const template = "Maxima replaced decimals with exact fractions: `{replacements}`.";
 const ratNote: Note = {
   id: "note.rat_replaced",
   message: {
     id: "note.rat_replaced.text",
     template,
     params: { replacements: "0.25 → 1/4, 0.5 → 1/2" },
-    text: "Maxima replaced decimals with exact fractions: 0.25 → 1/4, 0.5 → 1/2.",
+    text: "Maxima replaced decimals with exact fractions: `0.25 → 1/4, 0.5 → 1/2`.",
   },
   start: 1,
   end: 3,
@@ -61,12 +63,14 @@ describe("notes in a cell's output", () => {
   it("show in the user's language", () => {
     i18n.load("es", {
       [generateMessageId(template, "note.rat_replaced.text")]: compileMessage(
-        "Maxima sustituyó decimales por fracciones exactas: {replacements}.",
+        "Maxima sustituyó decimales por fracciones exactas: `{replacements}`.",
       ),
     });
     i18n.activate("es");
     const html = renderToStaticMarkup(element([ratNote]));
-    expect(html).toContain("Maxima sustituyó decimales por fracciones exactas: 0.25 → 1/4, 0.5 → 1/2.");
+    expect(html).toContain(
+      'Maxima sustituyó decimales por fracciones exactas: <code class="message-code">0.25 → 1/4, 0.5 → 1/2</code>.',
+    );
   });
 
   it("show Maxima's lines in place on request", async () => {
@@ -85,6 +89,24 @@ describe("notes in a cell's output", () => {
     );
     expect(toggle.textContent).toBe("Hide Maxima's text");
     root.unmount();
+  });
+
+  it("start with the info icon and set code in the code font", () => {
+    const div = document.createElement("div");
+    div.innerHTML = renderToStaticMarkup(element([ratNote]));
+    const line = div.querySelector(".output-note-line")!;
+    expect(line.firstElementChild?.matches("svg.output-note-icon")).toBe(true);
+    expect(line.textContent).not.toContain("ⓘ");
+    expect(line.querySelector(".output-note-text code.message-code")?.textContent).toBe("0.25 → 1/4, 0.5 → 1/2");
+    expect(line.querySelector(".output-note-text")?.textContent).not.toContain("`");
+  });
+
+  it("have a quiet button for Maxima's text, without an underline", () => {
+    // The tests run from the project's root; happy-dom's import.meta.url isn't a file
+    const css = readFileSync(resolve(process.cwd(), "src/styles/global.css"), "utf8");
+    const rule = css.match(/\.output-note-toggle \{([^}]*)\}/)![1];
+    expect(rule).not.toMatch(/text-decoration/);
+    expect(rule).toContain("background: none");
   });
 
   it("leave text without notes as Maxima printed it", () => {

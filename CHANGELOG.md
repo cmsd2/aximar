@@ -58,6 +58,12 @@ see the `v*` releases on GitHub.
   "Principal Value" and "expt: undefined: 0 to a negative exponent." in a
   cell that still has a result. Notes aren't written to files; opening a
   notebook finds them again.
+- **Code in explanations and notes is marked**: the English text of
+  `error_info` and of notes puts backticks around code, as in Markdown:
+  "`` `allroots` `` works only on polynomials, but got `` `sin(x)` ``.",
+  "Maxima replaced decimals with exact fractions: `` `0.5 → 1/2` ``." IDs and
+  parameters are unchanged; the templates in `messages` carry the same
+  backticks. Clients that show `text` raw now show the backticks.
 - **More errors explained**: `log(0)`, an index past the end of a list or
   expression, taking parts of an atom, assigning to something that isn't
   a variable, `first` or `last` of an empty list, a non-polynomial given
@@ -71,7 +77,7 @@ see the `v*` releases on GitHub.
   `assume`.
 - **Wrong argument counts name the definition**: calling a user function or
   lambda with the wrong arguments explains it with the definition and the
-  arguments given ("f is defined as f(x), but was called with [1,2]."),
+  arguments given ("`f` is defined as `f(x)`, but was called with `[1,2]`."),
   and no longer suggests `describe`, which only knows Maxima's own
   functions.
 - **Documentation in a language**: `get_function_docs` and

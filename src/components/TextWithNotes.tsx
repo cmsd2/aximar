@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { useLingui } from "@lingui/react/macro";
 import type { Note } from "../types/maxima";
-import { messageText } from "../lib/messages";
+import { messageContent } from "../lib/messages";
 import { RichTextOutput } from "./RichTextOutput";
+import { IconInfoCircle } from "./ui/icons";
 
 interface TextWithNotesProps {
   /** The cell's text output */
@@ -42,21 +43,21 @@ export function NoteLine({ note, lines }: { note: Note; lines: string[] }) {
   return (
     <div className="output-note">
       <div className="output-note-line">
-        <span className="output-note-mark" aria-hidden="true">
-          ⓘ
+        <IconInfoCircle className="output-note-icon" size={15} stroke={1.75} aria-hidden="true" />
+        <span className="output-note-text">
+          {messageContent(i18n, note.message)}
+          <button className="output-note-toggle" onClick={() => setShowMaxima(!showMaxima)}>
+            {showMaxima
+              ? t({
+                  message: "Hide Maxima's text",
+                  comment: "Button on a note in a cell's output: hides the lines Maxima printed, which the note explains",
+                })
+              : t({
+                  message: "Show Maxima's text",
+                  comment: "Button on a note in a cell's output: shows the lines Maxima printed, which the note explains",
+                })}
+          </button>
         </span>
-        <span className="output-note-text">{messageText(i18n, note.message)}</span>
-        <button className="output-note-toggle" onClick={() => setShowMaxima(!showMaxima)}>
-          {showMaxima
-            ? t({
-                message: "Hide Maxima's text",
-                comment: "Button on a note in a cell's output: hides the lines Maxima printed, which the note explains",
-              })
-            : t({
-                message: "Show Maxima's text",
-                comment: "Button on a note in a cell's output: shows the lines Maxima printed, which the note explains",
-              })}
-        </button>
       </div>
       {showMaxima && <pre className="output-note-maxima">{lines.join("\n")}</pre>}
     </div>

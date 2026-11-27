@@ -17,11 +17,11 @@
 
 ## 3. Code in explanations and notes (one PR)
 
-- [ ] 3.1 In `lib/messages.ts`, render a message as prose and code spans: call Lingui with sentinels for the parameters, split the translation on backticks, then put the values back; keep a plain-string variant; verify with vitest tests for a code span, a parameter inside one, a value containing a backquote, an unbalanced backtick, and a message with no backticks
-- [ ] 3.2 Add backticks around code in the English templates of the explanations and notes in `crates/aximar-core` (function names, expressions, values), regenerate `docs/maxima-messages.md` and the catalogs; verify with `cargo test -p aximar-core` (the message tests and `tests/maxima_messages.rs`), `scripts/i18n-extract --check`, and a list of the changed IDs in the PR
-- [ ] 3.3 Make `scripts/i18n-extract --check` warn when a translation's backtick count differs from its English, and add a line to the translator guide in `docs/i18n.md`; verify by adding a translation with a missing backtick to a test catalog and seeing the warning
-- [ ] 3.4 Restyle notes in `TextWithNotes.tsx`: Tabler info icon, code spans from 3.1, and a quiet "Show Maxima's text" button without an underline; verify with the vitest notes tests and the Notes "All notes" story in both styles
-- [ ] 3.5 Check that MCP results carry the backticks: a test in `crates/aximar-mcp` that a cell giving `note.rat_replaced` returns text with "`0.5 → 1/2`" (needs a live Maxima, so `#[ignore]` with the others)
+- [x] 3.1 In `lib/messages.ts`, render a message as prose and code spans: call Lingui with sentinels for the parameters, split the translation on backticks, then put the values back; keep a plain-string variant; verify with vitest tests for a code span, a parameter inside one, a value containing a backquote, an unbalanced backtick, and a message with no backticks
+- [x] 3.2 Add backticks around code in the English templates of the explanations and notes in `crates/aximar-core` (function names, expressions, values), regenerate `docs/maxima-messages.md` and the catalogs; verify with `cargo test -p aximar-core` (the message tests and `tests/maxima_messages.rs`), `scripts/i18n-extract --check`, and a list of the changed IDs in the PR
+- [x] 3.3 Make `scripts/i18n-extract --check` warn when a translation's backtick count differs from its English, and add a line to the translator guide in `docs/i18n.md`; verify by adding a translation with a missing backtick to a test catalog and seeing the warning
+- [x] 3.4 Restyle notes in `TextWithNotes.tsx`: Tabler info icon, code spans from 3.1, and a quiet "Show Maxima's text" button without an underline; verify with the vitest notes tests and the Notes "All notes" story in both styles
+- [x] 3.5 Check that MCP results carry the backticks: a test in `crates/aximar-mcp` that a cell giving `note.rat_replaced` returns text with "`0.5 → 1/2`" (needs a live Maxima, so `#[ignore]` with the others)
 
 ## 4. Suggestions (one PR)
 
