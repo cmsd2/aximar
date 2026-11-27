@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { save } from "@tauri-apps/plugin-dialog";
+import { t } from "@lingui/core/macro";
 import Plotly from "plotly.js-dist-min";
 import { useActiveTab, useNotebookStore } from "../store/notebookStore";
 import { useMaxima } from "../hooks/useMaxima";
@@ -29,7 +30,15 @@ export function CellSuggestions({ cell }: CellSuggestionsProps) {
       if (action === "save_svg" && cell.output?.plotSvg) {
         const path = await save({
           defaultPath: "plot.svg",
-          filters: [{ name: "SVG Image", extensions: ["svg"] }],
+          filters: [
+            {
+              name: t({
+                message: "SVG Image",
+                comment: "File type in the Save dialog when saving a plot as SVG",
+              }),
+              extensions: ["svg"],
+            },
+          ],
         });
         if (path) {
           await invoke("write_plot_svg", { path, content: cell.output.plotSvg });
@@ -49,10 +58,19 @@ export function CellSuggestions({ cell }: CellSuggestionsProps) {
         const isSvg = action === "save_plotly_svg";
         const format = isSvg ? "svg" : "png";
         const ext = format;
+        const kind = ext.toUpperCase();
 
         const path = await save({
           defaultPath: `plot.${ext}`,
-          filters: [{ name: `${ext.toUpperCase()} Image`, extensions: [ext] }],
+          filters: [
+            {
+              name: t({
+                message: `${kind} Image`,
+                comment: "File type in the Save dialog when saving a plot. kind is the image format, SVG or PNG",
+              }),
+              extensions: [ext],
+            },
+          ],
         });
         if (!path) return;
 

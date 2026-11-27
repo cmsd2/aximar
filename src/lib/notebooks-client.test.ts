@@ -1,4 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+// Activates English for the dialog text
+import "./i18n";
 
 const calls = vi.hoisted(() => [] as unknown[][]);
 const dialog = vi.hoisted(() => ({ savePath: "/work/new.macnb" as string | null }));

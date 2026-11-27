@@ -3,6 +3,7 @@ import { listen } from "@tauri-apps/api/event";
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { message } from "@tauri-apps/plugin-dialog";
+import { t } from "@lingui/core/macro";
 import { confirmClose, saveNotebookTab } from "./lib/unsaved-changes";
 import { TabBar } from "./components/TabBar";
 import { Toolbar } from "./components/Toolbar";
@@ -37,6 +38,8 @@ import {
   savePlotFile,
 } from "./lib/notebooks-client";
 import { getConfig, markdownFontStack, applyPrintMargins } from "./lib/config-client";
+import { activateLanguage } from "./lib/i18n";
+import { TRANSLATOR_TOOLS, applyPreview, type PreviewCatalog } from "./lib/translation-preview";
 import { useNotebookStore, useActiveAnyTab, getActiveTabState } from "./store/notebookStore";
 import { mapSyncCells, openNotebookTab } from "./hooks/useNotebookEvents";
 import { PlotViewer } from "./components/PlotViewer";
@@ -107,12 +110,34 @@ function App() {
           );
         }
         setVariablesOpen(cfg.variables_open);
+        void activateLanguage(cfg.language);
         for (const w of warnings) {
           addLogEntry("warning", w, "config");
         }
       })
       .catch((e) => addLogEntry("error", `Failed to load config: ${e}`, "config"));
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // A translation file being previewed was loaded or saved (pre-release builds)
+  useEffect(() => {
+    if (!TRANSLATOR_TOOLS) return;
+    const unlisten = listen<PreviewCatalog>("translation-preview", (event) => {
+      void applyPreview(event.payload);
+    });
+    return () => {
+      unlisten.then((fn) => fn());
+    };
+  }, []);
+
+  // The language setting changed, in this window or another
+  useEffect(() => {
+    const unlisten = listen<string>("language-changed", (event) => {
+      void activateLanguage(event.payload);
+    });
+    return () => {
+      unlisten.then((fn) => fn());
+    };
+  }, []);
 
   // Listen for raw Maxima output events from the backend
   useEffect(() => {
@@ -266,14 +291,22 @@ function App() {
 
     if (result.type === "plot") {
       // Open Plotly JSON as a plot viewer tab
-      const title = result.path.split("/").pop()?.split("\\").pop() ?? "Plot";
+      const title =
+        result.path.split("/").pop()?.split("\\").pop() ??
+        t({ message: "Plot", comment: "Tab title for an opened plot file whose file name could not be read" });
       const id = `plot-${crypto.randomUUID()}`;
       addPlotTab(id, title, result.plotData, result.path);
     } else {
       try {
         await openNotebookTab(result.path);
       } catch (e) {
-        await message(String(e), { title: "Couldn't Open Notebook", kind: "error" });
+        await message(String(e), {
+          title: t({
+            message: "Couldn't Open Notebook",
+            comment: "Title of the error dialog when a notebook file fails to open; the dialog shows the reason below",
+          }),
+          kind: "error",
+        });
       }
     }
   }, [addPlotTab]);

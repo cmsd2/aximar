@@ -1,4 +1,38 @@
+/** Text from aximar-core in English, with what's needed to translate it (message.rs) */
+export interface Message {
+  /** The catalog context, such as `note.rat_replaced.text` */
+  id: string;
+  /** The English template, the catalog's msgid */
+  template: string;
+  params: Record<string, string>;
+  /** The English, rendered */
+  text: string;
+}
+
+/** A note on some lines of a cell's text output (aximar-core's notes.rs) */
+export interface Note {
+  /** Such as `note.rat_replaced` */
+  id: string;
+  message: Message;
+  /** The text output lines it covers, from start to before end, from 0 */
+  start: number;
+  end: number;
+}
+
+/** Where a message's translation is found: its catalog context and English template */
+export interface MessageSource {
+  id: string;
+  template: string;
+}
+
+/** Aximar's explanation of an error, in English (see aximar-core's `errors.rs`) */
 export interface ErrorInfo {
+  /** Such as `error.division_by_zero`; missing from before IDs */
+  id?: string;
+  /** Every message's parameters, by placeholder name */
+  params?: Record<string, string>;
+  /** Each translatable field's source: `title`, `explanation`, `suggestion` */
+  messages?: Record<string, MessageSource>;
   title: string;
   explanation: string;
   suggestion: string | null;

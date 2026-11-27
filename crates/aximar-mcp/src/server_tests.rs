@@ -1764,3 +1764,273 @@ async fn undocumented_function_docs_read_cleanly() {
         "From the affine/macbasic package. It has no documentation. Load it with load(\"affine/macbasic\")$."
     );
 }
+
+// ── Language ─────────────────────────────────────────────────────────
+
+/// With the window in Spanish, connected mode's results stay in English,
+/// with the explanation's ID
+#[tokio::test]
+#[ignore = "requires Maxima to be installed"]
+async fn connected_mode_stays_in_english() {
+    let s = build_server_connected();
+    s.core.registry.lock().await.set_language(Some("es".into()));
+
+    let cell_id = add_code_cell(&s, "1/0;").await;
+    let run = parse_ok(
+        s.run_cell(Parameters(CellIdParams {
+            cell_id: cell_id.clone(),
+            notebook_id: None,
+        }))
+        .await,
+    );
+    assert_eq!(run["is_error"], true, "{run:#}");
+    assert!(
+        run["error"]
+            .as_str()
+            .unwrap()
+            .starts_with("expt: undefined: 0 to a negative exponent."),
+        "{run:#}"
+    );
+
+    let cell = parse_ok(
+        s.get_cell(Parameters(CellIdParams {
+            cell_id: cell_id.clone(),
+            notebook_id: None,
+        }))
+        .await,
+    );
+    let output = &cell["output"];
+    assert_eq!(
+        output["error_info"]["id"], "error.division_by_zero",
+        "{cell:#}"
+    );
+    assert_eq!(output["error_info"]["title"], "Division by Zero");
+    assert!(output.get("error_translated").is_none(), "{cell:#}");
+
+    // The window's copy of the cell has Maxima's Spanish
+    let ctx = s.core.resolve_context(None).await.unwrap();
+    let nb = ctx.notebook.lock().await;
+    let window_copy = nb.get_cell(&cell_id).unwrap().output.as_ref().unwrap();
+    assert_eq!(
+        window_copy.error_translated.as_deref(),
+        Some("expt: no definido: desde 0 a un exponente negativo.")
+    );
+}
+
+/// A question stops its cell with an error result, not a tool error
+#[tokio::test]
+#[ignore = "requires Maxima to be installed"]
+async fn run_cell_reports_a_question_as_a_cell_error() {
+    let s = build_server();
+    let v = parse_ok(
+        s.add_cell(Parameters(AddCellParams {
+            cell_type: Some("code".into()),
+            input: Some("integrate(exp(-a*x), x, 0, inf);".into()),
+            after_cell_id: None,
+            notebook_id: None,
+        }))
+        .await,
+    );
+    let cell_id = v["cell_id"].as_str().unwrap().to_string();
+    let run = parse_ok(
+        s.run_cell(Parameters(CellIdParams {
+            cell_id: cell_id.clone(),
+            notebook_id: None,
+        }))
+        .await,
+    );
+    assert_eq!(run["is_error"], true, "{run:#}");
+    assert!(
+        run["error"]
+            .as_str()
+            .unwrap()
+            .contains("Is a positive, negative or zero?"),
+        "{run:#}"
+    );
+    let cell = parse_ok(
+        s.get_cell(Parameters(CellIdParams {
+            cell_id,
+            notebook_id: None,
+        }))
+        .await,
+    );
+    assert_eq!(
+        cell["output"]["error_info"]["id"], "question.sign",
+        "{cell:#}"
+    );
+}
+
+// ── The survey ───────────────────────────────────────────────────────
+
+/// What a survey cell should give
+enum Expect {
+    Error(&'static str),
+    Note(&'static str),
+}
+
+/// The design's survey of Maxima's messages, run over MCP: each cell's
+/// explanation or note has its ID, in English
+#[tokio::test]
+#[ignore = "requires Maxima to be installed"]
+async fn survey_cells_over_mcp() {
+    use Expect::*;
+    let cells = [
+        ("integrate(exp(-a*x), x, 0, inf);", Error("question.sign")),
+        ("integrate(1/(x^2+k), x);", Error("question.sign_pn")),
+        ("integrate(x^a, x);", Error("question.equal")),
+        ("rat(0.5*x + 0.25);", Note("note.rat_replaced")),
+        ("solve(sin(x) = 1/2, x);", Note("note.solve_arc_trig")),
+        (
+            "solve([x+y=1, 2*x+2*y=2], [x,y]);",
+            Note("note.solve_dependent"),
+        ),
+        ("integrate(1/x, x, -1, 1);", Note("note.principal_value")),
+        ("romberg(1/x, x, 0, 1);", Note("note.zero_power")),
+        ("tellsimp(a+b, c);", Note("note.tellsimp_noncommutative")),
+        ("?car(1);", Error("error.lisp_type")),
+        ("g(n) := g(n + 1)$ g(1);", Error("error.recursion")),
+        ("exp(1000.0);", Error("error.float_overflow")),
+        ("log(0);", Error("error.log_zero")),
+        ("part([1,2], 5);", Error("error.part_index")),
+        ("part(x, 1);", Error("error.part_atom")),
+        ("2: 3;", Error("error.assign_target")),
+        ("first([]);", Error("error.empty_list")),
+        ("allroots(sin(x));", Error("error.not_polynomial")),
+        (
+            "algsys([sin(x)+y=1, x^2+y^2=2], [x,y]);",
+            Error("error.algsys_failed"),
+        ),
+        ("f(x;", Error("error.syntax_missing")),
+        ("1+;", Error("error.incomplete_input")),
+        ("x y;", Error("error.syntax_operator")),
+        ("1/0;", Error("error.division_by_zero")),
+        (
+            "integrate(1/x, x, 0, 1);",
+            Error("error.divergent_integral"),
+        ),
+    ];
+    let s = build_server();
+    let mut failures = Vec::new();
+    for (input, expect) in cells {
+        let cell_id = add_code_cell(&s, input).await;
+        let _ = s
+            .run_cell(Parameters(CellIdParams {
+                cell_id: cell_id.clone(),
+                notebook_id: None,
+            }))
+            .await;
+        let cell = parse_ok(
+            s.get_cell(Parameters(CellIdParams {
+                cell_id,
+                notebook_id: None,
+            }))
+            .await,
+        );
+        let output = &cell["output"];
+        let ok = match expect {
+            Error(id) => output["is_error"] == true && output["error_info"]["id"] == id,
+            Note(id) => {
+                output["is_error"] == false
+                    && output["notes"]
+                        .as_array()
+                        .is_some_and(|notes| notes.iter().any(|n| n["id"] == id))
+            }
+        };
+        if !ok {
+            failures.push(format!("{input}: {output}"));
+        }
+    }
+    assert!(failures.is_empty(), "{}", failures.join("\n\n"));
+}
+
+/// The "Messages from Maxima" template, run a cell at a time as its text
+/// says: each cell shows the error, question or note it's there for, and
+/// the suggested fixes work
+#[tokio::test]
+#[ignore = "requires Maxima to be installed"]
+async fn the_messages_template_shows_what_it_says() {
+    use Expect::*;
+    /// A cell that should run cleanly
+    const OK: Option<Expect> = None;
+    let expected = [
+        Some(Error("error.division_by_zero")),
+        Some(Error("error.arg_count")),
+        Some(Error("error.syntax_missing")),
+        Some(Error("error.recursion")),
+        Some(Error("question.sign")),
+        OK,
+        Some(Error("question.equal")),
+        OK,
+        Some(Error("question.property")),
+        OK,
+        Some(Error("question.sign")),
+        OK,
+        Some(Error("question.zero")),
+        Some(Error("question.sign_pn")),
+        OK,
+        Some(Error("question.sign")),
+        OK,
+        Some(Note("note.rat_replaced")),
+        Some(Note("note.rat_replaced")),
+        OK,
+        Some(Note("note.solve_arc_trig")),
+        Some(Note("note.principal_value")),
+        OK,
+    ];
+
+    let s = build_server();
+    parse_ok(
+        s.load_template(Parameters(LoadTemplateParams {
+            template_id: "maxima-messages".into(),
+            notebook_id: None,
+        }))
+        .await,
+    );
+    let cells = parse_ok(
+        s.list_cells(Parameters(NotebookIdParam { notebook_id: None }))
+            .await,
+    );
+    let code: Vec<String> = cells
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|c| c["cell_type"] == "code")
+        .map(|c| c["id"].as_str().unwrap().to_string())
+        .collect();
+    assert_eq!(code.len(), expected.len(), "one expectation per code cell");
+
+    let mut failures = Vec::new();
+    for (cell_id, expect) in code.into_iter().zip(expected) {
+        let _ = s
+            .run_cell(Parameters(CellIdParams {
+                cell_id: cell_id.clone(),
+                notebook_id: None,
+            }))
+            .await;
+        let cell = parse_ok(
+            s.get_cell(Parameters(CellIdParams {
+                cell_id,
+                notebook_id: None,
+            }))
+            .await,
+        );
+        let output = &cell["output"];
+        let ok = match expect {
+            Some(Error(id)) => output["is_error"] == true && output["error_info"]["id"] == id,
+            Some(Note(id)) => {
+                output["is_error"] == false
+                    && output["notes"]
+                        .as_array()
+                        .is_some_and(|notes| notes.iter().any(|n| n["id"] == id))
+            }
+            None => {
+                output["is_error"] == false
+                    && output["notes"].as_array().is_none_or(|n| n.is_empty())
+            }
+        };
+        if !ok {
+            failures.push(format!("{}: {output}", cell["input"]));
+        }
+    }
+    assert!(failures.is_empty(), "{}", failures.join("\n\n"));
+}

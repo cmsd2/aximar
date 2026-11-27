@@ -1,0 +1,2264 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: Aximar\n"
+"Report-Msgid-Bugs-To: https://github.com/cmsd2/aximar/issues\n"
+"PO-Revision-Date: \n"
+"Last-Translator: \n"
+"Language-Team: \n"
+"Language: en\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#. Shown in a cell's output area when the cell ran and produced nothing to show
+#: src/components/CellOutput.tsx
+msgid "(no output)"
+msgstr ""
+
+#. Settings: shown beside an AI tool when its command is not installed. cli is the command name, such as claude
+#: src/components/SettingsModal.tsx
+msgid "{cli} CLI not found"
+msgstr ""
+
+#. Template chooser: the number of cells in a starter notebook, under its description
+#. js-lingui:icu=%7Bcount%2C+plural%2C+one+%7B%23+cell%7D+other+%7B%23+cells%7D%7D&pluralize_on=count
+#. screen: dialogs--templates
+#: src/components/TemplateChooser.tsx
+msgid "# cell"
+msgid_plural "# cells"
+msgstr[0] ""
+msgstr[1] ""
+
+#. Command palette: how many functions a Maxima package provides
+#. Docs panel search results: how many functions a Maxima package provides
+#. js-lingui:icu=%7Bcount%2C+plural%2C+one+%7B%23+function%7D+other+%7B%23+functions%7D%7D&pluralize_on=count
+#: src/components/CommandPalette.tsx src/components/DocsPanel.tsx
+msgid "# function"
+msgid_plural "# functions"
+msgstr[0] ""
+msgstr[1] ""
+
+#. Hover tooltip of a Maxima function, under its first signatures: how many more signatures it has
+#. Signature hint while typing a Maxima function call, under the signatures shown: how many more it has
+#. js-lingui:icu=%7Bcount%2C+plural%2C+one+%7B%2B%23+more%7D+other+%7B%2B%23+more%7D%7D&pluralize_on=count
+#: src/lib/maxima-hover-tooltip.ts src/lib/maxima-signature-hint.ts
+msgid "+# more"
+msgid_plural "+# more"
+msgstr[0] ""
+msgstr[1] ""
+
+#. Unsaved Changes dialog, when closing several notebooks with changes. The number is how many
+#. js-lingui:icu=%7Bcount%2C+plural%2C+one+%7BDo+you+want+to+save+the+changes+you+made+to+%23+notebook%3F%7D+other+%7BDo+you+want+to+save+the+changes+you+made+to+%23+notebooks%3F%7D%7D&pluralize_on=count
+#: src/lib/unsaved-changes.ts
+msgid "Do you want to save the changes you made to # notebook?"
+msgid_plural "Do you want to save the changes you made to # notebooks?"
+msgstr[0] ""
+msgstr[1] ""
+
+#. Export as LaTeX: says how many selected cells the export covers
+#. js-lingui:icu=%7Bcount%2C+plural%2C+one+%7BExporting+%23+selected+cell%7D+other+%7BExporting+%23+selected+cells%7D%7D&pluralize_on=count
+#: src/components/ExportLatexModal.tsx
+msgid "Exporting # selected cell"
+msgid_plural "Exporting # selected cells"
+msgstr[0] ""
+msgstr[1] ""
+
+#. Export as LaTeX: says the export covers the whole notebook, and how many cells it has
+#. js-lingui:icu=%7Bcount%2C+plural%2C+one+%7BExporting+entire+notebook+%28%23+cell%29%7D+other+%7BExporting+entire+notebook+%28%23+cells%29%7D%7D&pluralize_on=count
+#. screen: dialogs--export-latex
+#: src/components/ExportLatexModal.tsx
+msgid "Exporting entire notebook (# cell)"
+msgid_plural "Exporting entire notebook (# cells)"
+msgstr[0] ""
+msgstr[1] ""
+
+#. Find bar: which match is selected; current is its position and total is the number of matches. max-length:12
+#: src/components/FindBar.tsx
+msgid "{current} of {total}"
+msgstr ""
+
+#. File type in the Save dialog when saving a plot. kind is the image format, SVG or PNG
+#. File type in the Save dialog when saving a plot. kind is the image format, SVG or PNG
+#: src/components/CellSuggestions.tsx src/components/PlotViewer.tsx
+msgid "{kind} Image"
+msgstr ""
+
+#. Toolbar button: adds a code cell below the active cell. max-length:12
+#. screen: window--toolbar-and-tabs
+#: src/components/Toolbar.tsx
+msgid "+ Cell"
+msgstr ""
+
+#. Button in the bar between cells: inserts a code cell there. max-length:12
+#: src/components/Notebook.tsx
+msgid "+ Code"
+msgstr ""
+
+#. Button in the bar between cells: inserts a markdown cell there. max-length:14
+#. Toolbar button: adds a Markdown text cell below the active cell. max-length:12
+#. screen: window--toolbar-and-tabs
+#: src/components/Notebook.tsx src/components/Toolbar.tsx
+msgid "+ Markdown"
+msgstr ""
+
+#. Command palette footer: the arrow keys move through the list
+#. screen: dialogs--command-palette-open
+#: src/components/CommandPalette.tsx
+msgid "<0>↑</0> <1>↓</1> navigate"
+msgstr ""
+
+#. Command palette footer: Cmd+Enter opens the documentation of the selected item
+#: src/components/CommandPalette.tsx
+msgid "<0>⌘Enter</0> docs"
+msgstr ""
+
+#. Command palette footer: Backspace goes back to the list of categories
+#: src/components/CommandPalette.tsx
+msgid "<0>Backspace</0> back"
+msgstr ""
+
+#. Command palette footer: Enter inserts the selected function or symbol into the cell
+#: src/components/CommandPalette.tsx
+msgid "<0>Enter</0> insert"
+msgstr ""
+
+#. Command palette footer: Enter inserts a load() call for the selected package
+#: src/components/CommandPalette.tsx
+msgid "<0>Enter</0> load"
+msgstr ""
+
+#. Command palette footer: Enter opens the selected category
+#. screen: dialogs--command-palette-open
+#: src/components/CommandPalette.tsx
+msgid "<0>Enter</0> select"
+msgstr ""
+
+#. Command palette footer: Esc closes the palette
+#. screen: dialogs--command-palette-open
+#: src/components/CommandPalette.tsx
+msgid "<0>Esc</0> close"
+msgstr ""
+
+#. Settings: argument help button; the hint follows the argument under the cursor
+#. screen: dialogs--settings
+#: src/components/SettingsModal.tsx
+msgid "Active hint"
+msgstr ""
+
+#. Settings: Markdown indent button; text cells line up with the code in code cells
+#. screen: dialogs--settings
+#: src/components/SettingsModal.tsx
+msgid "Aligned"
+msgstr ""
+
+#. Find bar: button that replaces every match in every cell. max-length:8
+#: src/components/FindBar.tsx
+msgid "All"
+msgstr ""
+
+#. File type in the Open dialog that shows every kind of file Aximar opens
+#: src/lib/notebooks-client.ts
+msgid "All Supported"
+msgstr ""
+
+#. Log window: tab that lists Aximar's own log messages. max-length:16
+#: src/components/LogPanel.tsx
+msgid "App Log"
+msgstr ""
+
+#. Settings: the label of the buttons that choose how function arguments are shown while typing
+#. screen: dialogs--settings
+#: src/components/SettingsModal.tsx
+msgid "Argument help"
+msgstr ""
+
+#. Settings: theme button that follows the system's light or dark mode
+#. screen: dialogs--settings
+#: src/components/SettingsModal.tsx
+msgid "Auto"
+msgstr ""
+
+#. Settings: placeholder in the Maxima path field; when empty, Aximar finds maxima itself
+#. screen: dialogs--settings
+#: src/components/SettingsModal.tsx
+msgid "Auto-detect"
+msgstr ""
+
+#. Maxima Not Found dialog: the first line, shown when Aximar can't start Maxima
+#: src/hooks/useMaxima.ts
+msgid "Aximar could not find Maxima on your system."
+msgstr ""
+
+#. Docs panel: tooltip of the arrow button that goes back to the previous page
+#: src/components/DocsPanel.tsx
+msgid "Back"
+msgstr ""
+
+#. Settings: the label of the buttons that choose where Maxima runs
+#. screen: dialogs--settings
+#: src/components/SettingsModal.tsx
+msgid "Backend"
+msgstr ""
+
+#. Settings: label of the bottom print margin field
+#. screen: dialogs--settings
+#: src/components/SettingsModal.tsx
+msgid "Bottom"
+msgstr ""
+
+#. Settings: cell style button that marks each cell with a bracket in the margin
+#. screen: dialogs--settings
+#: src/components/SettingsModal.tsx
+msgid "Bracket"
+msgstr ""
+
+#. Command palette: placeholder of the search box while it lists Maxima packages; Backspace is the key
+#: src/components/CommandPalette.tsx
+msgid "Browse packages... (Backspace to go back)"
+msgstr ""
+
+#. Toolbar: session status while Maxima runs a cell. max-length:12
+#: src/components/Toolbar.tsx
+msgid "Busy"
+msgstr ""
+
+#. Button in the Unsaved Changes dialog: keeps the notebooks open
+#. Export as LaTeX button: closes the window without exporting
+#. screen: dialogs--export-latex
+#: src/components/ExportLatexModal.tsx src/lib/unsaved-changes.ts
+msgid "Cancel"
+msgstr ""
+
+#. Tooltip of the stop button on a running code cell: interrupts Maxima
+#: src/components/Cell.tsx
+msgid "Cancel cell"
+msgstr ""
+
+#. Settings: cell style button that draws each cell as a boxed card
+#. screen: dialogs--settings
+#: src/components/SettingsModal.tsx
+msgid "Card"
+msgstr ""
+
+#. Settings: the label of the buttons that choose how cells are drawn
+#. screen: dialogs--settings
+#: src/components/SettingsModal.tsx
+msgid "Cell style"
+msgstr ""
+
+#. Settings: tooltip beside the WSL distro menu while Aximar looks for maxima in it
+#: src/components/SettingsModal.tsx
+msgid "Checking..."
+msgstr ""
+
+#. Template chooser: the line under the title
+#. screen: dialogs--templates
+#: src/components/TemplateChooser.tsx
+msgid "Choose a template to get started with Maxima"
+msgstr ""
+
+#. Log window: button that empties the open tab. max-length:10
+#: src/components/LogPanel.tsx
+msgid "Clear"
+msgstr ""
+
+#. Tooltip of the example Maxima code under an error explanation: clicking it replaces the cell's input
+#. screen: errors--all-explanations
+#: src/components/EnhancedErrorOutput.tsx
+msgid "Click to use this example"
+msgstr ""
+
+#. Settings button: closes the settings window
+#. screen: dialogs--settings
+#: src/components/SettingsModal.tsx
+msgid "Close"
+msgstr ""
+
+#. Find bar: tooltip of the x button that closes the find bar; Escape is the key
+#: src/components/FindBar.tsx
+msgid "Close (Escape)"
+msgstr ""
+
+#. Docs panel: tooltip of the x button that closes the panel
+#: src/components/DocsPanel.tsx
+msgid "Close docs"
+msgstr ""
+
+#. Tab bar: tooltip of the x button that closes a notebook tab
+#: src/components/TabBar.tsx
+msgid "Close tab"
+msgstr ""
+
+#. Tab context menu item: closes the notebook tab
+#: src/components/TabBar.tsx
+msgid "Close Tab"
+msgstr ""
+
+#. Tooltip of the bracket beside a code cell: hides the cell's output
+#. screen: cells--notebook
+#. screen: cells--print-and-tex
+#: src/components/Cell.tsx
+msgid "Collapse output"
+msgstr ""
+
+#. Settings button: adds Aximar's MCP server to an AI tool's configuration, such as Claude Code's
+#. screen: dialogs--settings
+#: src/components/SettingsModal.tsx
+msgid "Configure"
+msgstr ""
+
+#. Settings: shown beside an AI tool whose configuration includes Aximar's MCP server
+#: src/components/SettingsModal.tsx
+msgid "Configured"
+msgstr ""
+
+#. Settings: the Configure button of an AI tool while it adds Aximar's MCP server
+#: src/components/SettingsModal.tsx
+msgid "Configuring..."
+msgstr ""
+
+#. Settings: the label of the buttons that choose the program that runs the Maxima container
+#: src/components/SettingsModal.tsx
+msgid "Container engine"
+msgstr ""
+
+#. Show-sources panel: before a string's msgctxt
+#: src/components/SourcesOverlay.tsx
+msgid "Context:"
+msgstr ""
+
+#. Settings: the MCP token copy button, for two seconds after a copy
+#: src/components/SettingsModal.tsx
+msgid "Copied"
+msgstr ""
+
+#. Shown for a moment on a copy button above a result after it copied. max-length:8
+#. Shown for a moment on a copy button above a result after it copied. max-length:8
+#: src/components/CellOutput.tsx
+msgid "Copied!"
+msgstr ""
+
+#. Button above a result: copies it to the clipboard as Maxima code. max-length:8
+#. Settings button: copies the MCP token to the clipboard
+#. screen: cells--notebook
+#. screen: cells--print-and-tex
+#. screen: dialogs--settings
+#: src/components/CellOutput.tsx src/components/SettingsModal.tsx
+msgid "Copy"
+msgstr ""
+
+#. Tooltip of the TeX button above a result: copies the result's LaTeX to the clipboard
+#. screen: cells--notebook
+#. screen: cells--print-and-tex
+#: src/components/CellOutput.tsx
+msgid "Copy LaTeX source"
+msgstr ""
+
+#. Tooltip of the Copy button above a result: copies the result as Maxima code
+#. screen: cells--notebook
+#. screen: cells--print-and-tex
+#: src/components/CellOutput.tsx
+msgid "Copy Maxima expression"
+msgstr ""
+
+#. Settings: tooltip of the button that copies the MCP token
+#. screen: dialogs--settings
+#: src/components/SettingsModal.tsx
+msgid "Copy token"
+msgstr ""
+
+#. Label under an error explanation, before the right ways to call the Maxima function
+#. screen: errors--all-explanations
+#: src/components/EnhancedErrorOutput.tsx
+msgid "Correct usage:"
+msgstr ""
+
+#. Title of the error dialog when a notebook file fails to open; the dialog shows the reason below
+#: src/App.tsx
+msgid "Couldn't Open Notebook"
+msgstr ""
+
+#. Settings: theme button for the dark theme
+#. screen: dialogs--settings
+#: src/components/SettingsModal.tsx
+msgid "Dark"
+msgstr ""
+
+#. Settings: WSL distro menu item for the distribution WSL uses by default
+#: src/components/SettingsModal.tsx
+msgid "Default"
+msgstr ""
+
+#. Tooltip of the cross button that deletes a cell
+#. Tooltip of the cross button that deletes a cell
+#. Tooltip of the cross button that deletes a cell
+#. screen: cells--notebook
+#. screen: cells--print-and-tex
+#: src/components/Cell.tsx src/components/MarkdownCell.tsx
+#: src/components/RawCell.tsx
+msgid "Delete cell"
+msgstr ""
+
+#. Shortcut hints shown while Cmd or Ctrl is held: deletes the active cell. max-length:16
+#. screen: window--shortcuts
+#: src/components/ShortcutHints.tsx
+msgid "Delete Cell"
+msgstr ""
+
+#. Tooltip of the bracket right of a selected cell: clicking it removes the cell from the selection
+#: src/components/Notebook.tsx
+msgid "Deselect cell"
+msgstr ""
+
+#. Under an error about an unknown function. names is a comma-separated list of Maxima function names, each a button that puts the name in the cell
+#. screen: errors--all-explanations
+#: src/components/EnhancedErrorOutput.tsx
+msgid "Did you mean: {names}?"
+msgstr ""
+
+#. Trust banner button: hides the banner without trusting the notebook
+#. screen: cells--trust-banner-shown
+#: src/components/TrustBanner.tsx
+msgid "Dismiss"
+msgstr ""
+
+#. Unsaved Changes dialog, when closing one notebook with changes. name is its title, such as calc.macnb
+#: src/lib/unsaved-changes.ts
+msgid "Do you want to save the changes you made to \"{name}\"?"
+msgstr ""
+
+#. Settings: the label of the field for the container image that holds Maxima
+#: src/components/SettingsModal.tsx
+msgid "Docker image"
+msgstr ""
+
+#. Toolbar button: shows or hides the documentation panel. max-length:12
+#. screen: window--toolbar-and-tabs
+#: src/components/Toolbar.tsx
+msgid "Docs"
+msgstr ""
+
+#. Link in the hover tooltip of a Maxima function: opens its documentation in the side panel. max-length:10
+#. Link in the hover tooltip of a Maxima function: opens its documentation in the side panel. max-length:10
+#: src/lib/maxima-hover-tooltip.ts
+msgid "Docs →"
+msgstr ""
+
+#. Button in the Unsaved Changes dialog: closes the notebooks and loses the changes
+#: src/lib/unsaved-changes.ts
+msgid "Don't Save"
+msgstr ""
+
+#. Tooltip of the tick button on a markdown cell being edited: shows the rendered text. Escape is the key; keep it as it is
+#: src/components/MarkdownCell.tsx
+msgid "Done editing (Escape)"
+msgstr ""
+
+#. Shown in an empty markdown cell that is not being edited
+#: src/components/MarkdownCell.tsx
+msgid "Double-click to edit markdown..."
+msgstr ""
+
+#. Maxima Not Found dialog, on Windows. downloadUrl is the web page with the installer
+#: src/hooks/useMaxima.ts
+msgid ""
+"Download Maxima for Windows from:\n"
+"{downloadUrl}"
+msgstr ""
+
+#. Settings: placeholder in the Docker image field. exampleImage is an image name, such as aximar/maxima
+#: src/components/SettingsModal.tsx
+msgid "e.g. {exampleImage}"
+msgstr ""
+
+#. Tooltip of the pencil button on a markdown cell: opens its text for editing
+#: src/components/MarkdownCell.tsx
+msgid "Edit markdown"
+msgstr ""
+
+#. Placeholder in the empty text box of a markdown cell being edited
+#: src/components/MarkdownCell.tsx
+msgid "Enter markdown..."
+msgstr ""
+
+#. Placeholder in an empty code cell. Shift+Enter is the keyboard shortcut; keep it as it is
+#. screen: cells--notebook
+#: src/hooks/useCodeMirrorEditor.ts
+msgid "Enter Maxima expression... (Shift+Enter to evaluate)"
+msgstr ""
+
+#. Toolbar: session status when Maxima failed. message is the error from the backend, in English
+#: src/components/Toolbar.tsx
+msgid "Error: {message}"
+msgstr ""
+
+#. Settings: the label of the menu that chooses how long a cell may run before Aximar stops it
+#. screen: dialogs--settings
+#: src/components/SettingsModal.tsx
+msgid "Eval timeout"
+msgstr ""
+
+#. Log window: tab that lists the protocol frames Maxima sent, one per row. max-length:16
+#: src/components/LogPanel.tsx
+msgid "Events"
+msgstr ""
+
+#. Under an error explanation. example is a line of Maxima code, which the user can click to put in the cell
+#. screen: errors--all-explanations
+#: src/components/EnhancedErrorOutput.tsx
+msgid "Example: {example}"
+msgstr ""
+
+#. Tooltip of the bracket beside a code cell: shows the cell's hidden output
+#: src/components/Cell.tsx
+msgid "Expand output"
+msgstr ""
+
+#. Export as LaTeX button: asks where to save the .tex file and writes it
+#. screen: dialogs--export-latex
+#: src/components/ExportLatexModal.tsx
+msgid "Export"
+msgstr ""
+
+#. Export as LaTeX: the title of the export window
+#. screen: dialogs--export-latex
+#: src/components/ExportLatexModal.tsx
+msgid "Export as LaTeX"
+msgstr ""
+
+#. Button in the plot viewer window: saves the chart as a PNG image. max-length:14
+#: src/components/PlotViewer.tsx
+msgid "Export PNG"
+msgstr ""
+
+#. Button in the plot viewer window: saves the chart as an SVG image. max-length:14
+#: src/components/PlotViewer.tsx
+msgid "Export SVG"
+msgstr ""
+
+#. Export as LaTeX button, while the export runs
+#: src/components/ExportLatexModal.tsx
+msgid "Exporting..."
+msgstr ""
+
+#. Shown in place of a chart whose data in the cell output is not valid JSON
+#: src/components/PlotlyChart.tsx
+msgid "Failed to parse plot data"
+msgstr ""
+
+#. Shown in place of a chart that could not be drawn. reason is the error text from the chart library, in English
+#. Shown in place of a chart that could not be drawn. reason is the error text from the chart library, in English
+#: src/components/CellOutput.tsx src/components/PlotlyChart.tsx
+msgid "Failed to render plot: {reason}"
+msgstr ""
+
+#. Command palette: placeholder of the search box while it lists one category of functions; categoryLabel is the category name, such as Calculus; Backspace is the key
+#: src/components/CommandPalette.tsx
+msgid "Filter {categoryLabel}... (Backspace to go back)"
+msgstr ""
+
+#. Shortcut hints shown while Cmd or Ctrl is held: opens the find bar. max-length:16
+#. screen: window--shortcuts
+#: src/components/ShortcutHints.tsx
+msgid "Find"
+msgstr ""
+
+#. Shortcut hints shown while Cmd or Ctrl is held: opens find and replace. max-length:16
+#. screen: window--shortcuts
+#: src/components/ShortcutHints.tsx
+msgid "Find & Replace"
+msgstr ""
+
+#. Find bar: placeholder of the box for the text to find in the notebook's cells
+#: src/components/FindBar.tsx
+msgid "Find..."
+msgstr ""
+
+#. Settings: Markdown indent button; text cells start at the left edge
+#. screen: dialogs--settings
+#: src/components/SettingsModal.tsx
+msgid "Flush"
+msgstr ""
+
+#. Settings: the label of the menu that chooses the size of code text
+#. screen: dialogs--settings
+#: src/components/SettingsModal.tsx
+msgid "Font size"
+msgstr ""
+
+#. Docs panel: tooltip of the arrow button that goes forward to the next page
+#: src/components/DocsPanel.tsx
+msgid "Forward"
+msgstr ""
+
+#. Settings: tooltip beside the WSL distro menu. wslMaximaPath is where the maxima program is in the distro
+#: src/components/SettingsModal.tsx
+msgid "Found: {wslMaximaPath}"
+msgstr ""
+
+#. Tooltip of a dimmed cell output that was saved in the file and not produced by this session
+#: src/components/Cell.tsx
+msgid "From an earlier session. Run the cell to update it."
+msgstr ""
+
+#. Docs panel: heading above the list of functions on a package page; functionCount is how many there are
+#: src/components/DocsPanel.tsx
+msgid "Functions ({functionCount})"
+msgstr ""
+
+#. Settings: tooltip of the Regenerate button for the MCP token
+#. screen: dialogs--settings
+#: src/components/SettingsModal.tsx
+msgid "Generate new token (restarts MCP server)"
+msgstr ""
+
+#. Button on a note in a cell's output: hides the lines Maxima printed, which the note explains
+#: src/components/TextWithNotes.tsx
+msgid "Hide Maxima's text"
+msgstr ""
+
+#. Button: hides Maxima's English error message, shown below its translation
+#. Button: hides Maxima's English error message, shown below its translation
+#: src/components/EnhancedErrorOutput.tsx
+msgid "Hide original"
+msgstr ""
+
+#. Button: hides the error exactly as Maxima printed it
+#: src/components/EnhancedErrorOutput.tsx
+msgid "Hide raw error"
+msgstr ""
+
+#. Settings: argument help button; shows a function's arguments as a hint while typing
+#. screen: dialogs--settings
+#: src/components/SettingsModal.tsx
+msgid "Hint"
+msgstr ""
+
+#. Tooltip of the Show sources checkbox in Settings
+#: src/components/SettingsModal.tsx
+msgid "Hold Alt and point at text to see its English, note and source file"
+msgstr ""
+
+#. Maxima Not Found dialog: the last paragraph. envVar is the name of an environment variable. Settings is the Settings window
+#: src/hooks/useMaxima.ts
+msgid "If Maxima is installed in a non-standard location, set the {envVar} environment variable or configure the path in Settings."
+msgstr ""
+
+#. Alt text of an image in a cell's output
+#: src/components/CellOutput.tsx
+msgid "Image output"
+msgstr ""
+
+#. Label left of the input of a code cell that has not run yet, as in Jupyter. max-length:6
+#. screen: cells--notebook
+#: src/components/Cell.tsx
+msgid "In"
+msgstr ""
+
+#. Label left of a code cell's input, as in Jupyter. execNum is how many cells the session had run when this one last ran. max-length:10
+#. screen: cells--notebook
+#. screen: cells--print-and-tex
+#: src/components/Cell.tsx
+msgid "In [{execNum}]"
+msgstr ""
+
+#. Export as LaTeX: checkbox label; when on, the export includes each cell's Maxima input
+#. screen: dialogs--export-latex
+#: src/components/ExportLatexModal.tsx
+msgid "Include code input"
+msgstr ""
+
+#. Export as LaTeX: checkbox label; when on, the export includes plots as image files
+#. screen: dialogs--export-latex
+#: src/components/ExportLatexModal.tsx
+msgid "Include plots"
+msgstr ""
+
+#. Maxima Not Found dialog, on an unknown system. siteUrl is Maxima's web site
+#: src/hooks/useMaxima.ts
+msgid "Install Maxima from {siteUrl}"
+msgstr ""
+
+#. Maxima Not Found dialog, on macOS. brewCommand is the shell command that installs Maxima
+#: src/hooks/useMaxima.ts
+msgid ""
+"Install Maxima using Homebrew:\n"
+"\n"
+"  {brewCommand}"
+msgstr ""
+
+#. Maxima Not Found dialog, on Linux. aptCommand and dnfCommand are the shell commands that install Maxima on each distribution
+#: src/hooks/useMaxima.ts
+msgid ""
+"Install Maxima using your package manager:\n"
+"\n"
+"  Ubuntu/Debian: {aptCommand}\n"
+"  Fedora: {dnfCommand}"
+msgstr ""
+
+#. File type in the Open and Save dialogs, for .ipynb files
+#: src/lib/notebooks-client.ts
+msgid "Jupyter Notebook"
+msgstr ""
+
+#. Variable panel button: unbinds every variable, like Maxima's kill(all). max-length:12
+#: src/components/VariablePanel.tsx
+msgid "Kill All"
+msgstr ""
+
+#. Settings: the label of the language picker
+#. screen: dialogs--settings
+#: src/components/SettingsModal.tsx
+msgid "Language"
+msgstr ""
+
+#. Export as LaTeX: the file type in the save dialog
+#: src/components/ExportLatexModal.tsx
+msgid "LaTeX Document"
+msgstr ""
+
+#. Shown in place of a result whose LaTeX could not be drawn. latex is the LaTeX source, which stays as it is
+#: src/components/KatexOutput.tsx
+msgid "LaTeX render error: {latex}"
+msgstr ""
+
+#. Settings: label of the left print margin field
+#. screen: dialogs--settings
+#: src/components/SettingsModal.tsx
+msgid "Left"
+msgstr ""
+
+#. Settings: theme button for the light theme
+#. screen: dialogs--settings
+#: src/components/SettingsModal.tsx
+msgid "Light"
+msgstr ""
+
+#. Settings, pre-release builds: chooses a .po file to show in the window
+#: src/components/SettingsModal.tsx
+msgid "Load translation file..."
+msgstr ""
+
+#. Docs panel: shown while a documentation page loads
+#: src/components/DocsPanel.tsx
+msgid "Loading..."
+msgstr ""
+
+#. Settings: backend button; runs Maxima installed on this computer
+#. screen: dialogs--settings
+#: src/components/SettingsModal.tsx
+msgid "Local"
+msgstr ""
+
+#. Toolbar button: shows or hides the log panel. max-length:12
+#. screen: window--toolbar-and-tabs
+#: src/components/Toolbar.tsx
+msgid "Log"
+msgstr ""
+
+#. Tooltip of the pencil button on a raw cell: turns it into a code cell that can be edited and run
+#: src/components/RawCell.tsx
+msgid "Make this a code cell"
+msgstr ""
+
+#. Settings: the label of the buttons that choose the font of text cells
+#. screen: dialogs--settings
+#: src/components/SettingsModal.tsx
+msgid "Markdown font"
+msgstr ""
+
+#. Settings: the label of the buttons that choose how far text cells are indented
+#. screen: dialogs--settings
+#: src/components/SettingsModal.tsx
+msgid "Markdown indent"
+msgstr ""
+
+#. Find bar: tooltip of the Aa button that makes the search case-sensitive
+#: src/components/FindBar.tsx
+msgid "Match Case"
+msgstr ""
+
+#. Settings: shown beside the WSL distro menu when the distro has the maxima program
+#: src/components/SettingsModal.tsx
+msgid "maxima found"
+msgstr ""
+
+#. Settings: shown beside the WSL distro menu when the distro has no maxima program
+#: src/components/SettingsModal.tsx
+msgid "maxima not found"
+msgstr ""
+
+#. Title of the error dialog shown when Aximar can't find the Maxima program
+#: src/hooks/useMaxima.ts
+msgid "Maxima Not Found"
+msgstr ""
+
+#. Settings: tooltip beside the WSL distro menu when the distro has no maxima program
+#: src/components/SettingsModal.tsx
+msgid "maxima not found in this distro"
+msgstr ""
+
+#. File type in the Open and Save dialogs, for .macnb files
+#: src/lib/notebooks-client.ts
+msgid "Maxima Notebook"
+msgstr ""
+
+#. Log window: tab that shows the raw text Maxima read and printed. max-length:16
+#: src/components/LogPanel.tsx
+msgid "Maxima Output"
+msgstr ""
+
+#. Settings: the label of the field for the location of the maxima program
+#. screen: dialogs--settings
+#: src/components/SettingsModal.tsx
+msgid "Maxima path"
+msgstr ""
+
+#. Settings: the label of the field for the address and port the MCP server listens on
+#. screen: dialogs--settings
+#: src/components/SettingsModal.tsx
+msgid "MCP listen address"
+msgstr ""
+
+#. Settings: the label of the checkbox that turns on Aximar's MCP server for AI tools
+#. screen: dialogs--settings
+#: src/components/SettingsModal.tsx
+msgid "MCP server"
+msgstr ""
+
+#. Settings: the label of the secret that AI tools send to Aximar's MCP server
+#. screen: dialogs--settings
+#: src/components/SettingsModal.tsx
+msgid "MCP token"
+msgstr ""
+
+#. Settings: Markdown font button for the monospace font
+#. screen: dialogs--settings
+#: src/components/SettingsModal.tsx
+msgid "Mono"
+msgstr ""
+
+#. Tooltip of a code cell's down-arrow button
+#. screen: cells--notebook
+#. screen: cells--print-and-tex
+#: src/components/Cell.tsx
+msgid "Move cell down"
+msgstr ""
+
+#. Tooltip of a code cell's up-arrow button
+#. screen: cells--notebook
+#. screen: cells--print-and-tex
+#: src/components/Cell.tsx
+msgid "Move cell up"
+msgstr ""
+
+#. Shortcut hints shown while Cmd or Ctrl is held: moves the active cell down one place. max-length:16
+#. screen: window--shortcuts
+#: src/components/ShortcutHints.tsx
+msgid "Move Down"
+msgstr ""
+
+#. Tab context menu item: moves the notebook tab into a new window
+#: src/components/TabBar.tsx
+msgid "Move to New Window"
+msgstr ""
+
+#. Shortcut hints shown while Cmd or Ctrl is held: moves the active cell up one place. max-length:16
+#. screen: window--shortcuts
+#: src/components/ShortcutHints.tsx
+msgid "Move Up"
+msgstr ""
+
+#. Tab bar: tooltip of the + button that opens a new notebook tab. newTabShortcut is its keyboard shortcut, such as Cmd+T
+#. screen: window--toolbar-and-tabs
+#: src/components/TabBar.tsx
+msgid "New notebook ({newTabShortcut})"
+msgstr ""
+
+#. Find bar: tooltip of the down arrow button that selects the next match; Enter is the shortcut
+#: src/components/FindBar.tsx
+msgid "Next Match (Enter)"
+msgstr ""
+
+#. Variable panel: shown when the Maxima session has no bound variables
+#. screen: window--variables
+#: src/components/VariablePanel.tsx
+msgid "No bound variables"
+msgstr ""
+
+#. Log window: shown in the Events tab before Maxima has sent any protocol frame
+#: src/components/LogPanel.tsx
+msgid "No envelope frames"
+msgstr ""
+
+#. Command palette: shown when a search finds no Maxima function or package
+#: src/components/CommandPalette.tsx
+msgid "No functions or packages found"
+msgstr ""
+
+#. Log window: shown in the App Log tab when it is empty
+#. Status bar at the bottom of the window: shown when the app log is empty
+#: src/components/LogPanel.tsx
+msgid "No log entries"
+msgstr ""
+
+#. Command palette: shown when no math symbol matches what the user typed
+#: src/components/CommandPalette.tsx
+msgid "No matching symbols"
+msgstr ""
+
+#. Log window: shown in the Maxima Output tab before Maxima has read or printed anything
+#: src/components/LogPanel.tsx
+msgid "No Maxima output"
+msgstr ""
+
+#. Find bar: shown beside the search box when the text appears in no cell. max-length:12
+#: src/components/FindBar.tsx
+msgid "No results"
+msgstr ""
+
+#. Settings: shown beside an AI tool whose configuration does not include Aximar's MCP server
+#. screen: dialogs--settings
+#: src/components/SettingsModal.tsx
+msgid "Not configured"
+msgstr ""
+
+#. Export as LaTeX: the file name offered in the save dialog when the notebook has no title, before .tex
+#: src/components/ExportLatexModal.tsx
+msgid "notebook"
+msgstr ""
+
+#. Label left of the output of a code cell with no run number, as in Jupyter. max-length:6
+#: src/components/Cell.tsx
+msgid "Out"
+msgstr ""
+
+#. Label left of a code cell's output, as in Jupyter. execNum is how many cells the session had run when this one last ran. max-length:10
+#. screen: cells--notebook
+#. screen: cells--print-and-tex
+#: src/components/Cell.tsx
+msgid "Out [{execNum}]"
+msgstr ""
+
+#. Docs panel: badge beside a name that marks the page as a Maxima package
+#: src/components/DocsPanel.tsx
+msgid "Package"
+msgstr ""
+
+#. Docs panel: badge beside a function name that marks it as provided by a loadable package
+#: src/components/DocsPanel.tsx
+msgid "Package Function"
+msgstr ""
+
+#. Footer of the hover tooltip of a function from a Maxima package. pkgName is the package name
+#: src/lib/maxima-hover-tooltip.ts
+msgid "Package: {pkgName}"
+msgstr ""
+
+#. Command palette: list entry that opens the list of loadable Maxima packages
+#. screen: dialogs--command-palette-open
+#: src/components/CommandPalette.tsx
+msgid "Packages"
+msgstr ""
+
+#. Shortcut hints shown while Cmd or Ctrl is held: opens the command palette. max-length:16
+#. screen: window--shortcuts
+#: src/components/ShortcutHints.tsx
+msgid "Palette"
+msgstr ""
+
+#. Command palette: short badge before a name that marks a Maxima package or a function from one. max-length:4
+#. Docs panel search results: short badge before a name that marks a Maxima package or a function from one. max-length:4
+#: src/components/CommandPalette.tsx src/components/DocsPanel.tsx
+msgid "pkg"
+msgstr ""
+
+#. Tab title for an opened plot file whose file name could not be read
+#: src/App.tsx
+msgid "Plot"
+msgstr ""
+
+#. Alt text of a plot image in a cell's output
+#: src/components/CellOutput.tsx
+msgid "Plot output"
+msgstr ""
+
+#. Find bar: tooltip of the up arrow button that selects the previous match; Shift+Enter is the shortcut
+#: src/components/FindBar.tsx
+msgid "Previous Match (Shift+Enter)"
+msgstr ""
+
+#. Settings: the label of the menu that chooses the size of text when printing
+#. screen: dialogs--settings
+#: src/components/SettingsModal.tsx
+msgid "Print font size"
+msgstr ""
+
+#. Settings: the label of the four print margin fields, in millimetres
+#. screen: dialogs--settings
+#: src/components/SettingsModal.tsx
+msgid "Print margins (mm)"
+msgstr ""
+
+#. Docs panel: on the page of a function from a package; packageName is the package name, a link to its page
+#: src/components/DocsPanel.tsx
+msgid "Provided by the <0>{packageName}</0> package."
+msgstr ""
+
+#. Label left of a raw cell from a Jupyter file, in the place of In for a code cell. max-length:6
+#: src/components/RawCell.tsx
+msgid "Raw"
+msgstr ""
+
+#. Tooltip of the Raw label beside a raw cell from a Jupyter file
+#: src/components/RawCell.tsx
+msgid "Raw cell: kept as it is, never run"
+msgstr ""
+
+#. Toolbar: session status when Maxima is ready to run cells. max-length:12
+#: src/components/Toolbar.tsx
+msgid "Ready"
+msgstr ""
+
+#. Settings button: adds Aximar's MCP server to an AI tool's configuration again, with the current address and token
+#: src/components/SettingsModal.tsx
+msgid "Reconfigure"
+msgstr ""
+
+#. Shortcut hints shown while Cmd or Ctrl is held: redoes the last undone edit. max-length:16
+#. Toolbar button: redoes the last undone change. max-length:12
+#. screen: window--shortcuts
+#. screen: window--toolbar-and-tabs
+#: src/components/ShortcutHints.tsx src/components/Toolbar.tsx
+msgid "Redo"
+msgstr ""
+
+#. Toolbar: tooltip of the Redo button. redoShortcut is its keyboard shortcut, such as Cmd+Shift+Z
+#. screen: window--toolbar-and-tabs
+#: src/components/Toolbar.tsx
+msgid "Redo ({redoShortcut})"
+msgstr ""
+
+#. Settings button: replaces the MCP token with a new random one
+#. screen: dialogs--settings
+#: src/components/SettingsModal.tsx
+msgid "Regenerate"
+msgstr ""
+
+#. Docs panel: heading above the other functions in the same package
+#: src/components/DocsPanel.tsx
+msgid "Related Functions"
+msgstr ""
+
+#. Find bar: button that replaces the selected match with the replacement text
+#: src/components/FindBar.tsx
+msgid "Replace"
+msgstr ""
+
+#. Find bar: tooltip of the All button that replaces every match in every cell
+#: src/components/FindBar.tsx
+msgid "Replace All"
+msgstr ""
+
+#. Find bar: placeholder of the box for the replacement text
+#: src/components/FindBar.tsx
+msgid "Replace..."
+msgstr ""
+
+#. Command palette: under a function from a package that is not loaded yet; load(...) is Maxima code and stays as it is; packageName is the package name
+#: src/components/CommandPalette.tsx
+msgid "requires load(\"{packageName}\")"
+msgstr ""
+
+#. Hover tooltip of a function from a Maxima package. pkgName is the package name; load(...) is Maxima code and stays as it is
+#. Note beside a completion for a function from a Maxima package. pkgName is the package name; load(...) is Maxima code and stays as it is
+#: src/lib/maxima-completions.ts src/lib/maxima-hover-tooltip.ts
+msgid "requires load(\"{pkgName}\")"
+msgstr ""
+
+#. Toolbar button: restarts the Maxima session, clearing its state. max-length:12
+#. screen: window--toolbar-and-tabs
+#: src/components/Toolbar.tsx
+msgid "Restart"
+msgstr ""
+
+#. Settings: label of the right print margin field
+#. screen: dialogs--settings
+#: src/components/SettingsModal.tsx
+msgid "Right"
+msgstr ""
+
+#. Toolbar button: runs every cell in order. max-length:12
+#. screen: window--toolbar-and-tabs
+#: src/components/Toolbar.tsx
+msgid "Run All"
+msgstr ""
+
+#. Tooltip of a code cell's run button. Shift+Enter is the keyboard shortcut; keep it as it is
+#. screen: cells--notebook
+#. screen: cells--print-and-tex
+#: src/components/Cell.tsx
+msgid "Run cell (Shift+Enter)"
+msgstr ""
+
+#. Settings: Markdown font button for the system sans-serif font
+#. screen: dialogs--settings
+#: src/components/SettingsModal.tsx
+msgid "Sans-serif"
+msgstr ""
+
+#. Button in the Unsaved Changes dialog: saves the notebooks, then closes them
+#: src/lib/unsaved-changes.ts
+msgid "Save"
+msgstr ""
+
+#. Button in the plot viewer window: saves the chart's Plotly data as a JSON file. max-length:14
+#: src/components/PlotViewer.tsx
+msgid "Save JSON"
+msgstr ""
+
+#. Docs panel: shown when no page is open; Docs is the name of the button on a function's hover tooltip
+#: src/components/DocsPanel.tsx
+msgid "Search for a function or click “Docs” on a hover tooltip to view documentation."
+msgstr ""
+
+#. Command palette: placeholder of the search box; typing a backslash switches to the list of math symbols
+#. screen: dialogs--command-palette-open
+#: src/components/CommandPalette.tsx
+msgid "Search functions (or type \\ for symbols)..."
+msgstr ""
+
+#. Docs panel: placeholder of the search box at the top of the panel
+#: src/components/DocsPanel.tsx
+msgid "Search functions..."
+msgstr ""
+
+#. Docs panel: heading above links to related functions
+#: src/components/DocsPanel.tsx
+msgid "See Also"
+msgstr ""
+
+#. Tooltip of the bracket right of a cell: clicking it selects the cell. Shift+click selects every cell up to it
+#: src/components/Notebook.tsx
+msgid "Select cell (Shift+click for range)"
+msgstr ""
+
+#. Settings: Markdown font button for the system serif font
+#. screen: dialogs--settings
+#: src/components/SettingsModal.tsx
+msgid "Serif"
+msgstr ""
+
+#. Settings: the title of the settings window
+#. Toolbar button: opens the settings window. max-length:12
+#. screen: dialogs--settings
+#. screen: window--toolbar-and-tabs
+#: src/components/SettingsModal.tsx src/components/Toolbar.tsx
+msgid "Settings"
+msgstr ""
+
+#. Button on a note in a cell's output: shows the lines Maxima printed, which the note explains
+#. screen: cells--notebook
+#. screen: notes--all-notes
+#: src/components/TextWithNotes.tsx
+msgid "Show Maxima's text"
+msgstr ""
+
+#. Button: shows Maxima's English error message below its translation
+#. Button: shows Maxima's English error message below its translation
+#. screen: errors--maxima-error-without-explanation
+#. screen: errors--translated-maxima-error
+#: src/components/EnhancedErrorOutput.tsx
+msgid "Show original"
+msgstr ""
+
+#. Button: shows the error exactly as Maxima printed it, below Aximar's explanation
+#. screen: cells--notebook
+#. screen: errors--all-explanations
+#: src/components/EnhancedErrorOutput.tsx
+msgid "Show raw error"
+msgstr ""
+
+#. Settings, pre-release builds: when on, holding Alt and pointing at text shows its English, note and source file
+#: src/components/SettingsModal.tsx
+msgid "Show sources"
+msgstr ""
+
+#. Settings: argument help button; completing a function inserts its arguments as placeholders to fill in
+#. screen: dialogs--settings
+#: src/components/SettingsModal.tsx
+msgid "Snippet"
+msgstr ""
+
+#. Template chooser button: closes the chooser and keeps the empty notebook
+#. screen: dialogs--templates
+#: src/components/TemplateChooser.tsx
+msgid "Start with empty notebook"
+msgstr ""
+
+#. Template chooser: the title of the window that offers example notebooks
+#. screen: dialogs--templates
+#: src/components/TemplateChooser.tsx
+msgid "Starter Notebooks"
+msgstr ""
+
+#. Toolbar: session status while Maxima starts up. max-length:12
+#: src/components/Toolbar.tsx
+msgid "Starting"
+msgstr ""
+
+#. Settings: stops showing the translation file, going back to the language setting
+#: src/components/SettingsModal.tsx
+msgid "Stop preview"
+msgstr ""
+
+#. Toolbar: session status when Maxima is not running. max-length:12
+#. screen: window--toolbar-and-tabs
+#: src/components/Toolbar.tsx
+msgid "Stopped"
+msgstr ""
+
+#. File type in the Save dialog when saving a plot as SVG
+#: src/components/CellSuggestions.tsx
+msgid "SVG Image"
+msgstr ""
+
+#. Command palette: list entry that opens the list of math symbols, such as Greek letters
+#. screen: dialogs--command-palette-open
+#: src/components/CommandPalette.tsx
+msgid "Symbols"
+msgstr ""
+
+#. Toolbar button: opens the starter notebook chooser. max-length:12
+#. screen: window--toolbar-and-tabs
+#: src/components/Toolbar.tsx
+msgid "Templates"
+msgstr ""
+
+#. Settings: the label of the theme buttons
+#. screen: dialogs--settings
+#: src/components/SettingsModal.tsx
+msgid "Theme"
+msgstr ""
+
+#. Trust banner above the notebook, shown when an untrusted notebook tries to run a cell that calls functions such as system or batch. functions is a comma-separated list of those Maxima function names
+#. screen: cells--trust-banner-shown
+#: src/components/TrustBanner.tsx
+msgid "This notebook uses dangerous functions: <0>{functions}</0>. Trust it to allow execution."
+msgstr ""
+
+#. Find bar: tooltip of the button that shows or hides the replace row
+#: src/components/FindBar.tsx
+msgid "Toggle Replace"
+msgstr ""
+
+#. Settings: label of the top print margin field
+#. screen: dialogs--settings
+#: src/components/SettingsModal.tsx
+msgid "Top"
+msgstr ""
+
+#. File type in the open dialog for a translation preview
+#: src/components/SettingsModal.tsx
+msgid "Translation file"
+msgstr ""
+
+#. Settings, pre-release builds: shows a translation file from disk in the window as the translator saves it
+#: src/components/SettingsModal.tsx
+msgid "Translation preview"
+msgstr ""
+
+#. Trust banner button: marks the notebook as trusted so its cells may call dangerous functions
+#. screen: cells--trust-banner-shown
+#: src/components/TrustBanner.tsx
+msgid "Trust Notebook"
+msgstr ""
+
+#. Command palette: placeholder of the search box while it lists math symbols; \alpha and the others are LaTeX names and stay as they are
+#: src/components/CommandPalette.tsx
+msgid "Type symbol name (e.g. \\alpha, \\leq, \\nabla)..."
+msgstr ""
+
+#. Shortcut hints shown while Cmd or Ctrl is held: undoes the last edit. max-length:16
+#. Toolbar button: undoes the last change to the notebook. max-length:12
+#. screen: window--shortcuts
+#. screen: window--toolbar-and-tabs
+#: src/components/ShortcutHints.tsx src/components/Toolbar.tsx
+msgid "Undo"
+msgstr ""
+
+#. Toolbar: tooltip of the Undo button. undoShortcut is its keyboard shortcut, such as Cmd+Z
+#. screen: window--toolbar-and-tabs
+#: src/components/Toolbar.tsx
+msgid "Undo ({undoShortcut})"
+msgstr ""
+
+#. Title of the dialog asking whether to save notebooks before closing them
+#: src/lib/unsaved-changes.ts
+msgid "Unsaved Changes"
+msgstr ""
+
+#. Tab and toolbar: the name shown for a notebook that has not been saved to a file
+#. screen: window--toolbar-and-tabs
+#: src/lib/tab-title.ts
+msgid "Untitled"
+msgstr ""
+
+#. Settings: the label of the checkbox that opens the variable panel when Aximar starts
+#. screen: dialogs--settings
+#: src/components/SettingsModal.tsx
+msgid "Variable panel open by default"
+msgstr ""
+
+#. Toolbar button: shows or hides the variable panel. max-length:12
+#. Variable panel: the title of the panel that lists the variables bound in the Maxima session
+#. screen: window--toolbar-and-tabs
+#. screen: window--variables
+#: src/components/Toolbar.tsx src/components/VariablePanel.tsx
+msgid "Variables"
+msgstr ""
+
+#. Command palette: tooltip of the ? button that opens a function's documentation
+#: src/components/CommandPalette.tsx
+msgid "View docs"
+msgstr ""
+
+#. Command palette: tooltip of the ? button that opens a package's documentation
+#: src/components/CommandPalette.tsx
+msgid "View package docs"
+msgstr ""
+
+#. Settings: the label of the menu that chooses the Linux distribution under WSL that runs Maxima
+#: src/components/SettingsModal.tsx
+msgid "WSL distro"
+msgstr ""
+
+#. Unsaved Changes dialog: the line under the question
+#: src/lib/unsaved-changes.ts
+msgid "Your changes will be lost if you don't save them."
+msgstr ""
+
+#. i18n: Maxima: "expt: undefined: 0 to a negative exponent." or "Division by 0"
+#. screen: cells--notebook
+#. screen: errors--all-explanations
+#. screen: errors--translated-maxima-error
+#: crates/aximar-core/src/maxima/errors.rs
+msgctxt "error.division_by_zero.title"
+msgid "Division by Zero"
+msgstr ""
+
+#. screen: cells--notebook
+#. screen: errors--all-explanations
+#. screen: errors--translated-maxima-error
+#: crates/aximar-core/src/maxima/errors.rs
+msgctxt "error.division_by_zero.explanation"
+msgid "The expression involves division by zero or raising zero to a negative power, which is undefined."
+msgstr ""
+
+#. screen: cells--notebook
+#. screen: errors--all-explanations
+#. screen: errors--translated-maxima-error
+#: crates/aximar-core/src/maxima/errors.rs
+msgctxt "error.division_by_zero.suggestion"
+msgid "Check your denominator or exponent for cases where the value might be zero."
+msgstr ""
+
+#. i18n: Maxima: "incorrect syntax: Premature termination of input at ;."
+#. screen: errors--all-explanations
+#: crates/aximar-core/src/maxima/errors.rs
+msgctxt "error.incomplete_input.title"
+msgid "Incomplete Expression"
+msgstr ""
+
+#. screen: errors--all-explanations
+#: crates/aximar-core/src/maxima/errors.rs
+msgctxt "error.incomplete_input.explanation"
+msgid "The expression ended unexpectedly. This usually means a missing closing parenthesis, bracket, or semicolon."
+msgstr ""
+
+#. screen: errors--all-explanations
+#: crates/aximar-core/src/maxima/errors.rs
+msgctxt "error.incomplete_input.suggestion"
+msgid "Check that all parentheses () and brackets [] are matched, and the expression ends with ; or $"
+msgstr ""
+
+#. i18n: Maxima: "incorrect syntax: Missing )", or another closing delimiter
+#. screen: errors--all-explanations
+#: crates/aximar-core/src/maxima/errors.rs
+msgctxt "error.syntax_missing.title"
+msgid "Syntax Error"
+msgstr ""
+
+#. i18n: delimiter is a closing bracket, such as ) or ]
+#. screen: errors--all-explanations
+#: crates/aximar-core/src/maxima/errors.rs
+#, rust-format
+msgctxt "error.syntax_missing.explanation"
+msgid "A closing {delimiter} is missing."
+msgstr ""
+
+#. screen: errors--all-explanations
+#: crates/aximar-core/src/maxima/errors.rs
+#, rust-format
+msgctxt "error.syntax_missing.suggestion"
+msgid "Check that every opening bracket has its closing {delimiter}, in the right order."
+msgstr ""
+
+#. i18n: token is what Maxima read where an expression should start, such as !
+#. screen: errors--all-explanations
+#: crates/aximar-core/src/maxima/errors.rs
+#, rust-format
+msgctxt "error.syntax_operator.explanation.prefix"
+msgid "\"{token}\" can't start an expression here. Check for a missing operand or a misplaced operator."
+msgstr ""
+
+#. i18n: token is the value Maxima read after another value, as y in "x y"
+#. screen: errors--all-explanations
+#: crates/aximar-core/src/maxima/errors.rs
+#, rust-format
+msgctxt "error.syntax_operator.explanation.infix"
+msgid "Two values appear next to each other without an operator between them, before \"{token}\"."
+msgstr ""
+
+#. i18n: Maxima: "incorrect syntax: y is not an infix operator" or "! is not a prefix operator"
+#. screen: errors--all-explanations
+#: crates/aximar-core/src/maxima/errors.rs
+msgctxt "error.syntax_operator.title"
+msgid "Syntax Error"
+msgstr ""
+
+#. screen: errors--all-explanations
+#: crates/aximar-core/src/maxima/errors.rs
+msgctxt "error.syntax_operator.suggestion"
+msgid "Check for missing *, +, or other operators. Ensure all parentheses are matched."
+msgstr ""
+
+#. i18n: Maxima: any other "incorrect syntax: ..." message
+#. screen: errors--all-explanations
+#: crates/aximar-core/src/maxima/errors.rs
+msgctxt "error.syntax.title"
+msgid "Syntax Error"
+msgstr ""
+
+#. i18n: message is Maxima's own description of the error, in English
+#. screen: errors--all-explanations
+#: crates/aximar-core/src/maxima/errors.rs
+#, rust-format
+msgctxt "error.syntax.explanation"
+msgid "The expression contains a syntax error: {message}. Check for missing operators, unmatched parentheses, or misplaced characters."
+msgstr ""
+
+#. screen: errors--all-explanations
+#: crates/aximar-core/src/maxima/errors.rs
+msgctxt "error.syntax.suggestion"
+msgid "Check for missing *, +, or other operators. Ensure all parentheses are matched."
+msgstr ""
+
+#. i18n: Maxima: "Too many arguments supplied to f(x); found: [1, 2]" or "Too few ..."
+#. screen: errors--all-explanations
+#: crates/aximar-core/src/maxima/errors.rs
+msgctxt "error.arg_count.title"
+msgid "Wrong Argument Count"
+msgstr ""
+
+#. i18n: func is the function's name; definition is its name and parameters
+#. as defined, such as f(x); found is the list of arguments it was given
+#. screen: errors--all-explanations
+#: crates/aximar-core/src/maxima/errors.rs
+#, rust-format
+msgctxt "error.arg_count.explanation"
+msgid "{func} is defined as {definition}, but was called with {found}."
+msgstr ""
+
+#. screen: errors--all-explanations
+#: crates/aximar-core/src/maxima/errors.rs
+#, rust-format
+msgctxt "error.arg_count.suggestion"
+msgid "Call {func} with the arguments {definition} names, or change its definition."
+msgstr ""
+
+#. screen: errors--all-explanations
+#: crates/aximar-core/src/maxima/errors.rs
+#, rust-format
+msgctxt "error.arg_count.explanation.too_few"
+msgid "Too few arguments were passed to {func}."
+msgstr ""
+
+#. screen: errors--all-explanations
+#: crates/aximar-core/src/maxima/errors.rs
+#, rust-format
+msgctxt "error.arg_count.explanation.too_many"
+msgid "Too many arguments were passed to {func}."
+msgstr ""
+
+#. screen: errors--all-explanations
+#: crates/aximar-core/src/maxima/errors.rs
+#, rust-format
+msgctxt "error.arg_count.suggestion.describe"
+msgid "Check the documentation for {func} with describe({func})."
+msgstr ""
+
+#. i18n: signatures is one or more ways to call the function, separated by semicolons
+#. screen: errors--all-explanations
+#: crates/aximar-core/src/maxima/errors.rs
+#, rust-format
+msgctxt "error.arg_count.suggestion.signatures"
+msgid "Correct usage: {signatures}"
+msgstr ""
+
+#. i18n: Maxima: "unbound variable x" or "undefined variable x"
+#. screen: errors--all-explanations
+#: crates/aximar-core/src/maxima/errors.rs
+msgctxt "error.undefined_variable.title"
+msgid "Undefined Variable"
+msgstr ""
+
+#. screen: errors--all-explanations
+#: crates/aximar-core/src/maxima/errors.rs
+#, rust-format
+msgctxt "error.undefined_variable.explanation"
+msgid "The variable \"{name}\" has not been assigned a value."
+msgstr ""
+
+#. screen: errors--all-explanations
+#: crates/aximar-core/src/maxima/errors.rs
+#, rust-format
+msgctxt "error.undefined_variable.suggestion"
+msgid "Assign it first with {name}: value; or use it as a symbolic variable."
+msgstr ""
+
+#. i18n: Maxima: "funcall: no such function: f" or "The function f is not known to Maxima"
+#. screen: errors--all-explanations
+#: crates/aximar-core/src/maxima/errors.rs
+msgctxt "error.unknown_function.title"
+msgid "Unknown Function"
+msgstr ""
+
+#. screen: errors--all-explanations
+#: crates/aximar-core/src/maxima/errors.rs
+#, rust-format
+msgctxt "error.unknown_function.explanation.in_package"
+msgid "\"{func}\" is provided by the \"{package}\" package, which needs to be loaded first."
+msgstr ""
+
+#. screen: errors--all-explanations
+#: crates/aximar-core/src/maxima/errors.rs
+#, rust-format
+msgctxt "error.unknown_function.suggestion.in_package"
+msgid "Add load(\"{package}\")$ before using this function."
+msgstr ""
+
+#. screen: errors--all-explanations
+#: crates/aximar-core/src/maxima/errors.rs
+#, rust-format
+msgctxt "error.unknown_function.explanation"
+msgid "\"{func}\" is not a known Maxima function."
+msgstr ""
+
+#. screen: errors--all-explanations
+#: crates/aximar-core/src/maxima/errors.rs
+#, rust-format
+msgctxt "error.unknown_function.suggestion"
+msgid "Check the spelling or use describe(\"{func}\") to search."
+msgstr ""
+
+#. i18n: Maxima: "Maxima encountered a Lisp error: The value 1 is not of type LIST"
+#. screen: errors--all-explanations
+#: crates/aximar-core/src/maxima/errors.rs
+msgctxt "error.lisp_type.title"
+msgid "Wrong Kind of Value"
+msgstr ""
+
+#. i18n: value is the value given, such as 1; lisp_type is a Lisp
+#. type name, such as list or number, which stays in English
+#. screen: errors--all-explanations
+#: crates/aximar-core/src/maxima/errors.rs
+#, rust-format
+msgctxt "error.lisp_type.explanation"
+msgid "A function inside Maxima expected a value of type {lisp_type} but got {value}."
+msgstr ""
+
+#. screen: errors--all-explanations
+#: crates/aximar-core/src/maxima/errors.rs
+msgctxt "error.lisp_type.suggestion"
+msgid "Check the arguments of the functions in this cell, especially Lisp functions called with ?, which don't check their arguments."
+msgstr ""
+
+#. i18n: Maxima: "Maxima encountered a Lisp error: Control stack exhausted ..."
+#. screen: errors--all-explanations
+#: crates/aximar-core/src/maxima/errors.rs
+msgctxt "error.recursion.title"
+msgid "Runaway Recursion"
+msgstr ""
+
+#. screen: errors--all-explanations
+#: crates/aximar-core/src/maxima/errors.rs
+msgctxt "error.recursion.explanation"
+msgid "A function called itself, directly or through others, until Maxima ran out of room for the calls."
+msgstr ""
+
+#. screen: errors--all-explanations
+#: crates/aximar-core/src/maxima/errors.rs
+msgctxt "error.recursion.suggestion"
+msgid "Check that each recursive function has a case that stops it, such as f(0) := 1."
+msgstr ""
+
+#. i18n: Maxima: "Maxima encountered a Lisp error: arithmetic error FLOATING-POINT-OVERFLOW signalled"
+#. screen: errors--all-explanations
+#: crates/aximar-core/src/maxima/errors.rs
+msgctxt "error.float_overflow.title"
+msgid "Number Too Large"
+msgstr ""
+
+#. screen: errors--all-explanations
+#: crates/aximar-core/src/maxima/errors.rs
+msgctxt "error.float_overflow.explanation"
+msgid "A floating-point result was too large to represent."
+msgstr ""
+
+#. screen: errors--all-explanations
+#: crates/aximar-core/src/maxima/errors.rs
+msgctxt "error.float_overflow.suggestion"
+msgid "Keep the computation exact, or use bfloat() for very large numbers."
+msgstr ""
+
+#. i18n: Maxima: "Maxima encountered a Lisp error:" and any other condition
+#. screen: errors--all-explanations
+#: crates/aximar-core/src/maxima/errors.rs
+msgctxt "error.lisp.title"
+msgid "Internal Error"
+msgstr ""
+
+#. i18n: condition is the Lisp system's description of the error, in English
+#. screen: errors--all-explanations
+#: crates/aximar-core/src/maxima/errors.rs
+#, rust-format
+msgctxt "error.lisp.explanation"
+msgid "Maxima encountered an internal error in the underlying Lisp system: {condition}"
+msgstr ""
+
+#. screen: errors--all-explanations
+#: crates/aximar-core/src/maxima/errors.rs
+msgctxt "error.lisp.suggestion"
+msgid "Try restarting the Maxima session. If the error persists, the expression may be too complex or trigger a bug in Maxima."
+msgstr ""
+
+#. i18n: Maxima: "log: encountered log(0)."
+#. screen: errors--all-explanations
+#: crates/aximar-core/src/maxima/errors.rs
+msgctxt "error.log_zero.title"
+msgid "Logarithm of Zero"
+msgstr ""
+
+#. screen: errors--all-explanations
+#: crates/aximar-core/src/maxima/errors.rs
+msgctxt "error.log_zero.explanation"
+msgid "The expression takes the logarithm of 0, which is undefined."
+msgstr ""
+
+#. screen: errors--all-explanations
+#: crates/aximar-core/src/maxima/errors.rs
+msgctxt "error.log_zero.suggestion"
+msgid "Check the argument of log for values that make it 0, or take a limit instead."
+msgstr ""
+
+#. i18n: Maxima: "part: fell off the end.", or the same from inpart or rest
+#. screen: errors--all-explanations
+#: crates/aximar-core/src/maxima/errors.rs
+msgctxt "error.part_index.title"
+msgid "Index Out of Range"
+msgstr ""
+
+#. i18n: func is the Maxima function, such as part or inpart
+#. screen: errors--all-explanations
+#: crates/aximar-core/src/maxima/errors.rs
+#, rust-format
+msgctxt "error.part_index.explanation"
+msgid "{func} asked for a part beyond the end of the expression or list."
+msgstr ""
+
+#. screen: errors--all-explanations
+#: crates/aximar-core/src/maxima/errors.rs
+msgctxt "error.part_index.suggestion"
+msgid "Check the index against length() of the expression or list."
+msgstr ""
+
+#. i18n: Maxima: "part: argument must be a non-atomic expression; found x"
+#. screen: errors--all-explanations
+#: crates/aximar-core/src/maxima/errors.rs
+msgctxt "error.part_atom.title"
+msgid "No Parts to Take"
+msgstr ""
+
+#. i18n: func is the Maxima function, such as part; found is what it was given, such as x
+#. screen: errors--all-explanations
+#: crates/aximar-core/src/maxima/errors.rs
+#, rust-format
+msgctxt "error.part_atom.explanation"
+msgid "{func} needs an expression with parts, such as a list or a sum, but got {found}."
+msgstr ""
+
+#. screen: errors--all-explanations
+#: crates/aximar-core/src/maxima/errors.rs
+msgctxt "error.part_atom.suggestion"
+msgid "Check that the variable holds the list or expression you meant."
+msgstr ""
+
+#. i18n: Maxima: "assignment: cannot assign to 2"
+#. screen: errors--all-explanations
+#: crates/aximar-core/src/maxima/errors.rs
+msgctxt "error.assign_target.title"
+msgid "Can't Assign"
+msgstr ""
+
+#. i18n: target is what the cell tried to assign to, such as 2 or %pi
+#. screen: errors--all-explanations
+#: crates/aximar-core/src/maxima/errors.rs
+#, rust-format
+msgctxt "error.assign_target.explanation"
+msgid "The left side of : must be a variable name, but it is {target}."
+msgstr ""
+
+#. screen: errors--all-explanations
+#: crates/aximar-core/src/maxima/errors.rs
+msgctxt "error.assign_target.suggestion"
+msgid "To write an equation, use = instead of :, as in x^2 = 4."
+msgstr ""
+
+#. i18n: Maxima: "first: empty argument.", or the same from last and others
+#. screen: errors--all-explanations
+#: crates/aximar-core/src/maxima/errors.rs
+msgctxt "error.empty_list.title"
+msgid "Empty List"
+msgstr ""
+
+#. i18n: func is the Maxima function, such as first or last
+#. screen: errors--all-explanations
+#: crates/aximar-core/src/maxima/errors.rs
+#, rust-format
+msgctxt "error.empty_list.explanation"
+msgid "{func} was given an empty list, which has no elements to take."
+msgstr ""
+
+#. screen: errors--all-explanations
+#: crates/aximar-core/src/maxima/errors.rs
+msgctxt "error.empty_list.suggestion"
+msgid "Check where the list comes from, for example a solve() that found no solutions."
+msgstr ""
+
+#. i18n: Maxima: "allroots: expected a polynomial; found sin(x)"
+#. screen: errors--all-explanations
+#: crates/aximar-core/src/maxima/errors.rs
+msgctxt "error.not_polynomial.title"
+msgid "Not a Polynomial"
+msgstr ""
+
+#. i18n: func is the Maxima function, such as allroots; found is the expression given
+#. screen: errors--all-explanations
+#: crates/aximar-core/src/maxima/errors.rs
+#, rust-format
+msgctxt "error.not_polynomial.explanation"
+msgid "{func} works only on polynomials, but got {found}."
+msgstr ""
+
+#. screen: errors--all-explanations
+#: crates/aximar-core/src/maxima/errors.rs
+msgctxt "error.not_polynomial.suggestion"
+msgid "For other equations, try find_root() over an interval, or solve()."
+msgstr ""
+
+#. i18n: Maxima: "algsys: Couldn't reduce system to a polynomial in one variable."
+#. screen: errors--all-explanations
+#: crates/aximar-core/src/maxima/errors.rs
+msgctxt "error.algsys_failed.title"
+msgid "Can't Solve the System"
+msgstr ""
+
+#. screen: errors--all-explanations
+#: crates/aximar-core/src/maxima/errors.rs
+msgctxt "error.algsys_failed.explanation"
+msgid "algsys, which solve uses for systems, couldn't turn the equations into a polynomial in one variable."
+msgstr ""
+
+#. screen: errors--all-explanations
+#: crates/aximar-core/src/maxima/errors.rs
+msgctxt "error.algsys_failed.suggestion"
+msgid "For a numerical answer, try mnewton() from load(mnewton) with a starting point."
+msgstr ""
+
+#. i18n: Maxima: "defint: integral is divergent."
+#. screen: errors--all-explanations
+#: crates/aximar-core/src/maxima/errors.rs
+msgctxt "error.divergent_integral.title"
+msgid "Divergent Integral"
+msgstr ""
+
+#. screen: errors--all-explanations
+#: crates/aximar-core/src/maxima/errors.rs
+msgctxt "error.divergent_integral.explanation"
+msgid "The definite integral does not converge to a finite value."
+msgstr ""
+
+#. screen: errors--all-explanations
+#: crates/aximar-core/src/maxima/errors.rs
+msgctxt "error.divergent_integral.suggestion"
+msgid "Check the integration bounds and integrand. The function may have singularities or not decay fast enough."
+msgstr ""
+
+#. i18n: Maxima: "solve: inconsistent equations" and similar
+#. screen: errors--all-explanations
+#: crates/aximar-core/src/maxima/errors.rs
+msgctxt "error.inconsistent_equations.title"
+msgid "Inconsistent Equations"
+msgstr ""
+
+#. screen: errors--all-explanations
+#: crates/aximar-core/src/maxima/errors.rs
+msgctxt "error.inconsistent_equations.explanation"
+msgid "The system of equations has no solution: the equations contradict each other."
+msgstr ""
+
+#. screen: errors--all-explanations
+#: crates/aximar-core/src/maxima/errors.rs
+msgctxt "error.inconsistent_equations.suggestion"
+msgid "Check that the equations are correct and compatible."
+msgstr ""
+
+#. i18n: Aximar stopped a cell that ran longer than the evaluation timeout
+#. screen: errors--all-explanations
+#: crates/aximar-core/src/maxima/errors.rs
+msgctxt "error.timeout.title"
+msgid "Timed Out"
+msgstr ""
+
+#. i18n: seconds is the timeout from Settings, such as 30
+#. screen: errors--all-explanations
+#: crates/aximar-core/src/maxima/errors.rs
+#, rust-format
+msgctxt "error.timeout.explanation"
+msgid "The cell ran for longer than {seconds} seconds, so Aximar stopped it."
+msgstr ""
+
+#. screen: errors--all-explanations
+#: crates/aximar-core/src/maxima/errors.rs
+msgctxt "error.timeout.suggestion"
+msgid "Raise the evaluation timeout in Settings, or try a smaller or numeric version of the computation."
+msgstr ""
+
+#. i18n: the user stopped a running cell
+#. screen: errors--all-explanations
+#: crates/aximar-core/src/maxima/errors.rs
+msgctxt "error.cancelled.title"
+msgid "Cancelled"
+msgstr ""
+
+#. screen: errors--all-explanations
+#: crates/aximar-core/src/maxima/errors.rs
+msgctxt "error.cancelled.explanation"
+msgid "The cell was stopped before it finished."
+msgstr ""
+
+#. i18n: Maxima: "Maxima needs to know: Is a positive or zero?"
+#. screen: errors--all-explanations
+#: crates/aximar-core/src/maxima/errors.rs
+msgctxt "question.sign_pz.title"
+msgid "Maxima Needs to Know"
+msgstr ""
+
+#. i18n: expr is a Maxima expression, such as a or b*c-1
+#. screen: errors--all-explanations
+#: crates/aximar-core/src/maxima/errors.rs
+#, rust-format
+msgctxt "question.sign_pz.explanation"
+msgid "Maxima needs to know whether {expr} is positive or zero to go on."
+msgstr ""
+
+#. i18n: line is Maxima code that answers the question, such as assume(a > 0)$
+#. screen: errors--all-explanations
+#: crates/aximar-core/src/maxima/errors.rs
+#, rust-format
+msgctxt "question.sign_pz.suggestion"
+msgid "Add {line} before this line, or in a cell above, and run it again."
+msgstr ""
+
+#. i18n: Maxima: "Maxima needs to know: Is a negative or zero?"
+#. screen: errors--all-explanations
+#: crates/aximar-core/src/maxima/errors.rs
+msgctxt "question.sign_nz.title"
+msgid "Maxima Needs to Know"
+msgstr ""
+
+#. i18n: expr is a Maxima expression, such as a or b*c-1
+#. screen: errors--all-explanations
+#: crates/aximar-core/src/maxima/errors.rs
+#, rust-format
+msgctxt "question.sign_nz.explanation"
+msgid "Maxima needs to know whether {expr} is negative or zero to go on."
+msgstr ""
+
+#. i18n: line is Maxima code that answers the question, such as assume(a < 0)$
+#. screen: errors--all-explanations
+#: crates/aximar-core/src/maxima/errors.rs
+#, rust-format
+msgctxt "question.sign_nz.suggestion"
+msgid "Add {line} before this line, or in a cell above, and run it again."
+msgstr ""
+
+#. i18n: Maxima: "Maxima needs to know: Is k positive or negative?"
+#. screen: errors--all-explanations
+#: crates/aximar-core/src/maxima/errors.rs
+msgctxt "question.sign_pn.title"
+msgid "Maxima Needs to Know"
+msgstr ""
+
+#. i18n: expr is a Maxima expression, such as k or b*c-1
+#. screen: errors--all-explanations
+#: crates/aximar-core/src/maxima/errors.rs
+#, rust-format
+msgctxt "question.sign_pn.explanation"
+msgid "Maxima needs to know whether {expr} is positive or negative to go on."
+msgstr ""
+
+#. i18n: line is Maxima code that answers the question, such as assume(k > 0)$
+#. screen: errors--all-explanations
+#: crates/aximar-core/src/maxima/errors.rs
+#, rust-format
+msgctxt "question.sign_pn.suggestion"
+msgid "Add {line} before this line, or in a cell above, and run it again."
+msgstr ""
+
+#. i18n: Maxima: "Maxima needs to know: Is x zero or nonzero?"
+#. screen: errors--all-explanations
+#: crates/aximar-core/src/maxima/errors.rs
+msgctxt "question.zero.title"
+msgid "Maxima Needs to Know"
+msgstr ""
+
+#. i18n: expr is a Maxima expression, such as x or b*c-1
+#. screen: errors--all-explanations
+#: crates/aximar-core/src/maxima/errors.rs
+#, rust-format
+msgctxt "question.zero.explanation"
+msgid "Maxima needs to know whether {expr} is zero to go on."
+msgstr ""
+
+#. i18n: line is Maxima code that answers the question, such as assume(notequal(x, 0))$
+#. screen: errors--all-explanations
+#: crates/aximar-core/src/maxima/errors.rs
+#, rust-format
+msgctxt "question.zero.suggestion"
+msgid "Add {line} before this line, or in a cell above, and run it again."
+msgstr ""
+
+#. i18n: Maxima: "Maxima needs to know: Is a positive, negative or zero?"
+#. screen: errors--all-explanations
+#: crates/aximar-core/src/maxima/errors.rs
+msgctxt "question.sign.title"
+msgid "Maxima Needs to Know"
+msgstr ""
+
+#. i18n: expr is a Maxima expression, such as a or b*c-1
+#. screen: errors--all-explanations
+#: crates/aximar-core/src/maxima/errors.rs
+#, rust-format
+msgctxt "question.sign.explanation"
+msgid "Maxima needs to know whether {expr} is positive, negative or zero to go on."
+msgstr ""
+
+#. i18n: line is Maxima code that answers the question, such as assume(a > 0)$
+#. screen: errors--all-explanations
+#: crates/aximar-core/src/maxima/errors.rs
+#, rust-format
+msgctxt "question.sign.suggestion"
+msgid "Add {line} before this line, or in a cell above, and run it again."
+msgstr ""
+
+#. i18n: Maxima: "Maxima needs to know: Is a equal to -1?"
+#. screen: errors--all-explanations
+#: crates/aximar-core/src/maxima/errors.rs
+msgctxt "question.equal.title"
+msgid "Maxima Needs to Know"
+msgstr ""
+
+#. i18n: a and b are Maxima expressions, such as a and -1
+#. screen: errors--all-explanations
+#: crates/aximar-core/src/maxima/errors.rs
+#, rust-format
+msgctxt "question.equal.explanation"
+msgid "Maxima needs to know whether {a} equals {b} to go on."
+msgstr ""
+
+#. i18n: line is Maxima code that answers the question, such as assume(notequal(a, -1))$
+#. screen: errors--all-explanations
+#: crates/aximar-core/src/maxima/errors.rs
+#, rust-format
+msgctxt "question.equal.suggestion"
+msgid "Add {line} before this line, or in a cell above, and run it again."
+msgstr ""
+
+#. i18n: Maxima: "Maxima needs to know: Is n an integer?", or another property
+#. screen: errors--all-explanations
+#: crates/aximar-core/src/maxima/errors.rs
+msgctxt "question.property.title"
+msgid "Maxima Needs to Know"
+msgstr ""
+
+#. i18n: expr is a Maxima expression; property is a Maxima
+#. feature name such as integer or even, which stays in English
+#. screen: errors--all-explanations
+#: crates/aximar-core/src/maxima/errors.rs
+#, rust-format
+msgctxt "question.property.explanation"
+msgid "Maxima needs to know whether {expr} has the property {property} to go on."
+msgstr ""
+
+#. i18n: line is Maxima code that answers the question, such as declare(n, integer)$
+#. screen: errors--all-explanations
+#: crates/aximar-core/src/maxima/errors.rs
+#, rust-format
+msgctxt "question.property.suggestion"
+msgid "Add {line} before this line, or in a cell above, and run it again."
+msgstr ""
+
+#. i18n: Maxima: "Maxima needs to know: ..." with any other question
+#. screen: errors--all-explanations
+#: crates/aximar-core/src/maxima/errors.rs
+msgctxt "question.other.title"
+msgid "Maxima Needs to Know"
+msgstr ""
+
+#. i18n: question is Maxima's question, in English
+#. screen: errors--all-explanations
+#: crates/aximar-core/src/maxima/errors.rs
+#, rust-format
+msgctxt "question.other.explanation"
+msgid "Maxima asked \"{question}\" and can't get an answer from a cell."
+msgstr ""
+
+#. screen: errors--all-explanations
+#: crates/aximar-core/src/maxima/errors.rs
+msgctxt "question.other.suggestion"
+msgid "Use assume() or declare() before this line to tell Maxima what it needs, then run the cell again."
+msgstr ""
+
+#. i18n: Maxima: "matrix: all rows must be the same length." or "incompatible dimensions"
+#. screen: errors--all-explanations
+#: crates/aximar-core/src/maxima/errors.rs
+msgctxt "error.matrix_dimension.title"
+msgid "Matrix Dimension Error"
+msgstr ""
+
+#. screen: errors--all-explanations
+#: crates/aximar-core/src/maxima/errors.rs
+msgctxt "error.matrix_dimension.explanation"
+msgid "Matrix rows have different lengths, or the matrices have incompatible dimensions for the operation."
+msgstr ""
+
+#. screen: errors--all-explanations
+#: crates/aximar-core/src/maxima/errors.rs
+msgctxt "error.matrix_dimension.suggestion"
+msgid "Ensure all rows have the same number of elements and matrices have compatible dimensions."
+msgstr ""
+
+#. screen: errors--all-explanations
+#: crates/aximar-core/src/maxima/errors.rs
+#, rust-format
+msgctxt "error.package_not_found.explanation"
+msgid "The package \"{package}\" could not be found or loaded."
+msgstr ""
+
+#. screen: errors--all-explanations
+#: crates/aximar-core/src/maxima/errors.rs
+msgctxt "error.package_not_found.explanation.unnamed"
+msgid "The package could not be found or loaded."
+msgstr ""
+
+#. i18n: Maxima: "loadfile: failed to load x" or "Cannot find file x"
+#. screen: errors--all-explanations
+#: crates/aximar-core/src/maxima/errors.rs
+msgctxt "error.package_not_found.title"
+msgid "Package Not Found"
+msgstr ""
+
+#. screen: errors--all-explanations
+#: crates/aximar-core/src/maxima/errors.rs
+msgctxt "error.package_not_found.suggestion"
+msgid "Check the package name. Common packages: draw, simplex, lsquares, descriptive, distrib."
+msgstr ""
+
+#. i18n: Maxima: "rat: replaced 0.5 by 1/2 = 0.5", one line per number.
+#. replacements lists them, such as "0.25 → 1/4, 0.5 → 1/2"
+#. screen: cells--notebook
+#. screen: notes--all-notes
+#: crates/aximar-core/src/maxima/notes.rs
+#, rust-format
+msgctxt "note.rat_replaced.text"
+msgid "Maxima replaced decimals with exact fractions: {replacements}."
+msgstr ""
+
+#. i18n: Maxima printed "rat: replaced ..." more than 3 times. count is how
+#. many (always more than 3); examples lists the first few, such as
+#. "0.1 → 1/10, 0.2 → 1/5". "ratprint: false$" is Maxima code
+#. screen: notes--all-notes
+#: crates/aximar-core/src/maxima/notes.rs
+#, rust-format
+msgctxt "note.rat_replaced.text.many"
+msgid "Maxima replaced {count} decimals with exact fractions, such as {examples}. Add ratprint: false$ to hide these messages."
+msgstr ""
+
+#. i18n: Maxima: "solve: using arc-trig functions to get a solution. Some solutions will be lost."
+#. screen: notes--all-notes
+#: crates/aximar-core/src/maxima/notes.rs
+msgctxt "note.solve_arc_trig.text"
+msgid "solve used inverse trigonometric functions, so it gives only some of the solutions."
+msgstr ""
+
+#. i18n: Maxima: "solve: dependent equations eliminated: (2)".
+#. equations lists their positions, such as (2)
+#. screen: notes--all-notes
+#: crates/aximar-core/src/maxima/notes.rs
+#, rust-format
+msgctxt "note.solve_dependent.text"
+msgid "solve dropped equations that follow from the others: {equations}."
+msgstr ""
+
+#. i18n: Maxima: "Principal Value", from integrate
+#. screen: notes--all-notes
+#: crates/aximar-core/src/maxima/notes.rs
+msgctxt "note.principal_value.text"
+msgid "The integral diverges inside the range, so the result is its Cauchy principal value."
+msgstr ""
+
+#. i18n: Maxima: "plot2d: expression evaluates to non-numeric value somewhere in plotting range."
+#. function is plot2d or plot3d
+#. screen: notes--all-notes
+#: crates/aximar-core/src/maxima/notes.rs
+#, rust-format
+msgctxt "note.plot_non_numeric.text"
+msgid "{function} left out points where the expression has no real value."
+msgstr ""
+
+#. i18n: Maxima: "quad_qags: Numerical evaluation of f at 0.0 is not a float or is not defined".
+#. function is a quadrature function; expr a Maxima expression; point a number
+#. screen: notes--all-notes
+#: crates/aximar-core/src/maxima/notes.rs
+#, rust-format
+msgctxt "note.quadrature_undefined.text"
+msgid "{function} couldn't evaluate {expr} at {point}, so the result may be inaccurate."
+msgstr ""
+
+#. i18n: Maxima: "expt: undefined: 0 to a negative exponent.", in a cell
+#. that still has a result
+#. screen: notes--all-notes
+#: crates/aximar-core/src/maxima/notes.rs
+msgctxt "note.zero_power.text"
+msgid "Maxima met 0 to a negative power on the way, and carried on without that part."
+msgstr ""
+
+#. i18n: Maxima: "tellsimp: warning: rule will treat '+' as noncommutative and nonassociative."
+#. screen: notes--all-notes
+#: crates/aximar-core/src/maxima/notes.rs
+msgctxt "note.tellsimp_noncommutative.text"
+msgid "tellsimp will treat the rule's main operator as noncommutative and nonassociative, so the rule matches only terms in the order it was written."
+msgstr ""
+
+#. i18n: App menu (macOS). max-length:30
+#: src-tauri/src/menu.rs
+msgid "About Aximar"
+msgstr ""
+
+#. i18n: App menu (macOS): the system's Services submenu. max-length:30
+#: src-tauri/src/menu.rs
+msgid "Services"
+msgstr ""
+
+#. i18n: App menu (macOS). max-length:30
+#: src-tauri/src/menu.rs
+msgid "Hide Aximar"
+msgstr ""
+
+#. i18n: App menu (macOS): hides every other app. max-length:30
+#: src-tauri/src/menu.rs
+msgid "Hide Others"
+msgstr ""
+
+#. i18n: App menu (macOS). max-length:30
+#: src-tauri/src/menu.rs
+msgid "Show All"
+msgstr ""
+
+#. i18n: App menu. max-length:30
+#: src-tauri/src/menu.rs
+msgid "Quit Aximar"
+msgstr ""
+
+#. i18n: Menu bar. max-length:16
+#: src-tauri/src/menu.rs
+msgid "File"
+msgstr ""
+
+#. i18n: File menu. max-length:30
+#: src-tauri/src/menu.rs
+msgid "New Notebook"
+msgstr ""
+
+#. i18n: File menu. max-length:30
+#: src-tauri/src/menu.rs
+msgid "New Window"
+msgstr ""
+
+#. i18n: File menu: opens a notebook file. max-length:30
+#: src-tauri/src/menu.rs
+msgid "Open..."
+msgstr ""
+
+#. i18n: File menu. max-length:30
+#: src-tauri/src/menu.rs
+msgid "Save As..."
+msgstr ""
+
+#. i18n: File menu: saves the notebook as a LaTeX document. max-length:30
+#: src-tauri/src/menu.rs
+msgid "Export as LaTeX..."
+msgstr ""
+
+#. i18n: File menu. max-length:30
+#: src-tauri/src/menu.rs
+msgid "Print..."
+msgstr ""
+
+#. i18n: File menu. max-length:30
+#: src-tauri/src/menu.rs
+msgid "Close Window"
+msgstr ""
+
+#. i18n: Menu bar. max-length:16
+#: src-tauri/src/menu.rs
+msgid "Edit"
+msgstr ""
+
+#. i18n: Edit menu. max-length:30
+#: src-tauri/src/menu.rs
+msgid "Cut"
+msgstr ""
+
+#. i18n: Edit menu. max-length:30
+#: src-tauri/src/menu.rs
+msgid "Paste"
+msgstr ""
+
+#. i18n: Edit menu. max-length:30
+#: src-tauri/src/menu.rs
+msgid "Select All"
+msgstr ""
+
+#. i18n: Menu bar. max-length:16
+#: src-tauri/src/menu.rs
+msgid "Window"
+msgstr ""
+
+#. i18n: Window menu. max-length:30
+#: src-tauri/src/menu.rs
+msgid "Minimize"
+msgstr ""

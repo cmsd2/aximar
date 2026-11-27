@@ -5,6 +5,7 @@ pub mod error;
 pub mod evaluation;
 pub mod log;
 pub mod maxima;
+pub mod message;
 pub mod notebook;
 pub mod notebooks;
 pub mod registry;

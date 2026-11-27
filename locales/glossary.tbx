@@ -1,0 +1,209 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Aximar's Spanish glossary.  Terms marked Maxima follow Maxima's own
+     Spanish catalog (locale/es.po), so Aximar's words match the Maxima
+     messages shown beside them.  See locales/README.md. -->
+<martif type="TBX" xml:lang="en">
+  <martifHeader>
+    <fileDesc><sourceDesc><p>Aximar, seeded from Maxima's es.po</p></sourceDesc></fileDesc>
+  </martifHeader>
+  <text>
+    <body>
+    <termEntry id="t1">
+      <langSet xml:lang="en"><tig><term>argument</term></tig></langSet>
+      <langSet xml:lang="es"><tig><term>argumento</term><note>Maxima: 313 of 314 messages</note></tig></langSet>
+    </termEntry>
+    <termEntry id="t2">
+      <langSet xml:lang="en"><tig><term>matrix</term></tig></langSet>
+      <langSet xml:lang="es"><tig><term>matriz</term><note>Maxima</note></tig></langSet>
+    </termEntry>
+    <termEntry id="t3">
+      <langSet xml:lang="en"><tig><term>function</term></tig></langSet>
+      <langSet xml:lang="es"><tig><term>función</term><note>Maxima</note></tig></langSet>
+    </termEntry>
+    <termEntry id="t4">
+      <langSet xml:lang="en"><tig><term>list</term></tig></langSet>
+      <langSet xml:lang="es"><tig><term>lista</term><note>Maxima</note></tig></langSet>
+    </termEntry>
+    <termEntry id="t5">
+      <langSet xml:lang="en"><tig><term>expression</term></tig></langSet>
+      <langSet xml:lang="es"><tig><term>expresión</term><note>Maxima</note></tig></langSet>
+    </termEntry>
+    <termEntry id="t6">
+      <langSet xml:lang="en"><tig><term>polynomial (noun)</term></tig></langSet>
+      <langSet xml:lang="es"><tig><term>polinomio</term><note>Maxima</note></tig></langSet>
+    </termEntry>
+    <termEntry id="t7">
+      <langSet xml:lang="en"><tig><term>polynomial (adjective)</term></tig></langSet>
+      <langSet xml:lang="es"><tig><term>polinomial</term><note>Maxima</note></tig></langSet>
+    </termEntry>
+    <termEntry id="t8">
+      <langSet xml:lang="en"><tig><term>equation</term></tig></langSet>
+      <langSet xml:lang="es"><tig><term>ecuación</term><note>Maxima</note></tig></langSet>
+    </termEntry>
+    <termEntry id="t9">
+      <langSet xml:lang="en"><tig><term>integral</term></tig></langSet>
+      <langSet xml:lang="es"><tig><term>integral</term><note>Maxima</note></tig></langSet>
+    </termEntry>
+    <termEntry id="t10">
+      <langSet xml:lang="en"><tig><term>limit</term></tig></langSet>
+      <langSet xml:lang="es"><tig><term>límite</term><note>Maxima</note></tig></langSet>
+    </termEntry>
+    <termEntry id="t11">
+      <langSet xml:lang="en"><tig><term>variable</term></tig></langSet>
+      <langSet xml:lang="es"><tig><term>variable</term><note>Maxima</note></tig></langSet>
+    </termEntry>
+    <termEntry id="t12">
+      <langSet xml:lang="en"><tig><term>undefined</term></tig></langSet>
+      <langSet xml:lang="es"><tig><term>no definido</term><note>Maxima</note></tig></langSet>
+    </termEntry>
+    <termEntry id="t13">
+      <langSet xml:lang="en"><tig><term>divergent</term></tig></langSet>
+      <langSet xml:lang="es"><tig><term>divergente</term><note>Maxima</note></tig></langSet>
+    </termEntry>
+    <termEntry id="t14">
+      <langSet xml:lang="en"><tig><term>package</term></tig></langSet>
+      <langSet xml:lang="es"><tig><term>paquete</term><note>Maxima</note></tig></langSet>
+    </termEntry>
+    <termEntry id="t15">
+      <langSet xml:lang="en"><tig><term>file</term></tig></langSet>
+      <langSet xml:lang="es"><tig><term>fichero</term><note>Maxima uses fichero, as in Spain; archivo is usual in Latin America. Choose one with the reviewer.</note></tig></langSet>
+    </termEntry>
+    <termEntry id="t16">
+      <langSet xml:lang="en"><tig><term>syntax</term></tig></langSet>
+      <langSet xml:lang="es"><tig><term>sintaxis</term><note>Maxima</note></tig></langSet>
+    </termEntry>
+    <termEntry id="t17">
+      <langSet xml:lang="en"><tig><term>error</term></tig></langSet>
+      <langSet xml:lang="es"><tig><term>error</term><note>Maxima</note></tig></langSet>
+    </termEntry>
+    <termEntry id="t18">
+      <langSet xml:lang="en"><tig><term>number</term></tig></langSet>
+      <langSet xml:lang="es"><tig><term>número</term><note>Maxima</note></tig></langSet>
+    </termEntry>
+    <termEntry id="t19">
+      <langSet xml:lang="en"><tig><term>floating-point</term></tig></langSet>
+      <langSet xml:lang="es"><tig><term>coma flotante</term><note>Maxima</note></tig></langSet>
+    </termEntry>
+    <termEntry id="t20">
+      <langSet xml:lang="en"><tig><term>integer</term></tig></langSet>
+      <langSet xml:lang="es"><tig><term>entero</term><note>Maxima</note></tig></langSet>
+    </termEntry>
+    <termEntry id="t21">
+      <langSet xml:lang="en"><tig><term>symbol</term></tig></langSet>
+      <langSet xml:lang="es"><tig><term>símbolo</term><note>Maxima</note></tig></langSet>
+    </termEntry>
+    <termEntry id="t22">
+      <langSet xml:lang="en"><tig><term>string</term></tig></langSet>
+      <langSet xml:lang="es"><tig><term>cadena</term><note>Maxima</note></tig></langSet>
+    </termEntry>
+    <termEntry id="t23">
+      <langSet xml:lang="en"><tig><term>operator</term></tig></langSet>
+      <langSet xml:lang="es"><tig><term>operador</term><note>Maxima</note></tig></langSet>
+    </termEntry>
+    <termEntry id="t24">
+      <langSet xml:lang="en"><tig><term>evaluate</term></tig></langSet>
+      <langSet xml:lang="es"><tig><term>evaluar</term><note>Maxima</note></tig></langSet>
+    </termEntry>
+    <termEntry id="t25">
+      <langSet xml:lang="en"><tig><term>plot</term></tig></langSet>
+      <langSet xml:lang="es"><tig><term>gráfico</term><note>Maxima</note></tig></langSet>
+    </termEntry>
+    <termEntry id="t26">
+      <langSet xml:lang="en"><tig><term>solution</term></tig></langSet>
+      <langSet xml:lang="es"><tig><term>solución</term><note>Maxima</note></tig></langSet>
+    </termEntry>
+    <termEntry id="t27">
+      <langSet xml:lang="en"><tig><term>exponent</term></tig></langSet>
+      <langSet xml:lang="es"><tig><term>exponente</term><note>Maxima</note></tig></langSet>
+    </termEntry>
+    <termEntry id="t28">
+      <langSet xml:lang="en"><tig><term>denominator</term></tig></langSet>
+      <langSet xml:lang="es"><tig><term>denominador</term><note>Maxima</note></tig></langSet>
+    </termEntry>
+    <termEntry id="t29">
+      <langSet xml:lang="en"><tig><term>cell</term></tig></langSet>
+      <langSet xml:lang="es"><tig><term>celda</term><note>Aximar: a unit of input and output in a notebook, as in Jupyter's Spanish</note></tig></langSet>
+    </termEntry>
+    <termEntry id="t30">
+      <langSet xml:lang="en"><tig><term>notebook</term></tig></langSet>
+      <langSet xml:lang="es"><tig><term>cuaderno</term><note>Aximar: the document of cells, as in Jupyter's Spanish</note></tig></langSet>
+    </termEntry>
+    <termEntry id="t31">
+      <langSet xml:lang="en"><tig><term>session</term></tig></langSet>
+      <langSet xml:lang="es"><tig><term>sesión</term><note>Aximar: a running Maxima</note></tig></langSet>
+    </termEntry>
+    <termEntry id="t32">
+      <langSet xml:lang="en"><tig><term>run (a cell)</term></tig></langSet>
+      <langSet xml:lang="es"><tig><term>ejecutar</term><note>Aximar</note></tig></langSet>
+    </termEntry>
+    <termEntry id="t33">
+      <langSet xml:lang="en"><tig><term>note (on output)</term></tig></langSet>
+      <langSet xml:lang="es"><tig><term>nota</term><note>Aximar: a plain-language note on something Maxima printed</note></tig></langSet>
+    </termEntry>
+    <termEntry id="t34">
+      <langSet xml:lang="en"><tig><term>explanation</term></tig></langSet>
+      <langSet xml:lang="es"><tig><term>explicación</term><note>Aximar</note></tig></langSet>
+    </termEntry>
+    <termEntry id="t35">
+      <langSet xml:lang="en"><tig><term>suggestion</term></tig></langSet>
+      <langSet xml:lang="es"><tig><term>sugerencia</term><note>Aximar</note></tig></langSet>
+    </termEntry>
+    <termEntry id="t36">
+      <langSet xml:lang="en"><tig><term>settings</term></tig></langSet>
+      <langSet xml:lang="es"><tig><term>configuración</term><note>Aximar</note></tig></langSet>
+    </termEntry>
+    <termEntry id="t37">
+      <langSet xml:lang="en"><tig><term>template</term></tig></langSet>
+      <langSet xml:lang="es"><tig><term>plantilla</term><note>Aximar</note></tig></langSet>
+    </termEntry>
+    <termEntry id="t38">
+      <langSet xml:lang="en"><tig><term>timeout</term></tig></langSet>
+      <langSet xml:lang="es"><tig><term>tiempo límite</term><note>Aximar</note></tig></langSet>
+    </termEntry>
+    <termEntry id="t39">
+      <langSet xml:lang="en"><tig><term>Maxima</term></tig></langSet>
+      <langSet xml:lang="es"><tig><term>Maxima</term><note>Do not translate</note></tig></langSet>
+    </termEntry>
+    <termEntry id="t40">
+      <langSet xml:lang="en"><tig><term>Aximar</term></tig></langSet>
+      <langSet xml:lang="es"><tig><term>Aximar</term><note>Do not translate</note></tig></langSet>
+    </termEntry>
+    <termEntry id="t41">
+      <langSet xml:lang="en"><tig><term>LaTeX</term></tig></langSet>
+      <langSet xml:lang="es"><tig><term>LaTeX</term><note>Do not translate</note></tig></langSet>
+    </termEntry>
+    <termEntry id="t42">
+      <langSet xml:lang="en"><tig><term>MCP</term></tig></langSet>
+      <langSet xml:lang="es"><tig><term>MCP</term><note>Do not translate</note></tig></langSet>
+    </termEntry>
+    <termEntry id="t43">
+      <langSet xml:lang="en"><tig><term>Docker</term></tig></langSet>
+      <langSet xml:lang="es"><tig><term>Docker</term><note>Do not translate</note></tig></langSet>
+    </termEntry>
+    <termEntry id="t44">
+      <langSet xml:lang="en"><tig><term>WSL</term></tig></langSet>
+      <langSet xml:lang="es"><tig><term>WSL</term><note>Do not translate</note></tig></langSet>
+    </termEntry>
+    <termEntry id="t45">
+      <langSet xml:lang="en"><tig><term>Claude Code</term></tig></langSet>
+      <langSet xml:lang="es"><tig><term>Claude Code</term><note>Do not translate</note></tig></langSet>
+    </termEntry>
+    <termEntry id="t46">
+      <langSet xml:lang="en"><tig><term>Codex</term></tig></langSet>
+      <langSet xml:lang="es"><tig><term>Codex</term><note>Do not translate</note></tig></langSet>
+    </termEntry>
+    <termEntry id="t47">
+      <langSet xml:lang="en"><tig><term>Gemini CLI</term></tig></langSet>
+      <langSet xml:lang="es"><tig><term>Gemini CLI</term><note>Do not translate</note></tig></langSet>
+    </termEntry>
+    <termEntry id="t48">
+      <langSet xml:lang="en"><tig><term>Plotly</term></tig></langSet>
+      <langSet xml:lang="es"><tig><term>Plotly</term><note>Do not translate</note></tig></langSet>
+    </termEntry>
+    <termEntry id="t49">
+      <langSet xml:lang="en"><tig><term>TeX</term></tig></langSet>
+      <langSet xml:lang="es"><tig><term>TeX</term><note>Do not translate</note></tig></langSet>
+    </termEntry>
+    </body>
+  </text>
+</martif>

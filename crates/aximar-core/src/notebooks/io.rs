@@ -19,7 +19,7 @@ pub fn open(
         fs::read_to_string(path).map_err(|e| format!("Failed to read {}: {e}", path.display()))?;
     let mut file =
         format::read(&json).map_err(|e| format!("Failed to open {}: {e}", path.display()))?;
-    format::explain_errors(&mut file, catalog, packages);
+    format::explain(&mut file, catalog, packages);
     Ok(file)
 }
 
@@ -75,7 +75,10 @@ mod tests {
         let out = cell.output.as_ref().unwrap();
         assert!(out.is_error && out.stale);
         assert_eq!(out.error.as_deref(), Some(error.as_str()));
-        assert_eq!(out.error_info.as_ref().unwrap().title, "Division by Zero");
+        assert_eq!(
+            out.error_info.as_ref().unwrap().title.text,
+            "Division by Zero"
+        );
         assert!(file.metadata.contains_key("kernelspec"));
     }
 

@@ -1,10 +1,50 @@
 import { message } from "@tauri-apps/plugin-dialog";
+import { plural, t } from "@lingui/core/macro";
 import { useNotebookStore } from "../store/notebookStore";
+import { displayTitle } from "./tab-title";
 import { saveNotebook } from "./notebooks-client";
 
-const SAVE = "Save";
-const DONT_SAVE = "Don't Save";
-const CANCEL = "Cancel";
+// The dialog reports the label of the button clicked, so choiceFor reads
+// these back in the same language
+function saveLabel(): string {
+  return t({
+    message: "Save",
+    comment: "Button in the Unsaved Changes dialog: saves the notebooks, then closes them",
+  });
+}
+
+function dontSaveLabel(): string {
+  return t({
+    message: "Don't Save",
+    comment: "Button in the Unsaved Changes dialog: closes the notebooks and loses the changes",
+  });
+}
+
+function cancelLabel(): string {
+  return t({
+    message: "Cancel",
+    comment: "Button in the Unsaved Changes dialog: keeps the notebooks open",
+  });
+}
+
+/** The question in the dialog, naming the one notebook or counting them */
+function saveQuestion(names: string[]): string {
+  if (names.length === 1) {
+    const name = names[0];
+    return t({
+      message: `Do you want to save the changes you made to "${name}"?`,
+      comment: "Unsaved Changes dialog, when closing one notebook with changes. name is its title, such as calc.macnb",
+    });
+  }
+  const count = names.length;
+  return t({
+    message: plural(count, {
+      one: "Do you want to save the changes you made to # notebook?",
+      other: "Do you want to save the changes you made to # notebooks?",
+    }),
+    comment: "Unsaved Changes dialog, when closing several notebooks with changes. The number is how many",
+  });
+}
 
 export type UnsavedChoice = "save" | "discard" | "cancel";
 
@@ -17,23 +57,26 @@ export type UnsavedChoice = "save" | "discard" | "cancel";
  * so Save is first and Cancel is last: neither key loses work.
  */
 export async function askToSave(names: string[]): Promise<UnsavedChoice> {
-  const what = names.length === 1 ? `"${names[0]}"` : `${names.length} notebooks`;
-  const result = await message(
-    `Do you want to save the changes you made to ${what}?\n\nYour changes will be lost if you don't save them.`,
-    {
-      title: "Unsaved Changes",
-      kind: "warning",
-      buttons: { yes: SAVE, no: DONT_SAVE, cancel: CANCEL },
-    },
-  );
+  const warning = t({
+    message: "Your changes will be lost if you don't save them.",
+    comment: "Unsaved Changes dialog: the line under the question",
+  });
+  const result = await message(`${saveQuestion(names)}\n\n${warning}`, {
+    title: t({
+      message: "Unsaved Changes",
+      comment: "Title of the dialog asking whether to save notebooks before closing them",
+    }),
+    kind: "warning",
+    buttons: { yes: saveLabel(), no: dontSaveLabel(), cancel: cancelLabel() },
+  });
   return choiceFor(result);
 }
 
 /** The choice a dialog result stands for.  Anything unexpected keeps the
  *  notebook open. */
 export function choiceFor(result: string): UnsavedChoice {
-  if (result === SAVE || result === "Yes") return "save";
-  if (result === DONT_SAVE || result === "No") return "discard";
+  if (result === saveLabel() || result === "Yes") return "save";
+  if (result === dontSaveLabel() || result === "No") return "discard";
   return "cancel";
 }
 
@@ -61,7 +104,7 @@ export async function confirmClose(notebookIds: string[]): Promise<boolean> {
   const dirty = notebookIds.filter((id) => notebooks[id]?.isDirty);
   if (dirty.length === 0) return true;
 
-  const choice = await askToSave(dirty.map((id) => notebooks[id].title));
+  const choice = await askToSave(dirty.map((id) => displayTitle(notebooks[id].title)));
   if (choice === "cancel") return false;
   if (choice === "discard") return true;
 

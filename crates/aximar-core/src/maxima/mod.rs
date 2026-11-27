@@ -7,6 +7,7 @@ pub mod labels;
 pub mod legacy;
 pub mod messages;
 pub mod noconsole;
+pub mod notes;
 pub mod output;
 pub mod plotting;
 pub mod process;

@@ -2,7 +2,7 @@ use rand::Rng;
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::{Path, PathBuf};
-use tauri::Manager;
+use tauri::{Emitter, Manager};
 use tokio_util::sync::CancellationToken;
 
 use aximar_core::error::AppError;
@@ -10,6 +10,7 @@ use aximar_core::maxima::backend::{decode_wsl_output, Backend, BackendKind, Cont
 use aximar_core::maxima::noconsole::hide_console_window;
 use aximar_core::session_ops::SessionSettings;
 
+use crate::i18n;
 use crate::state::AppState;
 use crate::tauri_output::{emit_app_log, AppLogEvent};
 
@@ -152,6 +153,10 @@ struct AppConfig {
     mcp_listen_address: String,
     #[serde(default = "default_mcp_token")]
     mcp_token: String,
+    /// The language the user chose, such as `es`; `None` until they do,
+    /// which follows the system's language
+    #[serde(default)]
+    language: Option<String>,
 }
 
 impl Default for AppConfig {
@@ -179,6 +184,7 @@ impl Default for AppConfig {
             mcp_enabled: false,
             mcp_listen_address: default_mcp_listen_address(),
             mcp_token: default_mcp_token(),
+            language: None,
         }
     }
 }
@@ -258,6 +264,15 @@ impl AppConfig {
         if self.mcp_token.is_empty() {
             self.mcp_token = generate_mcp_token();
         }
+        if let Some(language) = &self.language {
+            if !i18n::languages().contains(&language.as_str()) {
+                warnings.push(format!(
+                    "Language \"{language}\" has no translation in this version, so Aximar \
+                     follows the system language"
+                ));
+                self.language = None;
+            }
+        }
         (self, warnings)
     }
 }
@@ -286,6 +301,10 @@ pub struct PublicConfig {
     pub mcp_enabled: bool,
     pub mcp_listen_address: String,
     pub mcp_token: String,
+    /// The language in use: the user's choice, or the system's default
+    pub language: String,
+    /// The languages with a translation, English first
+    pub languages: Vec<String>,
 }
 
 /// Config response with validation warnings
@@ -319,6 +338,7 @@ pub struct ConfigUpdate {
     pub mcp_enabled: Option<bool>,
     pub mcp_listen_address: Option<String>,
     pub mcp_token: Option<String>,
+    pub language: Option<String>,
 }
 
 fn config_path(app: &tauri::AppHandle) -> Result<PathBuf, AppError> {
@@ -434,6 +454,7 @@ pub async fn set_has_seen_welcome(app: tauri::AppHandle) -> Result<(), AppError>
 #[tauri::command]
 pub async fn get_config(app: tauri::AppHandle) -> Result<ConfigResponse, AppError> {
     let (config, warnings) = read_config(&app)?;
+    let language = config.language();
     Ok(ConfigResponse {
         config: PublicConfig {
             theme: config.theme,
@@ -457,6 +478,8 @@ pub async fn get_config(app: tauri::AppHandle) -> Result<ConfigResponse, AppErro
             mcp_enabled: config.mcp_enabled,
             mcp_listen_address: config.mcp_listen_address,
             mcp_token: config.mcp_token,
+            language,
+            languages: i18n::languages().iter().map(|l| l.to_string()).collect(),
         },
         warnings,
     })
@@ -469,6 +492,15 @@ pub async fn set_config(app: tauri::AppHandle, updates: ConfigUpdate) -> Result<
         || updates.mcp_token.is_some();
 
     let mut config = read_config_for_update(&app)?;
+    let language_before = config.language();
+    if let Some(language) = updates.language {
+        if !i18n::languages().contains(&language.as_str()) {
+            return Err(AppError::InvalidConfig(format!(
+                "Aximar has no translation for \"{language}\""
+            )));
+        }
+        config.language = Some(language);
+    }
     if let Some(theme) = updates.theme {
         config.theme = theme;
     }
@@ -534,6 +566,10 @@ pub async fn set_config(app: tauri::AppHandle, updates: ConfigUpdate) -> Result<
     }
     write_config(&app, &config)?;
 
+    if config.language() != language_before {
+        apply_language(&app, &config.language()).await;
+    }
+
     // Handle MCP server lifecycle changes
     if mcp_changed {
         let state = app.state::<AppState>();
@@ -582,6 +618,14 @@ pub async fn set_config(app: tauri::AppHandle, updates: ConfigUpdate) -> Result<
 }
 
 impl AppConfig {
+    /// The language in use: the user's choice, or else the system's when
+    /// Aximar has a translation for it, or else English
+    fn language(&self) -> String {
+        self.language.clone().unwrap_or_else(|| {
+            i18n::default_language(i18n::system_language().as_deref(), &i18n::languages())
+        })
+    }
+
     /// The Maxima a new session runs, and its evaluation timeout.
     fn session_settings(&self) -> SessionSettings {
         SessionSettings {
@@ -595,6 +639,28 @@ impl AppConfig {
             eval_timeout: self.eval_timeout,
         }
     }
+}
+
+/// The language in use, from the settings file now
+pub fn read_language(app: &tauri::AppHandle) -> String {
+    read_config(app)
+        .map(|(c, _)| c)
+        .unwrap_or_default()
+        .language()
+}
+
+/// Use `language` for the menus and for Maxima's messages in every
+/// notebook, from each session's next cell.  The window switches itself.
+pub async fn apply_language(app: &tauri::AppHandle, language: &str) {
+    let state = app.state::<AppState>();
+    let maxima = (language != i18n::ENGLISH).then(|| language.to_string());
+    state.registry.lock().await.set_language(maxima);
+    i18n::set_help_language(language);
+    if let Err(e) = crate::menu::set_menu_language(app, language) {
+        tracing::warn!("menu in {language}: {e}");
+    }
+    // Every window switches, the one that changed the setting included
+    let _ = app.emit("language-changed", language);
 }
 
 /// The session settings in the settings file now, or the defaults when it

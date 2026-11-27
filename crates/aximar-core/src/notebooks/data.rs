@@ -13,8 +13,9 @@ const OUTPUT_DISPLAY: &str = include_str!("output-display.json");
 const INTERACTIVE_PLOTTING: &str = include_str!("interactive-plotting.json");
 const THREE_D_PLOTTING: &str = include_str!("3d-plotting.json");
 const STATISTICAL_PLOTTING: &str = include_str!("statistical-plotting.json");
+const MAXIMA_MESSAGES: &str = include_str!("maxima-messages.json");
 
-const TEMPLATES: [&str; 12] = [
+const TEMPLATES: [&str; 13] = [
     WELCOME,
     CALCULUS,
     LINEAR_ALGEBRA,
@@ -27,6 +28,7 @@ const TEMPLATES: [&str; 12] = [
     VECTOR_CALCULUS,
     COMPLEX_NUMBERS,
     OUTPUT_DISPLAY,
+    MAXIMA_MESSAGES,
 ];
 
 fn load_all() -> Vec<Notebook> {
@@ -119,7 +121,7 @@ mod tests {
     #[test]
     fn test_templates_load() {
         let templates = list_templates();
-        assert_eq!(templates.len(), 12);
+        assert_eq!(templates.len(), 13);
         assert_eq!(templates[0].id, "welcome");
     }
 

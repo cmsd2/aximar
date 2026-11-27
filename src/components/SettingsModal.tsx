@@ -1,4 +1,11 @@
 import { useState, useEffect, useCallback, useRef } from "react";
+import type { I18n, MessageDescriptor } from "@lingui/core";
+import { msg } from "@lingui/core/macro";
+import { useLingui } from "@lingui/react/macro";
+import { activateLanguage, languageName } from "../lib/i18n";
+import { open as openDialog } from "@tauri-apps/plugin-dialog";
+import { TRANSLATOR_TOOLS, currentPreviewPath, startPreview, stopPreview } from "../lib/translation-preview";
+import { setShowSources, showingSources } from "../lib/show-sources";
 import { getConfig, setConfig, listWslDistros, checkWslMaxima, markdownFontStack, applyPrintMargins, claudeMcpStatus, claudeMcpConfigure, codexMcpStatus, codexMcpConfigure, geminiMcpStatus, geminiMcpConfigure, type AppConfig, type ClaudeMcpStatus, type CodexMcpStatus, type GeminiMcpStatus } from "../lib/config-client";
 import { useNotebookStore, type Theme, type CellStyle, type AutocompleteMode } from "../store/notebookStore";
 import { useLogStore } from "../store/logStore";
@@ -11,34 +18,85 @@ interface SettingsModalProps {
 const FONT_SIZES = [12, 13, 14, 15, 16];
 const PRINT_FONT_SIZES = [8, 9, 10, 11, 12, 13, 14, 15, 16];
 const EVAL_TIMEOUTS = [10, 30, 60, 120];
-const THEMES: Theme[] = ["auto", "light", "dark"];
-const CELL_STYLES: CellStyle[] = ["card", "bracket"];
-const MARKDOWN_FONTS: { value: string; label: string }[] = [
-  { value: "sans-serif", label: "Sans-serif" },
-  { value: "serif", label: "Serif" },
+/** A button label: a message to translate, or a product name kept as it is */
+type Label = MessageDescriptor | string;
+
+function labelText(i18n: I18n, label: Label): string {
+  return typeof label === "string" ? label : i18n._(label);
+}
+
+const THEMES: { value: Theme; label: Label }[] = [
+  {
+    value: "auto",
+    label: msg({ message: "Auto", comment: "Settings: theme button that follows the system's light or dark mode" }),
+  },
+  { value: "light", label: msg({ message: "Light", comment: "Settings: theme button for the light theme" }) },
+  { value: "dark", label: msg({ message: "Dark", comment: "Settings: theme button for the dark theme" }) },
+];
+const CELL_STYLES: { value: CellStyle; label: Label }[] = [
+  {
+    value: "card",
+    label: msg({ message: "Card", comment: "Settings: cell style button that draws each cell as a boxed card" }),
+  },
+  {
+    value: "bracket",
+    label: msg({ message: "Bracket", comment: "Settings: cell style button that marks each cell with a bracket in the margin" }),
+  },
+];
+const MARKDOWN_FONTS: { value: string; label: Label }[] = [
+  {
+    value: "sans-serif",
+    label: msg({ message: "Sans-serif", comment: "Settings: Markdown font button for the system sans-serif font" }),
+  },
+  { value: "serif", label: msg({ message: "Serif", comment: "Settings: Markdown font button for the system serif font" }) },
   { value: "computer-modern", label: "Computer Modern" },
-  { value: "mono", label: "Mono" },
+  { value: "mono", label: msg({ message: "Mono", comment: "Settings: Markdown font button for the monospace font" }) },
 ];
-const MARKDOWN_INDENTS: { value: string; label: string }[] = [
-  { value: "flush", label: "Flush" },
-  { value: "aligned", label: "Aligned" },
+const MARKDOWN_INDENTS: { value: string; label: Label }[] = [
+  {
+    value: "flush",
+    label: msg({ message: "Flush", comment: "Settings: Markdown indent button; text cells start at the left edge" }),
+  },
+  {
+    value: "aligned",
+    label: msg({ message: "Aligned", comment: "Settings: Markdown indent button; text cells line up with the code in code cells" }),
+  },
 ];
-const AUTOCOMPLETE_MODES: { value: AutocompleteMode; label: string }[] = [
-  { value: "hint", label: "Hint" },
-  { value: "snippet", label: "Snippet" },
-  { value: "active-hint", label: "Active hint" },
+const AUTOCOMPLETE_MODES: { value: AutocompleteMode; label: Label }[] = [
+  {
+    value: "hint",
+    label: msg({ message: "Hint", comment: "Settings: argument help button; shows a function's arguments as a hint while typing" }),
+  },
+  {
+    value: "snippet",
+    label: msg({ message: "Snippet", comment: "Settings: argument help button; completing a function inserts its arguments as placeholders to fill in" }),
+  },
+  {
+    value: "active-hint",
+    label: msg({ message: "Active hint", comment: "Settings: argument help button; the hint follows the argument under the cursor" }),
+  },
 ];
-const BACKENDS: { value: string; label: string }[] = [
-  { value: "local", label: "Local" },
+const BACKENDS: { value: string; label: Label }[] = [
+  {
+    value: "local",
+    label: msg({ message: "Local", comment: "Settings: backend button; runs Maxima installed on this computer" }),
+  },
   { value: "docker", label: "Docker" },
   { value: "wsl", label: "WSL" },
 ];
-const CONTAINER_ENGINES: { value: string; label: string }[] = [
+const CONTAINER_ENGINES: { value: string; label: Label }[] = [
   { value: "docker", label: "Docker" },
   { value: "podman", label: "Podman" },
 ];
+const MARGIN_SIDES: { side: "top" | "bottom" | "left" | "right"; label: Label }[] = [
+  { side: "top", label: msg({ message: "Top", comment: "Settings: label of the top print margin field" }) },
+  { side: "bottom", label: msg({ message: "Bottom", comment: "Settings: label of the bottom print margin field" }) },
+  { side: "left", label: msg({ message: "Left", comment: "Settings: label of the left print margin field" }) },
+  { side: "right", label: msg({ message: "Right", comment: "Settings: label of the right print margin field" }) },
+];
 
-function McpTokenRow({ token, onRegenerate }: { token: string; onRegenerate: (t: string) => void }) {
+function McpTokenRow({ token, onRegenerate }: { token: string; onRegenerate: (token: string) => void }) {
+  const { t } = useLingui();
   const [copied, setCopied] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
@@ -59,7 +117,12 @@ function McpTokenRow({ token, onRegenerate }: { token: string; onRegenerate: (t:
 
   return (
     <div className="settings-row">
-      <label className="settings-label">MCP token</label>
+      <label className="settings-label">
+        {t({
+          message: "MCP token",
+          comment: "Settings: the label of the secret that AI tools send to Aximar's MCP server",
+        })}
+      </label>
       <div className="settings-control">
         <div className="settings-token-actions">
           <input
@@ -68,14 +131,89 @@ function McpTokenRow({ token, onRegenerate }: { token: string; onRegenerate: (t:
             readOnly
             value={token}
           />
-          <button className="settings-token-btn" onClick={handleCopy} title="Copy token">
-            {copied ? "Copied" : "Copy"}
+          <button
+            className="settings-token-btn"
+            onClick={handleCopy}
+            title={t({ message: "Copy token", comment: "Settings: tooltip of the button that copies the MCP token" })}
+          >
+            {copied
+              ? t({ message: "Copied", comment: "Settings: the MCP token copy button, for two seconds after a copy" })
+              : t({ message: "Copy", comment: "Settings button: copies the MCP token to the clipboard" })}
           </button>
-          <button className="settings-token-btn" onClick={handleRegenerate} title="Generate new token (restarts MCP server)">
-            Regenerate
+          <button
+            className="settings-token-btn"
+            onClick={handleRegenerate}
+            title={t({
+              message: "Generate new token (restarts MCP server)",
+              comment: "Settings: tooltip of the Regenerate button for the MCP token",
+            })}
+          >
+            {t({ message: "Regenerate", comment: "Settings button: replaces the MCP token with a new random one" })}
           </button>
         </div>
       </div>
+    </div>
+  );
+}
+
+/** The Configure button and status of one AI tool's MCP setup */
+function McpSetupControls({
+  cli,
+  status,
+  loading,
+  error,
+  onConfigure,
+}: {
+  /** The tool's command name, such as claude */
+  cli: string;
+  status: { installed: boolean; configured: boolean } | null;
+  loading: boolean;
+  error: string | null;
+  onConfigure: () => void;
+}) {
+  const { t } = useLingui();
+  const notInstalled = status !== null && !status.installed;
+
+  return (
+    <div className="settings-claude-setup">
+      <button
+        className="settings-token-btn"
+        disabled={loading || notInstalled}
+        onClick={onConfigure}
+      >
+        {loading
+          ? t({ message: "Configuring...", comment: "Settings: the Configure button of an AI tool while it adds Aximar's MCP server" })
+          : status?.configured
+            ? t({
+                message: "Reconfigure",
+                comment: "Settings button: adds Aximar's MCP server to an AI tool's configuration again, with the current address and token",
+              })
+            : t({
+                message: "Configure",
+                comment: "Settings button: adds Aximar's MCP server to an AI tool's configuration, such as Claude Code's",
+              })}
+      </button>
+      {status === null ? null : notInstalled ? (
+        <span className="settings-claude-status settings-claude-warn">
+          {t({
+            message: `${cli} CLI not found`,
+            comment: "Settings: shown beside an AI tool when its command is not installed. cli is the command name, such as claude",
+          })}
+        </span>
+      ) : status.configured ? (
+        <span className="settings-claude-status settings-claude-ok">
+          {t({ message: "Configured", comment: "Settings: shown beside an AI tool whose configuration includes Aximar's MCP server" })}
+        </span>
+      ) : error ? (
+        <span className="settings-claude-status settings-claude-err">{error}</span>
+      ) : (
+        <span className="settings-claude-status settings-claude-warn">
+          {t({
+            message: "Not configured",
+            comment: "Settings: shown beside an AI tool whose configuration does not include Aximar's MCP server",
+          })}
+        </span>
+      )}
     </div>
   );
 }
@@ -103,30 +241,17 @@ function ClaudeCodeSetup({ address, token }: { address: string; token: string })
       .finally(() => setLoading(false));
   }, [address, token, checkStatus]);
 
-  const notInstalled = status !== null && !status.installed;
-
   return (
     <div className="settings-row">
       <label className="settings-label">Claude Code</label>
       <div className="settings-control">
-        <div className="settings-claude-setup">
-          <button
-            className="settings-token-btn"
-            disabled={loading || notInstalled}
-            onClick={handleConfigure}
-          >
-            {loading ? "Configuring..." : status?.configured ? "Reconfigure" : "Configure"}
-          </button>
-          {status === null ? null : notInstalled ? (
-            <span className="settings-claude-status settings-claude-warn">claude CLI not found</span>
-          ) : status.configured ? (
-            <span className="settings-claude-status settings-claude-ok">Configured</span>
-          ) : error ? (
-            <span className="settings-claude-status settings-claude-err">{error}</span>
-          ) : (
-            <span className="settings-claude-status settings-claude-warn">Not configured</span>
-          )}
-        </div>
+        <McpSetupControls
+          cli="claude"
+          status={status}
+          loading={loading}
+          error={error}
+          onConfigure={handleConfigure}
+        />
       </div>
     </div>
   );
@@ -155,30 +280,17 @@ function CodexSetup({ address, token }: { address: string; token: string }) {
       .finally(() => setLoading(false));
   }, [address, token, checkStatus]);
 
-  const notInstalled = status !== null && !status.installed;
-
   return (
     <div className="settings-row">
       <label className="settings-label">Codex</label>
       <div className="settings-control">
-        <div className="settings-claude-setup">
-          <button
-            className="settings-token-btn"
-            disabled={loading || notInstalled}
-            onClick={handleConfigure}
-          >
-            {loading ? "Configuring..." : status?.configured ? "Reconfigure" : "Configure"}
-          </button>
-          {status === null ? null : notInstalled ? (
-            <span className="settings-claude-status settings-claude-warn">codex CLI not found</span>
-          ) : status.configured ? (
-            <span className="settings-claude-status settings-claude-ok">Configured</span>
-          ) : error ? (
-            <span className="settings-claude-status settings-claude-err">{error}</span>
-          ) : (
-            <span className="settings-claude-status settings-claude-warn">Not configured</span>
-          )}
-        </div>
+        <McpSetupControls
+          cli="codex"
+          status={status}
+          loading={loading}
+          error={error}
+          onConfigure={handleConfigure}
+        />
       </div>
     </div>
   );
@@ -207,36 +319,147 @@ function GeminiSetup({ address, token }: { address: string; token: string }) {
       .finally(() => setLoading(false));
   }, [address, token, checkStatus]);
 
-  const notInstalled = status !== null && !status.installed;
-
   return (
     <div className="settings-row">
       <label className="settings-label">Gemini CLI</label>
       <div className="settings-control">
-        <div className="settings-claude-setup">
-          <button
-            className="settings-token-btn"
-            disabled={loading || notInstalled}
-            onClick={handleConfigure}
-          >
-            {loading ? "Configuring..." : status?.configured ? "Reconfigure" : "Configure"}
+        <McpSetupControls
+          cli="gemini"
+          status={status}
+          loading={loading}
+          error={error}
+          onConfigure={handleConfigure}
+        />
+      </div>
+    </div>
+  );
+}
+
+/** The language of the window, the menus and Maxima's error messages */
+function LanguageRow({
+  language,
+  languages,
+  onChange,
+}: {
+  language: string;
+  languages: string[];
+  onChange: (language: string) => void;
+}) {
+  const { t } = useLingui();
+  return (
+    <div className="settings-row">
+      <label className="settings-label">
+        {t({ message: "Language", comment: "Settings: the label of the language picker" })}
+      </label>
+      <div className="settings-control">
+        <select
+          className="settings-select"
+          value={language}
+          onChange={(e) => onChange(e.target.value)}
+        >
+          {languages.map((code) => (
+            <option key={code} value={code}>
+              {languageName(code)}
+            </option>
+          ))}
+        </select>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Pre-release builds only: load a translation file from disk and see it in
+ * the window and the menus, again on each save
+ */
+function TranslationPreviewRow({ language }: { language: string }) {
+  const { t } = useLingui();
+  const [path, setPath] = useState<string | null>(currentPreviewPath());
+  const [error, setError] = useState<string | null>(null);
+
+  const load = async () => {
+    const chosen = await openDialog({
+      multiple: false,
+      filters: [
+        {
+          name: t({ message: "Translation file", comment: "File type in the open dialog for a translation preview" }),
+          extensions: ["po"],
+        },
+      ],
+    });
+    if (typeof chosen !== "string") return;
+    try {
+      await startPreview(chosen);
+      setPath(currentPreviewPath());
+      setError(null);
+    } catch (e) {
+      setError(String(e));
+    }
+  };
+
+  const stop = async () => {
+    await stopPreview(language);
+    setPath(null);
+  };
+
+  return (
+    <div className="settings-row">
+      <label className="settings-label">
+        {t({
+          message: "Translation preview",
+          comment: "Settings, pre-release builds: shows a translation file from disk in the window as the translator saves it",
+        })}
+      </label>
+      <div className="settings-control settings-claude-setup">
+        {path ? (
+          <>
+            <span className="settings-claude-status" title={path}>
+              {path.split(/[\\/]/).pop()}
+            </span>
+            <button className="settings-token-btn" onClick={() => void stop()}>
+              {t({ message: "Stop preview", comment: "Settings: stops showing the translation file, going back to the language setting" })}
+            </button>
+          </>
+        ) : (
+          <button className="settings-token-btn" onClick={() => void load()}>
+            {t({ message: "Load translation file...", comment: "Settings, pre-release builds: chooses a .po file to show in the window" })}
           </button>
-          {status === null ? null : notInstalled ? (
-            <span className="settings-claude-status settings-claude-warn">gemini CLI not found</span>
-          ) : status.configured ? (
-            <span className="settings-claude-status settings-claude-ok">Configured</span>
-          ) : error ? (
-            <span className="settings-claude-status settings-claude-err">{error}</span>
-          ) : (
-            <span className="settings-claude-status settings-claude-warn">Not configured</span>
-          )}
-        </div>
+        )}
+        {error && <span className="settings-claude-status settings-claude-warn">{error}</span>}
+      </div>
+    </div>
+  );
+}
+
+/** Pre-release builds: hold Alt and point at text to see where it comes from */
+function ShowSourcesRow() {
+  const { t, i18n } = useLingui();
+  return (
+    <div className="settings-row">
+      <label className="settings-label">
+        {t({
+          message: "Show sources",
+          comment: "Settings, pre-release builds: when on, holding Alt and pointing at text shows its English, note and source file",
+        })}
+      </label>
+      <div className="settings-control">
+        <input
+          type="checkbox"
+          className="settings-checkbox"
+          checked={showingSources(i18n)}
+          onChange={(e) => setShowSources(i18n, e.target.checked)}
+          title={t({
+            message: "Hold Alt and point at text to see its English, note and source file",
+            comment: "Tooltip of the Show sources checkbox in Settings",
+          })}
+        />
       </div>
     </div>
   );
 }
 
 export function SettingsModal({ onClose, onSetVariablesOpen }: SettingsModalProps) {
+  const { t, i18n } = useLingui();
   const [config, setLocalConfig] = useState<AppConfig | null>(null);
   const [wslDistros, setWslDistros] = useState<string[]>([]);
   const [wslMaximaPath, setWslMaximaPath] = useState<string | null | undefined>(undefined);
@@ -341,25 +564,42 @@ export function SettingsModal({ onClose, onSetVariablesOpen }: SettingsModalProp
 
   if (!config) return null;
 
+  const exampleImage = "aximar/maxima";
+
   return (
     <div className="palette-overlay" onClick={onClose}>
       <div className="settings-modal" onClick={(e) => e.stopPropagation()}>
         <div className="settings-header">
-          <h2 className="settings-title">Settings</h2>
+          <h2 className="settings-title">
+            {t({ message: "Settings", comment: "Settings: the title of the settings window" })}
+          </h2>
         </div>
         <div className="settings-body">
           <div className="settings-section">
+            <LanguageRow
+              language={config.language}
+              languages={config.languages}
+              onChange={(language) => {
+                update({ language });
+                void activateLanguage(language);
+              }}
+            />
+            {TRANSLATOR_TOOLS && <TranslationPreviewRow language={config.language} />}
+            {TRANSLATOR_TOOLS && <ShowSourcesRow />}
+
             <div className="settings-row">
-              <label className="settings-label">Theme</label>
+              <label className="settings-label">
+                {t({ message: "Theme", comment: "Settings: the label of the theme buttons" })}
+              </label>
               <div className="settings-control">
                 <div className="settings-theme-group">
-                  {THEMES.map((t) => (
+                  {THEMES.map((theme) => (
                     <button
-                      key={t}
-                      className={`settings-theme-btn${config.theme === t ? " active" : ""}`}
-                      onClick={() => update({ theme: t })}
+                      key={theme.value}
+                      className={`settings-theme-btn${config.theme === theme.value ? " active" : ""}`}
+                      onClick={() => update({ theme: theme.value })}
                     >
-                      {t.charAt(0).toUpperCase() + t.slice(1)}
+                      {labelText(i18n, theme.label)}
                     </button>
                   ))}
                 </div>
@@ -367,16 +607,18 @@ export function SettingsModal({ onClose, onSetVariablesOpen }: SettingsModalProp
             </div>
 
             <div className="settings-row">
-              <label className="settings-label">Cell style</label>
+              <label className="settings-label">
+                {t({ message: "Cell style", comment: "Settings: the label of the buttons that choose how cells are drawn" })}
+              </label>
               <div className="settings-control">
                 <div className="settings-theme-group">
                   {CELL_STYLES.map((s) => (
                     <button
-                      key={s}
-                      className={`settings-theme-btn${config.cell_style === s ? " active" : ""}`}
-                      onClick={() => update({ cell_style: s })}
+                      key={s.value}
+                      className={`settings-theme-btn${config.cell_style === s.value ? " active" : ""}`}
+                      onClick={() => update({ cell_style: s.value })}
                     >
-                      {s.charAt(0).toUpperCase() + s.slice(1)}
+                      {labelText(i18n, s.label)}
                     </button>
                   ))}
                 </div>
@@ -384,7 +626,9 @@ export function SettingsModal({ onClose, onSetVariablesOpen }: SettingsModalProp
             </div>
 
             <div className="settings-row">
-              <label className="settings-label">Markdown font</label>
+              <label className="settings-label">
+                {t({ message: "Markdown font", comment: "Settings: the label of the buttons that choose the font of text cells" })}
+              </label>
               <div className="settings-control">
                 <div className="settings-theme-group">
                   {MARKDOWN_FONTS.map((f) => (
@@ -393,7 +637,7 @@ export function SettingsModal({ onClose, onSetVariablesOpen }: SettingsModalProp
                       className={`settings-theme-btn${config.markdown_font === f.value ? " active" : ""}`}
                       onClick={() => update({ markdown_font: f.value })}
                     >
-                      {f.label}
+                      {labelText(i18n, f.label)}
                     </button>
                   ))}
                 </div>
@@ -401,7 +645,9 @@ export function SettingsModal({ onClose, onSetVariablesOpen }: SettingsModalProp
             </div>
 
             <div className="settings-row">
-              <label className="settings-label">Markdown indent</label>
+              <label className="settings-label">
+                {t({ message: "Markdown indent", comment: "Settings: the label of the buttons that choose how far text cells are indented" })}
+              </label>
               <div className="settings-control">
                 <div className="settings-theme-group">
                   {MARKDOWN_INDENTS.map((i) => (
@@ -410,7 +656,7 @@ export function SettingsModal({ onClose, onSetVariablesOpen }: SettingsModalProp
                       className={`settings-theme-btn${config.markdown_indent === i.value ? " active" : ""}`}
                       onClick={() => update({ markdown_indent: i.value })}
                     >
-                      {i.label}
+                      {labelText(i18n, i.label)}
                     </button>
                   ))}
                 </div>
@@ -418,7 +664,9 @@ export function SettingsModal({ onClose, onSetVariablesOpen }: SettingsModalProp
             </div>
 
             <div className="settings-row">
-              <label className="settings-label">Argument help</label>
+              <label className="settings-label">
+                {t({ message: "Argument help", comment: "Settings: the label of the buttons that choose how function arguments are shown while typing" })}
+              </label>
               <div className="settings-control">
                 <div className="settings-theme-group">
                   {AUTOCOMPLETE_MODES.map((m) => (
@@ -427,7 +675,7 @@ export function SettingsModal({ onClose, onSetVariablesOpen }: SettingsModalProp
                       className={`settings-theme-btn${config.autocomplete_mode === m.value ? " active" : ""}`}
                       onClick={() => update({ autocomplete_mode: m.value })}
                     >
-                      {m.label}
+                      {labelText(i18n, m.label)}
                     </button>
                   ))}
                 </div>
@@ -435,7 +683,9 @@ export function SettingsModal({ onClose, onSetVariablesOpen }: SettingsModalProp
             </div>
 
             <div className="settings-row">
-              <label className="settings-label">Backend</label>
+              <label className="settings-label">
+                {t({ message: "Backend", comment: "Settings: the label of the buttons that choose where Maxima runs" })}
+              </label>
               <div className="settings-control">
                 <div className="settings-theme-group">
                   {BACKENDS.map((b) => (
@@ -444,7 +694,7 @@ export function SettingsModal({ onClose, onSetVariablesOpen }: SettingsModalProp
                       className={`settings-theme-btn${config.backend === b.value ? " active" : ""}`}
                       onClick={() => update({ backend: b.value })}
                     >
-                      {b.label}
+                      {labelText(i18n, b.label)}
                     </button>
                   ))}
                 </div>
@@ -454,7 +704,9 @@ export function SettingsModal({ onClose, onSetVariablesOpen }: SettingsModalProp
             {config.backend === "docker" && (
               <>
                 <div className="settings-row">
-                  <label className="settings-label">Container engine</label>
+                  <label className="settings-label">
+                    {t({ message: "Container engine", comment: "Settings: the label of the buttons that choose the program that runs the Maxima container" })}
+                  </label>
                   <div className="settings-control">
                     <div className="settings-theme-group">
                       {CONTAINER_ENGINES.map((e) => (
@@ -463,7 +715,7 @@ export function SettingsModal({ onClose, onSetVariablesOpen }: SettingsModalProp
                           className={`settings-theme-btn${config.container_engine === e.value ? " active" : ""}`}
                           onClick={() => update({ container_engine: e.value })}
                         >
-                          {e.label}
+                          {labelText(i18n, e.label)}
                         </button>
                       ))}
                     </div>
@@ -471,12 +723,17 @@ export function SettingsModal({ onClose, onSetVariablesOpen }: SettingsModalProp
                 </div>
 
                 <div className="settings-row">
-                  <label className="settings-label">Docker image</label>
+                  <label className="settings-label">
+                    {t({ message: "Docker image", comment: "Settings: the label of the field for the container image that holds Maxima" })}
+                  </label>
                   <div className="settings-control">
                     <input
                       type="text"
                       className="settings-input"
-                      placeholder="e.g. aximar/maxima"
+                      placeholder={t({
+                        message: `e.g. ${exampleImage}`,
+                        comment: "Settings: placeholder in the Docker image field. exampleImage is an image name, such as aximar/maxima",
+                      })}
                       value={config.docker_image}
                       onChange={(e) =>
                         update({ docker_image: e.target.value })
@@ -489,7 +746,9 @@ export function SettingsModal({ onClose, onSetVariablesOpen }: SettingsModalProp
 
             {config.backend === "wsl" && (
               <div className="settings-row">
-                <label className="settings-label">WSL distro</label>
+                <label className="settings-label">
+                  {t({ message: "WSL distro", comment: "Settings: the label of the menu that chooses the Linux distribution under WSL that runs Maxima" })}
+                </label>
                 <div className="settings-control">
                   <select
                     className="settings-select"
@@ -498,7 +757,9 @@ export function SettingsModal({ onClose, onSetVariablesOpen }: SettingsModalProp
                       update({ wsl_distro: e.target.value })
                     }
                   >
-                    <option value="">Default</option>
+                    <option value="">
+                      {t({ message: "Default", comment: "Settings: WSL distro menu item for the distribution WSL uses by default" })}
+                    </option>
                     {wslDistros.map((d) => (
                       <option key={d} value={d}>
                         {d}
@@ -509,17 +770,32 @@ export function SettingsModal({ onClose, onSetVariablesOpen }: SettingsModalProp
                     className="settings-wsl-status"
                     title={
                       wslMaximaPath === undefined
-                        ? "Checking..."
+                        ? t({
+                            message: "Checking...",
+                            comment: "Settings: tooltip beside the WSL distro menu while Aximar looks for maxima in it",
+                          })
                         : wslMaximaPath
-                          ? `Found: ${wslMaximaPath}`
-                          : "maxima not found in this distro"
+                          ? t({
+                              message: `Found: ${wslMaximaPath}`,
+                              comment: "Settings: tooltip beside the WSL distro menu. wslMaximaPath is where the maxima program is in the distro",
+                            })
+                          : t({
+                              message: "maxima not found in this distro",
+                              comment: "Settings: tooltip beside the WSL distro menu when the distro has no maxima program",
+                            })
                     }
                   >
                     {wslMaximaPath === undefined
                       ? ""
                       : wslMaximaPath
-                        ? `maxima found`
-                        : "maxima not found"}
+                        ? t({
+                            message: "maxima found",
+                            comment: "Settings: shown beside the WSL distro menu when the distro has the maxima program",
+                          })
+                        : t({
+                            message: "maxima not found",
+                            comment: "Settings: shown beside the WSL distro menu when the distro has no maxima program",
+                          })}
                   </span>
                 </div>
               </div>
@@ -527,12 +803,17 @@ export function SettingsModal({ onClose, onSetVariablesOpen }: SettingsModalProp
 
             {config.backend === "local" && (
               <div className="settings-row">
-                <label className="settings-label">Maxima path</label>
+                <label className="settings-label">
+                  {t({ message: "Maxima path", comment: "Settings: the label of the field for the location of the maxima program" })}
+                </label>
                 <div className="settings-control">
                   <input
                     type="text"
                     className="settings-input"
-                    placeholder="Auto-detect"
+                    placeholder={t({
+                      message: "Auto-detect",
+                      comment: "Settings: placeholder in the Maxima path field; when empty, Aximar finds maxima itself",
+                    })}
                     value={config.maxima_path ?? ""}
                     onChange={(e) =>
                       update({
@@ -545,7 +826,9 @@ export function SettingsModal({ onClose, onSetVariablesOpen }: SettingsModalProp
             )}
 
             <div className="settings-row">
-              <label className="settings-label">Font size</label>
+              <label className="settings-label">
+                {t({ message: "Font size", comment: "Settings: the label of the menu that chooses the size of code text" })}
+              </label>
               <div className="settings-control">
                 <select
                   className="settings-select"
@@ -564,7 +847,9 @@ export function SettingsModal({ onClose, onSetVariablesOpen }: SettingsModalProp
             </div>
 
             <div className="settings-row">
-              <label className="settings-label">Print font size</label>
+              <label className="settings-label">
+                {t({ message: "Print font size", comment: "Settings: the label of the menu that chooses the size of text when printing" })}
+              </label>
               <div className="settings-control">
                 <select
                   className="settings-select"
@@ -583,14 +868,16 @@ export function SettingsModal({ onClose, onSetVariablesOpen }: SettingsModalProp
             </div>
 
             <div className="settings-row">
-              <label className="settings-label">Print margins (mm)</label>
+              <label className="settings-label">
+                {t({ message: "Print margins (mm)", comment: "Settings: the label of the four print margin fields, in millimetres" })}
+              </label>
               <div className="settings-control">
                 <div className="settings-margins">
-                  {(["top", "bottom", "left", "right"] as const).map((side) => {
+                  {MARGIN_SIDES.map(({ side, label }) => {
                     const key = `print_margin_${side}` as keyof AppConfig;
                     return (
                       <label key={side} className="settings-margin-field">
-                        <span className="settings-margin-label">{side.charAt(0).toUpperCase() + side.slice(1)}</span>
+                        <span className="settings-margin-label">{labelText(i18n, label)}</span>
                         <input
                           type="number"
                           className="settings-margin-input"
@@ -609,7 +896,9 @@ export function SettingsModal({ onClose, onSetVariablesOpen }: SettingsModalProp
             </div>
 
             <div className="settings-row">
-              <label className="settings-label">Eval timeout</label>
+              <label className="settings-label">
+                {t({ message: "Eval timeout", comment: "Settings: the label of the menu that chooses how long a cell may run before Aximar stops it" })}
+              </label>
               <div className="settings-control">
                 <select
                   className="settings-select"
@@ -618,9 +907,9 @@ export function SettingsModal({ onClose, onSetVariablesOpen }: SettingsModalProp
                     update({ eval_timeout: Number(e.target.value) })
                   }
                 >
-                  {EVAL_TIMEOUTS.map((t) => (
-                    <option key={t} value={t}>
-                      {t}s
+                  {EVAL_TIMEOUTS.map((secs) => (
+                    <option key={secs} value={secs}>
+                      {secs}s
                     </option>
                   ))}
                 </select>
@@ -628,7 +917,9 @@ export function SettingsModal({ onClose, onSetVariablesOpen }: SettingsModalProp
             </div>
 
             <div className="settings-row">
-              <label className="settings-label">MCP server</label>
+              <label className="settings-label">
+                {t({ message: "MCP server", comment: "Settings: the label of the checkbox that turns on Aximar's MCP server for AI tools" })}
+              </label>
               <div className="settings-control">
                 <input
                   type="checkbox"
@@ -644,7 +935,9 @@ export function SettingsModal({ onClose, onSetVariablesOpen }: SettingsModalProp
             {config.mcp_enabled && (
               <>
                 <div className="settings-row">
-                  <label className="settings-label">MCP listen address</label>
+                  <label className="settings-label">
+                    {t({ message: "MCP listen address", comment: "Settings: the label of the field for the address and port the MCP server listens on" })}
+                  </label>
                   <div className="settings-control">
                     <input
                       type="text"
@@ -670,7 +963,9 @@ export function SettingsModal({ onClose, onSetVariablesOpen }: SettingsModalProp
             )}
 
             <div className="settings-row">
-              <label className="settings-label">Variable panel open by default</label>
+              <label className="settings-label">
+                {t({ message: "Variable panel open by default", comment: "Settings: the label of the checkbox that opens the variable panel when Aximar starts" })}
+              </label>
               <div className="settings-control">
                 <input
                   type="checkbox"
@@ -686,7 +981,7 @@ export function SettingsModal({ onClose, onSetVariablesOpen }: SettingsModalProp
         </div>
         <div className="settings-footer">
           <button className="template-skip" onClick={onClose}>
-            Close
+            {t({ message: "Close", comment: "Settings button: closes the settings window" })}
           </button>
         </div>
       </div>

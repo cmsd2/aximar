@@ -95,9 +95,9 @@ export const maximaHighlightStyle = syntaxHighlighting(
   HighlightStyle.define([
     { tag: tags.keyword, color: "var(--accent)" },
     { tag: tags.variableName, color: "var(--text-primary)" },
-    { tag: tags.standard(tags.variableName), color: "#b8860b", fontWeight: "500" },
-    { tag: tags.string, color: "#2d8a4e" },
-    { tag: tags.number, color: "#9b59b6" },
+    { tag: tags.standard(tags.variableName), color: "var(--syntax-builtin)", fontWeight: "500" },
+    { tag: tags.string, color: "var(--syntax-string)" },
+    { tag: tags.number, color: "var(--syntax-number)" },
     { tag: tags.operator, color: "var(--text-secondary)" },
     { tag: tags.blockComment, color: "var(--text-secondary)", fontStyle: "italic" },
   ])

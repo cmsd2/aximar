@@ -22,6 +22,10 @@ export interface AppConfig {
   mcp_enabled: boolean;
   mcp_listen_address: string;
   mcp_token: string;
+  /** The language in use, such as `es`: the user's choice, or the system's */
+  language: string;
+  /** The languages with a translation, English first */
+  languages: string[];
 }
 
 export interface ConfigResponse {

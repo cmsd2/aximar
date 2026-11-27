@@ -65,10 +65,15 @@ When Maxima asks a question during an evaluation, the cell SHALL stop with an er
 - **WHEN** a cell asks a question and the next cell runs `1/0;`
 - **THEN** the second cell's error text SHALL be Maxima's division error alone, with no answer text such as `positive` in it
 
-#### Scenario: Questions inside errcatch (needs Maxima)
+#### Scenario: Questions get past errcatch (needs Maxima)
 
-- **WHEN** a cell runs `errcatch(integrate(exp(-a*x), x, 0, inf));`
-- **THEN** the cell SHALL succeed with the result `[]`
+- **WHEN** a cell runs `r: errcatch(integrate(exp(-a*x), x, 0, inf))$`
+- **THEN** the cell SHALL have an error output with `error_info.id` `question.sign`, and `r` SHALL stay unassigned, as in Maxima, where errcatch doesn't stop a question reaching the user
+
+#### Scenario: Questions inside library functions (needs Maxima)
+
+- **WHEN** a cell runs `laplace(sin(a*t)/t, t, s);`, where laplace runs defint inside `errset`
+- **THEN** the cell SHALL have an error output with `error_info.id` `question.sign_pn` instead of a result from laplace's fallback, and the next cell SHALL see no assumptions laplace made
 
 #### Scenario: Over MCP (needs Maxima)
 
@@ -133,7 +138,7 @@ Recognised notes in a cell's text output SHALL be reported as notes, each with a
 
 #### Scenario: A passing division by zero is a note (needs Maxima)
 
-- **WHEN** a cell runs `quad_qags(1/sqrt(abs(x)), x, -1, 1);`
+- **WHEN** a cell runs `romberg(1/x, x, 0, 1);`, which prints `expt: undefined: 0 to a negative exponent.` and still returns a result
 - **THEN** the `expt: undefined` line SHALL be a `note.zero_power` note and the cell SHALL not be an error
 
 #### Scenario: The window shows Maxima's lines on request

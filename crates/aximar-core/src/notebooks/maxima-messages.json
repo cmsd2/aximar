@@ -1,0 +1,284 @@
+{
+  "nbformat": 4,
+  "nbformat_minor": 5,
+  "metadata": {
+    "kernelspec": {
+      "name": "maxima",
+      "display_name": "Maxima",
+      "language": "maxima"
+    },
+    "aximar": {
+      "template_id": "maxima-messages",
+      "title": "Messages from Maxima",
+      "description": "How Aximar explains Maxima's errors, questions and notes, and how to answer a question."
+    }
+  },
+  "cells": [
+    {
+      "cell_type": "markdown",
+      "source": "# Messages from Maxima\n\nBesides results, Maxima tells you things in three ways: **errors** when a cell can't finish, **questions** when it needs to know more, and **notes** about what it did along the way. Aximar explains each one in plain language, and in your language when Aximar has a translation (Settings, Language).\n\nSeveral cells here fail on purpose, so run them one at a time with Shift+Enter rather than Run All, which stops at the first error.",
+      "metadata": {}
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## Errors\n\nWhen a cell fails, Aximar shows what went wrong and how to fix it. The error exactly as Maxima printed it is one click away, under **Show raw error**.",
+      "metadata": {}
+    },
+    {
+      "cell_type": "code",
+      "source": "1/0;",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "Some explanations name the parts of your input involved. Here `f` takes one argument but gets two:",
+      "metadata": {}
+    },
+    {
+      "cell_type": "code",
+      "source": "f(x) := x^2$\nf(1, 2);",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "Syntax errors say which kind they are, such as a bracket that was never closed:",
+      "metadata": {}
+    },
+    {
+      "cell_type": "code",
+      "source": "sin(x;",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "Errors from the Lisp system Maxima runs on keep their whole message, and the common ones are explained. This recursion never stops:",
+      "metadata": {}
+    },
+    {
+      "cell_type": "code",
+      "source": "g(n) := g(n + 1)$\ng(1);",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## Questions\n\nSometimes Maxima needs a fact before it can go on, such as the sign of a symbol. In a terminal it would ask and wait for an answer. A notebook can't answer, so Aximar stops the cell, shows the question, and suggests a line that answers it.",
+      "metadata": {}
+    },
+    {
+      "cell_type": "code",
+      "source": "integrate(exp(-a*x), x, 0, inf);",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "Add the suggested line before the computation and run the cell again. Because the answer is in the notebook, it runs the same way every time:",
+      "metadata": {}
+    },
+    {
+      "cell_type": "code",
+      "source": "assume(a > 0)$\nintegrate(exp(-a*x), x, 0, inf);",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "Other questions ask whether two things are equal, or whether a symbol is an integer. Each gets its own suggestion:",
+      "metadata": {}
+    },
+    {
+      "cell_type": "code",
+      "source": "integrate(x^n, x);",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": "assume(notequal(n, -1))$\nintegrate(x^n, x);",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "Property questions ask whether a symbol is an integer, or even or odd. `declare` answers them:",
+      "metadata": {}
+    },
+    {
+      "cell_type": "code",
+      "source": "askinteger(m, even);",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": "declare(m, even)$\naskinteger(m, even);",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "Declaring a symbol complex brings questions about its real part:",
+      "metadata": {}
+    },
+    {
+      "cell_type": "code",
+      "source": "declare(z, complex)$\nintegrate(exp(-z*t), t, 0, inf);",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": "assume(realpart(z) > 0)$\nintegrate(exp(-z*t), t, 0, inf);",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "Answering one question can lead to another. Here Maxima first asks whether `c` is zero:",
+      "metadata": {}
+    },
+    {
+      "cell_type": "code",
+      "source": "integrate(1/(x^2+c^2), x, minf, inf);",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "Once `c` isn't zero, it asks for the sign. Each question gets its own suggestion, so add one line at a time:",
+      "metadata": {}
+    },
+    {
+      "cell_type": "code",
+      "source": "assume(notequal(c, 0))$\nintegrate(1/(x^2+c^2), x, minf, inf);",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": "assume(c > 0)$\nintegrate(1/(x^2+c^2), x, minf, inf);",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "A question isn't an ordinary error: `errcatch` doesn't hide it, so a question inside your own error handling still reaches you.",
+      "metadata": {}
+    },
+    {
+      "cell_type": "code",
+      "source": "errcatch(integrate(exp(-b*x), x, 0, inf));",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "`forget` takes assumptions back, and `remove` takes back declarations:",
+      "metadata": {}
+    },
+    {
+      "cell_type": "code",
+      "source": "forget(a > 0, notequal(n, -1), realpart(z) > 0, notequal(c, 0), c > 0)$\nremove(m, even, z, complex)$",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## Notes\n\nMaxima prints notes about what it did, such as turning decimals into fractions. Aximar shows each note as one line in plain language, in place of Maxima's text. **Show Maxima's text** brings the original back.",
+      "metadata": {}
+    },
+    {
+      "cell_type": "code",
+      "source": "rat(0.5*x + 0.25);",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "A loop can print hundreds of these. Aximar sums them up in one note, and **Show Maxima's text** scrolls through them all:",
+      "metadata": {}
+    },
+    {
+      "cell_type": "code",
+      "source": "makelist(rat(i/10.0), i, 1, 100)$",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "Setting `ratprint` to `false` turns them off. Inside a `block`, it's off only there:",
+      "metadata": {}
+    },
+    {
+      "cell_type": "code",
+      "source": "block([ratprint: false], rat(0.5*x + 0.25));",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "`solve` warns when it uses inverse trigonometric functions, because some solutions get lost:",
+      "metadata": {}
+    },
+    {
+      "cell_type": "code",
+      "source": "solve(sin(x) = 1/2, x);",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "And `integrate` says when a result is a principal value, because the integral diverges inside the range:",
+      "metadata": {}
+    },
+    {
+      "cell_type": "code",
+      "source": "integrate(1/x, x, -1, 1);",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "Text you print yourself is never mistaken for a note:",
+      "metadata": {}
+    },
+    {
+      "cell_type": "code",
+      "source": "print(\"rat: this is my own text\")$",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "## In your language\n\nWith a language other than English chosen in Settings, explanations and notes show in that language. When Maxima has its own translation of an error message, it appears under Aximar's explanation, with **Show original** for Maxima's English. Results, printed text and code always stay as Maxima gives them.",
+      "metadata": {}
+    }
+  ]
+}

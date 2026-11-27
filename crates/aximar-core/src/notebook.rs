@@ -3,6 +3,7 @@ use serde_json::{Map, Value};
 use std::collections::HashMap;
 
 use crate::maxima::labels::LabelContext;
+use crate::maxima::notes::{self, Note};
 use crate::maxima::output::OutputEvent;
 use crate::maxima::types::{ErrorInfo, EvalResult};
 use crate::notebooks::format::LoadedCell;
@@ -54,6 +55,10 @@ pub struct CellOutput {
     /// Read from a file: the output of a session that no longer exists.
     #[serde(default)]
     pub stale: bool,
+    /// What Maxima's notes in the text output mean, for the window.
+    /// Found again from the text when a file opens; not written to files.
+    #[serde(default)]
+    pub notes: Vec<Note>,
     /// Outputs read from a file that Aximar doesn't show, such as other
     /// output types or bundles of unknown MIME types.  Written back
     /// unchanged; never sent to the window.
@@ -78,6 +83,7 @@ impl CellOutput {
             error_info: result.error_info.clone(),
             error_translated: result.error_translated.clone(),
             stale: false,
+            notes: notes::notes(&result.text_output, !result.is_error),
             other_outputs: Vec::new(),
         }
     }

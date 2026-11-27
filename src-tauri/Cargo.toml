@@ -28,7 +28,17 @@ tracing = "0.1"
 rand = "0.9"
 regex = "1"
 thiserror = "2"
-tempfile = "3"
 tauri-plugin-dialog = "2.6.0"
 toml_edit = "0.22"
 tauri-plugin-single-instance = "2.4.1"
+sys-locale = "0.3"
+fluent-langneg = "0.14"
+rspolib = "0.1.2"
+
+[features]
+# The translation preview in release builds, for translators' pre-release
+# builds; debug builds always have it.  See docs/i18n.md.
+translator-tools = []
+
+[dev-dependencies]
+tempfile = "3"

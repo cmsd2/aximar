@@ -60,9 +60,23 @@ pub fn apply_error_envelopes(
         return Err(AppError::EvalCancelled(err.message.clone()));
     }
 
-    result.error = Some(err.message.clone());
+    // A Lisp condition comes over several lines; give it the legacy
+    // parser's one-line form, so both paths read the same
+    let message = if matches!(err.kind, ErrorKind::LispError) {
+        let condition: Vec<String> = err
+            .message
+            .lines()
+            .map(str::trim)
+            .filter(|l| !l.is_empty())
+            .map(str::to_string)
+            .collect();
+        legacy_parser::lisp_error_text(&condition)
+    } else {
+        err.message.clone()
+    };
+    result.error_info = error_enhance::enhance_error_with_packages(&message, catalog, packages);
+    result.error = Some(message);
     result.is_error = true;
-    result.error_info = error_enhance::enhance_error_with_packages(&err.message, catalog, packages);
     // Output label has no meaning when the eval errored — no %oN was
     // assigned.  The legacy parser also clears this in the same case.
     result.output_label = None;

@@ -93,6 +93,8 @@ struct IndexedSymbol {
     name: String,
     package: String,
     summary: String,
+    /// The summary in other languages, so search finds a symbol by either
+    translated: String,
     keywords: String,
 }
 
@@ -101,7 +103,7 @@ fn idx_name_extract(d: &IndexedSymbol) -> Vec<&str> {
 }
 
 fn idx_summary_extract(d: &IndexedSymbol) -> Vec<&str> {
-    vec![d.summary.as_str()]
+    vec![d.summary.as_str(), d.translated.as_str()]
 }
 
 fn idx_keywords_extract(d: &IndexedSymbol) -> Vec<&str> {
@@ -287,6 +289,7 @@ impl DocIndexStore {
                 name: sym_name.clone(),
                 package: pkg_name.clone(),
                 summary: entry.summary.clone(),
+                translated: super::summaries::translations(&sym_name).join(" "),
                 keywords: entry.keywords.join(" "),
             });
             self.symbols.insert(key, (pkg_name.clone(), entry));

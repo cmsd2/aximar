@@ -80,13 +80,13 @@ Placeholders are named, in braces (`{expr}`), which Lingui, Rust format strings 
 ```rust
 pub struct Message {
     pub id: String,                       // "question.sign", the msgctxt
-    pub template: &'static str,           // "Maxima needs to know the sign of {expr}", the msgid
+    pub template: Cow<'static, str>,      // "Maxima needs to know the sign of {expr}", the msgid
     pub params: BTreeMap<String, String>, // {"expr": "a"}
     pub text: String,                     // the English, rendered from template and params
 }
 ```
 
-`msg_ctx!("question.sign", "Maxima needs to know the sign of {expr}", expr = e)` builds one. `ErrorInfo` gains `id` and `params`; its `title`, `explanation`, `suggestion` and `example` become `Message`s, each still serialised with its English `text`, so MCP clients and saved data read as they do now. Notes are `Message`s plus the range of `text_output` lines they cover.
+`msg_ctx!("question.sign", "Maxima needs to know the sign of {expr}", expr = e)` builds one. `ErrorInfo` gains `id`; its `title`, `explanation` and `suggestion` become `Message`s, each still serialised as its English `text`, so MCP clients read them as they do now. Beside them the JSON carries `params` (every message's parameters) and `messages` (each field's context and English template), which is what the window needs to look a field up. `example` stays a string: it's Maxima code, which no language changes. A field with variants has a context per variant (`error.arg_count.explanation.too_few`). Notes are `Message`s plus the range of `text_output` lines they cover.
 
 The window translates a `Message` with Lingui, looking up the template under the ID's context and filling in the parameters, and falls back to `text`. aximar-core never needs the user's language, so the MCP server, batch runs and the window share one code path, and switching language re-renders existing outputs without re-running anything.
 
@@ -114,15 +114,11 @@ Tested with `xgettext` 1.0: it needs the `!` in the keyword, reads notes only fr
 
 ### 5. Questions raise an error inside Maxima
 
-Session start defines, through the existing `:lisp` init line:
+Each Maxima process loads `ax_questions.lisp` as a `:lisp` line when it starts, before kernel-events. It replaces `retrieve`, through which Maxima asks every question, and wraps `toplevel-macsyma-eval` with a catch. `retrieve` throws the question to that catch, which raises "Maxima needs to know: <question>" as an ordinary Maxima error at the top of the statement.
 
-```lisp
-(defun maxima::retrieve (msg flag)
-  (declare (ignore flag))
-  (maxima::merror "Maxima needs to know: ~M" msg))
-```
+The throw matters. A question isn't an error in Maxima: `errcatch` doesn't stop it reaching the user, and library code relies on that. `laplace` runs `defint` inside `errset` and falls back to another method on an error, so a question raised as an error inside it would be swallowed and the result would change silently. A throw to Aximar's own tag passes every `errcatch` and `errset` (their cleanup still runs, so `laplace`'s assumptions go), and is caught only around the whole statement. The whole question goes in the error's pattern, with no arguments, because kernel-events reports an error's pattern without them. In the debugger, `break-dbm-loop` turns the catch off, so a question there is an error where it's asked.
 
-`merror` unwinds to the top level like any Maxima error, so the cell's housekeeping lines run as usual, the end sentinel arrives, and the cell reports an error. Nothing is written to stdin after the cell, so nothing leaks. `errcatch` catches it like any other error. The override applies to every session `MaximaProcess` starts: the window, MCP, batch runs and the DAP server.
+The cell's housekeeping lines run as usual, the end sentinel arrives, and the cell reports an error. Nothing is written to stdin after the cell, so nothing leaks. The override applies to every Maxima `MaximaProcess` starts: the window, MCP, batch runs and the DAP server.
 
 `ASSUMPTION_QUESTION_RE`, `assumption_answer`, `drain_answering_questions`, the question branches of both readers, and `AppError::AssumptionRequired` go.
 
@@ -157,13 +153,15 @@ Both paths drop ` -- an error. To debug this try: debugmode(true);` from error t
 ### 10. Translator tools
 
 - **Show sources:** in preview builds, holding a modifier and pointing at text shows its msgid, context, note and source file. Lingui's message descriptors carry all four in development; the preview build keeps them.
-- **Screenshots:** a Playwright script runs the window through Vite with Tauri's commands mocked, visits each screen in each language and saves a screenshot. In a tagging mode each translated string renders with its message ID in a data attribute, so the script records which entries appear on which screen and writes `#. screen: <name>` comments into the template. CI publishes the screenshots as a gallery.
+- **Gallery:** Storybook, on Vite like the window, holds a story for each state a translator needs to see, especially those hard to reach in a running app: each kind of error explanation, notes, questions, a timeout, the trust banner, Settings and the other dialogs. A shared decorator mocks Tauri's commands (`@tauri-apps/api/mocks`), and a toolbar switches the language through Lingui, the pseudo-locale included. A Playwright script over the static Storybook build screenshots every story in every language. In a tagging mode each translated string renders with its message ID in a data attribute, so the run records which entries appear in which story and writes `#. screen: <story>` comments into the template. CI publishes the static Storybook build, with the screenshots, as the gallery. Whole windows in context aren't covered: a story shows the component a string appears in.
+
+  *Alternative:* a Playwright script driving the whole window through Vite with Tauri mocked. It shows screens in context, but each state needs scripted steps to reach, and the mocks live in one script rather than beside the components.
 - **Glossary and guide:** `locales/glossary.tbx`, seeded from Maxima's Spanish terms, and `locales/README.md` with tone, capitalisation, the do-not-translate list and how to use the preview.
 - **Seeded `es.po`:** `msginit` plus `msgmerge --compendium` against Maxima's `es.po`, so matching strings arrive as fuzzy suggestions.
 
 ### 11. Help per language
 
-catalog-gen takes a language and reads `doc/info/<lang>/maxima.texi`, writing `core-doc-index.<lang>.json`. Aximar embeds the Spanish index beside the English one and looks a symbol up in the user's language first, then in English. The search index covers both languages' summaries.
+catalog-gen takes a language and reads `doc/info/<lang>/maxima.texi` through mxpm's `doc generate-core-docs`, which makes the English index: it runs unchanged on a copy of the source whose `doc/info` is the translated manual, given the English tree's macro files. catalog-gen keeps only each symbol's summary, in `core-doc-summaries.<lang>.json`; signatures and the rest come from the English index. Aximar embeds the Spanish summaries beside the English index and looks a symbol's summary up in the user's language first, then in English. The search index covers both languages' summaries, and its results stay English; the window's catalog commands localise them.
 
 ### 12. CI checks
 
@@ -192,9 +190,10 @@ CI installs GNU gettext from the distribution's packages (0.24 or later).
 - [Two extractors, two toolchains] → one script runs both, and CI fails when the template is stale; GNU gettext becomes a developer dependency only for those who change text.
 - [Lingui's run-time lookup by message and context must match the template exactly] → the `Message` carries the exact template string from the `msg_ctx!` call, and a test renders every Rust message through the window's lookup.
 - [Maxima renames `retrieve`] → the init line skips the override when the function is missing, and the Maxima-backed tests fail on that version.
-- [A question inside `errcatch` now returns `[]` where it used to get an automatic `positive`] → that answer was a guess the user never saw; an error they can see is better. The changelog says so.
+- [A question inside `errcatch` now stops the statement, where it used to get an automatic `positive`] → that answer was a guess the user never saw. Stopping matches Maxima, where `errcatch` doesn't stop a question reaching the user; letting `errcatch` swallow it would send user code and library functions such as `laplace` down their error paths without a word. The changelog says so.
+- [Maxima renames `toplevel-macsyma-eval` or `break-dbm-loop`] → the override skips what's missing, and the Maxima-backed tests fail on that version.
 - [Notes misread print output that looks like a note] → recognisers anchor on Maxima's exact prefixes and line starts; Maxima's lines stay one click away.
-- [Window text moved into the catalog by hand misses strings] → the pseudo-locale run shows any text that didn't go through the catalog, and the screenshot gallery covers each screen.
+- [Window text moved into the catalog by hand misses strings] → the pseudo-locale run shows any text that didn't go through the catalog, and the Storybook gallery shows each story's strings.
 - [Rewording English invalidates translations] → `msgmerge` keeps the old translation as fuzzy with the old English, so translators review instead of starting again.
 - [Maxima's catalog missing on some backends] → English only, as today; a later change can report which languages the installed Maxima has.
 

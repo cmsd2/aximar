@@ -1,5 +1,7 @@
 import { useState, useCallback } from "react";
 import { save } from "@tauri-apps/plugin-dialog";
+import { plural } from "@lingui/core/macro";
+import { useLingui } from "@lingui/react/macro";
 import { invoke } from "@tauri-apps/api/core";
 import { useActiveTab, useNotebookStore } from "../store/notebookStore";
 import { exportCellsAsLatex, type ExportOptions } from "../lib/latex-export";
@@ -9,6 +11,7 @@ interface ExportLatexModalProps {
 }
 
 export function ExportLatexModal({ onClose }: ExportLatexModalProps) {
+  const { t } = useLingui();
   const tab = useActiveTab();
   const clearSelection = useNotebookStore((s) => s.clearSelection);
   const [includeCode, setIncludeCode] = useState(true);
@@ -22,9 +25,18 @@ export function ExportLatexModal({ onClose }: ExportLatexModalProps) {
     : tab.cells;
 
   const handleExport = useCallback(async () => {
+    const fallbackName = t({
+      message: "notebook",
+      comment: "Export as LaTeX: the file name offered in the save dialog when the notebook has no title, before .tex",
+    });
     const path = await save({
-      defaultPath: (tab.title.replace(/\.\w+$/, "") || "notebook") + ".tex",
-      filters: [{ name: "LaTeX Document", extensions: ["tex"] }],
+      defaultPath: (tab.title.replace(/\.\w+$/, "") || fallbackName) + ".tex",
+      filters: [
+        {
+          name: t({ message: "LaTeX Document", comment: "Export as LaTeX: the file type in the save dialog" }),
+          extensions: ["tex"],
+        },
+      ],
     });
     if (!path) return;
 
@@ -58,24 +70,45 @@ export function ExportLatexModal({ onClose }: ExportLatexModalProps) {
     } finally {
       setExporting(false);
     }
-  }, [tab.title, includeCode, includePlots, cellsToExport, clearSelection, onClose]);
+  }, [t, tab.title, includeCode, includePlots, cellsToExport, clearSelection, onClose]);
+
+  const count = cellsToExport.length;
 
   return (
     <div className="palette-overlay" onClick={onClose}>
       <div className="settings-modal export-latex-modal" onClick={(e) => e.stopPropagation()}>
         <div className="settings-header">
-          <h2 className="settings-title">Export as LaTeX</h2>
+          <h2 className="settings-title">
+            {t({ message: "Export as LaTeX", comment: "Export as LaTeX: the title of the export window" })}
+          </h2>
         </div>
         <div className="settings-body">
           <div className="export-latex-scope">
             {hasSelection
-              ? `Exporting ${cellsToExport.length} selected cell${cellsToExport.length === 1 ? "" : "s"}`
-              : `Exporting entire notebook (${cellsToExport.length} cell${cellsToExport.length === 1 ? "" : "s"})`}
+              ? t({
+                  message: plural(count, {
+                    one: "Exporting # selected cell",
+                    other: "Exporting # selected cells",
+                  }),
+                  comment: "Export as LaTeX: says how many selected cells the export covers",
+                })
+              : t({
+                  message: plural(count, {
+                    one: "Exporting entire notebook (# cell)",
+                    other: "Exporting entire notebook (# cells)",
+                  }),
+                  comment: "Export as LaTeX: says the export covers the whole notebook, and how many cells it has",
+                })}
           </div>
 
           <div className="settings-section">
             <div className="settings-row">
-              <label className="settings-label">Include code input</label>
+              <label className="settings-label">
+                {t({
+                  message: "Include code input",
+                  comment: "Export as LaTeX: checkbox label; when on, the export includes each cell's Maxima input",
+                })}
+              </label>
               <div className="settings-control">
                 <input
                   type="checkbox"
@@ -86,7 +119,12 @@ export function ExportLatexModal({ onClose }: ExportLatexModalProps) {
               </div>
             </div>
             <div className="settings-row">
-              <label className="settings-label">Include plots</label>
+              <label className="settings-label">
+                {t({
+                  message: "Include plots",
+                  comment: "Export as LaTeX: checkbox label; when on, the export includes plots as image files",
+                })}
+              </label>
               <div className="settings-control">
                 <input
                   type="checkbox"
@@ -100,14 +138,16 @@ export function ExportLatexModal({ onClose }: ExportLatexModalProps) {
         </div>
         <div className="settings-footer">
           <button className="template-skip" onClick={onClose}>
-            Cancel
+            {t({ message: "Cancel", comment: "Export as LaTeX button: closes the window without exporting" })}
           </button>
           <button
-            className="template-start"
+            className="dialog-primary-btn"
             onClick={handleExport}
             disabled={exporting}
           >
-            {exporting ? "Exporting..." : "Export"}
+            {exporting
+              ? t({ message: "Exporting...", comment: "Export as LaTeX button, while the export runs" })
+              : t({ message: "Export", comment: "Export as LaTeX button: asks where to save the .tex file and writes it" })}
           </button>
         </div>
       </div>

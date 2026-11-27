@@ -1,4 +1,6 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import { Trans, useLingui } from "@lingui/react/macro";
+import { plural } from "@lingui/core/macro";
 import { searchFunctions, listCategories, searchPackages, searchPackageFunctions } from "../lib/catalog-client";
 import { MATH_SYMBOLS } from "../lib/math-symbols";
 import { useActiveTab, useNotebookStore, getActiveTabState } from "../store/notebookStore";
@@ -13,6 +15,7 @@ interface CommandPaletteProps {
 }
 
 export function CommandPalette({ onClose, onViewDocs, initialQuery }: CommandPaletteProps) {
+  const { t } = useLingui();
   const [query, setQuery] = useState(initialQuery ?? "");
   const [results, setResults] = useState<SearchResult[]>([]);
   const [categories, setCategories] = useState<CategoryGroup[]>([]);
@@ -365,13 +368,48 @@ export function CommandPalette({ onClose, onViewDocs, initialQuery }: CommandPal
       selectedCategory
     : null;
 
+  const categoryLabel = selectedCategoryLabel;
   const placeholder = isSymbolMode
-    ? "Type symbol name (e.g. \\alpha, \\leq, \\nabla)..."
+    ? t({
+        message: "Type symbol name (e.g. \\alpha, \\leq, \\nabla)...",
+        comment:
+          "Command palette: placeholder of the search box while it lists math symbols; \\alpha and the others are LaTeX names and stay as they are",
+      })
     : isPackagesMode
-      ? "Browse packages... (Backspace to go back)"
+      ? t({
+          message: "Browse packages... (Backspace to go back)",
+          comment:
+            "Command palette: placeholder of the search box while it lists Maxima packages; Backspace is the key",
+        })
       : isCategorySelected
-        ? `Filter ${selectedCategoryLabel}... (Backspace to go back)`
-        : "Search functions (or type \\ for symbols)...";
+        ? t({
+            message: `Filter ${categoryLabel}... (Backspace to go back)`,
+            comment:
+              "Command palette: placeholder of the search box while it lists one category of functions; categoryLabel is the category name, such as Calculus; Backspace is the key",
+          })
+        : t({
+            message: "Search functions (or type \\ for symbols)...",
+            comment:
+              "Command palette: placeholder of the search box; typing a backslash switches to the list of math symbols",
+          });
+
+  const viewDocsTitle = t({
+    message: "View docs",
+    comment: "Command palette: tooltip of the ? button that opens a function's documentation",
+  });
+
+  const packageFunctionCount = (count: number) =>
+    t({
+      message: plural(count, { one: "# function", other: "# functions" }),
+      comment: "Command palette: how many functions a Maxima package provides",
+    });
+
+  const requiresLoad = (packageName: string) =>
+    t({
+      message: `requires load("${packageName}")`,
+      comment:
+        "Command palette: under a function from a package that is not loaded yet; load(...) is Maxima code and stays as it is; packageName is the package name",
+    });
 
   return (
     <div className="palette-overlay" onClick={onClose}>
@@ -403,7 +441,12 @@ export function CommandPalette({ onClose, onViewDocs, initialQuery }: CommandPal
               </div>
             ))}
           {isSymbolMode && filteredSymbols.length === 0 && (
-            <div className="palette-empty">No matching symbols</div>
+            <div className="palette-empty">
+              {t({
+                message: "No matching symbols",
+                comment: "Command palette: shown when no math symbol matches what the user typed",
+              })}
+            </div>
           )}
           {isCategoryList && (<>
             {categories.map((g, i) => (
@@ -425,7 +468,12 @@ export function CommandPalette({ onClose, onViewDocs, initialQuery }: CommandPal
               onClick={() => selectCategory("__packages__")}
               onMouseEnter={() => setSelectedIndex(categories.length)}
             >
-              <span className="palette-category-item-label">Packages</span>
+              <span className="palette-category-item-label">
+                {t({
+                  message: "Packages",
+                  comment: "Command palette: list entry that opens the list of loadable Maxima packages",
+                })}
+              </span>
               <span className="palette-category-item-count">
                 load()
               </span>
@@ -436,7 +484,12 @@ export function CommandPalette({ onClose, onViewDocs, initialQuery }: CommandPal
               onClick={() => selectCategory("__symbols__")}
               onMouseEnter={() => setSelectedIndex(categories.length + 1)}
             >
-              <span className="palette-category-item-label">Symbols</span>
+              <span className="palette-category-item-label">
+                {t({
+                  message: "Symbols",
+                  comment: "Command palette: list entry that opens the list of math symbols, such as Greek letters",
+                })}
+              </span>
               <span className="palette-category-item-count">
                 {MATH_SYMBOLS.length}
               </span>
@@ -453,7 +506,7 @@ export function CommandPalette({ onClose, onViewDocs, initialQuery }: CommandPal
                   <div className="palette-item-name">{item.package.name}</div>
                   <div className="palette-item-desc">{item.package.description}</div>
                   <div className="palette-item-sig">
-                    {item.package.functions.length} functions
+                    {packageFunctionCount(item.package.functions.length)}
                   </div>
                 </div>
                 {onViewDocs && (
@@ -463,7 +516,10 @@ export function CommandPalette({ onClose, onViewDocs, initialQuery }: CommandPal
                       e.stopPropagation();
                       viewDocs(`pkg:${item.package.name}`);
                     }}
-                    title="View package docs"
+                    title={t({
+                      message: "View package docs",
+                      comment: "Command palette: tooltip of the ? button that opens a package's documentation",
+                    })}
                   >
                     ?
                   </button>
@@ -485,7 +541,13 @@ export function CommandPalette({ onClose, onViewDocs, initialQuery }: CommandPal
                 <div className="palette-item-main">
                   <div className="palette-item-name">
                     {item.kind !== "function" && (
-                      <span className="palette-package-badge">pkg</span>
+                      <span className="palette-package-badge">
+                        {t({
+                          message: "pkg",
+                          comment:
+                            "Command palette: short badge before a name that marks a Maxima package or a function from one. max-length:4",
+                        })}
+                      </span>
                     )}
                     {item.name}
                   </div>
@@ -499,12 +561,12 @@ export function CommandPalette({ onClose, onViewDocs, initialQuery }: CommandPal
                     {item.kind === "function"
                       ? item.desc
                       : item.kind === "pkgFunc"
-                        ? (item.builtin ? item.packageName : `requires load("${item.packageName}")`)
+                        ? (item.builtin ? item.packageName : requiresLoad(item.packageName))
                         : item.desc}
                   </div>
                   {item.kind === "package" && (
                     <div className="palette-item-sig">
-                      {item.funcCount} functions
+                      {packageFunctionCount(item.funcCount)}
                     </div>
                   )}
                 </div>
@@ -517,7 +579,7 @@ export function CommandPalette({ onClose, onViewDocs, initialQuery }: CommandPal
                         item.kind === "package" ? `pkg:${item.name}` : item.name
                       );
                     }}
-                    title="View docs"
+                    title={viewDocsTitle}
                   >
                     ?
                   </button>
@@ -526,7 +588,12 @@ export function CommandPalette({ onClose, onViewDocs, initialQuery }: CommandPal
             </div>
           ))}
           {isSearchMode && searchItems.length === 0 && query.trim() && (
-            <div className="palette-empty">No functions or packages found</div>
+            <div className="palette-empty">
+              {t({
+                message: "No functions or packages found",
+                comment: "Command palette: shown when a search finds no Maxima function or package",
+              })}
+            </div>
           )}
           {!isCategoryList && !isPackagesMode && !isSearchMode &&
             displayItems.map((item, i) => {
@@ -552,7 +619,7 @@ export function CommandPalette({ onClose, onViewDocs, initialQuery }: CommandPal
                           e.stopPropagation();
                           viewDocs(f.name);
                         }}
-                        title="View docs"
+                        title={viewDocsTitle}
                       >
                         ?
                       </button>
@@ -564,23 +631,43 @@ export function CommandPalette({ onClose, onViewDocs, initialQuery }: CommandPal
         </div>
         <div className="palette-footer">
           <span>
-            <kbd>&uarr;</kbd> <kbd>&darr;</kbd> navigate
+            <Trans comment="Command palette footer: the arrow keys move through the list">
+              <kbd>&uarr;</kbd> <kbd>&darr;</kbd> navigate
+            </Trans>
           </span>
           <span>
-            <kbd>Enter</kbd> {isCategoryList ? "select" : isPackagesMode ? "load" : "insert"}
+            {isCategoryList ? (
+              <Trans comment="Command palette footer: Enter opens the selected category">
+                <kbd>Enter</kbd> select
+              </Trans>
+            ) : isPackagesMode ? (
+              <Trans comment="Command palette footer: Enter inserts a load() call for the selected package">
+                <kbd>Enter</kbd> load
+              </Trans>
+            ) : (
+              <Trans comment="Command palette footer: Enter inserts the selected function or symbol into the cell">
+                <kbd>Enter</kbd> insert
+              </Trans>
+            )}
           </span>
           {!isCategoryList && onViewDocs && (
             <span>
-              <kbd>&#8984;Enter</kbd> docs
+              <Trans comment="Command palette footer: Cmd+Enter opens the documentation of the selected item">
+                <kbd>&#8984;Enter</kbd> docs
+              </Trans>
             </span>
           )}
           {(isCategorySelected || isPackagesMode) && (
             <span>
-              <kbd>Backspace</kbd> back
+              <Trans comment="Command palette footer: Backspace goes back to the list of categories">
+                <kbd>Backspace</kbd> back
+              </Trans>
             </span>
           )}
           <span>
-            <kbd>Esc</kbd> close
+            <Trans comment="Command palette footer: Esc closes the palette">
+              <kbd>Esc</kbd> close
+            </Trans>
           </span>
         </div>
       </div>

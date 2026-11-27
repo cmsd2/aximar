@@ -1,4 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
+import { plural } from "@lingui/core/macro";
+import { useLingui } from "@lingui/react/macro";
 import { listTemplates } from "../lib/notebooks-client";
 import { nbCreate, nbSetActive, nbLoadTemplate } from "../lib/notebook-commands";
 import { useNotebookStore } from "../store/notebookStore";
@@ -9,6 +11,7 @@ interface TemplateChooserProps {
 }
 
 export function TemplateChooser({ onClose }: TemplateChooserProps) {
+  const { t } = useLingui();
   const [templates, setTemplates] = useState<TemplateSummary[]>([]);
 
   useEffect(() => {
@@ -39,29 +42,43 @@ export function TemplateChooser({ onClose }: TemplateChooserProps) {
         onClick={(e) => e.stopPropagation()}
       >
         <div className="template-header">
-          <h2 className="template-title">Starter Notebooks</h2>
+          <h2 className="template-title">
+            {t({ message: "Starter Notebooks", comment: "Template chooser: the title of the window that offers example notebooks" })}
+          </h2>
           <p className="template-subtitle">
-            Choose a template to get started with Maxima
+            {t({
+              message: "Choose a template to get started with Maxima",
+              comment: "Template chooser: the line under the title",
+            })}
           </p>
         </div>
         <div className="template-list">
-          {templates.map((t) => (
-            <button
-              key={t.id}
-              className="template-card"
-              onClick={() => handleSelect(t.id)}
-            >
-              <div className="template-card-title">{t.title}</div>
-              <div className="template-card-desc">{t.description}</div>
-              <div className="template-card-meta">
-                {t.cell_count} cells
-              </div>
-            </button>
-          ))}
+          {templates.map((tpl) => {
+            const count = tpl.cell_count;
+            return (
+              <button
+                key={tpl.id}
+                className="template-card"
+                onClick={() => handleSelect(tpl.id)}
+              >
+                <div className="template-card-title">{tpl.title}</div>
+                <div className="template-card-desc">{tpl.description}</div>
+                <div className="template-card-meta">
+                  {t({
+                    message: plural(count, { one: "# cell", other: "# cells" }),
+                    comment: "Template chooser: the number of cells in a starter notebook, under its description",
+                  })}
+                </div>
+              </button>
+            );
+          })}
         </div>
         <div className="template-footer">
           <button className="template-skip" onClick={onClose}>
-            Start with empty notebook
+            {t({
+              message: "Start with empty notebook",
+              comment: "Template chooser button: closes the chooser and keeps the empty notebook",
+            })}
           </button>
         </div>
       </div>

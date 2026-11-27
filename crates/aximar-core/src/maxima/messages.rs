@@ -11,6 +11,7 @@ use std::sync::OnceLock;
 use crate::maxima::plotting::lisp_stdin_line;
 
 const AX_MESSAGES_LISP: &str = include_str!("ax_messages.lisp");
+const AX_QUESTIONS_LISP: &str = include_str!("ax_questions.lisp");
 
 const TAG: &str = "__AXIMAR_MSG__";
 const TAG_END: &str = "__AXIMAR_MSG_END__";
@@ -21,15 +22,35 @@ pub fn messages_lisp_stdin() -> &'static str {
     CACHED.get_or_init(|| lisp_stdin_line(AX_MESSAGES_LISP))
 }
 
-/// The Maxima statement that sets the language of translated messages,
-/// or `None` if `language` isn't a plain language code such as `es` or
-/// `pt_BR`.
-pub fn set_language_code(language: &str) -> Option<String> {
-    let valid = (2..=12).contains(&language.len())
-        && language
-            .chars()
-            .all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-');
-    valid.then(|| format!("ax__language: \"{language}\"$"))
+/// The override that turns Maxima's questions into errors, as a single
+/// `:lisp` line for each process's start (see `ax_questions.lisp`)
+pub fn questions_lisp_stdin() -> &'static str {
+    static CACHED: OnceLock<String> = OnceLock::new();
+    CACHED.get_or_init(|| lisp_stdin_line(AX_QUESTIONS_LISP))
+}
+
+/// Maxima's code for the user's language, such as `es` or `pt_BR`: empty
+/// for English, or for anything that isn't a plain language code
+pub fn maxima_language_code(language: Option<&str>) -> String {
+    let Some(language) = language else {
+        return String::new();
+    };
+    // Maxima's catalogs use POSIX names: `pt_BR`, not `pt-BR`
+    let code = language.replace('-', "_");
+    let valid = (2..=12).contains(&code.len())
+        && code.chars().all(|c| c.is_ascii_alphanumeric() || c == '_');
+    if !valid || code == "en" || code.starts_with("en_") {
+        return String::new();
+    }
+    code
+}
+
+/// The `:lisp` line that sets the language of Maxima's translated
+/// messages.  It returns no values, so Maxima prints nothing, and as Lisp
+/// it leaves `%` and the input line numbers alone: it can go to a running
+/// session just before a cell.  `code` comes from [`maxima_language_code`].
+pub fn language_lisp_stdin(code: &str) -> String {
+    format!(":lisp (progn (setq $ax__language \"{code}\") (values))\n")
 }
 
 /// The translated message on a tagged line, unescaped.
@@ -76,13 +97,17 @@ mod tests {
 
     #[test]
     fn only_plain_language_codes_are_set() {
+        assert_eq!(maxima_language_code(Some("es")), "es");
+        assert_eq!(maxima_language_code(Some("pt-BR")), "pt_BR");
+        assert_eq!(maxima_language_code(Some("en")), "");
+        assert_eq!(maxima_language_code(Some("en-GB")), "");
+        assert_eq!(maxima_language_code(None), "");
+        assert_eq!(maxima_language_code(Some("")), "");
+        assert_eq!(maxima_language_code(Some("es\") (quit) (\"")), "");
         assert_eq!(
-            set_language_code("es").as_deref(),
-            Some("ax__language: \"es\"$")
+            language_lisp_stdin("es"),
+            ":lisp (progn (setq $ax__language \"es\") (values))\n"
         );
-        assert!(set_language_code("pt_BR").is_some());
-        assert_eq!(set_language_code(""), None);
-        assert_eq!(set_language_code("es\"$ kill(all)$ \""), None);
     }
 
     #[test]

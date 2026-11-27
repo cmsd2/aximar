@@ -1,4 +1,4 @@
-import type { ErrorInfo } from "./maxima";
+import type { ErrorInfo, Note } from "./maxima";
 
 export interface CellOutput {
   textOutput: string;
@@ -10,6 +10,8 @@ export interface CellOutput {
   errorInfo: ErrorInfo | null;
   /** Maxima's error message in the user's language, when it has one */
   errorTranslated?: string | null;
+  /** What Maxima's notes in the text output mean */
+  notes?: Note[];
   isError: boolean;
   durationMs: number;
   /** Maxima output label (e.g. "%o6") for stable back-references in formulas */

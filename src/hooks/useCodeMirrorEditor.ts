@@ -3,6 +3,8 @@ import { EditorState, Compartment } from "@codemirror/state";
 import { EditorView, drawSelection, keymap, placeholder as cmPlaceholder, ViewUpdate, tooltips } from "@codemirror/view";
 import { defaultKeymap } from "@codemirror/commands";
 import { acceptCompletion, autocompletion, completionKeymap } from "@codemirror/autocomplete";
+import { i18n } from "@lingui/core";
+import { t } from "@lingui/core/macro";
 import { maximaLanguage } from "../lib/maxima-language";
 import { maximaTheme, maximaHighlightStyle } from "../lib/codemirror-theme";
 import { maximaCompletionSource } from "../lib/maxima-completions";
@@ -18,6 +20,16 @@ import { maximaHoverTooltip } from "../lib/maxima-hover-tooltip";
 import { findEnclosingCall } from "../lib/param-tracker";
 import { useNotebookStore, getActiveTabState } from "../store/notebookStore";
 import { useFindStore } from "../store/findStore";
+
+/** The placeholder of an empty code cell, in the window's language */
+function placeholderExtension() {
+  return cmPlaceholder(
+    t({
+      message: "Enter Maxima expression... (Shift+Enter to evaluate)",
+      comment: "Placeholder in an empty code cell. Shift+Enter is the keyboard shortcut; keep it as it is",
+    }),
+  );
+}
 
 interface UseCodeMirrorEditorOptions {
   cellId: string;
@@ -42,6 +54,7 @@ export function useCodeMirrorEditor({
   const viewRef = useRef<EditorView | null>(null);
   const isInternalUpdate = useRef(false);
   const autocompleteCompartment = useRef(new Compartment());
+  const placeholderCompartment = useRef(new Compartment());
 
   // Stable refs for callbacks to avoid recreating extensions
   const onExecuteRef = useRef(onExecute);
@@ -190,7 +203,7 @@ export function useCodeMirrorEditor({
         maximaHighlightStyle,
         drawSelection(),
         EditorView.lineWrapping,
-        cmPlaceholder("Enter Maxima expression... (Shift+Enter to evaluate)"),
+        placeholderCompartment.current.of(placeholderExtension()),
         autocompleteCompartment.current.of(
           autocompletion({
             override: [drawContextCompletionSource, symbolCompletionSource, maximaCompletionSource(initialAutocompleteMode)],
@@ -210,7 +223,15 @@ export function useCodeMirrorEditor({
     const view = new EditorView({ state, parent: container });
     viewRef.current = view;
 
+    // The placeholder follows the language when it changes
+    const stopListening = i18n.on("change", () => {
+      view.dispatch({
+        effects: placeholderCompartment.current.reconfigure(placeholderExtension()),
+      });
+    });
+
     return () => {
+      stopListening();
       view.destroy();
       viewRef.current = null;
     };

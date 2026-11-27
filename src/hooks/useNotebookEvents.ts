@@ -161,6 +161,7 @@ export function mapSyncCells(syncCells: SyncCell[]) {
         error: sc.output.error,
         errorInfo: sc.output.error_info,
         errorTranslated: sc.output.error_translated ?? null,
+        notes: sc.output.notes ?? [],
         isError: sc.output.is_error,
         durationMs: sc.output.duration_ms,
         outputLabel: sc.output.output_label,

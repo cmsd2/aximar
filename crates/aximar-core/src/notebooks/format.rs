@@ -13,6 +13,7 @@ pub use aximar_notebook_format::FormatError;
 use crate::catalog::packages::PackageCatalog;
 use crate::catalog::search::Catalog;
 use crate::maxima::errors::enhance_error_with_packages;
+use crate::maxima::notes;
 use crate::notebook::{CellOutput, CellType, Notebook};
 
 /// A notebook read from a file, ready for `NotebookCommand::LoadNotebook`.
@@ -111,14 +112,16 @@ fn output_to(o: &CellOutput) -> file::Output {
     }
 }
 
-/// Work out the friendly explanation for each error read from a file.
-/// Files store only the error text; the explanation depends on the catalog
-/// and the installed packages, so it is computed again when a file opens.
-pub fn explain_errors(file: &mut NotebookFile, catalog: &Catalog, packages: &PackageCatalog) {
+/// Work out the explanation of each error and the notes in each output
+/// read from a file.  Files store only Maxima's text; explanations depend
+/// on the catalog and the installed packages, so they are found again when
+/// a file opens, as an evaluation finds them.
+pub fn explain(file: &mut NotebookFile, catalog: &Catalog, packages: &PackageCatalog) {
     for output in file.cells.iter_mut().filter_map(|c| c.output.as_mut()) {
         if let Some(error) = output.error.as_deref().filter(|_| output.is_error) {
             output.error_info = enhance_error_with_packages(error, catalog, Some(packages));
         }
+        output.notes = notes::notes(&output.text_output, !output.is_error);
     }
 }
 
@@ -327,7 +330,7 @@ mod tests {
     #[test]
     fn loaded_errors_get_their_friendly_explanation() {
         let mut file = read(&fixture("vscode-extension-before-s1.macnb")).unwrap();
-        explain_errors(&mut file, &Catalog::load(), &PackageCatalog::load());
+        explain(&mut file, &Catalog::load(), &PackageCatalog::load());
         let failed = file.cells.iter().find(|c| c.input == "1/0;").unwrap();
         let info = failed
             .output
@@ -336,12 +339,37 @@ mod tests {
             .error_info
             .as_ref()
             .expect("an explanation");
-        assert_eq!(info.title, "Division by Zero");
+        assert_eq!(info.title.text, "Division by Zero");
         // Outputs that aren't errors get none
         assert!(file
             .cells
             .iter()
             .filter(|c| c.input != "1/0;")
             .all(|c| c.output.as_ref().is_none_or(|o| o.error_info.is_none())));
+    }
+
+    #[test]
+    fn a_reopened_note_is_found_again_and_not_written() {
+        let text = r#"{"nbformat": 4, "nbformat_minor": 5, "metadata": {}, "cells": [
+            {"id": "c", "cell_type": "code", "source": "rat(0.5*x);", "metadata": {}, "execution_count": 1, "outputs": [
+                {"output_type": "stream", "name": "stdout", "text": "rat: replaced 0.5 by 1/2 = 0.5\n"},
+                {"output_type": "execute_result", "execution_count": 1, "metadata": {},
+                 "data": {"text/plain": "x/2"}}]}]}"#;
+        let mut file = read(text).unwrap();
+        explain(&mut file, &Catalog::load(), &PackageCatalog::load());
+        let output = file.cells[0].output.as_ref().unwrap();
+        assert_eq!(output.notes.len(), 1);
+        assert_eq!(output.notes[0].id, "note.rat_replaced");
+
+        let mut nb = Notebook::new();
+        nb.apply(NotebookCommand::LoadNotebook { file: file.into() })
+            .unwrap();
+        let written = write(&nb);
+        assert!(!written.contains("note."), "{written}");
+        let v = json(&written);
+        assert_eq!(
+            v["cells"][0]["outputs"][0]["text"],
+            serde_json::json!(["rat: replaced 0.5 by 1/2 = 0.5\n"])
+        );
     }
 }

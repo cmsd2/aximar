@@ -16,6 +16,65 @@ see the `v*` releases on GitHub.
   tools now start Maxima with `LANGUAGE=en`, which Maxima reads before
   `LC_ALL`, `LC_MESSAGES` and `LANG`.
 
+- **Questions stop the cell instead of being answered**: when Maxima asked
+  a question ("Is a positive, negative or zero?"), the tools answered it
+  with a guess. A yes/no question hung the cell until the timeout, and the
+  spare answers ran as input in the next cell. Now every question is a
+  Maxima error, "Maxima needs to know: Is a positive, negative or zero?",
+  and `error_info` suggests the line that answers it, such as
+  `assume(a > 0)$`. `run_cell` returns it as a failed cell (`is_error`)
+  rather than a tool error. As in Maxima, `errcatch` doesn't stop a
+  question: `r: errcatch(integrate(exp(-a*x), x, 0, inf))` stops with the
+  question, where it used to get the result for a guessed `positive`. Nor
+  do library functions that catch errors internally, so
+  `laplace(sin(a*t)/t, t, s)` asks for the sign of `a` instead of falling
+  back to another method.
+
+### aximar-mcp
+
+- **Error explanations have IDs**: `error_info` gains `id` (such as
+  `error.division_by_zero`), `params` with the values in its text, and
+  `messages` with each field's catalog context and English template.
+  `title`, `explanation` and `suggestion` keep their English text.
+  [docs/maxima-messages.md](docs/maxima-messages.md) lists every ID.
+- **Error text is Maxima's message alone**: the line " -- an error. To
+  debug this try: debugmode(true);" no longer follows every error in
+  `error`.
+- **Lisp errors keep their cause**: SBCL prints a Lisp error's condition
+  over several lines with blank lines between, and the tools kept only the
+  first line. `error` now holds the whole condition on one line, without
+  SBCL's "Automatically continuing." lines, and `error_info` explains a
+  value of the wrong type (`error.lisp_type`), runaway recursion
+  (`error.recursion`) and floating-point overflow (`error.float_overflow`).
+  Runaway recursion is also an error on the kernel-events path, where it
+  used to pass as print text.
+- **Timeouts and cancellations leave an output**: a cell that timed out
+  or was cancelled now has an error output saying so (`error.timeout`,
+  `error.cancelled`), which `get_cell` returns, as well as the tool error.
+- **Notes on Maxima's output**: a cell's output gains `notes`, each with
+  an ID, English text and the range of text output lines it explains,
+  for lines such as "rat: replaced 0.5 by 1/2 = 0.5" (one note for a run
+  of them), "solve: using arc-trig functions to get a solution.",
+  "Principal Value" and "expt: undefined: 0 to a negative exponent." in a
+  cell that still has a result. Notes aren't written to files; opening a
+  notebook finds them again.
+- **More errors explained**: `log(0)`, an index past the end of a list or
+  expression, taking parts of an atom, assigning to something that isn't
+  a variable, `first` or `last` of an empty list, a non-polynomial given
+  to `allroots`, and a system `algsys` can't reduce.
+- **Syntax errors are explained by kind**: a missing `)` or `]`, input that
+  ends too early, and two values with no operator between them each get
+  their own explanation, naming the delimiter or the value. Input that ends
+  too early used to get the generic syntax-error text.
+- **A "Messages from Maxima" template** (`maxima-messages`) walks through
+  errors, questions and notes, and how to answer a question with
+  `assume`.
+- **Wrong argument counts name the definition**: calling a user function or
+  lambda with the wrong arguments explains it with the definition and the
+  arguments given ("f is defined as f(x), but was called with [1,2]."),
+  and no longer suggests `describe`, which only knows Maxima's own
+  functions.
+
 ## [0.6.2] — 2026-11-25
 
 ### maxima-dap

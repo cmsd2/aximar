@@ -10,7 +10,7 @@ use crate::catalog::search::Catalog;
 use crate::error::AppError;
 use crate::maxima::backend::Backend;
 use crate::maxima::envelope::EnvelopeObserver;
-use crate::maxima::messages::{messages_lisp_stdin, set_language_code};
+use crate::maxima::messages::messages_lisp_stdin;
 use crate::maxima::output::OutputSink;
 use crate::maxima::plotting::{plotting_init_code, plotting_lisp_stdin};
 use crate::maxima::process::MaximaProcess;
@@ -111,15 +111,9 @@ pub async fn spawn_and_init_session(
                 // Load Aximar plotting functions (ax_plot2d, ax_draw2d, ax_draw3d)
                 let plot_init = plotting_init_code();
                 let _ = protocol::evaluate(p, "__init__", plot_init, catalog, eval_timeout).await;
-                // For now the language of Maxima's translated error messages
-                // comes from AXIMAR_LANGUAGE (such as `es`); a setting will
-                // replace it.
-                if let Some(set) = std::env::var("AXIMAR_LANGUAGE")
-                    .ok()
-                    .and_then(|l| set_language_code(&l))
-                {
-                    let _ = protocol::evaluate(p, "__init__", &set, catalog, eval_timeout).await;
-                }
+                // Maxima's error messages in the user's language
+                let language = ctx.language.read().unwrap().clone();
+                p.use_language(language.as_deref()).await.ok();
             }
             drop(guard);
 

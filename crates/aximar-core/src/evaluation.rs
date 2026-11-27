@@ -6,6 +6,7 @@ use crate::catalog::packages::PackageCatalog;
 use crate::catalog::search::Catalog;
 use crate::commands::{CommandEffect, EffectSink, NotebookCommand};
 use crate::error::AppError;
+use crate::maxima::errors;
 use crate::maxima::labels::{rewrite_labels, LabelContext, UnresolvedLabel};
 use crate::maxima::protocol;
 use crate::maxima::types::EvalResult;
@@ -120,6 +121,11 @@ pub async fn evaluate_cell(
         }
     };
 
+    // Maxima's error messages in the user's language, which may have
+    // changed since the last cell
+    let language = ctx.language.read().unwrap().clone();
+    process.use_language(language.as_deref()).await.ok();
+
     // Clear and read the capture sink only while holding the session lock.
     // A run queued behind this one would otherwise clear this cell's output
     // while it is still being written, or before it is read.
@@ -166,6 +172,26 @@ pub async fn evaluate_cell(
             })
         }
         Err(e) => {
+            // A timeout or a cancel leaves an error output saying so, as a
+            // Maxima error does; the caller still hears the error
+            if let Some(info) = errors::explain_failure(&e) {
+                let eval_result = EvalResult {
+                    cell_id: cell_id.to_string(),
+                    error: Some(e.to_string()),
+                    error_info: Some(info),
+                    is_error: true,
+                    ..Default::default()
+                };
+                let cell_output = CellOutput::from_eval_result(&eval_result, exec_count);
+                if let Ok(effect) = nb.apply(NotebookCommand::SetCellOutput {
+                    cell_id: cell_id.to_string(),
+                    output: Box::new(cell_output),
+                    raw_output,
+                }) {
+                    effects.effect(&ctx.id, &nb, &effect);
+                }
+                return Err(e);
+            }
             // Store raw output even on error, before reporting the status
             if let Some(cell) = nb.get_cell_mut(cell_id) {
                 cell.raw_output = raw_output;

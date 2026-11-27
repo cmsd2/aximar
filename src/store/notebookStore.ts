@@ -44,7 +44,8 @@ function createDefaultTab(id: string): NotebookTab {
   return {
     type: "notebook",
     id,
-    title: "Untitled",
+    // Empty until the notebook has a file; shown with displayTitle
+    title: "",
     cells: [],
     sessionStatus: "Stopped",
     activeCellId: null,
@@ -308,7 +309,7 @@ export const useNotebookStore = create<NotebookState>((set) => ({
     set((state) => ({
       notebooks: updateNotebookTab(state.notebooks, notebookId, () => ({
         filePath: path,
-        title: path ? (path.split("/").pop()?.split("\\").pop() ?? "Untitled") : "Untitled",
+        title: path ? (path.split("/").pop()?.split("\\").pop() ?? "") : "",
       })),
     })),
 

@@ -1,5 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
-import type { ErrorInfo, EvalResult } from "../types/maxima";
+import type { ErrorInfo, EvalResult, Note } from "../types/maxima";
 import { useNotebookStore } from "../store/notebookStore";
 
 /** Get the currently active notebook ID for passing to backend commands. */
@@ -24,6 +24,8 @@ export interface SyncCellOutput {
   error_info: ErrorInfo | null;
   /** Maxima's error message in the user's language, when it has one */
   error_translated?: string | null;
+  /** What Maxima's notes in the text output mean */
+  notes?: Note[];
   /** Read from a file, from an earlier session */
   stale: boolean;
 }

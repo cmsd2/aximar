@@ -1,0 +1,122 @@
+#!/bin/sh
+# Writes locales/messages.pot from the window's and the Rust crates' text,
+# and merges it into each locales/<lang>.po.  See docs/i18n.md.
+#
+#   scripts/i18n-extract          update the template, the catalogs and
+#                                 docs/maxima-messages.md
+#   scripts/i18n-extract --check  fail if they're out of date, changing nothing
+#
+# Needs GNU gettext 0.24 or later (for Rust) and the npm dependencies.
+set -eu
+
+cd "$(dirname "$0")/.."
+
+check=false
+case "${1:-}" in
+  --check) check=true ;;
+  "") ;;
+  *) echo "usage: $0 [--check]" >&2; exit 2 ;;
+esac
+
+version=$(xgettext --version | sed -n '1s/.* //p')
+case "$version" in
+  0.1*|0.2[0-3]|0.2[0-3].*)
+    echo "xgettext $version is too old: Rust needs GNU gettext 0.24 or later" >&2
+    exit 1 ;;
+esac
+
+work=$(mktemp -d)
+trap 'rm -rf "$work"' EXIT
+
+# The window: lingui.config.ts writes its template here when this is set
+AXIMAR_I18N_TEMPLATE_DIR="$work/window" npx lingui extract-template >/dev/null
+
+# The Rust crates.  Only src/, so tests can use msg! without their strings
+# reaching the catalog.
+find crates/*/src src-tauri/src -name '*.rs' | LC_ALL=C sort > "$work/rust-files"
+xgettext --language=Rust --from-code=UTF-8 --force-po --no-wrap \
+  --add-location=file --add-comments=i18n: \
+  --keyword= --keyword='msg!' --keyword='msg_ctx!:1c,2' \
+  --files-from="$work/rust-files" --output="$work/rust.pot"
+
+# Language is English, the source: Lingui reads the template as the
+# English catalog, and needs a language.  A new catalog takes its own.
+cat > "$work/header.pot" <<'EOF'
+msgid ""
+msgstr ""
+"Project-Id-Version: Aximar\n"
+"Report-Msgid-Bugs-To: https://github.com/cmsd2/aximar/issues\n"
+"Language: en\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+EOF
+
+msgcat --use-first --no-wrap --to-code=UTF-8 \
+  "$work/header.pot" "$work/window/messages.pot" "$work/rust.pot" \
+  --output-file="$work/messages.pot"
+
+# Which Storybook stories show each string, from scripts/i18n-gallery.mjs
+if [ -f locales/screens.json ]; then
+  node scripts/i18n-screens.mjs "$work/messages.pot"
+fi
+
+# A catalog for every language the window loads, merged with the template.
+# English is the source and needs no translations; `pseudo` is generated
+# from the English at build time.  Add a language with
+# `msginit --no-translator --locale=<lang> -i locales/messages.pot -o locales/<lang>.po`.
+for lang in en pseudo; do
+  [ -f "locales/$lang.po" ] && continue
+  if $check; then
+    echo "locales/$lang.po is missing: run scripts/i18n-extract" >&2
+    exit 1
+  fi
+  # msgmerge below fills in the entries
+  cat > "locales/$lang.po" <<EOF
+msgid ""
+msgstr ""
+"Project-Id-Version: Aximar\n"
+"PO-Revision-Date: \n"
+"Last-Translator: \n"
+"Language-Team: \n"
+"Language: $lang\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+EOF
+done
+
+stale=false
+compare() {
+  # $1 the committed file, $2 the one just made
+  if $check; then
+    if ! diff -u "$1" "$2" > "$work/diff"; then
+      echo "$1 is out of date: run scripts/i18n-extract and commit the result" >&2
+      cat "$work/diff" >&2
+      stale=true
+    fi
+  elif ! cmp -s "$1" "$2"; then
+    cp "$2" "$1"
+    echo "updated $1"
+  fi
+}
+
+compare locales/messages.pot "$work/messages.pot"
+
+for po in locales/*.po; do
+  msgmerge --quiet --previous --no-wrap --output-file="$work/merged.po" \
+    "$po" "$work/messages.pot"
+  compare "$po" "$work/merged.po"
+done
+
+if $stale; then
+  exit 1
+fi
+
+# The list of Aximar's messages about Maxima, from the template, and the
+# Storybook gallery's fixtures of them.  The
+# test job checks it, since this script's CI job has no Rust.
+if ! $check; then
+  AXIMAR_UPDATE_DOCS=1 cargo test --quiet -p aximar-core --test maxima_messages >/dev/null
+fi

@@ -1,5 +1,6 @@
 use tauri::State;
 
+use crate::i18n::help_summary;
 use crate::state::AppState;
 use aximar_core::catalog::doc_index::SymbolEntry;
 use aximar_core::catalog::queries::{self, FunctionDocs};
@@ -16,8 +17,10 @@ fn symbol_to_function(name: &str, entry: &SymbolEntry) -> MaximaFunction {
     MaximaFunction {
         name: name.to_string(),
         signatures: sigs,
+        // The full documentation is English; a summary can be in the
+        // user's language
         description: if entry.body_md.is_empty() {
-            entry.summary.clone()
+            help_summary(name, &entry.summary)
         } else {
             entry.body_md.clone()
         },
@@ -62,7 +65,12 @@ pub fn search_functions(state: State<AppState>, query: String) -> Vec<SearchResu
 
 #[tauri::command]
 pub fn complete_function(state: State<AppState>, prefix: String) -> Vec<CompletionResult> {
-    queries::complete(&state.catalog, &state.packages, &prefix)
+    let mut results = queries::complete(&state.catalog, &state.packages, &prefix);
+    // Core functions carry their summary; package ones a load() hint
+    for r in results.iter_mut().filter(|r| r.package.is_none()) {
+        r.description = help_summary(&r.name, &r.description);
+    }
+    results
 }
 
 /// Documented functions only: the window shows a package's page for a
@@ -94,9 +102,9 @@ pub fn list_categories(state: State<AppState>) -> Vec<CategoryGroup> {
                     .into_iter()
                     .filter_map(|(name, _sig)| {
                         state.catalog.get(&name).map(|(_, entry)| MaximaFunction {
+                            description: help_summary(&name, &entry.summary),
                             name,
                             signatures: vec![entry.signature.clone()],
-                            description: entry.summary.clone(),
                             category,
                             examples: Vec::new(),
                             see_also: Vec::new(),
