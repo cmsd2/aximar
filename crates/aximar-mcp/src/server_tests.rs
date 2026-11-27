@@ -1859,3 +1859,86 @@ async fn run_cell_reports_a_question_as_a_cell_error() {
         "{cell:#}"
     );
 }
+
+// ── The survey ───────────────────────────────────────────────────────
+
+/// What a survey cell should give
+enum Expect {
+    Error(&'static str),
+    Note(&'static str),
+}
+
+/// The design's survey of Maxima's messages, run over MCP: each cell's
+/// explanation or note has its ID, in English
+#[tokio::test]
+#[ignore = "requires Maxima to be installed"]
+async fn survey_cells_over_mcp() {
+    use Expect::*;
+    let cells = [
+        ("integrate(exp(-a*x), x, 0, inf);", Error("question.sign")),
+        ("integrate(1/(x^2+k), x);", Error("question.sign_pn")),
+        ("integrate(x^a, x);", Error("question.equal")),
+        ("rat(0.5*x + 0.25);", Note("note.rat_replaced")),
+        ("solve(sin(x) = 1/2, x);", Note("note.solve_arc_trig")),
+        (
+            "solve([x+y=1, 2*x+2*y=2], [x,y]);",
+            Note("note.solve_dependent"),
+        ),
+        ("integrate(1/x, x, -1, 1);", Note("note.principal_value")),
+        ("romberg(1/x, x, 0, 1);", Note("note.zero_power")),
+        ("tellsimp(a+b, c);", Note("note.tellsimp_noncommutative")),
+        ("?car(1);", Error("error.lisp_type")),
+        ("g(n) := g(n + 1)$ g(1);", Error("error.recursion")),
+        ("exp(1000.0);", Error("error.float_overflow")),
+        ("log(0);", Error("error.log_zero")),
+        ("part([1,2], 5);", Error("error.part_index")),
+        ("part(x, 1);", Error("error.part_atom")),
+        ("2: 3;", Error("error.assign_target")),
+        ("first([]);", Error("error.empty_list")),
+        ("allroots(sin(x));", Error("error.not_polynomial")),
+        (
+            "algsys([sin(x)+y=1, x^2+y^2=2], [x,y]);",
+            Error("error.algsys_failed"),
+        ),
+        ("f(x;", Error("error.syntax_missing")),
+        ("1+;", Error("error.incomplete_input")),
+        ("x y;", Error("error.syntax_operator")),
+        ("1/0;", Error("error.division_by_zero")),
+        (
+            "integrate(1/x, x, 0, 1);",
+            Error("error.divergent_integral"),
+        ),
+    ];
+    let s = build_server();
+    let mut failures = Vec::new();
+    for (input, expect) in cells {
+        let cell_id = add_code_cell(&s, input).await;
+        let _ = s
+            .run_cell(Parameters(CellIdParams {
+                cell_id: cell_id.clone(),
+                notebook_id: None,
+            }))
+            .await;
+        let cell = parse_ok(
+            s.get_cell(Parameters(CellIdParams {
+                cell_id,
+                notebook_id: None,
+            }))
+            .await,
+        );
+        let output = &cell["output"];
+        let ok = match expect {
+            Error(id) => output["is_error"] == true && output["error_info"]["id"] == id,
+            Note(id) => {
+                output["is_error"] == false
+                    && output["notes"]
+                        .as_array()
+                        .is_some_and(|notes| notes.iter().any(|n| n["id"] == id))
+            }
+        };
+        if !ok {
+            failures.push(format!("{input}: {output}"));
+        }
+    }
+    assert!(failures.is_empty(), "{}", failures.join("\n\n"));
+}

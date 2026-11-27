@@ -16,8 +16,6 @@ see the `v*` releases on GitHub.
   tools now start Maxima with `LANGUAGE=en`, which Maxima reads before
   `LC_ALL`, `LC_MESSAGES` and `LANG`.
 
-### aximar-mcp and maxima-dap
-
 - **Questions stop the cell instead of being answered**: when Maxima asked
   a question ("Is a positive, negative or zero?"), the tools answered it
   with a guess. A yes/no question hung the cell until the timeout, and the
