@@ -43,9 +43,10 @@ static SIGN_RE: LazyLock<Regex> = LazyLock::new(|| {
 static EQUAL_RE: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"^Is (.+) equal to (.+)\?$").unwrap());
 
-/// `ask-prop`: "Is n an integer?"
+/// `ask-prop`: "Is n an integer?", and for askinteger's even and odd,
+/// "Is n an even number?"
 static PROPERTY_RE: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"^Is (.+) an? ([a-z]\w*)\?$").unwrap());
+    LazyLock::new(|| Regex::new(r"^Is (.+?) an? ([a-z]\w*)(?: number)?\?$").unwrap());
 
 static LOAD_FAILED_RE: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"(?:failed to load|Cannot find file)\s+(\S+)").unwrap());
@@ -1113,6 +1114,22 @@ mod tests {
                 "question.sign",
                 "assume(b*c-1 > 0)$",
             ),
+            // Real questions: an expression, an absolute value, a noun form
+            (
+                "Is m+1 positive, negative or zero?",
+                "question.sign",
+                "assume(m+1 > 0)$",
+            ),
+            (
+                "Is abs(x)-1 positive, negative or zero?",
+                "question.sign",
+                "assume(abs(x)-1 > 0)$",
+            ),
+            (
+                "Is 'realpart(x) positive, negative or zero?",
+                "question.sign",
+                "assume('realpart(x) > 0)$",
+            ),
         ];
         for (text, id, line) in cases {
             let info = question(text);
@@ -1142,9 +1159,14 @@ mod tests {
         assert_eq!(info.id, "question.property");
         assert_eq!(info.explanation.params["property"], "integer");
         assert_eq!(info.example.as_deref(), Some("declare(n, integer)$"));
+        // askinteger(n, even) and odd add "number"
+        let even = question("Is n an even number?");
+        assert_eq!(even.explanation.params["expr"], "n");
+        assert_eq!(even.explanation.params["property"], "even");
+        assert_eq!(even.example.as_deref(), Some("declare(n, even)$"));
         assert_eq!(
-            question("Is n an even?").example.as_deref(),
-            Some("declare(n, even)$")
+            question("Is n an odd number?").example.as_deref(),
+            Some("declare(n, odd)$")
         );
     }
 
