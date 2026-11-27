@@ -18,8 +18,8 @@
 
 ## 4. mxpm (mxpm repository, one PR)
 
-- [ ] 4.1 Add `--lang` to `doc generate-core-docs` and `doc build`, mapping `pt-BR` to `pt_BR`, adding the English tree's shared macro files to the include path, and writing `language` and the `.<lang>` file names; verify with mxpm tests that `--lang es` over a fixture tree writes `maxima-core-docs-doc-index.es.json` with `"language": "es"`, and that no `--lang` gives today's output byte for byte
-- [ ] 4.2 Move catalog-gen's `summaries` onto `mxpm doc generate-core-docs --lang` (back in aximar); verify the regenerated `core-doc-summaries.es.json` matches today's file
+- [x] 4.1 Add `--lang` to `doc generate-core-docs` and `doc build`, mapping `pt-BR` to `pt_BR`, adding the English tree's shared macro files to the include path, and writing `language` and the `.<lang>` file names; verify with mxpm tests that `--lang es` over a fixture tree writes `maxima-core-docs-doc-index.es.json` with `"language": "es"`, and that no `--lang` gives today's output byte for byte
+- [x] 4.2 Move catalog-gen's `summaries` onto `mxpm doc generate-core-docs --lang` (back in aximar); verify the regenerated `core-doc-summaries.es.json` matches today's file
 
 ## 5. Language packs (core-docs and package-index, one PR each)
 
