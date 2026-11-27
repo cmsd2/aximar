@@ -1,5 +1,6 @@
 import { hoverTooltip, type Tooltip } from "@codemirror/view";
 import katex from "katex";
+import { plural, t } from "@lingui/core/macro";
 import { getFunction, packageForFunction, getPackage } from "./catalog-client";
 import type { MaximaFunction, PackageInfo } from "../types/catalog";
 
@@ -108,7 +109,11 @@ function renderHoverTooltip(
   if (func.signatures.length > 3) {
     const more = document.createElement("div");
     more.className = "hover-tooltip-more";
-    more.textContent = `+${func.signatures.length - 3} more`;
+    const count = func.signatures.length - 3;
+    more.textContent = t({
+      message: plural(count, { one: "+# more", other: "+# more" }),
+      comment: "Hover tooltip of a Maxima function, under its first signatures: how many more signatures it has",
+    });
     sigDiv.appendChild(more);
   }
   container.appendChild(sigDiv);
@@ -131,7 +136,10 @@ function renderHoverTooltip(
   if (onViewDocs) {
     const docsBtn = document.createElement("button");
     docsBtn.className = "hover-tooltip-link";
-    docsBtn.innerHTML = "Docs &rarr;";
+    docsBtn.textContent = t({
+      message: "Docs →",
+      comment: "Link in the hover tooltip of a Maxima function: opens its documentation in the side panel. max-length:10",
+    });
     docsBtn.addEventListener("mousedown", (e) => {
       e.preventDefault();
       onViewDocs(func.name);
@@ -163,7 +171,11 @@ function renderPackageFuncTooltip(
   // Description
   const descDiv = document.createElement("div");
   descDiv.className = "hover-tooltip-desc";
-  descDiv.textContent = `requires load("${pkg.name}")`;
+  const pkgName = pkg.name;
+  descDiv.textContent = t({
+    message: `requires load("${pkgName}")`,
+    comment: "Hover tooltip of a function from a Maxima package. pkgName is the package name; load(...) is Maxima code and stays as it is",
+  });
   container.appendChild(descDiv);
 
   // Footer
@@ -172,13 +184,19 @@ function renderPackageFuncTooltip(
 
   const catSpan = document.createElement("span");
   catSpan.className = "hover-tooltip-category";
-  catSpan.textContent = `Package: ${pkg.name}`;
+  catSpan.textContent = t({
+    message: `Package: ${pkgName}`,
+    comment: "Footer of the hover tooltip of a function from a Maxima package. pkgName is the package name",
+  });
   footerDiv.appendChild(catSpan);
 
   if (onViewDocs) {
     const docsBtn = document.createElement("button");
     docsBtn.className = "hover-tooltip-link";
-    docsBtn.innerHTML = "Docs &rarr;";
+    docsBtn.textContent = t({
+      message: "Docs →",
+      comment: "Link in the hover tooltip of a Maxima function: opens its documentation in the side panel. max-length:10",
+    });
     docsBtn.addEventListener("mousedown", (e) => {
       e.preventDefault();
       onViewDocs(funcName);

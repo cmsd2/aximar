@@ -1,4 +1,5 @@
 import { useCallback, useEffect } from "react";
+import { useLingui } from "@lingui/react/macro";
 import { useActiveTab, useNotebookStore } from "../store/notebookStore";
 import { Cell } from "./Cell";
 import { MarkdownCell } from "./MarkdownCell";
@@ -7,6 +8,7 @@ import { TrustBanner } from "./TrustBanner";
 import { nbAddCell } from "../lib/notebook-commands";
 
 function InsertBar({ afterId, beforeId }: { afterId?: string; beforeId?: string }) {
+  const { t } = useLingui();
   const handleAddCode = async () => {
     await nbAddCell("code", undefined, afterId, beforeId);
   };
@@ -19,10 +21,16 @@ function InsertBar({ afterId, beforeId }: { afterId?: string; beforeId?: string 
       <div className="insert-bar-line" />
       <div className="insert-bar-buttons">
         <button className="insert-bar-btn" onClick={handleAddCode}>
-          + Code
+          {t({
+            message: "+ Code",
+            comment: "Button in the bar between cells: inserts a code cell there. max-length:12",
+          })}
         </button>
         <button className="insert-bar-btn" onClick={handleAddMarkdown}>
-          + Markdown
+          {t({
+            message: "+ Markdown",
+            comment: "Button in the bar between cells: inserts a markdown cell there. max-length:14",
+          })}
         </button>
       </div>
       <div className="insert-bar-line" />
@@ -35,6 +43,7 @@ interface NotebookProps {
 }
 
 export function Notebook({ onViewDocs }: NotebookProps) {
+  const { t } = useLingui();
   const tab = useActiveTab();
   const cells = tab.cells;
   const selectedCellIds = tab.selectedCellIds;
@@ -81,7 +90,17 @@ export function Notebook({ onViewDocs }: NotebookProps) {
           <div
             className={`cell-select-bracket${isSelected ? " selected" : ""}`}
             onClick={(e) => handleBracketClick(e, cell.id)}
-            title={isSelected ? "Deselect cell" : "Select cell (Shift+click for range)"}
+            title={
+              isSelected
+                ? t({
+                    message: "Deselect cell",
+                    comment: "Tooltip of the bracket right of a selected cell: clicking it removes the cell from the selection",
+                  })
+                : t({
+                    message: "Select cell (Shift+click for range)",
+                    comment: "Tooltip of the bracket right of a cell: clicking it selects the cell. Shift+click selects every cell up to it",
+                  })
+            }
           />
         );
         return (

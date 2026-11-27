@@ -1,4 +1,5 @@
 import { StateField, StateEffect, type EditorState } from "@codemirror/state";
+import { plural, t } from "@lingui/core/macro";
 import { showTooltip, type Tooltip } from "@codemirror/view";
 import type { EditorView } from "@codemirror/view";
 import { getFunction, packageForFunction, getPackage } from "./catalog-client";
@@ -104,7 +105,11 @@ function renderSignatureHint(data: SignatureHintData): HTMLElement {
   if (overflow > 0) {
     const more = document.createElement("div");
     more.className = "signature-hint-more";
-    more.textContent = `+${overflow} more`;
+    const count = overflow;
+    more.textContent = t({
+      message: plural(count, { one: "+# more", other: "+# more" }),
+      comment: "Signature hint while typing a Maxima function call, under the signatures shown: how many more it has",
+    });
     container.appendChild(more);
   }
 

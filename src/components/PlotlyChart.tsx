@@ -1,5 +1,6 @@
 import { useRef, useEffect, useMemo, useState, useCallback } from "react";
 import Plotly from "plotly.js-dist-min";
+import { useLingui } from "@lingui/react/macro";
 import {
   setSignalAndReplot,
   type ReactiveBlock,
@@ -19,6 +20,7 @@ interface PlotlySpec {
 }
 
 export function PlotlyChart({ plotData }: PlotlyChartProps) {
+  const { t } = useLingui();
   const containerRef = useRef<HTMLDivElement>(null);
   const [renderError, setRenderError] = useState<string | null>(null);
 
@@ -146,18 +148,36 @@ export function PlotlyChart({ plotData }: PlotlyChartProps) {
   }, [spec]);
 
   if (!spec) {
-    return <div className="plot-error">Failed to parse plot data</div>;
+    return (
+      <div className="plot-error">
+        {t({
+          message: "Failed to parse plot data",
+          comment: "Shown in place of a chart whose data in the cell output is not valid JSON",
+        })}
+      </div>
+    );
   }
 
   return (
     <div className="plotly-chart">
-      {renderError && (
-        <div className="plot-error">Failed to render plot: {renderError}</div>
-      )}
+      {renderError && <RenderError reason={renderError} />}
       <div ref={containerRef} className="plotly-output" />
       {reactive && reactive.signals.length > 0 && (
         <ReactiveControls containerRef={containerRef} reactive={reactive} />
       )}
+    </div>
+  );
+}
+
+/** The note above a chart Plotly could not draw */
+function RenderError({ reason }: { reason: string }) {
+  const { t } = useLingui();
+  return (
+    <div className="plot-error">
+      {t({
+        message: `Failed to render plot: ${reason}`,
+        comment: "Shown in place of a chart that could not be drawn. reason is the error text from the chart library, in English",
+      })}
     </div>
   );
 }

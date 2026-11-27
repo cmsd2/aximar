@@ -1,5 +1,6 @@
 import { useCallback } from "react";
 import { message } from "@tauri-apps/plugin-dialog";
+import { t } from "@lingui/core/macro";
 import { useNotebookStore } from "../store/notebookStore";
 import { useLogStore } from "../store/logStore";
 import { startSession, restartSession } from "../lib/maxima-client";
@@ -29,33 +30,63 @@ async function showMaximaNotFoundDialog(errorMsg: string): Promise<void> {
 
   const platform = detectPlatform();
 
+  // Commands, URLs and the variable name are placeholders, so translations
+  // can't change them
   let installInstructions: string;
   switch (platform) {
-    case "macos":
-      installInstructions = "Install Maxima using Homebrew:\n\n  brew install maxima";
+    case "macos": {
+      const brewCommand = "brew install maxima";
+      installInstructions = t({
+        message: `Install Maxima using Homebrew:\n\n  ${brewCommand}`,
+        comment: "Maxima Not Found dialog, on macOS. brewCommand is the shell command that installs Maxima",
+      });
       break;
-    case "linux":
-      installInstructions =
-        "Install Maxima using your package manager:\n\n" +
-        "  Ubuntu/Debian: sudo apt install maxima\n" +
-        "  Fedora: sudo dnf install maxima";
+    }
+    case "linux": {
+      const aptCommand = "sudo apt install maxima";
+      const dnfCommand = "sudo dnf install maxima";
+      installInstructions = t({
+        message: `Install Maxima using your package manager:\n\n  Ubuntu/Debian: ${aptCommand}\n  Fedora: ${dnfCommand}`,
+        comment: "Maxima Not Found dialog, on Linux. aptCommand and dnfCommand are the shell commands that install Maxima on each distribution",
+      });
       break;
-    case "windows":
-      installInstructions =
-        "Download Maxima for Windows from:\nhttps://sourceforge.net/projects/maxima/";
+    }
+    case "windows": {
+      const downloadUrl = "https://sourceforge.net/projects/maxima/";
+      installInstructions = t({
+        message: `Download Maxima for Windows from:\n${downloadUrl}`,
+        comment: "Maxima Not Found dialog, on Windows. downloadUrl is the web page with the installer",
+      });
       break;
-    default:
-      installInstructions = "Install Maxima from https://maxima.sourceforge.io/";
+    }
+    default: {
+      const siteUrl = "https://maxima.sourceforge.io/";
+      installInstructions = t({
+        message: `Install Maxima from ${siteUrl}`,
+        comment: "Maxima Not Found dialog, on an unknown system. siteUrl is Maxima's web site",
+      });
       break;
+    }
   }
 
-  const body =
-    `Aximar could not find Maxima on your system.\n\n` +
-    `${installInstructions}\n\n` +
-    `If Maxima is installed in a non-standard location, set the AXIMAR_MAXIMA_PATH ` +
-    `environment variable or configure the path in Settings.`;
+  const envVar = "AXIMAR_MAXIMA_PATH";
+  const notFound = t({
+    message: "Aximar could not find Maxima on your system.",
+    comment: "Maxima Not Found dialog: the first line, shown when Aximar can't start Maxima",
+  });
+  const otherLocation = t({
+    message: `If Maxima is installed in a non-standard location, set the ${envVar} environment variable or configure the path in Settings.`,
+    comment: "Maxima Not Found dialog: the last paragraph. envVar is the name of an environment variable. Settings is the Settings window",
+  });
+  const body = `${notFound}\n\n${installInstructions}\n\n${otherLocation}`;
 
-  await message(body, { title: "Maxima Not Found", kind: "error" });
+  await message(body, {
+    title: t({
+      message: "Maxima Not Found",
+      comment: "Title of the error dialog shown when Aximar can't find the Maxima program",
+    }),
+    kind: "error",
+  });
 }
 
 export function useMaxima() {

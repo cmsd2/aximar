@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useState, useRef } from "react";
+import { useLingui } from "@lingui/react/macro";
 import { confirmClose } from "../lib/unsaved-changes";
 import { useNotebookStore } from "../store/notebookStore";
 import type { NotebookTab } from "../store/notebookStore";
+import { displayTitle } from "../lib/tab-title";
 import { nbCreate, nbClose, nbSetActive, nbGetState, createWindow } from "../lib/notebook-commands";
 
 function statusDotClass(status: NotebookTab["sessionStatus"]): string {
@@ -18,6 +20,8 @@ interface ContextMenuState {
 }
 
 export function TabBar() {
+  const { t } = useLingui();
+  const newTabShortcut = "Cmd+T";
   const notebooks = useNotebookStore((s) => s.notebooks);
   const activeNotebookId = useNotebookStore((s) => s.activeNotebookId);
   const addTab = useNotebookStore((s) => s.addTab);
@@ -169,7 +173,7 @@ export function TabBar() {
             <span className={statusDotClass(tab.sessionStatus)} />
           )}
           <span className="tab-title">
-            {tab.isDirty ? `${tab.title} *` : tab.title}
+            {tab.isDirty ? `${displayTitle(tab.title)} *` : displayTitle(tab.title)}
           </span>
           {tabs.length > 1 && (
             <button
@@ -178,14 +182,21 @@ export function TabBar() {
                 e.stopPropagation();
                 handleCloseTab(tab.id);
               }}
-              title="Close tab"
+              title={t({ message: "Close tab", comment: "Tab bar: tooltip of the x button that closes a notebook tab" })}
             >
               &times;
             </button>
           )}
         </div>
       ))}
-      <button className="tab-new" onClick={handleNewTab} title="New notebook (Cmd+T)">
+      <button
+        className="tab-new"
+        onClick={handleNewTab}
+        title={t({
+          message: `New notebook (${newTabShortcut})`,
+          comment: "Tab bar: tooltip of the + button that opens a new notebook tab. newTabShortcut is its keyboard shortcut, such as Cmd+T",
+        })}
+      >
         +
       </button>
       {contextMenu && (
@@ -199,7 +210,10 @@ export function TabBar() {
             disabled={tabs.length <= 1}
             onClick={() => handleMoveToNewWindow(contextMenu.tabId)}
           >
-            Move to New Window
+            {t({
+              message: "Move to New Window",
+              comment: "Tab context menu item: moves the notebook tab into a new window",
+            })}
           </button>
           <button
             className="tab-context-menu-item"
@@ -209,7 +223,7 @@ export function TabBar() {
               handleCloseTab(contextMenu.tabId);
             }}
           >
-            Close Tab
+            {t({ message: "Close Tab", comment: "Tab context menu item: closes the notebook tab" })}
           </button>
         </div>
       )}

@@ -1,5 +1,7 @@
+import { useLingui } from "@lingui/react/macro";
 import { useActiveTab } from "../store/notebookStore";
 import { useMaxima } from "../hooks/useMaxima";
+import { displayTitle } from "../lib/tab-title";
 import { nbAddCell, nbUndo, nbRedo } from "../lib/notebook-commands";
 
 interface ToolbarProps {
@@ -15,6 +17,7 @@ interface ToolbarProps {
 }
 
 export function Toolbar({ onOpenTemplates, onOpenSettings, variablesOpen, onToggleVariables, logOpen, onToggleLog, logUnreadCount, docsOpen, onToggleDocs }: ToolbarProps) {
+  const { t } = useLingui();
   const tab = useActiveTab();
   const activeCellId = tab.activeCellId;
   const sessionStatus = tab.sessionStatus;
@@ -33,10 +36,22 @@ export function Toolbar({ onOpenTemplates, onOpenSettings, variablesOpen, onTogg
   // The backend runs the cells and decides where to stop
   const runAll = () => runAllCells(tab.id);
 
-  const statusText =
-    typeof sessionStatus === "string"
-      ? sessionStatus
-      : `Error: ${sessionStatus.Error}`;
+  let statusText: string;
+  if (sessionStatus === "Starting") {
+    statusText = t({ message: "Starting", comment: "Toolbar: session status while Maxima starts up. max-length:12" });
+  } else if (sessionStatus === "Ready") {
+    statusText = t({ message: "Ready", comment: "Toolbar: session status when Maxima is ready to run cells. max-length:12" });
+  } else if (sessionStatus === "Busy") {
+    statusText = t({ message: "Busy", comment: "Toolbar: session status while Maxima runs a cell. max-length:12" });
+  } else if (sessionStatus === "Stopped") {
+    statusText = t({ message: "Stopped", comment: "Toolbar: session status when Maxima is not running. max-length:12" });
+  } else {
+    const message = sessionStatus.Error;
+    statusText = t({
+      message: `Error: ${message}`,
+      comment: "Toolbar: session status when Maxima failed. message is the error from the backend, in English",
+    });
+  }
 
   const statusClass =
     sessionStatus === "Ready"
@@ -45,50 +60,66 @@ export function Toolbar({ onOpenTemplates, onOpenSettings, variablesOpen, onTogg
         ? "status-starting"
         : "status-error";
 
-  const fileName = filePath
-    ? filePath.split("/").pop()?.split("\\").pop() ?? "Untitled"
-    : "Untitled";
+  const fileName = displayTitle(filePath ? (filePath.split("/").pop()?.split("\\").pop() ?? "") : "");
+  const undoShortcut = "Cmd+Z";
+  const redoShortcut = "Cmd+Shift+Z";
 
   return (
     <div className="toolbar">
       <div className="toolbar-left">
         <button className="toolbar-btn" onClick={() => handleAddCell("code")}>
-          + Cell
+          {t({ message: "+ Cell", comment: "Toolbar button: adds a code cell below the active cell. max-length:12" })}
         </button>
         <button className="toolbar-btn" onClick={() => handleAddCell("markdown")}>
-          + Markdown
+          {t({ message: "+ Markdown", comment: "Toolbar button: adds a Markdown text cell below the active cell. max-length:12" })}
         </button>
         <div className="toolbar-separator" />
         <button className="toolbar-btn" onClick={runAll}>
-          Run All
+          {t({ message: "Run All", comment: "Toolbar button: runs every cell in order. max-length:12" })}
         </button>
         <button className="toolbar-btn" onClick={restartSession}>
-          Restart
+          {t({ message: "Restart", comment: "Toolbar button: restarts the Maxima session, clearing its state. max-length:12" })}
         </button>
         <div className="toolbar-separator" />
-        <button className="toolbar-btn" onClick={() => nbUndo()} disabled={!canUndo} title="Undo (Cmd+Z)">
-          Undo
+        <button
+          className="toolbar-btn"
+          onClick={() => nbUndo()}
+          disabled={!canUndo}
+          title={t({
+            message: `Undo (${undoShortcut})`,
+            comment: "Toolbar: tooltip of the Undo button. undoShortcut is its keyboard shortcut, such as Cmd+Z",
+          })}
+        >
+          {t({ message: "Undo", comment: "Toolbar button: undoes the last change to the notebook. max-length:12" })}
         </button>
-        <button className="toolbar-btn" onClick={() => nbRedo()} disabled={!canRedo} title="Redo (Cmd+Shift+Z)">
-          Redo
+        <button
+          className="toolbar-btn"
+          onClick={() => nbRedo()}
+          disabled={!canRedo}
+          title={t({
+            message: `Redo (${redoShortcut})`,
+            comment: "Toolbar: tooltip of the Redo button. redoShortcut is its keyboard shortcut, such as Cmd+Shift+Z",
+          })}
+        >
+          {t({ message: "Redo", comment: "Toolbar button: redoes the last undone change. max-length:12" })}
         </button>
         <div className="toolbar-separator" />
         <button className="toolbar-btn" onClick={onOpenTemplates}>
-          Templates
+          {t({ message: "Templates", comment: "Toolbar button: opens the starter notebook chooser. max-length:12" })}
         </button>
         <div className="toolbar-separator" />
         <button
           className={`toolbar-btn${variablesOpen ? " toolbar-btn-active" : ""}`}
           onClick={onToggleVariables}
         >
-          Variables
+          {t({ message: "Variables", comment: "Toolbar button: shows or hides the variable panel. max-length:12" })}
         </button>
         <div className="toolbar-btn-wrapper">
           <button
             className={`toolbar-btn${logOpen ? " toolbar-btn-active" : ""}`}
             onClick={onToggleLog}
           >
-            Log
+            {t({ message: "Log", comment: "Toolbar button: shows or hides the log panel. max-length:12" })}
           </button>
           {logUnreadCount > 0 && (
             <span className="log-badge">{logUnreadCount}</span>
@@ -98,7 +129,7 @@ export function Toolbar({ onOpenTemplates, onOpenSettings, variablesOpen, onTogg
           className={`toolbar-btn${docsOpen ? " toolbar-btn-active" : ""}`}
           onClick={onToggleDocs}
         >
-          Docs
+          {t({ message: "Docs", comment: "Toolbar button: shows or hides the documentation panel. max-length:12" })}
         </button>
       </div>
       <div className="toolbar-right">
@@ -106,7 +137,7 @@ export function Toolbar({ onOpenTemplates, onOpenSettings, variablesOpen, onTogg
           {isDirty ? `${fileName} *` : fileName}
         </span>
         <button className="toolbar-btn" onClick={onOpenSettings}>
-          Settings
+          {t({ message: "Settings", comment: "Toolbar button: opens the settings window. max-length:12" })}
         </button>
         <span className={`session-status ${statusClass}`}>{statusText}</span>
       </div>

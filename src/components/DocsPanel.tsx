@@ -4,6 +4,8 @@ import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
 import katex from "katex";
+import { Trans, useLingui } from "@lingui/react/macro";
+import { plural } from "@lingui/core/macro";
 import { getFunctionDocs, getFunction, searchFunctions, getPackage, packageForFunction, searchPackageFunctions, searchPackages } from "../lib/catalog-client";
 import type { MaximaFunction, SearchResult, PackageInfo, PackageFunctionSearchResult, PackageSearchResult } from "../types/catalog";
 
@@ -23,6 +25,7 @@ interface DocsPanelProps {
 }
 
 export function DocsPanel({ open, functionName, requestId, onClose }: DocsPanelProps) {
+  const { t } = useLingui();
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [pkgFuncResults, setPkgFuncResults] = useState<PackageFunctionSearchResult[]>([]);
@@ -167,6 +170,13 @@ export function DocsPanel({ open, functionName, requestId, onClose }: DocsPanelP
 
   const historyIndex = historyIndexRef.current;
   const historyLength = historyRef.current.length;
+  const packageName = currentPackage?.name ?? "";
+  const functionCount = currentPackage?.functions.length ?? 0;
+  const packageFunctionCount = (count: number) =>
+    t({
+      message: plural(count, { one: "# function", other: "# functions" }),
+      comment: "Docs panel search results: how many functions a Maxima package provides",
+    });
 
   return (
     <div className="docs-panel">
@@ -176,7 +186,10 @@ export function DocsPanel({ open, functionName, requestId, onClose }: DocsPanelP
             className="docs-nav-btn"
             onClick={goBack}
             disabled={historyIndex <= 0}
-            title="Back"
+            title={t({
+              message: "Back",
+              comment: "Docs panel: tooltip of the arrow button that goes back to the previous page",
+            })}
           >
             &larr;
           </button>
@@ -184,7 +197,10 @@ export function DocsPanel({ open, functionName, requestId, onClose }: DocsPanelP
             className="docs-nav-btn"
             onClick={goForward}
             disabled={historyIndex >= historyLength - 1}
-            title="Forward"
+            title={t({
+              message: "Forward",
+              comment: "Docs panel: tooltip of the arrow button that goes forward to the next page",
+            })}
           >
             &rarr;
           </button>
@@ -193,7 +209,10 @@ export function DocsPanel({ open, functionName, requestId, onClose }: DocsPanelP
           ref={searchInputRef}
           className="docs-search-input"
           type="text"
-          placeholder="Search functions..."
+          placeholder={t({
+            message: "Search functions...",
+            comment: "Docs panel: placeholder of the search box at the top of the panel",
+          })}
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           onKeyDown={(e) => {
@@ -222,7 +241,14 @@ export function DocsPanel({ open, functionName, requestId, onClose }: DocsPanelP
             }
           }}
         />
-        <button className="docs-close-btn" onClick={onClose} title="Close docs">
+        <button
+          className="docs-close-btn"
+          onClick={onClose}
+          title={t({
+            message: "Close docs",
+            comment: "Docs panel: tooltip of the x button that closes the panel",
+          })}
+        >
           &times;
         </button>
       </div>
@@ -272,14 +298,20 @@ export function DocsPanel({ open, functionName, requestId, onClose }: DocsPanelP
               >
                 <span className="docs-result-name">
                   {item.kind !== "catalog" && (
-                    <span className="palette-package-badge">pkg</span>
+                    <span className="palette-package-badge">
+                      {t({
+                        message: "pkg",
+                        comment:
+                          "Docs panel search results: short badge before a name that marks a Maxima package or a function from one. max-length:4",
+                      })}
+                    </span>
                   )}
                   {item.name}
                 </span>
                 <span className="docs-result-sig">
                   {item.kind === "catalog" ? item.sig
                     : item.kind === "pkgFunc" ? item.pkg
-                    : `${item.count} functions`}
+                    : packageFunctionCount(item.count)}
                 </span>
               </button>
             ));
@@ -289,28 +321,41 @@ export function DocsPanel({ open, functionName, requestId, onClose }: DocsPanelP
 
       <div className="docs-panel-content" ref={contentRef}>
         {loading ? (
-          <div className="docs-loading">Loading...</div>
+          <div className="docs-loading">
+            {t({
+              message: "Loading...",
+              comment: "Docs panel: shown while a documentation page loads",
+            })}
+          </div>
         ) : currentPackage && stubFunctionName ? (
           <>
             <div className="docs-function-header">
               <h2 className="docs-function-name">{stubFunctionName}</h2>
-              <span className="docs-category-badge">Package Function</span>
+              <span className="docs-category-badge">
+                {t({
+                  message: "Package Function",
+                  comment:
+                    "Docs panel: badge beside a function name that marks it as provided by a loadable package",
+                })}
+              </span>
             </div>
 
             <div className="docs-no-content">
               <p>
-                Provided by the{" "}
-                <a
-                  className="docs-fn-link"
-                  href="#"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    navigateTo(`pkg:${currentPackage.name}`);
-                  }}
-                >
-                  {currentPackage.name}
-                </a>{" "}
-                package.
+                <Trans comment="Docs panel: on the page of a function from a package; packageName is the package name, a link to its page">
+                  Provided by the{" "}
+                  <a
+                    className="docs-fn-link"
+                    href="#"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      navigateTo(`pkg:${packageName}`);
+                    }}
+                  >
+                    {packageName}
+                  </a>{" "}
+                  package.
+                </Trans>
               </p>
             </div>
 
@@ -328,7 +373,12 @@ export function DocsPanel({ open, functionName, requestId, onClose }: DocsPanelP
 
             {currentPackage.functions.length > 0 && (
               <div className="docs-see-also">
-                <h3>Related Functions</h3>
+                <h3>
+                  {t({
+                    message: "Related Functions",
+                    comment: "Docs panel: heading above the other functions in the same package",
+                  })}
+                </h3>
                 <div className="docs-see-also-links">
                   {currentPackage.functions
                     .filter((name) => name !== stubFunctionName)
@@ -353,7 +403,12 @@ export function DocsPanel({ open, functionName, requestId, onClose }: DocsPanelP
           <>
             <div className="docs-function-header">
               <h2 className="docs-function-name">{currentPackage.name}</h2>
-              <span className="docs-category-badge">Package</span>
+              <span className="docs-category-badge">
+                {t({
+                  message: "Package",
+                  comment: "Docs panel: badge beside a name that marks the page as a Maxima package",
+                })}
+              </span>
             </div>
 
             {!currentPackage.builtin && (
@@ -368,7 +423,13 @@ export function DocsPanel({ open, functionName, requestId, onClose }: DocsPanelP
 
             {currentPackage.functions.length > 0 && (
               <div className="docs-see-also">
-                <h3>Functions ({currentPackage.functions.length})</h3>
+                <h3>
+                  {t({
+                    message: `Functions (${functionCount})`,
+                    comment:
+                      "Docs panel: heading above the list of functions on a package page; functionCount is how many there are",
+                  })}
+                </h3>
                 <div className="docs-see-also-links">
                   {currentPackage.functions.map((name) => (
                     <a
@@ -493,7 +554,12 @@ export function DocsPanel({ open, functionName, requestId, onClose }: DocsPanelP
 
             {currentFunction.see_also.length > 0 && (
               <div className="docs-see-also">
-                <h3>See Also</h3>
+                <h3>
+                  {t({
+                    message: "See Also",
+                    comment: "Docs panel: heading above links to related functions",
+                  })}
+                </h3>
                 <div className="docs-see-also-links">
                   {currentFunction.see_also.map((name) => (
                     <a
@@ -514,7 +580,11 @@ export function DocsPanel({ open, functionName, requestId, onClose }: DocsPanelP
           </>
         ) : (
           <div className="docs-empty">
-            <p>Search for a function or click &ldquo;Docs&rdquo; on a hover tooltip to view documentation.</p>
+            <p>
+              <Trans comment="Docs panel: shown when no page is open; Docs is the name of the button on a function's hover tooltip">
+                Search for a function or click &ldquo;Docs&rdquo; on a hover tooltip to view documentation.
+              </Trans>
+            </p>
           </div>
         )}
       </div>

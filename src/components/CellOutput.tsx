@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef, useMemo, useEffect } from "react";
+import { useLingui } from "@lingui/react/macro";
 import type { CellOutput as CellOutputType } from "../types/notebook";
 import { KatexOutput } from "./KatexOutput";
 import { RichTextOutput } from "./RichTextOutput";
@@ -13,6 +14,7 @@ interface CellOutputProps {
 }
 
 export function CellOutput({ output, cellId }: CellOutputProps) {
+  const { t } = useLingui();
   const [copiedBtn, setCopiedBtn] = useState<"tex" | "text" | null>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
@@ -73,18 +75,37 @@ export function CellOutput({ output, cellId }: CellOutputProps) {
             <button
               className={`copy-btn${copiedBtn === "tex" ? " copied" : ""}`}
               onClick={() => handleCopy(output.latex!, "tex")}
-              title="Copy LaTeX source"
+              title={t({
+                message: "Copy LaTeX source",
+                comment: "Tooltip of the TeX button above a result: copies the result's LaTeX to the clipboard",
+              })}
             >
-              {copiedBtn === "tex" ? "Copied!" : "TeX"}
+              {copiedBtn === "tex"
+                ? t({
+                    message: "Copied!",
+                    comment: "Shown for a moment on a copy button above a result after it copied. max-length:8",
+                  })
+                : "TeX"}
             </button>
           )}
           {(hasText || hasPlain || (hasLatex && !!output.textPlain)) && (
             <button
               className={`copy-btn${copiedBtn === "text" ? " copied" : ""}`}
               onClick={() => handleCopy(copyText, "text")}
-              title="Copy Maxima expression"
+              title={t({
+                message: "Copy Maxima expression",
+                comment: "Tooltip of the Copy button above a result: copies the result as Maxima code",
+              })}
             >
-              {copiedBtn === "text" ? "Copied!" : "Copy"}
+              {copiedBtn === "text"
+                ? t({
+                    message: "Copied!",
+                    comment: "Shown for a moment on a copy button above a result after it copied. max-length:8",
+                  })
+                : t({
+                    message: "Copy",
+                    comment: "Button above a result: copies it to the clipboard as Maxima code. max-length:8",
+                  })}
             </button>
           )}
         </div>
@@ -92,28 +113,41 @@ export function CellOutput({ output, cellId }: CellOutputProps) {
       {hasPlotData && (
         <ErrorBoundary
           label="PlotlyChart"
-          fallback={(err) => (
-            <div className="plot-error">Failed to render plot: {err.message}</div>
-          )}
+          fallback={(err) => {
+            const reason = err.message;
+            return (
+              <div className="plot-error">
+                {t({
+                  message: `Failed to render plot: ${reason}`,
+                  comment: "Shown in place of a chart that could not be drawn. reason is the error text from the chart library, in English",
+                })}
+              </div>
+            );
+          }}
         >
           <PlotlyChart plotData={output.plotData!} />
         </ErrorBoundary>
       )}
       {hasPlot && plotBlobUrl && (
         <div className="plot-output">
-          <img src={plotBlobUrl} alt="Plot output" />
+          <img src={plotBlobUrl} alt={t({ message: "Plot output", comment: "Alt text of a plot image in a cell's output" })} />
         </div>
       )}
       {hasImage && (
         <div className="plot-output">
-          <img src={`data:image/png;base64,${output.imagePng}`} alt="Image output" style={{ maxWidth: "100%" }} />
+          <img src={`data:image/png;base64,${output.imagePng}`} alt={t({ message: "Image output", comment: "Alt text of an image in a cell's output" })} style={{ maxWidth: "100%" }} />
         </div>
       )}
       {hasText && <RichTextOutput text={output.textOutput} />}
       {hasLatex && <KatexOutput latex={output.latex!} />}
       {hasPlain && <div className="text-output">{output.textPlain}</div>}
       {!hasLatex && !hasText && !hasPlot && !hasPlotData && !hasImage && !hasPlain && (
-        <span className="text-output empty-output">(no output)</span>
+        <span className="text-output empty-output">
+          {t({
+            message: "(no output)",
+            comment: "Shown in a cell's output area when the cell ran and produced nothing to show",
+          })}
+        </span>
       )}
     </div>
   );

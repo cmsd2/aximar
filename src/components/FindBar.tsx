@@ -1,10 +1,12 @@
 import { useEffect, useRef, useCallback } from "react";
+import { useLingui } from "@lingui/react/macro";
 import { useFindStore } from "../store/findStore";
 import { useActiveTab, useNotebookStore, getActiveTabState } from "../store/notebookStore";
 import type { FindMatch } from "../store/findStore";
 import { findMatches, replaceAllMatches } from "../lib/find-replace";
 
 export function FindBar() {
+  const { t } = useLingui();
   const isOpen = useFindStore((s) => s.isOpen);
   const replaceVisible = useFindStore((s) => s.replaceVisible);
   const query = useFindStore((s) => s.query);
@@ -112,12 +114,25 @@ export function FindBar() {
 
   if (!isOpen) return null;
 
+  const current = currentMatchIndex + 1;
+  const total = matches.length;
   const matchText =
-    matches.length > 0
-      ? `${currentMatchIndex + 1} of ${matches.length}`
+    total > 0
+      ? t({
+          message: `${current} of ${total}`,
+          comment:
+            "Find bar: which match is selected; current is its position and total is the number of matches. max-length:12",
+        })
       : query
-        ? "No results"
+        ? t({
+            message: "No results",
+            comment: "Find bar: shown beside the search box when the text appears in no cell. max-length:12",
+          })
         : "";
+  const replaceLabel = t({
+    message: "Replace",
+    comment: "Find bar: button that replaces the selected match with the replacement text",
+  });
 
   return (
     <div className="find-bar">
@@ -126,7 +141,10 @@ export function FindBar() {
           ref={findInputRef}
           className="find-bar-input"
           type="text"
-          placeholder="Find..."
+          placeholder={t({
+            message: "Find...",
+            comment: "Find bar: placeholder of the box for the text to find in the notebook's cells",
+          })}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onKeyDown={handleFindKeyDown}
@@ -135,7 +153,10 @@ export function FindBar() {
         <button
           className={`find-bar-btn find-bar-case${caseSensitive ? " active" : ""}`}
           onClick={toggleCaseSensitive}
-          title="Match Case"
+          title={t({
+            message: "Match Case",
+            comment: "Find bar: tooltip of the Aa button that makes the search case-sensitive",
+          })}
         >
           Aa
         </button>
@@ -143,7 +164,10 @@ export function FindBar() {
           className="find-bar-btn"
           onClick={goToPrevMatch}
           disabled={matches.length === 0}
-          title="Previous Match (Shift+Enter)"
+          title={t({
+            message: "Previous Match (Shift+Enter)",
+            comment: "Find bar: tooltip of the up arrow button that selects the previous match; Shift+Enter is the shortcut",
+          })}
         >
           &#9650;
         </button>
@@ -151,21 +175,30 @@ export function FindBar() {
           className="find-bar-btn"
           onClick={goToNextMatch}
           disabled={matches.length === 0}
-          title="Next Match (Enter)"
+          title={t({
+            message: "Next Match (Enter)",
+            comment: "Find bar: tooltip of the down arrow button that selects the next match; Enter is the shortcut",
+          })}
         >
           &#9660;
         </button>
         <button
           className={`find-bar-btn find-bar-replace-toggle${replaceVisible ? " active" : ""}`}
           onClick={toggleReplaceVisible}
-          title="Toggle Replace"
+          title={t({
+            message: "Toggle Replace",
+            comment: "Find bar: tooltip of the button that shows or hides the replace row",
+          })}
         >
           &#8596;
         </button>
         <button
           className="find-bar-btn find-bar-close"
           onClick={close}
-          title="Close (Escape)"
+          title={t({
+            message: "Close (Escape)",
+            comment: "Find bar: tooltip of the x button that closes the find bar; Escape is the key",
+          })}
         >
           &times;
         </button>
@@ -175,7 +208,10 @@ export function FindBar() {
           <input
             className="find-bar-input"
             type="text"
-            placeholder="Replace..."
+            placeholder={t({
+              message: "Replace...",
+              comment: "Find bar: placeholder of the box for the replacement text",
+            })}
             value={replacement}
             onChange={(e) => setReplacement(e.target.value)}
             onKeyDown={(e) => {
@@ -189,17 +225,23 @@ export function FindBar() {
             className="find-bar-btn"
             onClick={handleReplace}
             disabled={matches.length === 0}
-            title="Replace"
+            title={replaceLabel}
           >
-            Replace
+            {replaceLabel}
           </button>
           <button
             className="find-bar-btn"
             onClick={handleReplaceAll}
             disabled={matches.length === 0}
-            title="Replace All"
+            title={t({
+              message: "Replace All",
+              comment: "Find bar: tooltip of the All button that replaces every match in every cell",
+            })}
           >
-            All
+            {t({
+              message: "All",
+              comment: "Find bar: button that replaces every match in every cell. max-length:8",
+            })}
           </button>
         </div>
       )}

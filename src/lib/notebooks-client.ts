@@ -1,5 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import { save, open } from "@tauri-apps/plugin-dialog";
+import { t } from "@lingui/core/macro";
 import type { TemplateSummary } from "../types/notebooks";
 import { flushNotebook } from "./dirty-inputs";
 import { nbSave } from "./notebook-commands";
@@ -8,17 +9,42 @@ import { nbSave } from "./notebook-commands";
 // notebooks::format), the same way for the window, MCP and batch runs.
 // This module only picks paths and asks the backend.
 
-const NOTEBOOK_FILTERS = [
-  { name: "Maxima Notebook", extensions: ["macnb"] },
-  { name: "Jupyter Notebook", extensions: ["ipynb"] },
-];
+// "Plotly JSON" names a file format, so it stays as it is in every language
+const PLOTLY_FILTER = { name: "Plotly JSON", extensions: ["json"] };
 
-const ALL_OPEN_FILTERS = [
-  { name: "All Supported", extensions: ["macnb", "ipynb", "json"] },
-  { name: "Maxima Notebook", extensions: ["macnb"] },
-  { name: "Jupyter Notebook", extensions: ["ipynb"] },
-  { name: "Plotly JSON", extensions: ["json"] },
-];
+/** The file types a notebook saves as, named in the window's language */
+function notebookFilters() {
+  return [
+    {
+      name: t({
+        message: "Maxima Notebook",
+        comment: "File type in the Open and Save dialogs, for .macnb files",
+      }),
+      extensions: ["macnb"],
+    },
+    {
+      name: t({
+        message: "Jupyter Notebook",
+        comment: "File type in the Open and Save dialogs, for .ipynb files",
+      }),
+      extensions: ["ipynb"],
+    },
+  ];
+}
+
+function allOpenFilters() {
+  return [
+    {
+      name: t({
+        message: "All Supported",
+        comment: "File type in the Open dialog that shows every kind of file Aximar opens",
+      }),
+      extensions: ["macnb", "ipynb", "json"],
+    },
+    ...notebookFilters(),
+    PLOTLY_FILTER,
+  ];
+}
 
 export async function listTemplates(): Promise<TemplateSummary[]> {
   return invoke<TemplateSummary[]>("list_templates");
@@ -52,7 +78,7 @@ export async function saveNotebook(
     filePath ??
     (await save({
       defaultPath: "notebook.macnb",
-      filters: NOTEBOOK_FILTERS,
+      filters: notebookFilters(),
     }));
   if (!path) return null;
   await saveTo(notebookId, path);
@@ -69,7 +95,7 @@ export async function saveNotebookAs(
 ): Promise<string | null> {
   const path = await save({
     defaultPath: currentPath ?? "notebook.macnb",
-    filters: NOTEBOOK_FILTERS,
+    filters: notebookFilters(),
   });
   if (!path) return null;
   await saveTo(notebookId, path);
@@ -88,7 +114,7 @@ export type OpenFileResult =
 export async function openFile(): Promise<OpenFileResult | null> {
   const selected = await open({
     multiple: false,
-    filters: ALL_OPEN_FILTERS,
+    filters: allOpenFilters(),
   });
   if (!selected) return null;
   return openFilePath(selected);
@@ -112,7 +138,7 @@ export async function savePlotFile(
 ): Promise<string | null> {
   const path = await save({
     defaultPath: defaultPath ?? "plot.json",
-    filters: [{ name: "Plotly JSON", extensions: ["json"] }],
+    filters: [PLOTLY_FILTER],
   });
   if (!path) return null;
 

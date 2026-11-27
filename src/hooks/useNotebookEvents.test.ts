@@ -111,7 +111,8 @@ describe("notebook paths", () => {
     handleNotebookStateEvent(event("path_changed", { path: "/work/calc.macnb" }));
     handleNotebookStateEvent(event("path_changed"));
     expect(tab().filePath).toBeNull();
-    expect(tab().title).toBe("Untitled");
+    // An unsaved notebook has no title of its own; the tab shows "Untitled"
+    expect(tab().title).toBe("");
   });
 
   it("keeps the path when the cells are replaced", () => {

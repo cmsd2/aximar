@@ -98,3 +98,33 @@ describe("an error with Maxima's message in the user's language", () => {
     expect(html).not.toContain("Show original");
   });
 });
+
+describe("an error with suggestions", () => {
+  const errorInfo = {
+    title: "Unknown Function",
+    explanation: "intgrate is not a known function.",
+    suggestion: null,
+    example: "integrate(x^2, x)",
+    did_you_mean: ["integrate", "intopois"],
+    correct_signatures: ["integrate(expr, x)"],
+  };
+
+  it("shows each suggested name as a button inside the question", () => {
+    const html = render(
+      <CellOutput output={output({ isError: true, error: "intgrate(x)", errorInfo })} cellId="c1" />,
+    );
+    expect(html).toContain(
+      'Did you mean: <span><button class="dym-link">integrate</button></span><span>, <button class="dym-link">intopois</button></span>?',
+    );
+  });
+
+  it("shows the usage and a clickable example", () => {
+    const html = render(
+      <CellOutput output={output({ isError: true, error: "intgrate(x)", errorInfo })} cellId="c1" />,
+    );
+    expect(html).toContain("Correct usage:");
+    expect(html).toContain(
+      'Example: <code class="enhanced-error-example-code" title="Click to use this example">integrate(x^2, x)</code>',
+    );
+  });
+});

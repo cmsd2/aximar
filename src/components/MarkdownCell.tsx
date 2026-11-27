@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import ReactMarkdown from "react-markdown";
+import { useLingui } from "@lingui/react/macro";
 import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
@@ -14,6 +15,7 @@ interface MarkdownCellProps {
 }
 
 export function MarkdownCell({ cell, selectBracket }: MarkdownCellProps) {
+  const { t } = useLingui();
   const [editing, setEditing] = useState(false);
   const cellRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -89,7 +91,10 @@ export function MarkdownCell({ cell, selectBracket }: MarkdownCellProps) {
             onChange={handleChange}
             onBlur={handleBlur}
             onKeyDown={handleKeyDown}
-            placeholder="Enter markdown..."
+            placeholder={t({
+              message: "Enter markdown...",
+              comment: "Placeholder in the empty text box of a markdown cell being edited",
+            })}
             rows={3}
           />
         </div>
@@ -104,7 +109,10 @@ export function MarkdownCell({ cell, selectBracket }: MarkdownCellProps) {
             </ReactMarkdown>
           ) : (
             <p className="markdown-cell-placeholder">
-              Double-click to edit markdown...
+              {t({
+                message: "Double-click to edit markdown...",
+                comment: "Shown in an empty markdown cell that is not being edited",
+              })}
             </p>
           )}
         </div>
@@ -117,7 +125,17 @@ export function MarkdownCell({ cell, selectBracket }: MarkdownCellProps) {
             e.stopPropagation();
             setEditing(!editing);
           }}
-          title={editing ? "Done editing (Escape)" : "Edit markdown"}
+          title={
+            editing
+              ? t({
+                  message: "Done editing (Escape)",
+                  comment: "Tooltip of the tick button on a markdown cell being edited: shows the rendered text. Escape is the key; keep it as it is",
+                })
+              : t({
+                  message: "Edit markdown",
+                  comment: "Tooltip of the pencil button on a markdown cell: opens its text for editing",
+                })
+          }
         >
           {editing ? "\u2713" : "\u270E"}
         </button>
@@ -125,7 +143,7 @@ export function MarkdownCell({ cell, selectBracket }: MarkdownCellProps) {
           <button
             className="cell-btn delete-btn"
             onClick={() => nbDeleteCell(cell.id)}
-            title="Delete cell"
+            title={t({ message: "Delete cell", comment: "Tooltip of the cross button that deletes a cell" })}
           >
             &times;
           </button>

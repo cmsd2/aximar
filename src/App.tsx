@@ -3,6 +3,7 @@ import { listen } from "@tauri-apps/api/event";
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { message } from "@tauri-apps/plugin-dialog";
+import { t } from "@lingui/core/macro";
 import { confirmClose, saveNotebookTab } from "./lib/unsaved-changes";
 import { TabBar } from "./components/TabBar";
 import { Toolbar } from "./components/Toolbar";
@@ -278,14 +279,22 @@ function App() {
 
     if (result.type === "plot") {
       // Open Plotly JSON as a plot viewer tab
-      const title = result.path.split("/").pop()?.split("\\").pop() ?? "Plot";
+      const title =
+        result.path.split("/").pop()?.split("\\").pop() ??
+        t({ message: "Plot", comment: "Tab title for an opened plot file whose file name could not be read" });
       const id = `plot-${crypto.randomUUID()}`;
       addPlotTab(id, title, result.plotData, result.path);
     } else {
       try {
         await openNotebookTab(result.path);
       } catch (e) {
-        await message(String(e), { title: "Couldn't Open Notebook", kind: "error" });
+        await message(String(e), {
+          title: t({
+            message: "Couldn't Open Notebook",
+            comment: "Title of the error dialog when a notebook file fails to open; the dialog shows the reason below",
+          }),
+          kind: "error",
+        });
       }
     }
   }, [addPlotTab]);

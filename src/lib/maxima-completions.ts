@@ -1,5 +1,6 @@
 import type { CompletionContext, CompletionResult } from "@codemirror/autocomplete";
 import { snippet } from "@codemirror/autocomplete";
+import { t } from "@lingui/core/macro";
 import { completeFunction, completePackages, getFunction } from "./catalog-client";
 import { parseSignature } from "./signature-parser";
 
@@ -21,7 +22,7 @@ export function maximaCompletionSource(autocompleteMode: string) {
         label: r.name,
         detail: r.signature || (r.package ? `load("${r.package}")` : ""),
         info: r.package
-          ? `requires load("${r.package}")`
+          ? requiresLoad(r.package)
           : r.description || undefined,
         type: "function" as const,
         apply: autocompleteMode === "snippet"
@@ -30,6 +31,14 @@ export function maximaCompletionSource(autocompleteMode: string) {
       })),
     };
   };
+}
+
+/** The note on a completion from a package that isn't loaded */
+function requiresLoad(pkgName: string): string {
+  return t({
+    message: `requires load("${pkgName}")`,
+    comment: "Note beside a completion for a function from a Maxima package. pkgName is the package name; load(...) is Maxima code and stays as it is",
+  });
 }
 
 /**

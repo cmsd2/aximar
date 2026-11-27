@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { Virtuoso, type VirtuosoHandle } from "react-virtuoso";
+import { useLingui } from "@lingui/react/macro";
 import { useLogStore } from "../store/logStore";
 import type {
   EnvelopeEntry,
@@ -139,6 +140,7 @@ function EnvelopeRow({ entry }: { entry: EnvelopeEntry }) {
 
 /** Persistent single-line status bar at the bottom of the app. */
 export function StatusBar() {
+  const { t } = useLingui();
   const entries = useLogStore((s) => s.entries);
   const unreadCount = useLogStore((s) => s.unreadCount);
   const windowOpen = useLogStore((s) => s.windowOpen);
@@ -157,7 +159,12 @@ export function StatusBar() {
           <span className="status-bar-time">{formatTime(latest.timestamp)}</span>
         </>
       ) : (
-        <span className="status-bar-message status-bar-empty">No log entries</span>
+        <span className="status-bar-message status-bar-empty">
+          {t({
+            message: "No log entries",
+            comment: "Status bar at the bottom of the window: shown when the app log is empty",
+          })}
+        </span>
       )}
       {!windowOpen && unreadCount > 0 && (
         <span className="status-bar-badge">{unreadCount}</span>
@@ -172,6 +179,7 @@ const MAX_HEIGHT_RATIO = 0.6;
 
 /** Expandable log window with tabs for App Log and Maxima Output. */
 export function LogWindow() {
+  const { t } = useLingui();
   const windowOpen = useLogStore((s) => s.windowOpen);
   const activeTab = useLogStore((s) => s.activeTab);
   const setActiveTab = useLogStore((s) => s.setActiveTab);
@@ -237,9 +245,27 @@ export function LogWindow() {
   if (!windowOpen) return null;
 
   const tabs: { key: LogTab; label: string }[] = [
-    { key: "app", label: "App Log" },
-    { key: "maxima", label: "Maxima Output" },
-    { key: "events", label: "Events" },
+    {
+      key: "app",
+      label: t({
+        message: "App Log",
+        comment: "Log window: tab that lists Aximar's own log messages. max-length:16",
+      }),
+    },
+    {
+      key: "maxima",
+      label: t({
+        message: "Maxima Output",
+        comment: "Log window: tab that shows the raw text Maxima read and printed. max-length:16",
+      }),
+    },
+    {
+      key: "events",
+      label: t({
+        message: "Events",
+        comment: "Log window: tab that lists the protocol frames Maxima sent, one per row. max-length:16",
+      }),
+    },
   ];
 
   const clearForActiveTab =
@@ -271,7 +297,10 @@ export function LogWindow() {
         </div>
         <div className="log-window-actions">
           <button className="log-window-clear" onClick={clearForActiveTab}>
-            Clear
+            {t({
+              message: "Clear",
+              comment: "Log window: button that empties the open tab. max-length:10",
+            })}
           </button>
           <button className="log-window-close" onClick={closeWindow}>
             &times;
@@ -281,7 +310,12 @@ export function LogWindow() {
       <div className="log-window-body">
         {activeTab === "app" && (
           entries.length === 0 ? (
-            <div className="log-window-empty">No log entries</div>
+            <div className="log-window-empty">
+              {t({
+                message: "No log entries",
+                comment: "Log window: shown in the App Log tab when it is empty",
+              })}
+            </div>
           ) : (
             <Virtuoso
               ref={appVirtuosoRef}
@@ -294,7 +328,12 @@ export function LogWindow() {
         )}
         {activeTab === "maxima" && (
           rawOutput.length === 0 ? (
-            <div className="log-window-empty">No Maxima output</div>
+            <div className="log-window-empty">
+              {t({
+                message: "No Maxima output",
+                comment: "Log window: shown in the Maxima Output tab before Maxima has read or printed anything",
+              })}
+            </div>
           ) : (
             <Virtuoso
               ref={rawVirtuosoRef}
@@ -307,7 +346,12 @@ export function LogWindow() {
         )}
         {activeTab === "events" && (
           envelopes.length === 0 ? (
-            <div className="log-window-empty">No envelope frames</div>
+            <div className="log-window-empty">
+              {t({
+                message: "No envelope frames",
+                comment: "Log window: shown in the Events tab before Maxima has sent any protocol frame",
+              })}
+            </div>
           ) : (
             <Virtuoso
               ref={envelopeVirtuosoRef}

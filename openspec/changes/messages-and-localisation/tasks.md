@@ -25,9 +25,9 @@ Each numbered group is one pull request, landing in order unless a group says ot
 
 ## 4. Window text and menus into the catalog
 
-- [ ] 4.1 Move the text of every component in `src/components` into Lingui, with a `comment` for each string and `context` where needed; verify with the pseudo-locale that no window text stays outside the catalog, and that `npm test` passes
-- [ ] 4.2 Move `menu.rs`'s labels into `msg!` with notes and `max-length` flags; verify with the menu unit test from 3.3
-- [ ] 4.3 Verify "Computations are never translated": vitest tests that results and `print` text render unchanged in Spanish, and a Maxima-backed test that a notebook saved in English and in Spanish gives identical files apart from timings
+- [x] 4.1 Move the text of every component in `src/components` into Lingui, with a `comment` for each string and `context` where needed; verify with the pseudo-locale that no window text stays outside the catalog, and that `npm test` passes
+- [x] 4.2 Move `menu.rs`'s labels into `msg!` with notes and `max-length` flags; verify with the menu unit test from 3.3
+- [x] 4.3 Verify "Computations are never translated": vitest tests that results and `print` text render unchanged in Spanish, and a Maxima-backed test that a notebook saved in English and in Spanish gives identical files apart from timings
 
 ## 5. Questions become errors
 
