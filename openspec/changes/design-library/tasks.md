@@ -26,5 +26,5 @@
 
 ## 5. The guide (with group 3's PR)
 
-- [ ] 5.1 Write `docs/design-library.md` and the Guide story that renders it with `react-markdown`; verify every primitive in `src/components/ui/` is named with a working link to its story, by a vitest test that compares the doc's links with the directory listing
-- [ ] 5.2 Mark items 5, 7 and 14 of `docs/ui-audit.md` as addressed by this change, and add a line on the design library to `CLAUDE.md`'s project rules ("New UI uses the tokens and primitives; see docs/design-library.md"); verify `openspec validate design-library --strict` passes
+- [x] 5.1 Write `docs/design-library.md` and the Guide story that renders it with `react-markdown`; verify every primitive in `src/components/ui/` is named with a working link to its story, by a vitest test that compares the doc's links with the directory listing
+- [x] 5.2 Note in `docs/ui-audit.md` what this change does for items 5, 7 and 14 (item 5 only in part until group 4 bundles the font), and add a line on the design library to `CLAUDE.md`'s project rules ("New UI uses the tokens and the parts in src/components/ui/; see docs/design-library.md"); verify `openspec validate design-library --strict` passes

@@ -2,6 +2,7 @@
 
 - When making significant changes, update the relevant docs in `docs/`.
 - When writing or editing Maxima `.mac` files, refer to [`docs/maxima-mac-syntax.md`](docs/maxima-mac-syntax.md) for syntax rules and common pitfalls.
+- New UI uses the design tokens and the parts in `src/components/ui/`; see [`docs/design-library.md`](docs/design-library.md). `npm run check:tokens` must pass.
 - Before every commit, these must pass with no warnings. Fix the cause; don't add `#[allow]`. CI uses the latest stable Rust, whose clippy adds lints, so run `rustup update stable` first.
   - `cargo fmt --all -- --check`
   - `cargo clippy --workspace --all-targets`
