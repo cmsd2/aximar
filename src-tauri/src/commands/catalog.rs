@@ -348,9 +348,9 @@ mod tests {
         );
         assert_eq!(info.effective, "es");
         // A language with no pack yet
-        let german = docs_languages_in(&catalog, None, "de".into());
-        let de = german.languages.iter().find(|l| l.tag == "de").unwrap();
-        assert_eq!(de.pack, None);
+        let russian = docs_languages_in(&catalog, None, "ru".into());
+        let ru = russian.languages.iter().find(|l| l.tag == "ru").unwrap();
+        assert_eq!(ru.pack, None);
     }
 
     #[test]
