@@ -1090,7 +1090,8 @@
 .error-output {
   flex: 1;
   display: flex;
-  align-items: flex-start;
+  /* Maxima's text sets the baseline, for the Out label */
+  align-items: baseline;
   gap: var(--space-1);
   padding: 12px 12px 12px 0;
 }
@@ -1108,7 +1109,12 @@
 }
 
 .error-output > .error-icon {
+  align-self: flex-start;
   margin-top: var(--space-half);
+}
+
+.enhanced-error-title > .error-icon {
+  align-self: center;
 }
 
 /* Command Palette */
@@ -1407,9 +1413,11 @@
   padding: 12px 12px 12px 0;
 }
 
+/* The text sets the row's baseline, which the Out label lines up with;
+   an icon first in a flex row would set it to the icon's bottom edge */
 .enhanced-error-title {
   display: flex;
-  align-items: center;
+  align-items: baseline;
   gap: var(--space-1);
   font-weight: 600;
   font-size: 14px;
@@ -1429,7 +1437,8 @@
 
 .output-note-line {
   display: flex;
-  align-items: flex-start;
+  /* The text sets the baseline, for the Out label */
+  align-items: baseline;
   gap: var(--space-1);
   font-size: 13px;
   color: var(--text-secondary);
@@ -1438,6 +1447,7 @@
 /* Level with the first line of the note's text */
 .output-note-icon {
   flex: none;
+  align-self: flex-start;
   margin-top: var(--space-half);
 }
 
