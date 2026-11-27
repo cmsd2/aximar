@@ -673,7 +673,7 @@ pub async fn apply_language(app: &tauri::AppHandle, language: &str) {
     let state = app.state::<AppState>();
     let maxima = (language != i18n::ENGLISH).then(|| language.to_string());
     state.registry.lock().await.set_language(maxima);
-    i18n::set_help_language(language);
+    i18n::set_docs_language(language);
     if let Err(e) = crate::menu::set_menu_language(app, language) {
         tracing::warn!("menu in {language}: {e}");
     }

@@ -48,11 +48,11 @@ Queries take a `&LanguageChain`, a non-empty list of tags that always ends with 
 - `search(query, chain)` ranks across every language, then shows each hit in the chain's first language that has it.
 - `complete(prefix, chain)` and `signature_info(name, chain)` take the chain too, so the LSP and MCP get the same answers as the window.
 
-This logic lives in aximar-core, so Tauri, MCP and the LSP only translate parameters and results.
+This logic lives in aximar-core, so Tauri, MCP and the LSP only translate parameters and results. The store keeps its English-only methods (`get`, `search`, `complete`, `signature_info`, `hover_markdown`) beside the chain-aware ones (`resolve`, `search_in`, `complete_in`, `signature_info_in`, `hover_markdown_in`), so MCP and the LSP behave as before until group 3 moves them over. A function the window shows carries a `languages` field (the summary's and the body's language, `fallback_from`, `stale` and the English signatures), which the docs panel's notes read in group 2. Until then, a translated summary above English documentation shows as the summary, a blank line, then the documentation.
 
 ### 3. The embedded summaries become a layer
 
-`core-doc-summaries.es.json` loads as a Spanish index whose entries hold only a summary, flagged `summary_only`. It needs no format of its own; the loader treats an entry with an empty `body_md` and the flag as a summary to merge, not as a replacement. `i18n::help_summary` and `set_help_language` in src-tauri go, along with `catalog::summaries::localised`. `summaries::translations`, which feeds search, gives way to the store's own multi-language index.
+`core-doc-summaries.es.json` loads as a Spanish index whose entries hold only a summary, flagged `summary_only`. It needs no format of its own; the loader treats an entry with an empty `body_md` and the flag as a summary to merge, not as a replacement. `i18n::help_summary` and `catalog::summaries::localised` go; `set_help_language` becomes `set_docs_language`, which sets the chain the Tauri commands pass (`docs_chain`). `summaries::translations`, which feeds search, gives way to the store's own multi-language index.
 
 With no pack installed, a Spanish reader thus sees Spanish summaries above English full documentation, marked as such. That is what the reader asked for, before anything new ships.
 

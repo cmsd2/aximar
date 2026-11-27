@@ -1,9 +1,9 @@
 ## 1. A language-aware catalog (aximar, first PR)
 
-- [ ] 1.1 Add `language` to `DocIndex` (default `en`) and the `<stem>-doc-index.<lang>.json` naming to the loader, skipping a file whose name and field disagree; verify with core tests `an_index_without_a_language_is_english`, `a_translated_index_loads_by_name` and `a_mismatched_index_is_skipped`
-- [ ] 1.2 Keep entries per language in `DocIndexStore`, add `LanguageChain` and `Resolved`, and resolve `get`, `complete`, `signature_info` and `search` per symbol; verify with core tests `a_translated_symbol_comes_first`, `a_missing_translation_falls_back_to_english`, `differing_signatures_mark_a_translation_stale` and `search_matches_either_language`
-- [ ] 1.3 Load the embedded Spanish summaries as a summary-only layer, merged field by field, and remove `i18n::help_summary`, `set_help_language` and `summaries::localised`; verify with a core test `a_summary_layer_sits_above_english_documentation`, using a fixture full English index like `maxima-core-docs`'s
-- [ ] 1.4 Pass the chain from the Tauri catalog commands, built from the app's language; verify the existing catalog command tests, and a test that the window's `get_function` for `integrate` in Spanish returns the Spanish summary with the English body when a full English index is installed
+- [x] 1.1 Add `language` to `DocIndex` (default `en`) and the `<stem>-doc-index.<lang>.json` naming to the loader, skipping a file whose name and field disagree; verify with core tests `an_index_without_a_language_is_english`, `a_translated_index_loads_by_name` and `a_mismatched_index_is_skipped`
+- [x] 1.2 Keep entries per language in `DocIndexStore`, add `LanguageChain` and `Resolved`, and resolve `get`, `complete`, `signature_info` and `search` per symbol; verify with core tests `a_translated_symbol_comes_first`, `a_missing_translation_falls_back_to_english`, `differing_signatures_mark_a_translation_stale` and `search_matches_either_language`; the English-only methods stay as they were, for MCP and the LSP until group 3
+- [x] 1.3 Load the embedded Spanish summaries as a summary-only layer, merged field by field, and remove `i18n::help_summary`, `set_help_language` and `summaries::localised`; verify with a core test `a_summary_layer_sits_above_english_documentation`, using a fixture full English index like `maxima-core-docs`'s
+- [x] 1.4 Pass the chain from the Tauri catalog commands, built from the app's language; verify the existing catalog command tests, and a test that the window's `get_function` for `integrate` in Spanish returns the Spanish summary with the English body when a full English index is installed
 
 ## 2. The docs panel (aximar, one PR)
 

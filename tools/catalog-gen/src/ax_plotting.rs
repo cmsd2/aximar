@@ -111,6 +111,7 @@ pub fn generate_catalog(ctx: &DrawContext) -> Vec<MaximaFunction> {
                 .collect(),
             see_also: f.see_also.clone(),
             search_keywords: f.search_keywords.clone(),
+            languages: None,
         })
         .collect()
 }

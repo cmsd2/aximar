@@ -1,7 +1,8 @@
 use std::collections::{BTreeMap, HashMap};
 
 use crate::catalog::doc_index::{
-    DocCategoryGroup, DocIndex, DocIndexStore, DocSearchResult, ExampleEntry, SymbolEntry,
+    DocCategoryGroup, DocIndex, DocIndexStore, DocSearchResult, ExampleEntry, LanguageChain,
+    Resolved, SymbolEntry,
 };
 use crate::catalog::types::*;
 
@@ -28,8 +29,10 @@ impl Catalog {
         let ax_index = functions_to_doc_index("ax-plotting", &ax_functions, &ax_docs);
         store.ingest_index(ax_index);
 
-        // 2. Load embedded core doc-index
+        // 2. Load embedded core doc-index, with the summaries embedded in
+        // other languages as a layer under it
         store.load_embedded_core();
+        store.load_embedded_summaries();
 
         // 3. Load runtime doc-index files from ~/.maxima/ (overrides everything)
         store.load_runtime_files();
@@ -37,6 +40,13 @@ impl Catalog {
         // 4. Build BM25 search index
         store.build_bm25_index();
 
+        Catalog { store }
+    }
+
+    /// A catalog over a store built elsewhere, such as in a test; builds
+    /// its search index
+    pub fn from_store(mut store: DocIndexStore) -> Self {
+        store.build_bm25_index();
         Catalog { store }
     }
 
@@ -61,6 +71,40 @@ impl Catalog {
 
     pub fn complete(&self, prefix: &str) -> Vec<CompletionResult> {
         self.store.complete(prefix)
+    }
+
+    /// A symbol's documentation in a language chain
+    pub fn resolve(&self, name: &str, chain: &LanguageChain) -> Option<Resolved> {
+        self.store.resolve(name, chain)
+    }
+
+    pub fn search_in(&self, query: &str, chain: &LanguageChain) -> Vec<DocSearchResult> {
+        self.store.search_in(query, chain)
+    }
+
+    pub fn complete_in(&self, prefix: &str, chain: &LanguageChain) -> Vec<CompletionResult> {
+        self.store.complete_in(prefix, chain)
+    }
+
+    pub fn signature_info_in(
+        &self,
+        func_name: &str,
+        chain: &LanguageChain,
+    ) -> Option<Vec<(String, Vec<String>, String)>> {
+        self.store.signature_info_in(func_name, chain)
+    }
+
+    pub fn hover_markdown_in(&self, name: &str, chain: &LanguageChain) -> Option<String> {
+        self.store.hover_markdown_in(name, chain)
+    }
+
+    /// The languages, other than English, with any documentation
+    pub fn languages(&self) -> Vec<String> {
+        self.store.languages()
+    }
+
+    pub fn has_full_documentation(&self, language: &str) -> bool {
+        self.store.has_full_documentation(language)
     }
 
     pub fn signature_info(&self, func_name: &str) -> Option<Vec<(String, Vec<String>, String)>> {
@@ -134,6 +178,7 @@ fn functions_to_doc_index(
     DocIndex {
         version: 1,
         package: package.to_string(),
+        language: super::doc_index::ENGLISH.to_string(),
         source: String::new(),
         symbols,
         sections: Vec::new(),

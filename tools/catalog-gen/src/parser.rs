@@ -166,6 +166,7 @@ fn parse_definition(
         examples,
         see_also,
         search_keywords: String::new(),
+        languages: None,
     })
 }
 

@@ -2,12 +2,11 @@
 //! (`core-doc-summaries.<lang>.json`, made by `catalog-gen summaries`).
 //!
 //! The English doc index holds everything else about a symbol; these hold
-//! only its one-paragraph summary.  Front ends show a symbol's summary in
-//! the user's language when the manual in that language covers it, and in
-//! English otherwise.  The core itself stays in English: the search index
-//! covers both languages, but results carry the English.
+//! only its one-paragraph summary.  The doc index loads these as a layer
+//! in each language, under any full documentation installed in it, so a
+//! lookup in a language chain shows a symbol's summary in the reader's
+//! language where Maxima's manual in it covers the symbol.
 
-use std::borrow::Cow;
 use std::collections::HashMap;
 use std::sync::LazyLock;
 
@@ -52,20 +51,12 @@ pub fn summary(language: &str, name: &str) -> Option<&'static str> {
         .map(String::as_str)
 }
 
-/// A symbol's summary in `language` when there is one, else `english`
-pub fn localised<'a>(language: Option<&str>, name: &str, english: &'a str) -> Cow<'a, str> {
-    match language.and_then(|lang| summary(lang, name)) {
-        Some(translated) => Cow::Borrowed(translated),
-        None => Cow::Borrowed(english),
-    }
-}
-
-/// Every translation of a symbol's summary, for the search index
-pub fn translations(name: &str) -> Vec<&'static str> {
-    FILES
-        .iter()
-        .filter_map(|(lang, _)| summary(lang, name))
-        .collect()
+/// Every summary in `language`, by lower-case symbol name
+pub fn all(language: &str) -> impl Iterator<Item = (&'static str, &'static str)> {
+    SUMMARIES
+        .get(language)
+        .into_iter()
+        .flat_map(|by_name| by_name.iter().map(|(n, s)| (n.as_str(), s.as_str())))
 }
 
 #[cfg(test)]
@@ -79,24 +70,14 @@ mod tests {
             integrate.starts_with("Calcula simbólicamente la integral"),
             "{integrate}"
         );
-        assert_eq!(
-            localised(Some("es"), "integrate", "Attempts to symbolically compute"),
-            integrate
-        );
+        assert!(all("es").any(|(name, s)| name == "integrate" && s == integrate));
     }
 
     #[test]
     fn a_symbol_the_spanish_manual_lacks_is_in_english() {
         assert_eq!(summary("es", "no_such_symbol"), None);
-        assert_eq!(
-            localised(Some("es"), "no_such_symbol", "The English summary."),
-            "The English summary."
-        );
-        assert_eq!(
-            localised(None, "integrate", "The English summary."),
-            "The English summary."
-        );
         assert_eq!(summary("fr", "integrate"), None);
+        assert_eq!(all("fr").count(), 0);
     }
 
     #[test]

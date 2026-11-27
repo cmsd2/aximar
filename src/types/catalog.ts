@@ -27,6 +27,21 @@ export interface MaximaFunction {
   examples: FunctionExample[];
   see_also: string[];
   search_keywords?: string;
+  /** The languages of the text, from a lookup in the help language */
+  languages?: DocLanguages;
+}
+
+/** The languages of a function's documentation */
+export interface DocLanguages {
+  /** The summary's language, such as es */
+  summary: string;
+  /** The full documentation's and examples' language */
+  body: string;
+  /** The help language, when the function has nothing in it */
+  fallback_from?: string;
+  /** A translation whose signatures differ from the English */
+  stale: boolean;
+  english_signatures?: string[];
 }
 
 export interface SearchResult {

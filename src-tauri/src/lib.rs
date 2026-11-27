@@ -43,7 +43,7 @@ pub fn run() {
         .setup(|app| {
             let language = commands::config::read_language(app.handle());
             menu::setup_menu(app, &language)?;
-            i18n::set_help_language(&language);
+            i18n::set_docs_language(&language);
             let state = app.state::<AppState>();
             let handle = app.handle().clone();
 
