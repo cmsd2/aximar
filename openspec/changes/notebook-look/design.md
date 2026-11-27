@@ -49,6 +49,8 @@ The English fallback `text` the core sends keeps the backticks, which reads as M
 
 ### Run states: labels and the bracket
 
+`aximar-core` gains `CellStatus::Queued`. `run_all` marks every cell with code queued when it starts, reporting the change once rather than per cell, and remembers each one's status; when it ends, any cell still queued (not reached, or stopped before it started, as by the trust check) gets that status back, again reported once. The window's types already had `queued`, which nothing set. Status isn't saved in files, so notebooks don't change; MCP clients reading a cell's status during a run can see `queued`.
+
 `Cell.tsx` shows In [\*] for `running` and In [·] for `queued`; the labels are translatable with a note that the symbols stay. The running bracket or border uses `--accent`; a queued cell keeps an idle cell's bracket or border, as a dashed one looked busy down a long notebook. The selection bracket, which is also accent, sits apart from the cell's own bracket in bracket style and is a ring in card style, so the two don't look alike.
 
 ### Printed text

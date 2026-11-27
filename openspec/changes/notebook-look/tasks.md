@@ -4,7 +4,8 @@
 - [x] 1.2 Add `ends_silent(input)` to `crates/aximar-core/src/maxima/protocol.rs`, using `strip_trailing_comments` and `find_terminators`; verify with Rust tests for `x$`, `x;`, `f(x) := x$ /* helper */`, a `$` inside a string, and a `$` inside a comment
 - [x] 1.3 Add `silent: bool` to `SyncCell` in `src-tauri/src/mcp/sync.rs`, filled from each cell's input; verify with a Rust test that a cell ending in `$` reports silent and one ending in `;` doesn't
 - [x] 1.4 In `CellOutput.tsx`, show nothing for a silent cell with nothing to show, and keep "(no output)" otherwise; verify with vitest tests of both, and a story in both styles
-- [ ] 1.5 Show In [\*] for a running cell and In [·] for a queued one in `Cell.tsx`, with the accent bracket or border for running in `global.css`; verify with a vitest test of the labels and the Outputs "Running and queued" story in both styles
+- [x] 1.5 Show In [\*] for a running cell and In [·] for a queued one in `Cell.tsx`, with the accent bracket or border for running in `global.css`; verify with a vitest test of the labels and the Outputs "Running and queued" story in both styles
+- [x] 1.5a Add `CellStatus::Queued` to `aximar-core`: `run_all` marks the cells with code it will run queued, reporting it once, and gives each cell still queued at the end its old status; verify with `tests/run_all_queue.rs` (a run stopped by the trust check, no Maxima) and the ignored `cells_queue_then_run_in_turn` in `tests/run_all.rs`
 - [x] 1.6 Move printed text (`.text-output`, `RichTextOutput`'s text) to `--text-primary`; verify with the contrast scan over the cell stories in both themes
 
 ## 2. Errors (one PR)

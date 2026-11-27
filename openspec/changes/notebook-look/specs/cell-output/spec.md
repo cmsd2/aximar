@@ -62,12 +62,17 @@ When suggestions are shown, they SHALL appear as one row of small text buttons, 
 
 ### Requirement: A cell shows whether it's running or queued
 
-A running cell's label SHALL read In [\*] and its bracket (or border) SHALL be in the accent colour. A cell waiting in a Run All queue SHALL read In [·], with its bracket (or border) drawn as for an idle cell. A cell that has run SHALL read In [n] as now.
+A running cell's label SHALL read In [\*] and its bracket (or border) SHALL be in the accent colour. A cell waiting in a Run All queue SHALL read In [·], with its bracket (or border) drawn as for an idle cell. A cell that has run SHALL read In [n] as now. When a Run All starts, every cell with code it will run SHALL become queued (a blank cell doesn't); when the run stops early, each cell still queued SHALL get back the status it had before the run. MCP clients SHALL see the same `queued` status in a cell's state during the run.
 
 #### Scenario: Run All part way
 
 - **WHEN** Run All is running the second of four cells
 - **THEN** the second reads In [\*] with an accent bracket, the third and fourth read In [·] with plain brackets, and the first reads In [1]
+
+#### Scenario: A run stopped early
+
+- **WHEN** Run All stops at its first cell (a trust check, an error or a cancel), and the second cell had run before
+- **THEN** the second cell is no longer queued and shows its earlier result and status, and a cell that had never run reads In again
 
 ### Requirement: Silent statements leave no placeholder
 

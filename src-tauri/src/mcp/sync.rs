@@ -45,6 +45,7 @@ pub fn notebook_state_payload(nb: &Notebook) -> NotebookSyncPayload {
             output: c.output.clone(),
             status: Some(match c.status {
                 CellStatus::Idle => "idle".to_string(),
+                CellStatus::Queued => "queued".to_string(),
                 CellStatus::Running => "running".to_string(),
                 CellStatus::Success => "success".to_string(),
                 CellStatus::Error => "error".to_string(),

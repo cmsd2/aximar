@@ -190,3 +190,44 @@ async fn cancel_stops_before_the_next_cell() {
     assert_eq!(report.stopped_at.as_deref(), Some(ids[1].as_str()));
     assert_eq!(seen, vec![ids[0].clone()]);
 }
+
+/// Records every cell's status each time a change is reported
+#[derive(Default)]
+struct Statuses(Mutex<Vec<Vec<aximar_core::notebook::CellStatus>>>);
+
+impl EffectSink for Statuses {
+    fn effect(&self, _notebook_id: &str, nb: &Notebook, _effect: &CommandEffect) {
+        self.0
+            .lock()
+            .unwrap()
+            .push(nb.cells().iter().map(|c| c.status).collect());
+    }
+}
+
+#[tokio::test]
+#[ignore]
+async fn cells_queue_then_run_in_turn() {
+    use aximar_core::notebook::CellStatus::{Queued, Running, Success};
+    let (catalog, packages) = (Catalog::load(), PackageCatalog::load());
+    let (ctx, _) = notebook_with(&["x: 1$", "y: 2;"], &catalog).await;
+    let sink = Statuses::default();
+    let opts = RunAllOptions {
+        catalog: &catalog,
+        packages: &packages,
+        eval_timeout: 30,
+        mode: TrustMode::Interactive,
+        effects: &sink,
+    };
+    let report = run_all(&ctx, &opts, &mut |_| {}).await;
+    assert!(report.success());
+    let seen = sink.0.lock().unwrap().clone();
+    // Both wait, then the second waits while the first runs
+    assert_eq!(seen[0], vec![Queued, Queued]);
+    assert!(seen.contains(&vec![Running, Queued]));
+    // None is left queued
+    let nb = ctx.notebook.lock().await;
+    assert_eq!(
+        nb.cells().iter().map(|c| c.status).collect::<Vec<_>>(),
+        vec![Success, Success]
+    );
+}

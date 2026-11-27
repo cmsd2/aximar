@@ -24,6 +24,8 @@ pub enum CellType {
 #[serde(rename_all = "snake_case")]
 pub enum CellStatus {
     Idle,
+    /// Waiting for its turn in a run of all cells
+    Queued,
     Running,
     Success,
     Error,

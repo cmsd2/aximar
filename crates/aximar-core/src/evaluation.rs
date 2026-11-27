@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::sync::atomic::Ordering;
 
 use serde::Serialize;
@@ -370,6 +371,10 @@ pub async fn run_all(
             .map(|c| c.id.clone())
             .collect()
     };
+    // Every cell with code waits its turn as queued.  A cell still queued at
+    // the end (not reached, or stopped before it started, as by the trust
+    // check) gets its old status back.
+    let queued = mark_queued(ctx, &cell_ids, opts.effects).await;
 
     let mut cells = Vec::with_capacity(cell_ids.len());
     let mut stop: Option<(String, StopReason)> = None;
@@ -400,6 +405,8 @@ pub async fn run_all(
         cells.push(run);
     }
 
+    restore_queued(ctx, queued, opts.effects).await;
+
     let (stopped_at, stop_reason) = match stop {
         Some((cell_id, reason)) => (Some(cell_id), Some(reason)),
         None => (None, None),
@@ -408,6 +415,70 @@ pub async fn run_all(
         cells,
         stopped_at,
         stop_reason,
+    }
+}
+
+/// Mark the cells with code among `cell_ids` as queued, reporting the
+/// change once, and return each one's status before
+async fn mark_queued(
+    ctx: &NotebookContextRef,
+    cell_ids: &[String],
+    effects: &dyn EffectSink,
+) -> HashMap<String, CellStatus> {
+    let mut nb = ctx.notebook.lock().await;
+    let mut before = HashMap::new();
+    let mut last = None;
+    for id in cell_ids {
+        let Some(cell) = nb.cells().iter().find(|c| &c.id == id) else {
+            continue;
+        };
+        // A blank cell is skipped, so it doesn't wait
+        if cell.input.trim().is_empty() {
+            continue;
+        }
+        before.insert(id.clone(), cell.status);
+        if let Ok(effect) = nb.apply(NotebookCommand::SetCellStatus {
+            cell_id: id.clone(),
+            status: CellStatus::Queued,
+        }) {
+            last = Some(effect);
+        }
+    }
+    if let Some(effect) = last {
+        effects.effect(&ctx.id, &nb, &effect);
+    }
+    before
+}
+
+/// Give the cells a run didn't reach their status from before it, if
+/// they're still queued, reporting the change once
+async fn restore_queued(
+    ctx: &NotebookContextRef,
+    before: HashMap<String, CellStatus>,
+    effects: &dyn EffectSink,
+) {
+    if before.is_empty() {
+        return;
+    }
+    let mut nb = ctx.notebook.lock().await;
+    let mut last = None;
+    for (id, status) in before {
+        let still_queued = nb
+            .cells()
+            .iter()
+            .any(|c| c.id == id && c.status == CellStatus::Queued);
+        if !still_queued {
+            continue;
+        }
+        if let Ok(effect) = nb.apply(NotebookCommand::SetCellStatus {
+            cell_id: id,
+            status,
+        }) {
+            last = Some(effect);
+        }
+    }
+    if let Some(effect) = last {
+        effects.effect(&ctx.id, &nb, &effect);
     }
 }
 

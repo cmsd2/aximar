@@ -42,7 +42,7 @@ None. The message templates' code markup is a convention of the catalog's text, 
 ## Impact
 
 - **Frontend:** `CellOutput.tsx`, `EnhancedErrorOutput.tsx`, `ErrorOutput.tsx`, `TextWithNotes.tsx`, `CellSuggestions.tsx`, `Cell.tsx` (labels and states), `lib/messages.ts` (code spans), `ui/icons.ts` (error and lightbulb icons), `global.css`, stories for every state in both styles, and `.storybook/preview.tsx` (the style switch).
-- **Core:** the English templates of the explanations and notes that name code gain backticks (`crates/aximar-core`, `docs/maxima-messages.md`); IDs and parameters are unchanged. Catalogs are regenerated, so existing translations of those entries need updating.
-- **MCP:** `text` fields of notes and explanations now carry backticks around code; nothing else changes.
+- **Core:** a `Queued` cell status that `run_all` sets on the cells it will run and takes back from those it doesn't reach; `ends_silent` for silent cells. The English templates of the explanations and notes that name code gain backticks (`crates/aximar-core`, `docs/maxima-messages.md`); IDs and parameters are unchanged. Catalogs are regenerated, so existing translations of those entries need updating.
+- **MCP:** `text` fields of notes and explanations now carry backticks around code, and a cell's status can read `queued` while a Run All waits to reach it.
 - **Tauri, tools:** none.
 - **Related:** cmsd2/aximar#44 (the teaching pilot, which asked for the suggestions setting already shipped); cmsd2/aximar#124 (merged) rewrote `Cell.tsx`'s actions and `ui/icons.ts`; this change builds on it.
