@@ -26,6 +26,8 @@ export interface AppConfig {
   language: string;
   /** The languages with a translation, English first */
   languages: string[];
+  /** The Settings section shown last, such as `printing` */
+  settings_section: string;
 }
 
 export interface ConfigResponse {
@@ -64,6 +66,23 @@ export async function setConfig(updates: Partial<AppConfig>): Promise<void> {
   return invoke<void>("set_config", { updates });
 }
 
+/** The Maxima the Local backend would run, and where it came from */
+export interface MaximaLocation {
+  path: string | null;
+  source: "setting" | "environment" | "standard-location" | "path" | null;
+  problem: "not-found" | "not-executable" | null;
+}
+
+/** Which Maxima the Local backend would run with this Maxima path setting.  Starts nothing. */
+export async function maximaStatus(maximaPath: string | null): Promise<MaximaLocation> {
+  return invoke<MaximaLocation>("maxima_status", { maximaPath });
+}
+
+/** The version a Maxima program reports, such as 5.47.0: runs it once with --version */
+export async function maximaVersion(path: string): Promise<string | null> {
+  return invoke<string | null>("maxima_version", { path });
+}
+
 export async function listWslDistros(): Promise<string[]> {
   return invoke<string[]>("list_wsl_distros");
 }
@@ -72,41 +91,56 @@ export async function checkWslMaxima(distro: string): Promise<string | null> {
   return invoke<string | null>("check_wsl_maxima", { distro });
 }
 
-export interface ClaudeMcpStatus {
-  installed: boolean;
-  configured: boolean;
+/** Whether an AI client's configuration lists Aximar's MCP server */
+export type ConfigState =
+  | { state: "yes" }
+  | { state: "no" }
+  | { state: "unchecked" }
+  | { state: "timed-out" }
+  | { state: "error"; file: string; detail: string };
+
+export interface ClientStatus {
+  /** Where the client's command is, or null if it isn't installed */
+  installed: string | null;
+  configured: ConfigState;
 }
 
-export async function claudeMcpStatus(): Promise<ClaudeMcpStatus> {
-  return invoke<ClaudeMcpStatus>("claude_mcp_status");
+export interface McpClientsStatus {
+  claude: ClientStatus;
+  codex: ClientStatus;
+  gemini: ClientStatus;
 }
 
-export async function claudeMcpConfigure(url: string, token: string): Promise<string> {
-  return invoke<string>("claude_mcp_configure", { url, token });
+export type McpClient = keyof McpClientsStatus;
+
+/** Every client's status.  Runs none of their programs. */
+export async function mcpClientsStatus(): Promise<McpClientsStatus> {
+  return invoke<McpClientsStatus>("mcp_clients_status");
 }
 
-export interface CodexMcpStatus {
-  installed: boolean;
-  configured: boolean;
+/** What Aximar's MCP server is doing */
+export type McpServerState =
+  | { state: "off" }
+  | { state: "starting"; address: string }
+  | { state: "listening"; address: string }
+  | { state: "failed"; address: string; reason: string };
+
+export async function mcpServerStatus(): Promise<McpServerState> {
+  return invoke<McpServerState>("mcp_server_status");
 }
 
-export async function codexMcpStatus(): Promise<CodexMcpStatus> {
-  return invoke<CodexMcpStatus>("codex_mcp_status");
+/** Ask Claude Code whether it lists Aximar: runs `claude mcp get aximar` */
+export async function claudeMcpCheck(): Promise<ConfigState> {
+  return invoke<ConfigState>("claude_mcp_check");
 }
 
-export async function codexMcpConfigure(url: string, token: string): Promise<string> {
-  return invoke<string>("codex_mcp_configure", { url, token });
-}
+const CONFIGURE_COMMANDS: Record<McpClient, string> = {
+  claude: "claude_mcp_configure",
+  codex: "codex_mcp_configure",
+  gemini: "gemini_mcp_configure",
+};
 
-export interface GeminiMcpStatus {
-  installed: boolean;
-  configured: boolean;
-}
-
-export async function geminiMcpStatus(): Promise<GeminiMcpStatus> {
-  return invoke<GeminiMcpStatus>("gemini_mcp_status");
-}
-
-export async function geminiMcpConfigure(url: string, token: string): Promise<string> {
-  return invoke<string>("gemini_mcp_configure", { url, token });
+/** Add Aximar's MCP server to a client's configuration */
+export async function mcpConfigure(client: McpClient, url: string, token: string): Promise<string> {
+  return invoke<string>(CONFIGURE_COMMANDS[client], { url, token });
 }

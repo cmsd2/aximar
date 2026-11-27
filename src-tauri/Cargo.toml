@@ -34,6 +34,7 @@ tauri-plugin-single-instance = "2.4.1"
 sys-locale = "0.3"
 fluent-langneg = "0.14"
 rspolib = "0.1.2"
+which = "8"
 
 [features]
 # The translation preview in release builds, for translators' pre-release

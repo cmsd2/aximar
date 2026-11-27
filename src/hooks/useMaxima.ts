@@ -1,8 +1,9 @@
 import { useCallback } from "react";
-import { message } from "@tauri-apps/plugin-dialog";
+import { ask } from "@tauri-apps/plugin-dialog";
 import { t } from "@lingui/core/macro";
 import { useNotebookStore } from "../store/notebookStore";
 import { useLogStore } from "../store/logStore";
+import { useSettingsStore } from "../store/settingsStore";
 import { startSession, restartSession } from "../lib/maxima-client";
 import { nbRunAll, nbRunCell, type RunAllReport } from "../lib/notebook-commands";
 import { flushCell, flushNotebook } from "../lib/dirty-inputs";
@@ -23,7 +24,12 @@ function detectPlatform(): "macos" | "linux" | "windows" | "unknown" {
 
 let maximaDialogShown = false;
 
-async function showMaximaNotFoundDialog(errorMsg: string): Promise<void> {
+/** For tests: let the dialog show again */
+export function resetMaximaDialog(): void {
+  maximaDialogShown = false;
+}
+
+export async function showMaximaNotFoundDialog(errorMsg: string): Promise<void> {
   if (!isMaximaNotFoundError(errorMsg)) return;
   if (maximaDialogShown) return;
   maximaDialogShown = true;
@@ -75,18 +81,24 @@ async function showMaximaNotFoundDialog(errorMsg: string): Promise<void> {
     comment: "Maxima Not Found dialog: the first line, shown when Aximar can't start Maxima",
   });
   const otherLocation = t({
-    message: `If Maxima is installed in a non-standard location, set the ${envVar} environment variable or configure the path in Settings.`,
-    comment: "Maxima Not Found dialog: the last paragraph. envVar is the name of an environment variable. Settings is the Settings window",
+    message: `If Maxima is installed somewhere else, give its path in Settings, or set the ${envVar} environment variable.`,
+    comment: "Maxima Not Found dialog: the last paragraph, above an Open Settings button. envVar is the name of an environment variable",
   });
   const body = `${notFound}\n\n${installInstructions}\n\n${otherLocation}`;
 
-  await message(body, {
+  const openSettings = await ask(body, {
     title: t({
       message: "Maxima Not Found",
       comment: "Title of the error dialog shown when Aximar can't find the Maxima program",
     }),
     kind: "error",
+    okLabel: t({
+      message: "Open Settings",
+      comment: "Maxima Not Found dialog: the button that opens the Maxima section of Settings",
+    }),
+    cancelLabel: t({ message: "Close", comment: "Maxima Not Found dialog: the button that closes the dialog" }),
   });
+  if (openSettings) useSettingsStore.getState().openSettings("maxima");
 }
 
 export function useMaxima() {

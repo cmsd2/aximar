@@ -37,13 +37,16 @@ import {
   openFile,
   savePlotFile,
 } from "./lib/notebooks-client";
-import { getConfig, markdownFontStack, applyPrintMargins } from "./lib/config-client";
+import { getConfig } from "./lib/config-client";
+import { applyConfig } from "./lib/apply-config";
 import { activateLanguage } from "./lib/i18n";
 import { TRANSLATOR_TOOLS, applyPreview, type PreviewCatalog } from "./lib/translation-preview";
 import { useNotebookStore, useActiveAnyTab, getActiveTabState } from "./store/notebookStore";
 import { mapSyncCells, openNotebookTab } from "./hooks/useNotebookEvents";
 import { PlotViewer } from "./components/PlotViewer";
 import { useLogStore } from "./store/logStore";
+import { useSettingsStore } from "./store/settingsStore";
+import type { LogLink } from "./types/log";
 import { useFindStore } from "./store/findStore";
 import "./styles/global.css";
 
@@ -56,7 +59,11 @@ function App() {
     undefined
   );
   const [templateChooserOpen, setTemplateChooserOpen] = useState(false);
-  const [settingsOpen, setSettingsOpen] = useState(false);
+  const settingsOpen = useSettingsStore((s) => s.open);
+  const settingsSection = useSettingsStore((s) => s.section);
+  const settingsRequest = useSettingsStore((s) => s.request);
+  const openSettings = useSettingsStore((s) => s.openSettings);
+  const closeSettings = useSettingsStore((s) => s.closeSettings);
   const [variablesOpen, setVariablesOpen] = useState(false);
   const [exportLatexOpen, setExportLatexOpen] = useState(false);
   const [docsOpen, setDocsOpen] = useState(false);
@@ -79,37 +86,13 @@ function App() {
   useEffect(() => {
     getConfig()
       .then(({ config: cfg, warnings }) => {
-        document.documentElement.style.setProperty(
-          "--font-size-mono",
-          `${cfg.font_size}px`
-        );
-        document.documentElement.style.setProperty(
-          "--print-font-size",
-          `${cfg.print_font_size}px`
-        );
-        document.documentElement.style.setProperty(
-          "--print-font-size-mono",
-          `${cfg.print_font_size - 1}px`
-        );
-        document.documentElement.dataset.cellStyle = cfg.cell_style || "bracket";
-        document.documentElement.style.setProperty(
-          "--font-family-markdown",
-          markdownFontStack(cfg.markdown_font)
-        );
-        document.documentElement.style.setProperty(
-          "--markdown-indent",
-          cfg.markdown_indent === "aligned" ? "var(--gutter-width)" : "16px"
-        );
-        applyPrintMargins(
-          cfg.print_margin_top, cfg.print_margin_bottom,
-          cfg.print_margin_left, cfg.print_margin_right
-        );
-        if (cfg.autocomplete_mode) {
-          useNotebookStore.getState().setAutocompleteMode(
-            cfg.autocomplete_mode as "hint" | "snippet" | "active-hint"
-          );
-        }
-        setVariablesOpen(cfg.variables_open);
+        const store = useNotebookStore.getState();
+        applyConfig(cfg, cfg, {
+          setTheme: store.setTheme,
+          setCellStyle: store.setCellStyle,
+          setAutocompleteMode: store.setAutocompleteMode,
+          setVariablesOpen,
+        });
         void activateLanguage(cfg.language);
         for (const w of warnings) {
           addLogEntry("warning", w, "config");
@@ -180,26 +163,19 @@ function App() {
   // Listen for structured app log events from the backend, and replay
   // any that were buffered before this listener was ready.
   useEffect(() => {
-    const unlisten = listen<{ level: string; message: string; source: string }>(
-      "app-log",
-      (event) => {
-        addLogEntry(
-          event.payload.level as "info" | "warning" | "error",
-          event.payload.message,
-          event.payload.source
-        );
-      }
-    );
+    type AppLog = { level: string; message: string; source: string; link?: LogLink };
+    const unlisten = listen<AppLog>("app-log", (event) => {
+      addLogEntry(
+        event.payload.level as "info" | "warning" | "error",
+        event.payload.message,
+        event.payload.source,
+        event.payload.link
+      );
+    });
     // Drain buffered logs that arrived before the listener was mounted
-    invoke<{ level: string; message: string; source: string }[]>(
-      "get_buffered_logs"
-    ).then((entries) => {
+    invoke<AppLog[]>("get_buffered_logs").then((entries) => {
       for (const e of entries) {
-        addLogEntry(
-          e.level as "info" | "warning" | "error",
-          e.message,
-          e.source
-        );
+        addLogEntry(e.level as "info" | "warning" | "error", e.message, e.source, e.link);
       }
     });
     return () => {
@@ -353,6 +329,9 @@ function App() {
         case "export_latex":
           setExportLatexOpen(true);
           break;
+        case "settings":
+          openSettings();
+          break;
       }
     });
     return () => {
@@ -404,7 +383,7 @@ function App() {
 
       // Skip when focus is inside a modal
       const target = e.target as Element | null;
-      if (target?.closest(".palette-overlay, .settings-modal, .template-modal")) {
+      if (target?.closest(".palette-overlay, .settings-modal, .settings-window, .template-modal")) {
         return;
       }
 
@@ -455,7 +434,7 @@ function App() {
       {isNotebookTab && (
         <Toolbar
           onOpenTemplates={() => setTemplateChooserOpen(true)}
-          onOpenSettings={() => setSettingsOpen(true)}
+          onOpenSettings={() => openSettings()}
           variablesOpen={variablesOpen}
           onToggleVariables={() => setVariablesOpen((o) => !o)}
           logOpen={windowOpen}
@@ -498,7 +477,12 @@ function App() {
         <TemplateChooser onClose={() => setTemplateChooserOpen(false)} />
       )}
       {settingsOpen && (
-        <SettingsModal onClose={() => setSettingsOpen(false)} onSetVariablesOpen={setVariablesOpen} />
+        <SettingsModal
+          onClose={closeSettings}
+          onSetVariablesOpen={setVariablesOpen}
+          initialSection={settingsSection ?? undefined}
+          request={settingsRequest}
+        />
       )}
       {exportLatexOpen && (
         <ExportLatexModal onClose={() => setExportLatexOpen(false)} />

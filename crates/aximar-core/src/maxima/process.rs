@@ -1,5 +1,3 @@
-use std::env;
-use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -168,9 +166,8 @@ impl MaximaProcess {
 
         let (mut child, container_name) = match &backend {
             Backend::Local => {
-                let maxima_path = custom_path
-                    .filter(|p| !p.is_empty())
-                    .unwrap_or_else(find_maxima_binary);
+                let maxima_path =
+                    crate::maxima::locate::locate_maxima(custom_path.as_deref()).command();
 
                 let mut cmd = Command::new(&maxima_path);
                 cmd.arg("--very-quiet")
@@ -1514,36 +1511,7 @@ impl MaximaProcess {
 }
 
 pub fn find_maxima_binary() -> String {
-    if let Ok(path) = env::var("AXIMAR_MAXIMA_PATH") {
-        return path;
-    }
-
-    let candidates: Vec<PathBuf> = if cfg!(target_os = "windows") {
-        let mut paths = Vec::new();
-        if let Ok(entries) = std::fs::read_dir("C:\\") {
-            for entry in entries.flatten() {
-                let name = entry.file_name().to_string_lossy().to_string();
-                if name.starts_with("maxima-") {
-                    paths.push(entry.path().join("bin").join("maxima.bat"));
-                }
-            }
-        }
-        paths
-    } else {
-        vec![
-            PathBuf::from("/opt/homebrew/bin/maxima"),
-            PathBuf::from("/usr/local/bin/maxima"),
-            PathBuf::from("/usr/bin/maxima"),
-        ]
-    };
-
-    for candidate in candidates {
-        if candidate.exists() {
-            return candidate.to_string_lossy().to_string();
-        }
-    }
-
-    "maxima".to_string()
+    crate::maxima::locate::locate_maxima(None).command()
 }
 
 #[cfg(test)]

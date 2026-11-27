@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { SettingsModal } from "../components/SettingsModal";
+import { SettingsModal, type SectionId } from "../components/SettingsModal";
 import { ExportLatexModal } from "../components/ExportLatexModal";
 import { TemplateChooser } from "../components/TemplateChooser";
 import { CommandPalette } from "../components/CommandPalette";
@@ -14,6 +14,19 @@ export const Settings: StoryObj = {
   loaders: [async () => seedNotebook()],
   render: () => <SettingsModal onClose={noop} onSetVariablesOpen={noop} />,
 };
+
+function settingsAt(section: SectionId): StoryObj {
+  return {
+    loaders: [async () => seedNotebook()],
+    render: () => <SettingsModal onClose={noop} onSetVariablesOpen={noop} initialSection={section} />,
+  };
+}
+
+export const SettingsNotebook = settingsAt("notebook");
+export const SettingsMaxima = settingsAt("maxima");
+export const SettingsPrinting = settingsAt("printing");
+export const SettingsAiAssistants = settingsAt("ai-assistants");
+export const SettingsTranslation = settingsAt("translation");
 
 export const ExportLatex: StoryObj = {
   loaders: [async () => seedNotebook()],

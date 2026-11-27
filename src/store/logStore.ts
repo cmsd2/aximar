@@ -4,6 +4,7 @@ import type {
   EnvelopeEntry,
   LogEntry,
   LogLevel,
+  LogLink,
   LogTab,
   RawOutputEntry,
 } from "../types/log";
@@ -20,7 +21,7 @@ interface LogState {
   windowOpen: boolean;
   activeTab: LogTab;
 
-  addEntry: (level: LogLevel, message: string, source: string) => void;
+  addEntry: (level: LogLevel, message: string, source: string, link?: LogLink) => void;
   addRawOutput: (line: string, stream: "stdin" | "stdout" | "stderr", timestamp: number) => void;
   addEnvelope: (
     timestampMs: number,
@@ -45,13 +46,14 @@ export const useLogStore = create<LogState>((set, get) => ({
   windowOpen: false,
   activeTab: "app",
 
-  addEntry: (level, message, source) => {
+  addEntry: (level, message, source, link) => {
     const entry: LogEntry = {
       id: nanoid(),
       timestamp: Date.now(),
       level,
       message,
       source,
+      ...(link ? { link } : {}),
     };
     set((state) => {
       const next = [...state.entries, entry];

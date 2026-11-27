@@ -101,6 +101,17 @@ pub struct AppLogEvent {
     pub level: String,
     pub message: String,
     pub source: String,
+    /// Somewhere in the window that helps with this entry
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub link: Option<AppLogLink>,
+}
+
+/// A link from a log entry into the window
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(tag = "kind", rename_all = "kebab-case")]
+pub enum AppLogLink {
+    /// A section of the Settings window, such as `ai-assistants`
+    Settings { section: String },
 }
 
 /// Buffer for app-level log entries emitted before the frontend is ready.
@@ -143,11 +154,40 @@ pub fn emit_app_log(
     message: &str,
     source: &str,
 ) {
-    let event = AppLogEvent {
-        level: level.to_string(),
-        message: message.to_string(),
-        source: source.to_string(),
-    };
+    emit_app_log_event(
+        app_handle,
+        app_log,
+        AppLogEvent {
+            level: level.to_string(),
+            message: message.to_string(),
+            source: source.to_string(),
+            link: None,
+        },
+    );
+}
+
+/// `emit_app_log`, for an entry with a link into the window
+pub fn emit_app_log_with_link(
+    app_handle: &SharedAppHandle,
+    app_log: &AppLog,
+    level: &str,
+    message: &str,
+    source: &str,
+    link: AppLogLink,
+) {
+    emit_app_log_event(
+        app_handle,
+        app_log,
+        AppLogEvent {
+            level: level.to_string(),
+            message: message.to_string(),
+            source: source.to_string(),
+            link: Some(link),
+        },
+    );
+}
+
+fn emit_app_log_event(app_handle: &SharedAppHandle, app_log: &AppLog, event: AppLogEvent) {
     app_log.push(event.clone());
     if let Some(handle) = app_handle.get() {
         let _ = handle.emit("app-log", event);

@@ -103,6 +103,10 @@ fn generate_mcp_token() -> String {
     bytes.iter().map(|b| format!("{b:02x}")).collect()
 }
 
+fn default_settings_section() -> String {
+    "general".to_string()
+}
+
 fn default_mcp_token() -> String {
     generate_mcp_token()
 }
@@ -157,6 +161,10 @@ struct AppConfig {
     /// which follows the system's language
     #[serde(default)]
     language: Option<String>,
+    /// The Settings section shown last, such as `printing`.  The window
+    /// knows the sections, and shows General for one it doesn't have.
+    #[serde(default = "default_settings_section")]
+    settings_section: String,
 }
 
 impl Default for AppConfig {
@@ -185,6 +193,7 @@ impl Default for AppConfig {
             mcp_listen_address: default_mcp_listen_address(),
             mcp_token: default_mcp_token(),
             language: None,
+            settings_section: default_settings_section(),
         }
     }
 }
@@ -305,6 +314,7 @@ pub struct PublicConfig {
     pub language: String,
     /// The languages with a translation, English first
     pub languages: Vec<String>,
+    pub settings_section: String,
 }
 
 /// Config response with validation warnings
@@ -339,6 +349,7 @@ pub struct ConfigUpdate {
     pub mcp_listen_address: Option<String>,
     pub mcp_token: Option<String>,
     pub language: Option<String>,
+    pub settings_section: Option<String>,
 }
 
 fn config_path(app: &tauri::AppHandle) -> Result<PathBuf, AppError> {
@@ -480,6 +491,7 @@ pub async fn get_config(app: tauri::AppHandle) -> Result<ConfigResponse, AppErro
             mcp_token: config.mcp_token,
             language,
             languages: i18n::languages().iter().map(|l| l.to_string()).collect(),
+            settings_section: config.settings_section,
         },
         warnings,
     })
@@ -564,6 +576,9 @@ pub async fn set_config(app: tauri::AppHandle, updates: ConfigUpdate) -> Result<
     if let Some(mcp_token) = updates.mcp_token {
         config.mcp_token = mcp_token;
     }
+    if let Some(section) = updates.settings_section {
+        config.settings_section = section;
+    }
     write_config(&app, &config)?;
 
     if config.language() != language_before {
@@ -604,12 +619,15 @@ pub async fn set_config(app: tauri::AppHandle, updates: ConfigUpdate) -> Result<
                 initial_file_args: state.initial_file_args.clone(),
             };
             let ct = CancellationToken::new();
-            controller.set_running(ct.clone()).await;
+            let generation = controller
+                .set_running(ct.clone(), &config.mcp_listen_address)
+                .await;
             tokio::spawn(crate::mcp::start_mcp_server(
                 mcp_state,
                 config.mcp_listen_address,
                 config.mcp_token,
                 ct,
+                generation,
             ));
         }
     }
@@ -671,6 +689,24 @@ pub fn read_session_settings(app: &tauri::AppHandle) -> SessionSettings {
         .map(|(c, _)| c)
         .unwrap_or_default()
         .session_settings()
+}
+
+/// The Maxima the Local backend would run with this Maxima path setting,
+/// and where it came from.  Starts nothing.
+#[tauri::command]
+pub async fn maxima_status(
+    maxima_path: Option<String>,
+) -> Result<aximar_core::maxima::locate::MaximaLocation, AppError> {
+    Ok(aximar_core::maxima::locate::locate_maxima(
+        maxima_path.as_deref(),
+    ))
+}
+
+/// The version a Maxima program reports, such as `5.47.0`.  Runs it once
+/// with `--version`, for the Settings window.
+#[tauri::command]
+pub async fn maxima_version(path: String) -> Result<Option<String>, AppError> {
+    Ok(aximar_core::maxima::locate::maxima_version(std::path::Path::new(&path)).await)
 }
 
 #[tauri::command]
@@ -745,260 +781,6 @@ pub fn read_mcp_config(app: &tauri::AppHandle) -> McpConfig {
     }
 }
 
-#[derive(Debug, Serialize)]
-pub struct ClaudeMcpStatus {
-    pub installed: bool,
-    pub configured: bool,
-}
-
-#[tauri::command]
-pub async fn claude_mcp_status() -> Result<ClaudeMcpStatus, AppError> {
-    let mut cmd = tokio::process::Command::new("claude");
-    cmd.args(["mcp", "get", "aximar"])
-        .stdout(std::process::Stdio::piped())
-        .stderr(std::process::Stdio::piped());
-    hide_console_window(&mut cmd);
-
-    match cmd.output().await {
-        Ok(output) => Ok(ClaudeMcpStatus {
-            installed: true,
-            configured: output.status.success(),
-        }),
-        Err(_) => Ok(ClaudeMcpStatus {
-            installed: false,
-            configured: false,
-        }),
-    }
-}
-
-#[tauri::command]
-pub async fn claude_mcp_configure(url: String, token: String) -> Result<String, AppError> {
-    // Remove existing entry (ignore errors — may not exist)
-    let mut rm_cmd = tokio::process::Command::new("claude");
-    rm_cmd
-        .args(["mcp", "remove", "aximar"])
-        .stdout(std::process::Stdio::piped())
-        .stderr(std::process::Stdio::piped());
-    hide_console_window(&mut rm_cmd);
-    let _ = rm_cmd.output().await;
-
-    // Add new entry
-    let header = format!("Authorization: Bearer {token}");
-    let mut add_cmd = tokio::process::Command::new("claude");
-    add_cmd
-        .args([
-            "mcp",
-            "add",
-            "--transport",
-            "http",
-            "--header",
-            &header,
-            "--",
-            "aximar",
-            &url,
-        ])
-        .stdout(std::process::Stdio::piped())
-        .stderr(std::process::Stdio::piped());
-    hide_console_window(&mut add_cmd);
-
-    let output = add_cmd
-        .output()
-        .await
-        .map_err(|e| AppError::ProcessStartFailed(format!("Failed to run claude CLI: {e}")))?;
-
-    if output.status.success() {
-        Ok("Claude Code MCP configured successfully".to_string())
-    } else {
-        let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
-        Err(AppError::ProcessStartFailed(format!(
-            "claude mcp add failed: {stderr}"
-        )))
-    }
-}
-
-#[derive(Debug, Serialize)]
-pub struct CodexMcpStatus {
-    pub installed: bool,
-    pub configured: bool,
-}
-
-#[tauri::command]
-pub async fn codex_mcp_status() -> Result<CodexMcpStatus, AppError> {
-    let mut cmd = tokio::process::Command::new("codex");
-    cmd.args(["mcp", "get", "aximar"])
-        .stdout(std::process::Stdio::piped())
-        .stderr(std::process::Stdio::piped());
-    hide_console_window(&mut cmd);
-
-    match cmd.output().await {
-        Ok(output) => Ok(CodexMcpStatus {
-            installed: true,
-            configured: output.status.success(),
-        }),
-        Err(_) => Ok(CodexMcpStatus {
-            installed: false,
-            configured: false,
-        }),
-    }
-}
-
-#[tauri::command]
-pub async fn codex_mcp_configure(url: String, token: String) -> Result<String, AppError> {
-    use toml_edit::{value, DocumentMut, InlineTable};
-
-    // Locate config file
-    let home = std::env::var("HOME")
-        .or_else(|_| std::env::var("USERPROFILE"))
-        .map_err(|_| AppError::ProcessStartFailed("Could not determine home directory".into()))?;
-    let config_dir = std::path::Path::new(&home).join(".codex");
-    let config_path = config_dir.join("config.toml");
-
-    // Read and parse existing config (or start with empty document)
-    let content = if config_path.exists() {
-        tokio::fs::read_to_string(&config_path).await?
-    } else {
-        String::new()
-    };
-    let mut doc = content
-        .parse::<DocumentMut>()
-        .map_err(|e| AppError::ProcessStartFailed(format!("Failed to parse config.toml: {e}")))?;
-
-    // Ensure [mcp_servers] table exists
-    if !doc.contains_table("mcp_servers") {
-        doc["mcp_servers"] = toml_edit::Item::Table(toml_edit::Table::new());
-    }
-
-    // Build [mcp_servers.aximar] entry
-    let servers = doc["mcp_servers"]
-        .as_table_mut()
-        .expect("mcp_servers is a table");
-    let mut entry = toml_edit::Table::new();
-    entry["url"] = value(&url);
-    let mut headers = InlineTable::new();
-    headers.insert("Authorization", format!("Bearer {token}").into());
-    entry["http_headers"] = toml_edit::Item::Value(toml_edit::Value::InlineTable(headers));
-    servers["aximar"] = toml_edit::Item::Table(entry);
-
-    // Ensure directory exists and write config
-    tokio::fs::create_dir_all(&config_dir).await.ok();
-    tokio::fs::write(&config_path, doc.to_string())
-        .await
-        .map_err(|e| AppError::ProcessStartFailed(format!("Failed to write config.toml: {e}")))?;
-
-    Ok("Codex MCP configured successfully".to_string())
-}
-
-#[derive(Debug, Serialize)]
-pub struct GeminiMcpStatus {
-    pub installed: bool,
-    pub configured: bool,
-}
-
-#[tauri::command]
-pub async fn gemini_mcp_status() -> Result<GeminiMcpStatus, AppError> {
-    // Check if gemini CLI is installed
-    let mut cmd = tokio::process::Command::new("gemini");
-    cmd.args(["--version"])
-        .stdout(std::process::Stdio::piped())
-        .stderr(std::process::Stdio::piped());
-    hide_console_window(&mut cmd);
-
-    let installed = match cmd.output().await {
-        Ok(output) => output.status.success(),
-        Err(_) => false,
-    };
-
-    if !installed {
-        return Ok(GeminiMcpStatus {
-            installed: false,
-            configured: false,
-        });
-    }
-
-    // Check if aximar is configured in ~/.gemini/settings.json
-    let home = std::env::var("HOME")
-        .or_else(|_| std::env::var("USERPROFILE"))
-        .unwrap_or_default();
-    let settings_path = std::path::Path::new(&home)
-        .join(".gemini")
-        .join("settings.json");
-
-    let configured = if settings_path.exists() {
-        match tokio::fs::read_to_string(&settings_path).await {
-            Ok(content) => {
-                if let Ok(json) = serde_json::from_str::<serde_json::Value>(&content) {
-                    json.get("mcpServers")
-                        .and_then(|s| s.get("aximar"))
-                        .is_some()
-                } else {
-                    false
-                }
-            }
-            Err(_) => false,
-        }
-    } else {
-        false
-    };
-
-    Ok(GeminiMcpStatus {
-        installed,
-        configured,
-    })
-}
-
-#[tauri::command]
-pub async fn gemini_mcp_configure(url: String, token: String) -> Result<String, AppError> {
-    // Locate settings file
-    let home = std::env::var("HOME")
-        .or_else(|_| std::env::var("USERPROFILE"))
-        .map_err(|_| AppError::ProcessStartFailed("Could not determine home directory".into()))?;
-    let config_dir = std::path::Path::new(&home).join(".gemini");
-    let settings_path = config_dir.join("settings.json");
-
-    // Read existing settings or start with an empty object.  A file that
-    // can't be read or parsed is left alone: writing back only our entry
-    // would discard the user's other Gemini settings.
-    let mut settings: serde_json::Value = if settings_path.exists() {
-        let content = tokio::fs::read_to_string(&settings_path).await?;
-        if content.trim().is_empty() {
-            serde_json::json!({})
-        } else {
-            serde_json::from_str(&content).map_err(|e| {
-                AppError::InvalidConfig(format!(
-                    "{} can't be read ({e}). Fix or remove it, then try again.",
-                    settings_path.display()
-                ))
-            })?
-        }
-    } else {
-        serde_json::json!({})
-    };
-
-    // Ensure mcpServers object exists
-    if !settings.get("mcpServers").is_some() {
-        settings["mcpServers"] = serde_json::json!({});
-    }
-
-    // Add/update aximar entry
-    settings["mcpServers"]["aximar"] = serde_json::json!({
-        "httpUrl": url,
-        "headers": {
-            "Authorization": format!("Bearer {token}")
-        }
-    });
-
-    // Write back with pretty formatting
-    let output = serde_json::to_string_pretty(&settings)
-        .map_err(|e| AppError::ProcessStartFailed(format!("Failed to serialize settings: {e}")))?;
-
-    tokio::fs::create_dir_all(&config_dir).await.ok();
-    tokio::fs::write(&settings_path, output)
-        .await
-        .map_err(|e| AppError::ProcessStartFailed(format!("Failed to write settings.json: {e}")))?;
-
-    Ok("Gemini CLI MCP configured successfully".to_string())
-}
-
 /// Drain all buffered app log entries. Called by the frontend on mount to
 /// replay any logs emitted before the event listener was ready.
 #[tauri::command]
@@ -1057,6 +839,22 @@ mod tests {
         assert!(matches!(settings.backend, Backend::Local));
         assert_eq!(settings.maxima_path, None);
         assert_eq!(settings.eval_timeout, default_eval_timeout());
+    }
+
+    #[test]
+    fn settings_section_defaults_to_general() {
+        assert_eq!(AppConfig::default().settings_section, "general");
+    }
+
+    #[test]
+    fn an_older_file_without_settings_section_reads() {
+        let text = r#"{"font_size": 20}"#;
+        let (config, warnings) = config_or_defaults(parse_config_file(path(), Some(text)));
+        assert_eq!(config.settings_section, "general");
+        assert!(warnings.is_empty());
+        let text = r#"{"settings_section": "printing"}"#;
+        let (config, _) = config_or_defaults(parse_config_file(path(), Some(text)));
+        assert_eq!(config.settings_section, "printing");
     }
 
     #[test]

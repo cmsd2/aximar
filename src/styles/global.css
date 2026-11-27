@@ -16,7 +16,11 @@
   --error-color: #c62828;
   --error-bg: #fef2f2;
   --success-color: #2d8a4e;
+  --success-bg: #edf7f0;
+  --success-text: #1e6b3a;
   --running-color: #b8860b;
+  --warn-bg: #fdf6e3;
+  --selected-bg: #e8e8ed;
   --warning-color: #e5a00d;
   --warning-text: #7a4f00;
   --syntax-builtin: #8a6508;
@@ -52,7 +56,11 @@
     --error-color: #f38ba8;
     --error-bg: #2e1a1e;
     --success-color: #a6e3a1;
+    --success-bg: #1f2e26;
+    --success-text: #a6e3a1;
     --running-color: #f9e2af;
+    --warn-bg: #2f2b1f;
+    --selected-bg: #35354f;
     --warning-color: #e5a00d;
     --warning-text: #f9e2af;
     --syntax-builtin: #f9e2af;
@@ -76,7 +84,11 @@
   --error-color: #f38ba8;
   --error-bg: #2e1a1e;
   --success-color: #a6e3a1;
+  --success-bg: #1f2e26;
+  --success-text: #a6e3a1;
   --running-color: #f9e2af;
+  --warn-bg: #2f2b1f;
+  --selected-bg: #35354f;
   --warning-color: #e5a00d;
   --warning-text: #f9e2af;
   --syntax-builtin: #f9e2af;
@@ -1694,6 +1706,8 @@
 }
 
 /* Settings Modal */
+/* Shared by small dialogs, such as Export LaTeX: a header, a body of
+   rows and a footer */
 .settings-modal {
   width: 480px;
   background: var(--bg-primary);
@@ -1722,6 +1736,138 @@
   overflow-y: auto;
 }
 
+.settings-footer {
+  padding: 12px 20px;
+  border-top: 1px solid var(--border-color);
+  text-align: center;
+}
+
+/* The Settings window: a sidebar of sections and a page */
+.settings-window {
+  width: min(760px, calc(100vw - 48px));
+  height: min(560px, calc(100vh - 48px));
+  background: var(--bg-primary);
+  border: 0.5px solid var(--border-color);
+  border-radius: 12px;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.2);
+  display: grid;
+  grid-template-columns: 170px minmax(0, 1fr);
+  overflow: hidden;
+}
+
+.settings-sidebar-title {
+  margin: 2px 10px 10px;
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--text-secondary);
+}
+
+.settings-sidebar {
+  display: flex;
+  flex-direction: column;
+  padding: 14px 8px;
+  border-right: 0.5px solid var(--border-color);
+  overflow-y: auto;
+}
+
+.settings-tabs {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.settings-tab {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  color: var(--text-secondary);
+  font-size: 14px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.settings-tab-icon {
+  flex-shrink: 0;
+}
+
+.settings-tab-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.settings-tab:hover {
+  background: var(--bg-cell);
+  color: var(--text-primary);
+}
+
+.settings-tab.pre-release .settings-tab-icon {
+  color: var(--text-placeholder);
+}
+
+.settings-tab.pre-release .settings-tab-label {
+  font-style: italic;
+}
+
+.settings-tab.active {
+  background: var(--selected-bg);
+  color: var(--text-primary);
+}
+
+.settings-tab:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.settings-page {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: 18px 22px;
+  overflow-y: auto;
+}
+
+.settings-page-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.settings-page-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.settings-close {
+  display: flex;
+  padding: 4px;
+  margin: -4px -6px 0 0;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.settings-close:hover {
+  background: var(--bg-cell);
+  color: var(--text-primary);
+}
+
+.settings-note {
+  margin: auto 0 0;
+  padding-top: 16px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
 .settings-section {
   display: flex;
   flex-direction: column;
@@ -1735,19 +1881,126 @@
   gap: 16px;
 }
 
+.settings-window .settings-section {
+  gap: 0;
+}
+
+.settings-window .settings-row {
+  padding: 10px 0;
+  border-bottom: 0.5px solid var(--border-color);
+}
+
+.settings-row-wide {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+}
+
+.settings-row-wide .settings-token-actions {
+  flex: 1;
+}
+
+.settings-row-wide .settings-token-input {
+  flex: 1;
+  width: auto;
+}
+
+.settings-text {
+  min-width: 0;
+  flex: 1;
+}
+
 .settings-label {
   font-size: 13px;
   color: var(--text-primary);
   flex-shrink: 0;
 }
 
+.settings-window .settings-label {
+  display: block;
+  font-size: 14px;
+}
+
+.settings-hint {
+  margin: 2px 0 0;
+  font-size: 12px;
+  line-height: 1.35;
+  color: var(--text-secondary);
+}
+
 .settings-control {
   display: flex;
   align-items: center;
+  flex-shrink: 0;
+}
+
+/* A tinted box with an icon: the state of something (StatusBox) */
+.status-box {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 12px 0;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  line-height: 1.4;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+}
+
+.status-box-icon {
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.status-box-text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.status-box-detail {
+  font-size: 12px;
+  opacity: 0.85;
+}
+
+.status-box.ok {
+  background: var(--success-bg);
+  color: var(--success-text);
+}
+
+.status-box.warn {
+  background: var(--warn-bg);
+  color: var(--warning-text);
+}
+
+.status-box.err {
+  background: var(--error-bg);
+  color: var(--error-color);
+}
+
+.status-box.busy .status-box-icon {
+  animation: settings-spin 0.8s linear infinite;
+}
+
+.settings-advanced {
+  padding: 10px 0;
+}
+
+.settings-advanced > .settings-section {
+  margin-top: 4px;
+}
+
+.settings-advanced > summary {
+  font-size: 13px;
+  color: var(--text-secondary);
+  cursor: pointer;
 }
 
 .settings-input {
-  width: 200px;
+  width: 230px;
   padding: 6px 10px;
   background: var(--bg-input);
   border: 1px solid var(--border-color);
@@ -1786,15 +2039,15 @@
   min-width: 120px;
 }
 
-.settings-wsl-status[title^="Found"] {
+.settings-wsl-status.found {
   color: var(--success-color);
 }
 
-.settings-wsl-status[title="maxima not found in this distro"] {
+.settings-wsl-status.missing {
   color: var(--error-color);
 }
 
-.settings-wsl-status[title="Checking..."]::before {
+.settings-wsl-status.checking::before {
   content: "";
   display: inline-block;
   width: 12px;
@@ -1894,7 +2147,7 @@
 }
 
 .settings-claude-warn {
-  color: var(--running-color);
+  color: var(--warning-text);
 }
 
 .settings-claude-err {
@@ -1932,11 +2185,6 @@
   color: var(--bg-primary);
 }
 
-.settings-footer {
-  padding: 12px 20px;
-  border-top: 1px solid var(--border-color);
-  text-align: center;
-}
 
 /* Export LaTeX modal: as tall as its content, not the overlay */
 .export-latex-modal {
@@ -2418,6 +2666,22 @@
 .log-entry-message {
   color: var(--text-primary);
   word-break: break-word;
+}
+
+.log-entry-link {
+  margin-left: 8px;
+  padding: 0 6px;
+  background: transparent;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  color: var(--accent);
+  font-size: 11px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.log-entry-link:hover {
+  background: var(--bg-cell);
 }
 
 .log-entry-warning .log-entry-level { color: var(--running-color); }
@@ -3073,6 +3337,7 @@
   .shortcut-hints,
   .palette-overlay,
   .settings-modal,
+  .settings-window,
   .template-modal,
   .cell-actions,
   .insert-bar,

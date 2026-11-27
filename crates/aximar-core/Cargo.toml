@@ -16,6 +16,7 @@ aximar-notebook-format = { path = "../../packages/aximar-notebook-format" }
 probly-search = "2"
 base64 = "0.22"
 unicode-normalization = "0.1"
+which = "8"
 
 [target.'cfg(unix)'.dependencies]
 libc = "0.2"

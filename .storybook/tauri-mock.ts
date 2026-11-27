@@ -8,7 +8,7 @@ export const config = {
   print_margin_bottom: 15, print_margin_left: 15, print_margin_right: 15, backend: "local",
   docker_image: "aximar/maxima", wsl_distro: "Ubuntu", container_engine: "docker",
   mcp_enabled: true, mcp_listen_address: "127.0.0.1:19542", mcp_token: "0123456789abcdef",
-  language: "en", languages: ["en", "es"],
+  language: "en", languages: ["en", "es"], settings_section: "general",
 };
 
 const templates = [
@@ -36,10 +36,18 @@ export function installTauriMock(): void {
         case "search_packages":
         case "list_categories":
           return [];
-        case "claude_mcp_status":
-        case "codex_mcp_status":
-        case "gemini_mcp_status":
-          return { installed: true, configured: false };
+        case "mcp_clients_status":
+          return {
+            claude: { installed: "/usr/local/bin/claude", configured: { state: "unchecked" } },
+            codex: { installed: "/usr/local/bin/codex", configured: { state: "yes" } },
+            gemini: { installed: null, configured: { state: "no" } },
+          };
+        case "mcp_server_status":
+          return { state: "listening", address: "127.0.0.1:19542" };
+        case "maxima_version":
+          return "5.50.0";
+        case "maxima_status":
+          return { path: "/opt/homebrew/bin/maxima", source: "standard-location", problem: null };
         case "plugin:event|listen":
           return 1;
         default:
