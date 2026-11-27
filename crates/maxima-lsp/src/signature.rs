@@ -1,3 +1,4 @@
+use aximar_core::catalog::doc_index::LanguageChain;
 use aximar_core::catalog::packages::PackageCatalog;
 use aximar_core::catalog::search::Catalog;
 use dashmap::DashMap;
@@ -10,10 +11,11 @@ pub fn signature_help(
     func_name: &str,
     active_param: usize,
     catalog: &Catalog,
+    chain: &LanguageChain,
     packages: &PackageCatalog,
     documents: &DashMap<Url, DocumentState>,
 ) -> Option<SignatureHelp> {
-    let signatures = build_signatures(func_name, catalog, packages, documents)?;
+    let signatures = build_signatures(func_name, catalog, chain, packages, documents)?;
     Some(SignatureHelp {
         signatures,
         active_signature: Some(0),
@@ -24,11 +26,12 @@ pub fn signature_help(
 fn build_signatures(
     func_name: &str,
     catalog: &Catalog,
+    chain: &LanguageChain,
     packages: &PackageCatalog,
     documents: &DashMap<Url, DocumentState>,
 ) -> Option<Vec<SignatureInformation>> {
     // 1. Catalog signatures (preferred — includes core and installed packages via doc-index)
-    if let Some(sig_infos) = catalog.signature_info(func_name) {
+    if let Some(sig_infos) = catalog.signature_info_in(func_name, chain) {
         let sigs: Vec<SignatureInformation> = sig_infos
             .into_iter()
             .map(|(sig, params, summary)| SignatureInformation {

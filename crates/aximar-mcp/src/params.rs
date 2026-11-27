@@ -7,14 +7,25 @@ use crate::notebook::{CellStatus, CellType};
 
 #[derive(Debug, Deserialize, JsonSchema)]
 pub(crate) struct SearchFunctionsParams {
-    /// Search query (matches function name and description)
+    /// Search query (matches function name and description, in every
+    /// installed language)
     pub query: String,
+    /// Language for the results, a BCP 47 tag such as "es" or "pt-BR".
+    /// Results fall back to English where there is no translation.
+    /// Omit for English.
+    #[serde(default)]
+    pub language: Option<String>,
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]
 pub(crate) struct GetFunctionDocsParams {
     /// Function name (case-insensitive)
     pub name: String,
+    /// Language for the documentation, a BCP 47 tag such as "es" or
+    /// "pt-BR".  Falls back to English where there is no translation.
+    /// Omit for English.
+    #[serde(default)]
+    pub language: Option<String>,
 }
 
 #[derive(Debug, Deserialize, JsonSchema)]

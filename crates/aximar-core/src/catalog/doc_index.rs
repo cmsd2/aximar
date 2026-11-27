@@ -103,6 +103,14 @@ impl LanguageChain {
         LanguageChain(chain)
     }
 
+    /// The chain for an editor's or system's locale, such as `es-ES`: the
+    /// locale, then its language alone (`es`), then English
+    pub fn for_locale(locale: &str) -> Self {
+        let tag = language_key(locale);
+        let base = tag.split('-').next().unwrap_or_default().to_string();
+        LanguageChain::new(&[tag, base])
+    }
+
     /// English alone, as lookups answered before languages
     pub fn english() -> Self {
         LanguageChain(vec![ENGLISH.to_string()])
@@ -623,10 +631,22 @@ impl DocIndexStore {
         Some(sigs)
     }
 
-    /// Hover markdown in the chain
+    /// Hover markdown in the chain.  A translated summary above
+    /// documentation in another language comes first, so the reader sees
+    /// their language.
     pub fn hover_markdown_in(&self, name: &str, chain: &LanguageChain) -> Option<String> {
         let resolved = self.resolve(name, chain)?;
-        Some(hover_markdown_for(&resolved.package, &resolved.entry))
+        let mut md = hover_markdown_for(&resolved.package, &resolved.entry);
+        let summary = &resolved.entry.summary;
+        if resolved.summary_language != resolved.body_language
+            && !resolved.entry.body_md.is_empty()
+            && !summary.is_empty()
+        {
+            // After the signature block
+            let at = md.find("```\n\n").map_or(0, |i| i + 5);
+            md.insert_str(at, &format!("{summary}\n\n---\n\n"));
+        }
+        Some(md)
     }
 
     /// Build hover markdown for a symbol.
@@ -1364,6 +1384,41 @@ mod language_tests {
             integrate.entry.summary
         );
         assert_eq!(integrate.summary_language, "es");
+    }
+
+    #[test]
+    fn a_locale_falls_back_to_its_language() {
+        assert_eq!(
+            LanguageChain::for_locale("es-ES").languages(),
+            ["es-es", "es", "en"]
+        );
+        assert_eq!(LanguageChain::for_locale("es").languages(), ["es", "en"]);
+        assert_eq!(
+            LanguageChain::for_locale("en-US").languages(),
+            ["en-us", "en"]
+        );
+    }
+
+    #[test]
+    fn hover_puts_a_translated_summary_above_english_documentation() {
+        let dir = tempfile::tempdir().unwrap();
+        let mut store = store_with_english(dir.path());
+        store.ingest_summary("es", "integrate", "Calcula la integral.");
+        let md = store.hover_markdown_in("integrate", &spanish()).unwrap();
+        let summary = md
+            .find("Calcula la integral.")
+            .expect("the Spanish summary");
+        let body = md.find("The full English documentation.").unwrap();
+        assert!(
+            md.starts_with("```maxima\nintegrate(expr, x)\n```\n\n"),
+            "{md}"
+        );
+        assert!(summary < body, "{md}");
+        // English alone is as before
+        let english = store
+            .hover_markdown_in("integrate", &LanguageChain::english())
+            .unwrap();
+        assert_eq!(english, store.hover_markdown("integrate").unwrap());
     }
 }
 

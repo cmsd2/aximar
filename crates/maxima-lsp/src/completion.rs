@@ -1,5 +1,6 @@
 use std::collections::HashSet;
 
+use aximar_core::catalog::doc_index::LanguageChain;
 use aximar_core::catalog::packages::PackageCatalog;
 use aximar_core::catalog::search::Catalog;
 use dashmap::DashMap;
@@ -11,6 +12,7 @@ use crate::document::DocumentState;
 pub fn completions(
     prefix: &str,
     catalog: &Catalog,
+    chain: &LanguageChain,
     packages: &PackageCatalog,
     documents: &DashMap<Url, DocumentState>,
     _current_uri: &Url,
@@ -19,7 +21,7 @@ pub fn completions(
     let mut seen = HashSet::new();
 
     // 1. Catalog completions (includes core + installed packages via doc-index)
-    for cr in catalog.complete(prefix) {
+    for cr in catalog.complete_in(prefix, chain) {
         if seen.insert(cr.name.clone()) {
             let detail = if let Some(pkg) = &cr.package {
                 format!("{} ({})", cr.signature, pkg)

@@ -131,8 +131,8 @@ In `run_all_cells`, a blocked cell stops the run with status `needs_trust`.
 
 ### Documentation
 
-- **search_functions(query)** -- Search the Maxima function catalog by name or description. The catalog's ranked results come first, with a `score`; functions that installed packages match by name follow without one, marked `undocumented: true` when there are no docs for them.
-- **get_function_docs(name)** -- Get full documentation for a Maxima function. For a function that only a package provides, it names every such package and how to load it. A misspelt name gets suggestions from the catalog and the packages.
+- **search_functions(query, language?)** -- Search the Maxima function catalog by name or description. The catalog's ranked results come first, with a `score`; functions that installed packages match by name follow without one, marked `undocumented: true` when there are no docs for them. The query matches every installed language; each result's `description` is in `language` where there is a translation, and its `language` field names which.
+- **get_function_docs(name, language?)** -- Get full documentation for a Maxima function. For a function that only a package provides, it names every such package and how to load it. A misspelt name gets suggestions from the catalog and the packages. With `language` (a BCP 47 tag such as `es`), the result is in that language where there is a translation: `language` and `description_language` name the language of `full_docs` and `description`, `fallback_from` marks a function with nothing in that language, and `stale` with `english_signatures` marks a translation whose signatures differ from the English. Without `language`, both tools answer in English.
 - **complete_function(prefix)** -- Autocomplete a function name prefix. Each name appears once, naming every package that provides it.
 
 These answer from the same core API as the desktop window (`catalog::queries`), so both find the same functions.

@@ -5,6 +5,7 @@ use rmcp::model::{Implementation, ServerCapabilities, ServerInfo};
 use rmcp::{tool, tool_handler, tool_router};
 use tokio::sync::Mutex;
 
+use aximar_core::catalog::doc_index::LanguageChain;
 use aximar_core::catalog::packages::PackageCatalog;
 use aximar_core::catalog::queries::{self as catalog_queries, FunctionDocs};
 use aximar_core::catalog::search::Catalog;
@@ -238,8 +239,13 @@ impl ServerCore {
 
     // ── Shared tool implementations ──────────────────────────────
 
-    pub(crate) async fn do_search_functions(&self, query: &str) -> Result<String, String> {
-        let results = catalog_queries::search(&self.catalog, &self.packages, query);
+    pub(crate) async fn do_search_functions(
+        &self,
+        query: &str,
+        language: Option<&str>,
+    ) -> Result<String, String> {
+        let chain = chain_for(language);
+        let results = catalog_queries::search(&self.catalog, &self.packages, query, &chain);
         if results.is_empty() {
             return success_json(&serde_json::json!({
                 "results": [],
@@ -253,6 +259,7 @@ impl ServerCore {
                     "name": hit.name,
                     "signatures": [hit.signature],
                     "description": hit.summary,
+                    "language": hit.language,
                     "package": hit.package,
                 });
                 // Only the catalog's ranking has scores; the rest follow it
@@ -268,23 +275,41 @@ impl ServerCore {
         success_json(&serde_json::json!({ "results": items }))
     }
 
-    pub(crate) async fn do_get_function_docs(&self, name: &str) -> Result<String, String> {
-        match catalog_queries::docs(&self.catalog, &self.packages, name) {
-            FunctionDocs::Documented { package, entry } => {
-                let docs = if entry.body_md.is_empty() {
-                    &entry.summary
+    pub(crate) async fn do_get_function_docs(
+        &self,
+        name: &str,
+        language: Option<&str>,
+    ) -> Result<String, String> {
+        let chain = chain_for(language);
+        match catalog_queries::docs(&self.catalog, &self.packages, name, &chain) {
+            FunctionDocs::Documented(resolved) => {
+                let entry = &resolved.entry;
+                // The body where there is one, else the summary, each in
+                // its own language
+                let (docs, docs_language) = if entry.body_md.is_empty() {
+                    (&entry.summary, &resolved.summary_language)
                 } else {
-                    &entry.body_md
+                    (&entry.body_md, &resolved.body_language)
                 };
-                success_json(&serde_json::json!({
+                let mut result = serde_json::json!({
                     "name": name,
                     "signatures": [entry.signature],
                     "description": entry.summary,
+                    "description_language": resolved.summary_language,
                     "examples": entry.examples,
                     "see_also": entry.see_also,
                     "full_docs": docs,
-                    "package": package,
-                }))
+                    "language": docs_language,
+                    "package": resolved.package,
+                });
+                if let Some(from) = &resolved.fallback_from {
+                    result["fallback_from"] = from.as_str().into();
+                }
+                if resolved.stale {
+                    result["stale"] = true.into();
+                    result["english_signatures"] = resolved.english_signatures.clone().into();
+                }
+                success_json(&result)
             }
             FunctionDocs::InPackages {
                 packages,
@@ -303,6 +328,7 @@ impl ServerCore {
                     "examples": [],
                     "see_also": [],
                     "full_docs": description,
+                    "language": aximar_core::catalog::doc_index::ENGLISH,
                     "package": names.join(" or "),
                     "packages": names,
                     "undocumented": true,
@@ -744,23 +770,27 @@ impl AximarMcpServer {
     // ── Documentation tools ───────────────────────────────────────
 
     #[tool(
-        description = "Search the Maxima function catalog by name or description. Returns matching functions with signatures and brief descriptions. Searches across 2500+ built-in and package functions. Supports partial name matching (e.g. \"integ\" finds integrate) and description keywords (e.g. \"matrix inverse\")."
+        description = "Search the Maxima function catalog by name or description. Returns matching functions with signatures and brief descriptions. Searches across 2500+ built-in and package functions. Supports partial name matching (e.g. \"integ\" finds integrate) and description keywords (e.g. \"matrix inverse\"). Pass `language` (e.g. \"es\") to match and describe functions in that language, with English where there is no translation; each result's `language` names its description's language."
     )]
     async fn search_functions(
         &self,
         Parameters(params): Parameters<SearchFunctionsParams>,
     ) -> Result<String, String> {
-        self.core.do_search_functions(&params.query).await
+        self.core
+            .do_search_functions(&params.query, params.language.as_deref())
+            .await
     }
 
     #[tool(
-        description = "Get full documentation for a Maxima function, including usage, examples, and related functions. Falls back to a catalog summary if full docs are unavailable. Suggests similar function names if the exact name is not found."
+        description = "Get full documentation for a Maxima function, including usage, examples, and related functions. Falls back to a catalog summary if full docs are unavailable. Suggests similar function names if the exact name is not found. Pass `language` (e.g. \"es\") for documentation in that language: `language` and `description_language` name the language of `full_docs` and `description`, `fallback_from` says the function isn't documented in the language asked for, and `stale` with `english_signatures` says a translation may be out of date."
     )]
     async fn get_function_docs(
         &self,
         Parameters(params): Parameters<GetFunctionDocsParams>,
     ) -> Result<String, String> {
-        self.core.do_get_function_docs(&params.name).await
+        self.core
+            .do_get_function_docs(&params.name, params.language.as_deref())
+            .await
     }
 
     #[tool(
@@ -1614,3 +1644,12 @@ pub(crate) fn run_all_summary(report: &RunAllReport, mode: TrustMode) -> serde_j
 #[cfg(test)]
 #[path = "server_tests.rs"]
 mod tests;
+
+/// The chain for a tool's optional `language`: that language then English,
+/// or English alone, as the tools answered before languages
+fn chain_for(language: Option<&str>) -> LanguageChain {
+    match language {
+        Some(tag) => LanguageChain::new(&[tag]),
+        None => LanguageChain::english(),
+    }
+}

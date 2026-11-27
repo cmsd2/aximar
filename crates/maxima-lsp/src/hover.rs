@@ -1,3 +1,4 @@
+use aximar_core::catalog::doc_index::LanguageChain;
 use aximar_core::catalog::packages::PackageCatalog;
 use aximar_core::catalog::search::Catalog;
 use dashmap::DashMap;
@@ -9,10 +10,11 @@ use crate::document::DocumentState;
 pub fn hover_info(
     word: &str,
     catalog: &Catalog,
+    chain: &LanguageChain,
     packages: &PackageCatalog,
     documents: &DashMap<Url, DocumentState>,
 ) -> Option<Hover> {
-    let content = hover_markdown(word, catalog, packages, documents)?;
+    let content = hover_markdown(word, catalog, chain, packages, documents)?;
     Some(Hover {
         contents: HoverContents::Markup(MarkupContent {
             kind: MarkupKind::Markdown,
@@ -25,11 +27,12 @@ pub fn hover_info(
 fn hover_markdown(
     word: &str,
     catalog: &Catalog,
+    chain: &LanguageChain,
     packages: &PackageCatalog,
     documents: &DashMap<Url, DocumentState>,
 ) -> Option<String> {
     // 1. Catalog hover (preferred — includes core + installed packages via doc-index)
-    if let Some(md) = catalog.hover_markdown(word) {
+    if let Some(md) = catalog.hover_markdown_in(word, chain) {
         return Some(md);
     }
 

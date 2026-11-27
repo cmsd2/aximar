@@ -7,7 +7,7 @@ use std::collections::HashSet;
 
 use serde::Serialize;
 
-use super::doc_index::{levenshtein, SymbolEntry};
+use super::doc_index::{levenshtein, LanguageChain, Resolved, ENGLISH};
 use super::packages::PackageCatalog;
 use super::search::Catalog;
 use super::types::{CompletionResult, PackageInfo};
@@ -26,15 +26,14 @@ pub struct FunctionHit {
     pub score: Option<f64>,
     /// Whether the catalog has documentation for it.
     pub documented: bool,
+    /// The language of `summary`
+    pub language: String,
 }
 
 /// What is known about a function name.
 pub enum FunctionDocs<'a> {
-    /// Documented in the catalog.
-    Documented {
-        package: &'a str,
-        entry: &'a SymbolEntry,
-    },
+    /// Documented in the catalog, in the chain's languages.
+    Documented(Box<Resolved>),
     /// Not documented, but installed packages provide it (usually one).
     InPackages {
         packages: Vec<&'a PackageInfo>,
@@ -47,33 +46,48 @@ pub enum FunctionDocs<'a> {
 /// Search both sources.  The catalog's ranked results come first; then
 /// functions the packages match by name that the ranking left out, with
 /// their documentation when the catalog has it.  Each name appears once.
-pub fn search(catalog: &Catalog, packages: &PackageCatalog, query: &str) -> Vec<FunctionHit> {
+/// The catalog matches every language's text, and each hit's summary is in
+/// the chain.
+pub fn search(
+    catalog: &Catalog,
+    packages: &PackageCatalog,
+    query: &str,
+    chain: &LanguageChain,
+) -> Vec<FunctionHit> {
     let mut seen = HashSet::new();
     let mut hits = Vec::new();
     for found in catalog.search(query) {
         if seen.insert(found.name.to_lowercase()) {
-            hits.push(FunctionHit {
+            let mut hit = FunctionHit {
                 name: found.name,
                 signature: found.signature,
                 summary: found.summary,
                 package: found.package,
                 score: Some(found.score),
                 documented: true,
-            });
+                language: ENGLISH.to_string(),
+            };
+            if let Some(resolved) = catalog.resolve(&hit.name, chain) {
+                hit.signature = resolved.entry.signature;
+                hit.summary = resolved.entry.summary;
+                hit.language = resolved.summary_language;
+            }
+            hits.push(hit);
         }
     }
     for found in packages.search_functions(query) {
         if !seen.insert(found.function_name.to_lowercase()) {
             continue;
         }
-        let hit = match catalog.get(&found.function_name) {
-            Some((package, entry)) => FunctionHit {
+        let hit = match catalog.resolve(&found.function_name, chain) {
+            Some(resolved) => FunctionHit {
                 name: found.function_name,
-                signature: entry.signature.clone(),
-                summary: entry.summary.clone(),
-                package: package.clone(),
+                signature: resolved.entry.signature,
+                summary: resolved.entry.summary,
+                package: resolved.package,
                 score: None,
                 documented: true,
+                language: resolved.summary_language,
             },
             None => {
                 let providers = providers(packages, &found.function_name);
@@ -84,6 +98,7 @@ pub fn search(catalog: &Catalog, packages: &PackageCatalog, query: &str) -> Vec<
                     signature: found.signature,
                     score: None,
                     documented: false,
+                    language: ENGLISH.to_string(),
                 }
             }
         };
@@ -92,14 +107,16 @@ pub fn search(catalog: &Catalog, packages: &PackageCatalog, query: &str) -> Vec<
     hits
 }
 
-/// Look up one function by name (case-insensitive).
+/// Look up one function by name (case-insensitive), in the chain's
+/// languages.
 pub fn docs<'a>(
     catalog: &'a Catalog,
     packages: &'a PackageCatalog,
     name: &str,
+    chain: &LanguageChain,
 ) -> FunctionDocs<'a> {
-    if let Some((package, entry)) = catalog.get(name) {
-        return FunctionDocs::Documented { package, entry };
+    if let Some(resolved) = catalog.resolve(name, chain) {
+        return FunctionDocs::Documented(Box::new(resolved));
     }
     let providing = providers(packages, name);
     if !providing.is_empty() {
@@ -235,6 +252,10 @@ mod tests {
     static CATALOG: LazyLock<Catalog> = LazyLock::new(Catalog::load);
     static PACKAGES: LazyLock<PackageCatalog> = LazyLock::new(PackageCatalog::load);
 
+    fn english() -> LanguageChain {
+        LanguageChain::english()
+    }
+
     fn count(names: impl Iterator<Item = String>, name: &str) -> usize {
         names.filter(|n| n.eq_ignore_ascii_case(name)).count()
     }
@@ -246,7 +267,7 @@ mod tests {
         assert!(PACKAGES.package_for_function("nusum").is_some());
         let completions = complete(&CATALOG, &PACKAGES, "nusu");
         assert_eq!(count(completions.into_iter().map(|c| c.name), "nusum"), 1);
-        let hits = search(&CATALOG, &PACKAGES, "nusum");
+        let hits = search(&CATALOG, &PACKAGES, "nusum", &english());
         assert_eq!(count(hits.into_iter().map(|h| h.name), "nusum"), 1);
     }
 
@@ -268,7 +289,7 @@ mod tests {
 
     #[test]
     fn search_finds_undocumented_package_functions_after_documented_ones() {
-        let hits = search(&CATALOG, &PACKAGES, "jcubic");
+        let hits = search(&CATALOG, &PACKAGES, "jcubic", &english());
         let jcubic = hits
             .iter()
             .find(|h| h.name == "jcubic")
@@ -282,10 +303,10 @@ mod tests {
     #[test]
     fn docs_for_each_kind_of_name() {
         assert!(matches!(
-            docs(&CATALOG, &PACKAGES, "Integrate"),
+            docs(&CATALOG, &PACKAGES, "Integrate", &english()),
             FunctionDocs::Documented { .. }
         ));
-        match docs(&CATALOG, &PACKAGES, "jcubic") {
+        match docs(&CATALOG, &PACKAGES, "jcubic", &english()) {
             FunctionDocs::InPackages { packages, .. } => {
                 assert_eq!(packages[0].name, "affine/macbasic")
             }
@@ -295,11 +316,11 @@ mod tests {
 
     #[test]
     fn a_miss_suggests_near_names_from_both_sources() {
-        match docs(&CATALOG, &PACKAGES, "integrat") {
+        match docs(&CATALOG, &PACKAGES, "integrat", &english()) {
             FunctionDocs::NotFound { suggestions } => assert_eq!(suggestions[0], "integrate"),
             _ => panic!("integrat is not a function"),
         }
-        match docs(&CATALOG, &PACKAGES, "jcubik") {
+        match docs(&CATALOG, &PACKAGES, "jcubik", &english()) {
             FunctionDocs::NotFound { suggestions } => assert!(
                 suggestions.contains(&"jcubic".to_string()),
                 "{suggestions:?}"
@@ -312,7 +333,7 @@ mod tests {
     fn a_documented_function_found_by_name_keeps_its_docs() {
         // The catalog's ranking for "pdf_" leaves pdf_student_t out of its top
         // results; the package search finds it, and its docs still apply
-        let hits = search(&CATALOG, &PACKAGES, "pdf_");
+        let hits = search(&CATALOG, &PACKAGES, "pdf_", &english());
         let student = hits
             .iter()
             .find(|h| h.name == "pdf_student_t")
@@ -348,5 +369,21 @@ mod tests {
             load_hint(&[macbasic]),
             "Load it with load(\"affine/macbasic\")$."
         );
+    }
+
+    #[test]
+    fn a_spanish_search_shows_spanish_summaries() {
+        let spanish = LanguageChain::new(&["es"]);
+        let hits = search(&CATALOG, &PACKAGES, "integral definida", &spanish);
+        let integrate = hits
+            .iter()
+            .find(|h| h.name == "integrate")
+            .expect("integrate is found");
+        assert!(integrate.summary.starts_with("Calcula"), "{integrate:?}");
+        assert_eq!(integrate.language, "es");
+        // In English, the same function reads as before
+        let english = search(&CATALOG, &PACKAGES, "integrate", &english());
+        let integrate = english.iter().find(|h| h.name == "integrate").unwrap();
+        assert_eq!(integrate.language, "en");
     }
 }
