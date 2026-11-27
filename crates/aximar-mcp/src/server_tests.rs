@@ -1764,3 +1764,55 @@ async fn undocumented_function_docs_read_cleanly() {
         "From the affine/macbasic package. It has no documentation. Load it with load(\"affine/macbasic\")$."
     );
 }
+
+// ── Language ─────────────────────────────────────────────────────────
+
+/// With the window in Spanish, connected mode's results stay in English,
+/// with the explanation's ID
+#[tokio::test]
+#[ignore = "requires Maxima to be installed"]
+async fn connected_mode_stays_in_english() {
+    let s = build_server_connected();
+    s.core.registry.lock().await.set_language(Some("es".into()));
+
+    let cell_id = add_code_cell(&s, "1/0;").await;
+    let run = parse_ok(
+        s.run_cell(Parameters(CellIdParams {
+            cell_id: cell_id.clone(),
+            notebook_id: None,
+        }))
+        .await,
+    );
+    assert_eq!(run["is_error"], true, "{run:#}");
+    assert!(
+        run["error"]
+            .as_str()
+            .unwrap()
+            .starts_with("expt: undefined: 0 to a negative exponent."),
+        "{run:#}"
+    );
+
+    let cell = parse_ok(
+        s.get_cell(Parameters(CellIdParams {
+            cell_id: cell_id.clone(),
+            notebook_id: None,
+        }))
+        .await,
+    );
+    let output = &cell["output"];
+    assert_eq!(
+        output["error_info"]["id"], "error.division_by_zero",
+        "{cell:#}"
+    );
+    assert_eq!(output["error_info"]["title"], "Division by Zero");
+    assert!(output.get("error_translated").is_none(), "{cell:#}");
+
+    // The window's copy of the cell has Maxima's Spanish
+    let ctx = s.core.resolve_context(None).await.unwrap();
+    let nb = ctx.notebook.lock().await;
+    let window_copy = nb.get_cell(&cell_id).unwrap().output.as_ref().unwrap();
+    assert_eq!(
+        window_copy.error_translated.as_deref(),
+        Some("expt: no definido: desde 0 a un exponente negativo.")
+    );
+}

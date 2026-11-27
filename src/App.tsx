@@ -37,6 +37,7 @@ import {
   savePlotFile,
 } from "./lib/notebooks-client";
 import { getConfig, markdownFontStack, applyPrintMargins } from "./lib/config-client";
+import { activateLanguage } from "./lib/i18n";
 import { useNotebookStore, useActiveAnyTab, getActiveTabState } from "./store/notebookStore";
 import { mapSyncCells, openNotebookTab } from "./hooks/useNotebookEvents";
 import { PlotViewer } from "./components/PlotViewer";
@@ -107,12 +108,23 @@ function App() {
           );
         }
         setVariablesOpen(cfg.variables_open);
+        void activateLanguage(cfg.language);
         for (const w of warnings) {
           addLogEntry("warning", w, "config");
         }
       })
       .catch((e) => addLogEntry("error", `Failed to load config: ${e}`, "config"));
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // The language setting changed, in this window or another
+  useEffect(() => {
+    const unlisten = listen<string>("language-changed", (event) => {
+      void activateLanguage(event.payload);
+    });
+    return () => {
+      unlisten.then((fn) => fn());
+    };
+  }, []);
 
   // Listen for raw Maxima output events from the backend
   useEffect(() => {

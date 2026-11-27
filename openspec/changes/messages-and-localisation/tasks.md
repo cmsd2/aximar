@@ -17,11 +17,11 @@ Each numbered group is one pull request, landing in order unless a group says ot
 
 ## 3. The language setting and switching
 
-- [ ] 3.1 Add the language setting to the app config, defaulting from `sys-locale` matched to the available catalogs with `fluent-langneg`; verify with unit tests for `es_CO` → `es` and `ja` → English (the two default scenarios)
-- [ ] 3.2 Add a language picker to Settings and switch the window with `i18n.load` and `i18n.activate`; the window translates `Message`s by template and context, falling back to `text`; verify with vitest tests that a switch re-renders an existing error explanation, and that a missing translation shows English ("Missing translations fall back to English")
+- [x] 3.1 Add the language setting to the app config, defaulting from `sys-locale` matched to the available catalogs with `fluent-langneg`; verify with unit tests for `es_CO` → `es` and `ja` → English (the two default scenarios)
+- [x] 3.2 Add a language picker to Settings and switch the window with `i18n.load` and `i18n.activate`; the window translates `Message`s by template and context, falling back to `text`; verify with vitest tests that a switch re-renders an existing error explanation, and that a missing translation shows English ("Missing translations fall back to English")
 - [ ] 3.3 Build the native menus from the catalog with `rspolib`, rebuilt with `app.set_menu` on a switch; verify with a unit test that the Spanish catalog's menu labels come through, and by hand that the menu bar changes on a switch
-- [ ] 3.4 Pass the language to sessions: set `ax__language` at session start from the setting, and in each session on a switch (when idle, or when its evaluation ends); remove `AXIMAR_LANGUAGE`; verify with a Maxima-backed test that switching to Spanish then running `diff();` gives the Spanish message, and that English gives none ("Maxima's errors follow the switch")
-- [ ] 3.5 Verify "MCP stays in English" with an aximar-mcp Maxima-backed test in connected mode with the window set to Spanish
+- [x] 3.4 Pass the language to sessions: set `ax__language` at session start from the setting, and in each session on a switch (when idle, or when its evaluation ends); remove `AXIMAR_LANGUAGE`; verify with a Maxima-backed test that switching to Spanish then running `diff();` gives the Spanish message, and that English gives none ("Maxima's errors follow the switch")
+- [x] 3.5 Verify "MCP stays in English" with an aximar-mcp Maxima-backed test in connected mode with the window set to Spanish
 
 ## 4. Window text and menus into the catalog
 

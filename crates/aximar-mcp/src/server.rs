@@ -942,10 +942,16 @@ impl AximarMcpServer {
             .resolve_context(params.notebook_id.as_deref())
             .await?;
         let nb = ctx.notebook.lock().await;
-        match nb.get_cell(&params.cell_id) {
-            Some(cell) => success_json(cell),
-            None => error_result(format!("Cell '{}' not found", params.cell_id)),
+        let Some(cell) = nb.get_cell(&params.cell_id) else {
+            return error_result(format!("Cell '{}' not found", params.cell_id));
+        };
+        let mut json = serde_json::to_value(cell).map_err(|e| e.to_string())?;
+        // MCP's text is English whatever the window's language: Maxima's
+        // translated message is for the window
+        if let Some(output) = json.get_mut("output").and_then(|o| o.as_object_mut()) {
+            output.remove("error_translated");
         }
+        success_json(&json)
     }
 
     #[tool(

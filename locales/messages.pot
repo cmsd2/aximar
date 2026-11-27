@@ -17,6 +17,11 @@ msgstr ""
 msgid "Hide raw error"
 msgstr ""
 
+#. Settings: the label of the language picker
+#: src/components/SettingsModal.tsx
+msgid "Language"
+msgstr ""
+
 #. Button: shows Maxima's English error message below its translation
 #: src/components/EnhancedErrorOutput.tsx
 msgid "Show original"
@@ -314,4 +319,124 @@ msgstr ""
 #: crates/aximar-core/src/maxima/errors.rs
 msgctxt "error.package_not_found.suggestion"
 msgid "Check the package name. Common packages: draw, simplex, lsquares, descriptive, distrib."
+msgstr ""
+
+#. i18n: App menu (macOS). max-length:30
+#: src-tauri/src/menu.rs
+msgid "About Aximar"
+msgstr ""
+
+#. i18n: App menu (macOS): the system's Services submenu. max-length:30
+#: src-tauri/src/menu.rs
+msgid "Services"
+msgstr ""
+
+#. i18n: App menu (macOS). max-length:30
+#: src-tauri/src/menu.rs
+msgid "Hide Aximar"
+msgstr ""
+
+#. i18n: App menu (macOS): hides every other app. max-length:30
+#: src-tauri/src/menu.rs
+msgid "Hide Others"
+msgstr ""
+
+#. i18n: App menu (macOS). max-length:30
+#: src-tauri/src/menu.rs
+msgid "Show All"
+msgstr ""
+
+#. i18n: App menu. max-length:30
+#: src-tauri/src/menu.rs
+msgid "Quit Aximar"
+msgstr ""
+
+#. i18n: Menu bar. max-length:16
+#: src-tauri/src/menu.rs
+msgid "File"
+msgstr ""
+
+#. i18n: File menu. max-length:30
+#: src-tauri/src/menu.rs
+msgid "New Notebook"
+msgstr ""
+
+#. i18n: File menu. max-length:30
+#: src-tauri/src/menu.rs
+msgid "New Window"
+msgstr ""
+
+#. i18n: File menu: opens a notebook file. max-length:30
+#: src-tauri/src/menu.rs
+msgid "Open..."
+msgstr ""
+
+#. i18n: File menu. max-length:30
+#: src-tauri/src/menu.rs
+msgid "Save"
+msgstr ""
+
+#. i18n: File menu. max-length:30
+#: src-tauri/src/menu.rs
+msgid "Save As..."
+msgstr ""
+
+#. i18n: File menu: saves the notebook as a LaTeX document. max-length:30
+#: src-tauri/src/menu.rs
+msgid "Export as LaTeX..."
+msgstr ""
+
+#. i18n: File menu. max-length:30
+#: src-tauri/src/menu.rs
+msgid "Print..."
+msgstr ""
+
+#. i18n: File menu. max-length:30
+#: src-tauri/src/menu.rs
+msgid "Close Window"
+msgstr ""
+
+#. i18n: Menu bar. max-length:16
+#: src-tauri/src/menu.rs
+msgid "Edit"
+msgstr ""
+
+#. i18n: Edit menu. max-length:30
+#: src-tauri/src/menu.rs
+msgid "Undo"
+msgstr ""
+
+#. i18n: Edit menu. max-length:30
+#: src-tauri/src/menu.rs
+msgid "Redo"
+msgstr ""
+
+#. i18n: Edit menu. max-length:30
+#: src-tauri/src/menu.rs
+msgid "Cut"
+msgstr ""
+
+#. i18n: Edit menu. max-length:30
+#: src-tauri/src/menu.rs
+msgid "Copy"
+msgstr ""
+
+#. i18n: Edit menu. max-length:30
+#: src-tauri/src/menu.rs
+msgid "Paste"
+msgstr ""
+
+#. i18n: Edit menu. max-length:30
+#: src-tauri/src/menu.rs
+msgid "Select All"
+msgstr ""
+
+#. i18n: Menu bar. max-length:16
+#: src-tauri/src/menu.rs
+msgid "Window"
+msgstr ""
+
+#. i18n: Window menu. max-length:30
+#: src-tauri/src/menu.rs
+msgid "Minimize"
 msgstr ""

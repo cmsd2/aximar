@@ -120,6 +120,11 @@ pub async fn evaluate_cell(
         }
     };
 
+    // Maxima's error messages in the user's language, which may have
+    // changed since the last cell
+    let language = ctx.language.read().unwrap().clone();
+    process.use_language(language.as_deref()).await.ok();
+
     // Clear and read the capture sink only while holding the session lock.
     // A run queued behind this one would otherwise clear this cell's output
     // while it is still being written, or before it is read.

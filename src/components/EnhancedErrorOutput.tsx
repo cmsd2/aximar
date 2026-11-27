@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useLingui } from "@lingui/react/macro";
 import type { ErrorInfo } from "../types/maxima";
+import { errorText } from "../lib/messages";
 import { useNotebookStore } from "../store/notebookStore";
 
 interface EnhancedErrorOutputProps {
@@ -17,7 +18,7 @@ export function EnhancedErrorOutput({
   errorTranslated,
   cellId,
 }: EnhancedErrorOutputProps) {
-  const { t } = useLingui();
+  const { t, i18n } = useLingui();
   const [showRaw, setShowRaw] = useState(false);
   const updateCellInput = useNotebookStore((s) => s.updateCellInput);
 
@@ -52,14 +53,18 @@ export function EnhancedErrorOutput({
 
   return (
     <div className="enhanced-error">
-      <div className="enhanced-error-title">{errorInfo.title}</div>
+      <div className="enhanced-error-title">{errorText(i18n, errorInfo, "title")}</div>
       {errorTranslated && (
         <pre className="enhanced-error-translated">{errorTranslated}</pre>
       )}
-      <div className="enhanced-error-explanation">{errorInfo.explanation}</div>
+      <div className="enhanced-error-explanation">
+        {errorText(i18n, errorInfo, "explanation")}
+      </div>
 
       {errorInfo.suggestion && (
-        <div className="enhanced-error-suggestion">{errorInfo.suggestion}</div>
+        <div className="enhanced-error-suggestion">
+          {errorText(i18n, errorInfo, "suggestion")}
+        </div>
       )}
 
       {errorInfo.did_you_mean.length > 0 && (

@@ -2,6 +2,7 @@ pub use aximar_core::catalog;
 mod commands;
 pub use aximar_core::error;
 mod gui_events;
+mod i18n;
 pub use aximar_core::maxima;
 mod mcp;
 mod menu;
@@ -39,7 +40,8 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .manage(AppState::new())
         .setup(|app| {
-            menu::setup_menu(app)?;
+            let language = commands::config::read_language(app.handle());
+            menu::setup_menu(app, &language)?;
             let state = app.state::<AppState>();
             let handle = app.handle().clone();
 
@@ -51,6 +53,9 @@ pub fn run() {
             // setup runs once, so the handle is never already set
             let _ = state.app_handle.set(handle);
             tauri::async_runtime::block_on(async {
+                // Maxima's messages in the user's language
+                let maxima_language = (language != i18n::ENGLISH).then(|| language.clone());
+                state.registry.lock().await.set_language(maxima_language);
                 if !file_args.is_empty() {
                     *state.initial_file_args.lock().await = Some(file_args);
                 }

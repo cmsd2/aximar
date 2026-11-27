@@ -1,4 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
+import { useLingui } from "@lingui/react/macro";
+import { activateLanguage, languageName } from "../lib/i18n";
 import { getConfig, setConfig, listWslDistros, checkWslMaxima, markdownFontStack, applyPrintMargins, claudeMcpStatus, claudeMcpConfigure, codexMcpStatus, codexMcpConfigure, geminiMcpStatus, geminiMcpConfigure, type AppConfig, type ClaudeMcpStatus, type CodexMcpStatus, type GeminiMcpStatus } from "../lib/config-client";
 import { useNotebookStore, type Theme, type CellStyle, type AutocompleteMode } from "../store/notebookStore";
 import { useLogStore } from "../store/logStore";
@@ -236,6 +238,39 @@ function GeminiSetup({ address, token }: { address: string; token: string }) {
   );
 }
 
+/** The language of the window, the menus and Maxima's error messages */
+function LanguageRow({
+  language,
+  languages,
+  onChange,
+}: {
+  language: string;
+  languages: string[];
+  onChange: (language: string) => void;
+}) {
+  const { t } = useLingui();
+  return (
+    <div className="settings-row">
+      <label className="settings-label">
+        {t({ message: "Language", comment: "Settings: the label of the language picker" })}
+      </label>
+      <div className="settings-control">
+        <select
+          className="settings-select"
+          value={language}
+          onChange={(e) => onChange(e.target.value)}
+        >
+          {languages.map((code) => (
+            <option key={code} value={code}>
+              {languageName(code)}
+            </option>
+          ))}
+        </select>
+      </div>
+    </div>
+  );
+}
+
 export function SettingsModal({ onClose, onSetVariablesOpen }: SettingsModalProps) {
   const [config, setLocalConfig] = useState<AppConfig | null>(null);
   const [wslDistros, setWslDistros] = useState<string[]>([]);
@@ -349,6 +384,15 @@ export function SettingsModal({ onClose, onSetVariablesOpen }: SettingsModalProp
         </div>
         <div className="settings-body">
           <div className="settings-section">
+            <LanguageRow
+              language={config.language}
+              languages={config.languages}
+              onChange={(language) => {
+                update({ language });
+                void activateLanguage(language);
+              }}
+            />
+
             <div className="settings-row">
               <label className="settings-label">Theme</label>
               <div className="settings-control">

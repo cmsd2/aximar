@@ -16,6 +16,7 @@ use crate::maxima::envelope::cancel_pipe::{pre_exec_dup_to_fd4, CancelHandle, Ca
 use crate::maxima::envelope::events_pipe::{pre_exec_dup_to_fd3, spawn_reader_task, EventsPipe};
 #[cfg(unix)]
 use crate::maxima::envelope::types::Envelope;
+use crate::maxima::messages;
 use crate::maxima::noconsole::hide_console_window;
 use crate::maxima::output::{OutputEvent, OutputSink};
 #[cfg(unix)]
@@ -103,6 +104,10 @@ pub struct MaximaProcess {
     /// in `begin_eval` / `end_eval` to transition state to `Error`
     /// when the process is gone, restoring truthful status reporting.
     dead: AtomicBool,
+
+    /// The language code Maxima's translated messages are in, as last set
+    /// by [`Self::use_language`]; empty for English
+    language: String,
 }
 
 /// Sessions started by this app process, for Docker container names.
@@ -478,6 +483,7 @@ impl MaximaProcess {
             #[cfg(unix)]
             cancel_write: cancel_write_slot,
             dead: AtomicBool::new(false),
+            language: String::new(),
         };
 
         proc.initialize().await?;
@@ -808,6 +814,20 @@ impl MaximaProcess {
                 .map(|d| d.as_millis() as u64)
                 .unwrap_or(0),
         });
+    }
+
+    /// Put Maxima's translated messages in `language` (`None` for
+    /// English), if they aren't already.  Needs `ax_messages.lisp`, which
+    /// session start loads.  Writes one `:lisp` line, which prints nothing,
+    /// so it can go just before a cell's input.
+    pub async fn use_language(&mut self, language: Option<&str>) -> Result<(), AppError> {
+        let code = messages::maxima_language_code(language);
+        if code != self.language {
+            self.write_stdin(&messages::language_lisp_stdin(&code))
+                .await?;
+            self.language = code;
+        }
+        Ok(())
     }
 
     pub async fn write_stdin(&mut self, input: &str) -> Result<(), AppError> {

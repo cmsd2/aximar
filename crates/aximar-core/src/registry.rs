@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::Arc;
+use std::sync::{Arc, RwLock};
 
 use tokio::sync::Mutex;
 
@@ -12,6 +12,11 @@ use crate::notebook::Notebook;
 use crate::session::SessionManager;
 
 pub type NotebookId = String;
+
+/// The user's language, such as `es`, or `None` for English.  Shared by a
+/// registry's notebooks: each session sets Maxima's language from it when
+/// it starts and before each cell (see `MaximaProcess::use_language`).
+pub type SharedLanguage = Arc<RwLock<Option<String>>>;
 
 /// Per-notebook state: notebook data, Maxima session, output capture, and server log.
 pub struct NotebookContext {
@@ -50,6 +55,8 @@ impl NotebookContext {
 #[derive(Clone)]
 pub struct NotebookContextRef {
     pub id: NotebookId,
+    /// The user's language, shared by every notebook in the registry
+    pub language: SharedLanguage,
     pub notebook: Arc<Mutex<Notebook>>,
     pub session: Arc<SessionManager>,
     pub capture_sink: Arc<CaptureOutputSink>,
@@ -81,6 +88,7 @@ pub struct NotebookRegistry {
     notebooks: HashMap<NotebookId, NotebookContext>,
     active: NotebookId,
     next_counter: u32,
+    language: SharedLanguage,
 }
 
 impl Default for NotebookRegistry {
@@ -98,7 +106,20 @@ impl NotebookRegistry {
             notebooks,
             active: DEFAULT_NOTEBOOK_ID.to_string(),
             next_counter: 1,
+            language: SharedLanguage::default(),
         }
+    }
+
+    /// Set the language of Maxima's translated messages in every notebook:
+    /// `None` or `en` for English.  Each session picks it up before its
+    /// next cell.
+    pub fn set_language(&self, language: Option<String>) {
+        *self.language.write().unwrap() = language;
+    }
+
+    /// The language set with [`set_language`](Self::set_language)
+    pub fn language(&self) -> Option<String> {
+        self.language.read().unwrap().clone()
     }
 
     /// Get a cheaply cloneable reference to a notebook context.
@@ -109,6 +130,7 @@ impl NotebookRegistry {
             .ok_or_else(|| format!("Notebook '{}' not found", id))?;
         Ok(NotebookContextRef {
             id: id.to_string(),
+            language: self.language.clone(),
             notebook: ctx.notebook.clone(),
             session: ctx.session.clone(),
             capture_sink: ctx.capture_sink.clone(),
