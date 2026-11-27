@@ -6,7 +6,6 @@ import { useFindStore } from "../store/findStore";
 import { useMaxima } from "../hooks/useMaxima";
 import { useCodeMirrorEditor } from "../hooks/useCodeMirrorEditor";
 import { CellOutput, shownOutput } from "./CellOutput";
-import { CellSuggestions } from "./CellSuggestions";
 import { nbDeleteCell, nbMoveCell } from "../lib/notebook-commands";
 import { afterRun, goTo } from "../lib/cell-caret";
 import { cancelEvaluation } from "../lib/maxima-client";
@@ -23,7 +22,6 @@ export function Cell({ cell, onViewDocs, selectBracket }: CellProps) {
   const cells = useActiveTab().cells;
   const cellCount = cells.length;
   const setActiveCellId = useNotebookStore((s) => s.setActiveCellId);
-  const showSuggestions = useNotebookStore((s) => s.showSuggestions);
   const { executeCell } = useMaxima();
 
   const [outputCollapsed, setOutputCollapsed] = useState(false);
@@ -204,7 +202,6 @@ export function Cell({ cell, onViewDocs, selectBracket }: CellProps) {
             </span>
           </div>
           <CellOutput output={output} cellId={cell.id} />
-          {showSuggestions && <CellSuggestions cell={cell} />}
         </div>
       )}
       {selectBracket}

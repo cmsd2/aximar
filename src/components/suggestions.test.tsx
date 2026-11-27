@@ -1,13 +1,16 @@
 // @vitest-environment happy-dom
-// The suggestions under a result: quiet buttons inside the cell's output
-// area, and none when Settings turns them off
-import { afterEach, describe, expect, it, vi } from "vitest";
+// Next steps for a result, such as "Simplify", live in the + menu of the
+// gap under it; the gap under the latest result keeps its + in view with
+// a dot.  The Settings switch turns them off.
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { I18nProvider } from "@lingui/react";
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
+const nbAddCell = vi.fn(async () => ({ cell_id: "new" }));
+const executeCell = vi.fn();
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: vi.fn(async (command: string) =>
     command === "get_suggestions"
@@ -18,72 +21,111 @@ vi.mock("@tauri-apps/api/core", () => ({
       : null,
   ),
 }));
-vi.mock("@tauri-apps/api/event", () => ({ listen: vi.fn(async () => () => {}) }));
-vi.mock("@tauri-apps/plugin-dialog", () => ({ ask: vi.fn(), message: vi.fn(), open: vi.fn(), save: vi.fn() }));
+vi.mock("@tauri-apps/plugin-dialog", () => ({ save: vi.fn() }));
 vi.mock("plotly.js-dist-min", () => ({ default: {} }));
-vi.mock("./PlotlyChart", () => ({ PlotlyChart: () => null }));
+vi.mock("../lib/notebook-commands", () => ({ nbAddCell: (...args: unknown[]) => nbAddCell(...(args as [])) }));
+vi.mock("../hooks/useMaxima", () => ({ useMaxima: () => ({ executeCell }) }));
 
 import { i18n } from "../lib/i18n";
 import { useNotebookStore } from "../store/notebookStore";
-import { Cell } from "./Cell";
-import type { Cell as CellModel } from "../types/notebook";
+import { CellGap } from "./CellGap";
+import type { Cell } from "../types/notebook";
 
 i18n.activate("en");
 
+const result = (id: string, executionCount: number): Cell => ({
+  id,
+  cellType: "code",
+  input: "integrate(x*sin(x), x);",
+  status: "success",
+  output: {
+    textOutput: "", latex: "\\sin x-x\\,\\cos x", plotSvg: null, plotData: null, imagePng: null, error: null,
+    errorInfo: null, isError: false, durationMs: 1, outputLabel: `%o${executionCount}`, executionCount, textPlain: null, stale: false,
+  },
+});
+
 let root: Root | undefined;
+beforeEach(() => {
+  nbAddCell.mockClear();
+  executeCell.mockClear();
+  const store = useNotebookStore.getState();
+  store.addTab("nb-1");
+  store.setActiveTab("nb-1");
+  store.applyBackendState("nb-1", [result("c1", 1), result("c2", 2)], "notebook_replaced");
+  store.setInsertionPoint(null);
+});
 afterEach(() => {
   act(() => root?.unmount());
   root = undefined;
   useNotebookStore.getState().setShowSuggestions(true);
 });
 
-const cell: CellModel = {
-  id: "c1",
-  cellType: "code",
-  input: "integrate(x*sin(x), x);",
-  status: "success",
-  output: {
-    textOutput: "", latex: "\\sin x-x\\,\\cos x", plotSvg: null, plotData: null, imagePng: null, error: null,
-    errorInfo: null, isError: false, durationMs: 1, outputLabel: "%o1", executionCount: 1, textPlain: null, stale: false,
-  },
-};
-
-async function render(): Promise<HTMLElement> {
+async function gap(after: string): Promise<HTMLElement> {
   const div = document.createElement("div");
   document.body.appendChild(div);
   root = createRoot(div);
   await act(async () =>
     root!.render(
       <I18nProvider i18n={i18n}>
-        <Cell cell={cell} />
+        <CellGap after={after} />
       </I18nProvider>,
     ),
   );
   return div;
 }
 
-describe("suggestions under a result", () => {
-  it("sit inside the output area, after the output", async () => {
-    const row = (await render()).querySelector(".cell-suggestions")!;
-    expect(row).not.toBeNull();
-    expect(row.parentElement?.classList.contains("cell-output-area")).toBe(true);
-    expect(row.previousElementSibling?.classList.contains("cell-output")).toBe(true);
+async function openMenu(div: HTMLElement): Promise<HTMLElement> {
+  await act(async () => div.querySelector<HTMLButtonElement>(".cell-gap-plus")!.click());
+  return div.querySelector<HTMLElement>(".cell-gap-menu")!;
+}
+
+const items = (menu: HTMLElement) => [...menu.querySelectorAll("button")].map((b) => b.textContent?.trim());
+
+describe("next steps in the gap's + menu", () => {
+  it("follow the cell types, under a heading naming the result", async () => {
+    const menu = await openMenu(await gap("c2"));
+    expect(items(menu)).toEqual(["Code⏎", "Markdown#", "Simplify", "Plot"]);
+    expect(menu.querySelector(".cell-gap-menu-heading")?.textContent).toBe("From Out [2]");
+    expect(menu.querySelector<HTMLElement>(".cell-gap-suggestion")?.title).toBe("Simplify the result");
   });
 
-  it("are quiet buttons with an arrow", async () => {
-    const buttons = [...(await render()).querySelectorAll(".cell-suggestions button")];
-    expect(buttons.map((b) => b.textContent)).toEqual(["Simplify", "Plot"]);
-    for (const b of buttons) {
-      expect(b.classList.contains("ui-button--quiet")).toBe(true);
-      expect(b.querySelector("svg")).not.toBeNull();
-    }
-    expect(buttons[0].getAttribute("title")).toBe("Simplify the result");
+  it("insert a cell after the result and run it", async () => {
+    const menu = await openMenu(await gap("c2"));
+    await act(async () => menu.querySelector<HTMLButtonElement>(".cell-gap-suggestion")!.click());
+    expect(nbAddCell).toHaveBeenCalledWith("code", "ratsimp(%);", "c2", undefined);
+    expect(executeCell).toHaveBeenCalledWith("new", "ratsimp(%);");
+    expect(document.querySelector(".cell-gap-menu")).toBeNull();
+  });
+
+  it("mark the gap under the latest result, and only that one", async () => {
+    const latest = await gap("c2");
+    expect(latest.querySelector(".cell-gap")?.classList.contains("has-hint")).toBe(true);
+    expect(latest.querySelector(".cell-gap-dot")).not.toBeNull();
+    act(() => root?.unmount());
+
+    const older = await gap("c1");
+    expect(older.querySelector(".cell-gap")?.classList.contains("has-hint")).toBe(false);
+    // Its menu still offers them
+    expect(items(await openMenu(older))).toContain("Simplify");
+  });
+
+  it("open from the caret with Tab", async () => {
+    useNotebookStore.getState().setInsertionPoint({ after: "c2" });
+    const div = await gap("c2");
+    const input = div.querySelector<HTMLTextAreaElement>(".cell-gap-input")!;
+    await act(async () => {
+      input.dispatchEvent(new KeyboardEvent("keydown", { key: "Tab", bubbles: true }));
+    });
+    expect(items(div.querySelector<HTMLElement>(".cell-gap-menu")!)).toContain("Simplify");
+    expect(nbAddCell).not.toHaveBeenCalled();
   });
 
   it("don't show when Settings turns them off", async () => {
     useNotebookStore.getState().setShowSuggestions(false);
-    const div = await render();
-    expect(div.querySelector(".cell-output-area")).not.toBeNull();
-    expect(div.querySelector(".cell-suggestions")).toBeNull();
+    const div = await gap("c2");
+    expect(div.querySelector(".cell-gap")?.classList.contains("has-hint")).toBe(false);
+    const menu = await openMenu(div);
+    expect(items(menu)).toEqual(["Code⏎", "Markdown#"]);
+    expect(menu.querySelector(".cell-gap-menu-heading")).toBeNull();
   });
 });

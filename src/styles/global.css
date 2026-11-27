@@ -302,60 +302,22 @@
   padding-right: 48px;
 }
 
-/* Insert Bar */
+/* Bracket style's gap: a 24px band laid over the space between cells, with
+   the same line, + and caret as card style's */
 .insert-bar {
-  display: flex;
-  align-items: center;
-  gap: 8px;
   height: 24px;
   margin-top: -12px;
   margin-bottom: -6px;
   position: relative;
   z-index: 1;
-  opacity: 0;
-  transition: opacity 0.15s;
-}
-
-.insert-bar:hover {
-  opacity: 1;
-}
-
-.insert-bar-line {
-  flex: 1;
-  height: 1px;
-  background: var(--border-color);
-}
-
-.insert-bar-buttons {
-  display: flex;
-  gap: 4px;
-  flex-shrink: 0;
-}
-
-.insert-bar-btn {
-  padding: 2px 10px;
-  background: transparent;
-  border: 1px solid var(--border-color);
-  border-radius: 10px;
-  color: var(--text-secondary);
-  font-size: 11px;
-  cursor: pointer;
-  transition: background 0.15s, color 0.15s;
-  white-space: nowrap;
-}
-
-.insert-bar-btn:hover {
-  background: var(--accent);
-  color: var(--bg-primary);
-  border-color: var(--accent);
 }
 
 /* The gap between two cells in card style (CellGap): 8px, with a hit
    area a little taller that reaches over the cards' edges.  Hovering
    shows a grey line and a + in the left margin.  Clicking places a
    caret: the stretch of line under the In and Out labels turns the
-   accent colour and blinks.  Bracket
-   style draws the gap as the insert bar above. */
+   accent colour and blinks.  Bracket style's gap is the taller band
+   above, with its + at the line's left end, in the gutter. */
 .cell-gap:not(.insert-bar) {
   position: relative;
   height: var(--space-2);
@@ -416,11 +378,9 @@
   animation: cell-gap-blink 1.2s steps(1) infinite;
 }
 
-/* Bracket style's bar centres its 1px line by flexbox, half a pixel
-   above 50% */
+/* Bracket style has no card border to step over */
 .insert-bar .cell-gap-caret {
   left: calc(var(--gutter-width) - var(--space-1) - var(--caret-length));
-  top: calc(50% - 0.5px);
 }
 
 @keyframes cell-gap-blink {
@@ -429,10 +389,6 @@
 
 @media (prefers-reduced-motion: reduce) {
   .cell-gap-caret { animation: none; }
-}
-
-.insert-bar.has-caret {
-  opacity: 1;
 }
 
 /* Below the last cell, room to scroll the last cell up the window, where
@@ -504,6 +460,42 @@
 .cell-gap.menu-open .cell-gap-plus {
   color: var(--accent);
   border-color: var(--accent);
+}
+
+/* Bracket style: the + sits at the line's left end, in the gutter */
+.insert-bar .cell-gap-plus,
+.insert-bar .cell-gap-menu {
+  left: 0;
+}
+
+/* Under the latest result with suggestions, the + stays in view with a
+   dot, so a next step is one click away without a row under every cell */
+.cell-gap.has-hint .cell-gap-plus {
+  opacity: 1;
+}
+
+.cell-gap-dot {
+  position: absolute;
+  top: calc(-1 * var(--space-half));
+  right: calc(-1 * var(--space-half));
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+/* The heading over the suggestions in the + menu */
+.cell-gap-menu-heading {
+  margin-top: var(--space-1);
+  padding: var(--space-1) var(--space-3) var(--space-half);
+  border-top: 1px solid var(--border-color);
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+}
+
+.cell-gap-suggestion svg {
+  vertical-align: -2px;
+  color: var(--text-secondary);
 }
 
 .cell-gap-menu {
@@ -782,8 +774,6 @@
 /* Cell Output */
 .cell-output-area {
   display: flex;
-  /* The suggestions wrap onto a row of their own */
-  flex-wrap: wrap;
   align-items: flex-start;
   border-top: 1px solid var(--border-color);
   background: rgba(0, 0, 0, 0.05);
@@ -1070,22 +1060,6 @@
 }
 
 /* Suggestion Chips */
-/* Suggestions: a row of quiet buttons under the output, inside the output
-   area, with the first arrow lined up with the output's left edge */
-.cell-suggestions {
-  flex-basis: 100%;
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-1);
-  /* Less the button's padding and border */
-  padding: 0 var(--space-3) var(--space-1) calc(var(--gutter-width) - var(--space-2) - 1px);
-}
-
-.cell-suggestion svg {
-  width: 14px;
-  height: 14px;
-}
-
 /* An error Aximar can't explain: the icon, then Maxima's text */
 .error-output {
   flex: 1;
@@ -3407,7 +3381,6 @@
   .cell-gap-menu,
   .notebook-tail,
   .bracket-toggle,
-  .cell-suggestions,
   .cm-tooltip,
   .copy-actions {
     display: none !important;

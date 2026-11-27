@@ -1,15 +1,20 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useLingui } from "@lingui/react/macro";
 import { getActiveTabState, useActiveTab, useNotebookStore, type InsertionPoint } from "../store/notebookStore";
-import { IconPlus } from "./ui/icons";
+import { IconArrowRight, IconPlus } from "./ui/icons";
 import { fromGap, goTo, insertAt, typeFor } from "../lib/cell-caret";
+import { useCellSuggestions } from "../hooks/useCellSuggestions";
+import type { Suggestion } from "../types/suggestions";
+import type { Cell } from "../types/notebook";
 
 /**
  * The gap between two cells, or above the first.  Clicking it, or an
  * arrow key from a cell's edge, puts a caret there; typing then starts a
- * cell with that text (a Markdown cell if it starts with #).  In card
- * style a + in the left margin opens a menu of cell types; bracket style
- * keeps its + Code and + Markdown buttons.
+ * cell with that text (a Markdown cell if it starts with #).  A + at the
+ * line's left end opens a menu: a code or Markdown cell, and the
+ * suggestions for the result above, such as "Simplify", which insert a
+ * cell here and run it.  The gap under the latest result with
+ * suggestions keeps its + in view, with a dot.
  */
 export function CellGap({ after }: { after: string | null }) {
   const { t } = useLingui();
@@ -19,6 +24,11 @@ export function CellGap({ after }: { after: string | null }) {
   const active = point !== null && point.after === after;
   const here: InsertionPoint = { after };
   const [menuOpen, setMenuOpen] = useState(false);
+  const cells = useActiveTab().cells;
+  const showSuggestions = useNotebookStore((s) => s.showSuggestions);
+  const above = after === null ? undefined : cells.find((c) => c.id === after);
+  const { suggestions, choose } = useCellSuggestions(above?.cellType === "code" ? above : undefined, showSuggestions);
+  const hint = suggestions.length > 0 && latestResult(cells)?.id === after;
 
   const add = useCallback(
     (cellType: "code" | "markdown") => {
@@ -36,56 +46,80 @@ export function CellGap({ after }: { after: string | null }) {
     setInsertionPoint(here);
   };
 
+  const suggest = (suggestion: Suggestion) => {
+    setMenuOpen(false);
+    useNotebookStore.getState().setInsertionPoint(null);
+    choose(suggestion);
+  };
+
   return (
     <div
-      className={`cell-gap${cellStyle === "bracket" ? " insert-bar" : ""}${active ? " has-caret" : ""}${menuOpen ? " menu-open" : ""}`}
+      className={`cell-gap${cellStyle === "bracket" ? " insert-bar" : ""}${active ? " has-caret" : ""}${menuOpen ? " menu-open" : ""}${hint ? " has-hint" : ""}`}
       onMouseDown={place}
       data-testid={`gap-${after ?? "top"}`}
     >
-      {cellStyle === "bracket" ? (
-        <>
-          <div className="insert-bar-line" />
-          <div className="insert-bar-buttons">
-            <button className="insert-bar-btn" onClick={() => add("code")}>
-              {t({
-                message: "+ Code",
-                comment: "Button in the bar between cells: inserts a code cell there. max-length:12",
-              })}
-            </button>
-            <button className="insert-bar-btn" onClick={() => add("markdown")}>
-              {t({
-                message: "+ Markdown",
-                comment: "Button in the bar between cells: inserts a markdown cell there. max-length:14",
-              })}
-            </button>
-          </div>
-          <div className="insert-bar-line" />
-        </>
-      ) : (
-        <>
-          <div className="cell-gap-line" />
-          <button
-            className="cell-gap-plus"
-            aria-haspopup="menu"
-            aria-expanded={menuOpen}
-            title={t({
-              message: "Insert a cell",
-              comment: "Tooltip of the + in the margin between two cells: opens a menu of cell types to insert there",
-            })}
-            onClick={() => setMenuOpen((open) => !open)}
-          >
-            <IconPlus size={14} stroke={1.75} aria-hidden="true" />
-          </button>
-          {menuOpen && <GapMenu onPick={add} onClose={() => setMenuOpen(false)} />}
-        </>
+      <div className="cell-gap-line" />
+      <button
+        className="cell-gap-plus"
+        aria-haspopup="menu"
+        aria-expanded={menuOpen}
+        title={
+          hint
+            ? t({
+                message: "Insert a cell, or a next step for the result above",
+                comment: "Tooltip of the + between two cells when the result above has suggested next steps, such as Simplify",
+              })
+            : t({
+                message: "Insert a cell",
+                comment: "Tooltip of the + in the margin between two cells: opens a menu of cell types to insert there",
+              })
+        }
+        onClick={() => setMenuOpen((open) => !open)}
+      >
+        <IconPlus size={14} stroke={1.75} aria-hidden="true" />
+        {hint && <span className="cell-gap-dot" aria-hidden="true" />}
+      </button>
+      {menuOpen && (
+        <GapMenu
+          onPick={add}
+          onClose={() => setMenuOpen(false)}
+          source={above}
+          suggestions={suggestions}
+          onSuggest={suggest}
+        />
       )}
-      {active && <Caret point={here} />}
+      {active && <Caret point={here} onMenu={() => setMenuOpen(true)} />}
     </div>
   );
 }
 
-/** The + menu: the cell types to insert */
-function GapMenu({ onPick, onClose }: { onPick: (type: "code" | "markdown") => void; onClose: () => void }) {
+/** The cell with the latest result, by run number: the one a fresh result came from */
+function latestResult(cells: Cell[]): Cell | undefined {
+  let latest: Cell | undefined;
+  for (const c of cells) {
+    const n = c.output?.executionCount ?? null;
+    if (n !== null && n > (latest?.output?.executionCount ?? 0)) latest = c;
+  }
+  return latest;
+}
+
+/**
+ * The + menu: the cell types to insert, then the next steps for the
+ * result above, under a heading that names it
+ */
+function GapMenu({
+  onPick,
+  onClose,
+  source,
+  suggestions,
+  onSuggest,
+}: {
+  onPick: (type: "code" | "markdown") => void;
+  onClose: () => void;
+  source: Cell | undefined;
+  suggestions: Suggestion[];
+  onSuggest: (s: Suggestion) => void;
+}) {
   const { t } = useLingui();
   const ref = useRef<HTMLDivElement>(null);
 
@@ -111,14 +145,48 @@ function GapMenu({ onPick, onClose }: { onPick: (type: "code" | "markdown") => v
     }
   };
 
+  const run = source?.output?.executionCount ?? null;
   return (
-    <div className="cell-gap-menu" role="menu" ref={ref} onKeyDown={keys}>
+    <div className="cell-gap-menu context-menu" role="menu" ref={ref} onKeyDown={keys}>
       <button role="menuitem" onClick={() => onPick("code")}>
-        {t({ message: "Code", comment: "Item in the menu of the + between cells: inserts a Maxima code cell. max-length:16" })}
+        <span>{t({ message: "Code", comment: "Item in the menu of the + between cells: inserts a Maxima code cell. max-length:16" })}</span>
+        <span className="context-menu-key">⏎</span>
       </button>
       <button role="menuitem" onClick={() => onPick("markdown")}>
-        {t({ message: "Markdown", comment: "Item in the menu of the + between cells: inserts a Markdown text cell. max-length:16" })}
+        <span>
+          {t({ message: "Markdown", comment: "Item in the menu of the + between cells: inserts a Markdown text cell. max-length:16" })}
+        </span>
+        <span className="context-menu-key">#</span>
       </button>
+      {suggestions.length > 0 && (
+        <>
+          <div className="cell-gap-menu-heading" role="presentation">
+            {run !== null
+              ? t({
+                  message: `From Out [${run}]`,
+                  comment:
+                    "Heading in the + menu between cells, above the suggested next steps for the result above, such as Simplify. run is that result's run number, as in its Out [n] label. max-length:20",
+                })
+              : t({
+                  message: "From the result above",
+                  comment: "Heading in the + menu between cells, above the suggested next steps for the result above. max-length:24",
+                })}
+          </div>
+          {suggestions.map((s) => (
+            <button
+              key={s.action ?? s.template}
+              role="menuitem"
+              className="cell-gap-suggestion"
+              title={s.description}
+              onClick={() => onSuggest(s)}
+            >
+              <span>
+                <IconArrowRight size={13} stroke={1.75} aria-hidden="true" /> {s.label}
+              </span>
+            </button>
+          ))}
+        </>
+      )}
     </div>
   );
 }
@@ -126,10 +194,11 @@ function GapMenu({ onPick, onClose }: { onPick: (type: "code" | "markdown") => v
 /**
  * The caret: a line in the gap, and a hidden input that takes the
  * keyboard.  The first text typed starts a cell; Enter starts an empty
- * code cell; the arrow keys move into the cells beside the gap; Escape,
+ * code cell; Tab opens the + menu; the arrow keys move into the cells
+ * beside the gap; Escape,
  * or focus going elsewhere, removes the caret.
  */
-function Caret({ point }: { point: InsertionPoint }) {
+function Caret({ point, onMenu }: { point: InsertionPoint; onMenu: () => void }) {
   const { t } = useLingui();
   const input = useRef<HTMLTextAreaElement>(null);
   const started = useRef(false);
@@ -152,6 +221,10 @@ function Caret({ point }: { point: InsertionPoint }) {
     if (e.key === "Escape") {
       e.preventDefault();
       useNotebookStore.getState().setInsertionPoint(null);
+    } else if (e.key === "Tab" && plain) {
+      // Tab goes into the + menu, as the next thing to focus
+      e.preventDefault();
+      onMenu();
     } else if (e.key === "Enter" && plain) {
       e.preventDefault();
       start("", "code");

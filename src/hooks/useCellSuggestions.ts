@@ -1,24 +1,31 @@
+// The suggestions for a code cell's result, such as "Simplify" or "Plot",
+// and what choosing one does: insert a cell after it with the
+// suggestion's code and run it, or save the plot.
 import { useState, useEffect, useRef, useCallback } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { save } from "@tauri-apps/plugin-dialog";
 import { t } from "@lingui/core/macro";
 import Plotly from "plotly.js-dist-min";
 import { useActiveTab, useNotebookStore } from "../store/notebookStore";
-import { useMaxima } from "../hooks/useMaxima";
+import { useMaxima } from "./useMaxima";
 import { getSuggestions } from "../lib/suggestions-client";
 import { savePlotFile } from "../lib/notebooks-client";
 import { nbAddCell } from "../lib/notebook-commands";
 import type { Suggestion } from "../types/suggestions";
 import type { Cell } from "../types/notebook";
 import type { EvalResult } from "../types/maxima";
-import { Button } from "./ui/Button";
-import { IconArrowRight } from "./ui/icons";
 
-interface CellSuggestionsProps {
-  cell: Cell;
+export interface CellSuggestionsState {
+  suggestions: Suggestion[];
+  /** Insert the suggestion's cell and run it, or do its action */
+  choose: (suggestion: Suggestion) => void;
 }
 
-export function CellSuggestions({ cell }: CellSuggestionsProps) {
+/**
+ * The suggestions for `cell`'s result; none while it has no successful
+ * result, or when `enabled` is false (the Settings switch)
+ */
+export function useCellSuggestions(cell: Cell | undefined, enabled = true): CellSuggestionsState {
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const updateCellInput = useNotebookStore((s) => s.updateCellInput);
   const cells = useActiveTab().cells;
@@ -29,6 +36,7 @@ export function CellSuggestions({ cell }: CellSuggestionsProps) {
 
   const handleAction = useCallback(
     async (action: string) => {
+      if (!cell) return;
       if (action === "save_svg" && cell.output?.plotSvg) {
         const path = await save({
           defaultPath: "plot.svg",
@@ -96,11 +104,13 @@ export function CellSuggestions({ cell }: CellSuggestionsProps) {
         }
       }
     },
-    [cell.id, cell.output],
+    [cell],
   );
 
+  // Refetch when what the suggestions depend on changes, not on every
+  // change to the cell object
   useEffect(() => {
-    if (!cell.output || cell.output.isError || cell.status !== "success") {
+    if (!enabled || !cell || !cell.output || cell.output.isError || cell.status !== "success") {
       setSuggestions([]);
       return;
     }
@@ -120,13 +130,12 @@ export function CellSuggestions({ cell }: CellSuggestionsProps) {
     };
 
     getSuggestions(cell.input, output)
-      .then(setSuggestions)
+      .then((found) => setSuggestions(found ?? []))
       .catch(() => setSuggestions([]));
-  }, [cell.id, cell.input, cell.output, cell.status]);
-
-  if (suggestions.length === 0) return null;
+  }, [enabled, cell?.id, cell?.input, cell?.output, cell?.status]);
 
   const handleSuggestionClick = async (suggestion: Suggestion) => {
+    if (!cell) return;
     const { template, position } = suggestion;
     const prev = lastSuggestionRef.current;
 
@@ -156,22 +165,9 @@ export function CellSuggestions({ cell }: CellSuggestionsProps) {
     executeCell(result.cell_id, template);
   };
 
-  // A row of quiet buttons under the output, lined up with it
-  return (
-    <div className="cell-suggestions">
-      {suggestions.map((s) => (
-        <Button
-          key={s.action ?? s.template}
-          variant="quiet"
-          size="sm"
-          icon={IconArrowRight}
-          className="cell-suggestion"
-          title={s.description}
-          onClick={() => (s.action ? handleAction(s.action) : handleSuggestionClick(s))}
-        >
-          {s.label}
-        </Button>
-      ))}
-    </div>
-  );
+  const choose = (s: Suggestion) => {
+    void (s.action ? handleAction(s.action) : handleSuggestionClick(s));
+  };
+
+  return { suggestions, choose };
 }
