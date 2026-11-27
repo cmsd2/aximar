@@ -3,6 +3,7 @@ import { useLingui } from "@lingui/react/macro";
 import type { I18n } from "@lingui/core";
 import { Button } from "../ui/Button";
 import { StatusBox } from "../ui/StatusBox";
+import { useSettingsStore } from "../../store/settingsStore";
 import type { DocsLanguages, MaximaFunction } from "../../types/catalog";
 
 /** A language's name in the window's language, such as "inglés" in Spanish */
@@ -22,6 +23,7 @@ export function nameIn(i18n: I18n, tag: string): string {
  */
 export function DocsLanguageNotes({ fn, info }: { fn: MaximaFunction; info: DocsLanguages | null }) {
   const { t, i18n } = useLingui();
+  const openSettings = useSettingsStore((s) => s.openSettings);
   const langs = fn.languages;
   const help = info?.effective ?? "en";
   const helpEntry = info?.languages.find((l) => l.tag === help);
@@ -76,6 +78,20 @@ export function DocsLanguageNotes({ fn, info }: { fn: MaximaFunction; info: Docs
             comment: "Docs panel: note above a translation whose signatures differ from the English documentation's; the English signatures follow. english is a language name",
           })}
         </StatusBox>
+      )}
+
+      {(notInstalled || langs?.fallback_from || langs?.summary_text || langs?.stale) && (
+        <Button
+          variant="quiet"
+          size="sm"
+          className="docs-help-language-link"
+          onClick={() => openSettings("general")}
+        >
+          {t({
+            message: "Help language settings",
+            comment: "Docs panel: a link under the notes about the help's language; opens Settings at General, where Help language is. max-length:28",
+          })}
+        </Button>
       )}
     </div>
   );

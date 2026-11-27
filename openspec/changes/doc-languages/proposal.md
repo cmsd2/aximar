@@ -10,7 +10,7 @@ Maxima's manual exists in Spanish, Portuguese, Brazilian Portuguese, German, Jap
 - **Language packs for the core docs.** `mxpm doc generate-core-docs --lang <lang>` builds from `doc/info/<lang>`, and core-docs publishes `maxima-core-docs-es`, `-pt`, `-pt-br`, `-de`, `-ja` and `-ru` to the package index, each pinned to the same Maxima release as `maxima-core-docs`. Any package may ship translated indexes under the same naming.
 - **The catalog keeps every language** (aximar-core). It holds each symbol's entries per language and answers in a language chain, such as Spanish then English, symbol by symbol. The embedded Spanish summaries become a summary-only Spanish layer, so the help works before any pack is installed.
 - **The docs panel says what it shows.** It shows the chosen language where there is a translation. Where a symbol falls back to English, it says so, and where a translation's signatures differ from the English it notes that the translation may be out of date. Search matches either language and shows results in the chosen one.
-- **A choice of documentation language**, in the docs panel's header: "Same as Aximar", which is the default, or one language. The menu lists the languages with installed documentation. A language without its pack shows the `mxpm install` command that adds it.
+- **A choice of documentation language**, as Help language in Settings > General: "Same as Aximar's language", which is the default, or one language. It lists the languages with installed documentation. (It began as a menu in the docs panel's header, which took room there and didn't say what it chose.) A language without its pack shows the `mxpm install` command that adds it.
 - **Every front end.** MCP's `get_function_docs` and `search_functions` take an optional `language`. maxima-lsp answers hover and completion in the editor's language, from the client's `locale`.
 - MCP results gain a `language` field naming the language of each text. Calls without `language` answer in English, as now, so nothing existing breaks.
 
@@ -28,7 +28,7 @@ None. No existing spec covers the documentation catalog or the docs panel.
 
 - **Core** (`crates/aximar-core/src/catalog/`): the doc index format, the per-language store, the language chain in queries, the embedded summaries as a layer.
 - **Tauri**: `commands/catalog.rs` passes the chain instead of patching summaries in (`i18n::help_summary` goes).
-- **Frontend**: `DocsPanel.tsx` (language menu, fallback and stale notes), its strings in the catalog, a story per state.
+- **Frontend**: the Help language setting, `DocsPanel.tsx` (fallback and stale notes), its strings in the catalog, a story per state.
 - **MCP**: an optional `language` on `get_function_docs` and `search_functions`; a `language` field in results.
 - **maxima-lsp**: reads `locale` from `initialize`.
 - **Other repositories**: mxpm (`--lang` and the `language` field), core-docs (building and publishing the language packs), package-index (their entries). Each lands as its own PR there; this change records what each must do.

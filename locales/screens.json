@@ -31,6 +31,12 @@
   "0735Pj": [
     "dialogs--command-palette-open"
   ],
+  "0sTv6O": [
+    "docs-panel--no-pack-yet",
+    "docs-panel--not-in-the-help-language",
+    "docs-panel--old-translation",
+    "docs-panel--summary-above-english"
+  ],
   "1QfxQT": [
     "cells--trust-banner-shown"
   ],
@@ -562,6 +568,10 @@
   "OxzyjO": [
     "errors--all-explanations"
   ],
+  "PJPkgb": [
+    "dialogs--settings",
+    "dialogs--settings-translation"
+  ],
   "PY-VZq": [
     "errors--all-explanations"
   ],
@@ -574,12 +584,6 @@
     "screens--drop-notebooks",
     "screens--drop-refused",
     "screens--whole-window"
-  ],
-  "PqoSoA": [
-    "docs-panel--no-pack-yet",
-    "docs-panel--not-in-the-help-language",
-    "docs-panel--old-translation",
-    "docs-panel--summary-above-english"
   ],
   "PyCiwA": [
     "errors--all-explanations"
@@ -1124,6 +1128,10 @@
     "screens--whole-window",
     "window--toolbar-and-tabs"
   ],
+  "koMHPM": [
+    "dialogs--settings",
+    "dialogs--settings-translation"
+  ],
   "kpGa12": [
     "screens--drop-refused"
   ],
@@ -1146,6 +1154,10 @@
   ],
   "m5tP38": [
     "errors--all-explanations"
+  ],
+  "mar8r-": [
+    "dialogs--settings",
+    "dialogs--settings-translation"
   ],
   "mkPx6Y": [
     "dialogs--settings-notebook",
@@ -1176,12 +1188,6 @@
   ],
   "nt-MSq": [
     "errors--all-explanations"
-  ],
-  "o08LK6": [
-    "docs-panel--no-pack-yet",
-    "docs-panel--not-in-the-help-language",
-    "docs-panel--old-translation",
-    "docs-panel--summary-above-english"
   ],
   "ohqUka": [
     "errors--all-explanations"

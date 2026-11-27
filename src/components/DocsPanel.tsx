@@ -8,9 +8,7 @@ import { Trans, useLingui } from "@lingui/react/macro";
 import { plural } from "@lingui/core/macro";
 import { listen } from "@tauri-apps/api/event";
 import { docsLanguages, getFunctionDocs, getFunction, searchFunctions, getPackage, packageForFunction, searchPackageFunctions, searchPackages } from "../lib/catalog-client";
-import { setConfig } from "../lib/config-client";
 import type { DocsLanguages, MaximaFunction, SearchResult, PackageInfo, PackageFunctionSearchResult, PackageSearchResult } from "../types/catalog";
-import { DocsLanguageMenu } from "./docs/DocsLanguageMenu";
 import { DocsLanguageNotes } from "./docs/DocsLanguageNotes";
 
 /**
@@ -128,28 +126,20 @@ export function DocsPanel({ open, functionName, requestId, onClose }: DocsPanelP
       .catch(() => setDocsInfo(null));
   }, []);
 
+  // Show the page again when the app's language or the help language
+  // (Settings > General) changes
   useEffect(() => {
     loadDocsInfo();
-    const unlisten = listen("language-changed", () => {
+    const again = () => {
       loadDocsInfo();
       const page = historyRef.current[historyIndexRef.current];
       if (page) void navigateTo(page, false);
-    });
+    };
+    const unlisteners = [listen("language-changed", again), listen("docs-language-changed", again)];
     return () => {
-      void unlisten.then((f) => f());
+      for (const u of unlisteners) void u.then((f) => f());
     };
   }, [loadDocsInfo, navigateTo]);
-
-  /** Choose the help's language, and show the page again in it */
-  const chooseDocsLanguage = useCallback(
-    async (language: string | null) => {
-      await setConfig({ docs_language: language });
-      loadDocsInfo();
-      const page = historyRef.current[historyIndexRef.current];
-      if (page) await navigateTo(page, false);
-    },
-    [loadDocsInfo, navigateTo],
-  );
 
   // Load docs when a new request arrives (requestId bumps on each click)
   useEffect(() => {
@@ -277,7 +267,6 @@ export function DocsPanel({ open, functionName, requestId, onClose }: DocsPanelP
             }
           }}
         />
-        {docsInfo && <DocsLanguageMenu info={docsInfo} onChange={(l) => void chooseDocsLanguage(l)} />}
         <button
           className="docs-close-btn"
           onClick={onClose}

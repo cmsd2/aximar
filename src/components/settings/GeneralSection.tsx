@@ -10,6 +10,7 @@ import { FieldRow } from "../ui/FieldRow";
 import type { Label } from "../ui/label";
 import { SegmentedControl } from "../ui/SegmentedControl";
 import { Select } from "../ui/Select";
+import { HelpLanguageRow } from "./HelpLanguageRow";
 import type { SectionProps } from "./types";
 
 export const THEMES: { value: Theme; label: Label }[] = [
@@ -46,6 +47,8 @@ export function GeneralSection({ config, update }: SectionProps) {
           />
         )}
       </FieldRow>
+
+      <HelpLanguageRow config={config} update={update} />
 
       <FieldRow
         divided

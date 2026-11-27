@@ -85,6 +85,16 @@ export function installTauriMock(): void {
           return { state: "listening", address: "127.0.0.1:19542" };
         case "maxima_version":
           return "5.50.0";
+        case "docs_languages":
+          // English, and Spanish with summaries only
+          return {
+            choice: null,
+            effective: "en",
+            languages: [
+              { tag: "en", full: true, pack: null },
+              { tag: "es", full: false, pack: "maxima-core-docs-es" },
+            ],
+          };
         case "maxima_status":
           return { path: "/opt/homebrew/bin/maxima", source: "standard-location", problem: null };
         case "plugin:event|listen":

@@ -739,15 +739,6 @@ msgstr ""
 msgid "Docs →"
 msgstr ""
 
-#. Docs panel: tooltip of the menu that chooses the language of the help
-#. screen: docs-panel--no-pack-yet
-#. screen: docs-panel--not-in-the-help-language
-#. screen: docs-panel--old-translation
-#. screen: docs-panel--summary-above-english
-#: src/components/docs/DocsLanguageMenu.tsx
-msgid "Documentation language"
-msgstr ""
-
 #. Button in the Unsaved Changes dialog: closes the notebooks and loses the changes
 #: src/lib/unsaved-changes.ts
 msgid "Don't Save"
@@ -993,6 +984,22 @@ msgstr ""
 #. screen: dialogs--settings-ai-assistants
 #: src/components/settings/AiAssistantsSection.tsx
 msgid "Generate new token (restarts MCP server)"
+msgstr ""
+
+#. Settings: the label of the menu that chooses the language of the docs panel's help
+#. screen: dialogs--settings
+#. screen: dialogs--settings-translation
+#: src/components/settings/HelpLanguageRow.tsx
+msgid "Help language"
+msgstr ""
+
+#. Docs panel: a link under the notes about the help's language; opens Settings at General, where Help language is. max-length:28
+#. screen: docs-panel--no-pack-yet
+#. screen: docs-panel--not-in-the-help-language
+#. screen: docs-panel--old-translation
+#. screen: docs-panel--summary-above-english
+#: src/components/docs/DocsLanguageNotes.tsx
+msgid "Help language settings"
 msgstr ""
 
 #. Button on a note in a cell's output: hides the lines Maxima printed, which the note explains
@@ -1765,13 +1772,11 @@ msgstr ""
 msgid "Run cell (Shift+Enter)"
 msgstr ""
 
-#. Docs panel: documentation language menu item; the help follows the app's language setting. max-length:24
-#. screen: docs-panel--no-pack-yet
-#. screen: docs-panel--not-in-the-help-language
-#. screen: docs-panel--old-translation
-#. screen: docs-panel--summary-above-english
-#: src/components/docs/DocsLanguageMenu.tsx
-msgid "Same as Aximar"
+#. Settings: the first choice for Help language; the help follows the Language setting above it. max-length:32
+#. screen: dialogs--settings
+#. screen: dialogs--settings-translation
+#: src/components/settings/HelpLanguageRow.tsx
+msgid "Same as Aximar's language"
 msgstr ""
 
 #. Settings: Markdown font button for the system sans-serif font
@@ -2046,6 +2051,13 @@ msgstr ""
 #. screen: docs-panel--summary-above-english
 #: src/components/docs/DocsLanguageNotes.tsx
 msgid "The full documentation below is in {bodyName}."
+msgstr ""
+
+#. Settings, General section: hint under Help language
+#. screen: dialogs--settings
+#. screen: dialogs--settings-translation
+#: src/components/settings/HelpLanguageRow.tsx
+msgid "The language of function help in the docs panel. Where a function has no help in it, the English shows."
 msgstr ""
 
 #. Settings, General section: hint under Language

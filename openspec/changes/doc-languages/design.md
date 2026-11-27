@@ -68,7 +68,7 @@ core-docs builds `maxima-core-docs-<lang>` for each language whose manual docume
 
 ### 6. Choosing, in the docs panel
 
-The docs panel's header gets a menu: "Same as Aximar" and each language with any documentation, embedded or installed, shown by its own name ("Español"). The choice is a config field, `docs_language`, with `None` meaning "Same as Aximar". The chain is that language then English.
+Settings > General gets a Help language menu, under Language: "Same as Aximar's language" and each language with any documentation, embedded or installed, shown by its own name ("Español"). The choice is a config field, `docs_language`, with `None` meaning the app's language; changing it emits `docs-language-changed`, and each docs panel shows its page again. The chain is that language then English. The menu first sat in the docs panel's header, where it took room and, labelled only "Same as Aximar", didn't say it was about language; the panel's language notes now link to the setting instead.
 
 The choice sits in the docs panel rather than Settings because readers switch while reading, for example to check the English when a translation looks stale. It also keeps the Settings window's sections as the settings-window change defines them.
 
@@ -76,7 +76,7 @@ When the chosen language has no full documentation installed, the panel shows a 
 
 All new text goes through Lingui with translator notes.
 
-The panel reads `docs_languages`, a command that gives the choice, the language in use and each language's documentation (full or summaries only, and its pack if the index lists one), and `languages` on each function. A translated summary travels as `languages.summary_text`, apart from `description`, so the panel can put the note about the body's language between them. Language names in the notes are in the window's language (Intl), and in the menu each language's own. Stories use per-story answers in the Tauri mock (`setStoryAnswers`).
+The panel reads `docs_languages`, a command that gives the choice, the language in use and each language's documentation (full or summaries only, and its pack if the index lists one), and `languages` on each function. A translated summary travels as `languages.summary_text`, apart from `description`, so the panel can put the note about the body's language between them. Language names in the notes are in the window's language (Intl), and in the Help language menu each language's own. Stories use per-story answers in the Tauri mock (`setStoryAnswers`).
 
 Building this found an older bug: a `null` in a config update read as "no change", so clearing the Maxima path in Settings left the old path. Updates now read `null` as "clear" for `maxima_path` and `docs_language`.
 

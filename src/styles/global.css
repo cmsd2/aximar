@@ -2833,9 +2833,8 @@
   flex-shrink: 0;
 }
 
-.docs-language-menu .ui-select {
-  padding: var(--space-half) var(--space-1);
-  font-size: var(--text-sm);
+.docs-help-language-link {
+  margin-top: calc(-1 * var(--space-1));
 }
 
 .docs-language-notes .ui-status {

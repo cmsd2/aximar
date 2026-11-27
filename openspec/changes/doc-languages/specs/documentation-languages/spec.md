@@ -62,17 +62,22 @@ Search SHALL match a query against the symbols' text in every language the chain
 
 ### Requirement: The reader chooses the documentation language
 
-The docs panel SHALL offer a choice of documentation language: "Same as Aximar", which is the default, and each language with documentation installed or embedded. The choice SHALL persist across restarts. "Same as Aximar" SHALL follow the app's language setting, falling back to English when there's no documentation in it.
+Settings > General SHALL offer a Help language setting, beside the app's Language: "Same as Aximar's language", which is the default, and each language with documentation installed or embedded. The docs panel SHALL have no language control of its own; its notes about the help's language SHALL link to the setting. The choice SHALL persist across restarts, and every open docs panel SHALL show its page again in the new language when it changes. "Same as Aximar's language" SHALL follow the app's language setting, falling back to English when there's no documentation in it.
 
 #### Scenario: Following the app
 
-- **WHEN** the app's language is Spanish and the documentation language is "Same as Aximar"
+- **WHEN** the app's language is Spanish and the help language is "Same as Aximar's language"
 - **THEN** the docs panel uses the chain Spanish then English
 
 #### Scenario: Choosing English
 
-- **WHEN** the app's language is Spanish and the user chooses English in the docs panel
-- **THEN** the docs panel shows English, and still does after a restart
+- **WHEN** the app's language is Spanish and the user chooses English as the help language in Settings
+- **THEN** the open docs panel shows its page again in English, and still does after a restart
+
+#### Scenario: From a note to the setting
+
+- **WHEN** the docs panel shows a note that a function's documentation is in another language, and the user clicks Help language settings
+- **THEN** Settings opens at General, where the help language is
 
 ### Requirement: A missing language says how to get it
 
