@@ -442,6 +442,10 @@
   )
   > .cell-gutter {
   padding-top: 0;
+  /* Half a pixel above the baseline, as the In label sits above its
+     code line, which looks better in line than an exact match */
+  position: relative;
+  top: -0.5px;
 }
 
 .cell-indicator.running {
