@@ -18,6 +18,8 @@
     "@codemirror/state": "^6.6.0",
     "@codemirror/view": "^6.40.0",
     "@lezer/highlight": "^1.2.3",
+    "@lingui/core": "^6.12.0",
+    "@lingui/react": "^6.12.0",
     "@tauri-apps/api": "^2",
     "@tauri-apps/plugin-dialog": "^2.6.0",
     "@tauri-apps/plugin-opener": "^2",
@@ -38,6 +40,9 @@
     "zustand": "^5.0.0"
   },
   "devDependencies": {
+    "@lingui/cli": "^6.12.0",
+    "@lingui/format-po-gettext": "^6.12.0",
+    "@lingui/vite-plugin": "^6.12.0",
     "@tauri-apps/cli": "^2",
     "@types/katex": "^0.16.0",
     "@types/plotly.js": "^3.0.10",

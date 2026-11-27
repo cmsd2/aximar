@@ -2,11 +2,11 @@ Each numbered group is one pull request, landing in order unless a group says ot
 
 ## 1. The catalog pipeline
 
-- [ ] 1.1 Add Lingui (`@lingui/core`, `@lingui/react`, `@lingui/vite-plugin`, `@lingui/cli`, `@lingui/format-po-gettext`) with `lingui.config` pointing at `locales/`, an `I18nProvider` around the app, and English as the only language; verify `npm run build` and that the window renders unchanged
-- [ ] 1.2 Add the `msg!` and `msg_ctx!` macros and the `Message` type (`id`, `template`, `params`, `text`) in aximar-core; verify with unit tests that `text` renders the template with its parameters and that a missing parameter fails the test build
-- [ ] 1.3 Add `scripts/i18n-extract` (Lingui template, `xgettext` over the Rust crates with `--keyword='msg!' --keyword='msg_ctx!:1c,2' --add-comments=i18n:`, `msgcat`, `msgmerge --previous` per language) and its `--check` mode; verify it produces `locales/messages.pot` with a test `msg!` string, its `// i18n:` note and a window string
-- [ ] 1.4 Add the CI job: GNU gettext from packages, `scripts/i18n-extract --check`, `msgfmt -c` on every `.po`, and a test comparing placeholder names and `max-length:N` flags between msgids and translations; verify the job fails on a stale template and on a `.po` with a renamed placeholder (the "catalog is checked" scenarios), then passes
-- [ ] 1.5 Add Lingui's pseudo-locale for development builds; verify by running the window in it that only text outside the catalog stays plain English
+- [x] 1.1 Add Lingui (`@lingui/core`, `@lingui/react`, `@lingui/vite-plugin`, `@lingui/cli`, `@lingui/format-po-gettext`) with `lingui.config` pointing at `locales/`, an `I18nProvider` around the app, and English as the only language; verify `npm run build` and that the window renders unchanged
+- [x] 1.2 Add the `msg!` and `msg_ctx!` macros and the `Message` type (`id`, `template`, `params`, `text`) in aximar-core; verify with unit tests that `text` renders the template with its parameters and that a missing parameter fails the test build
+- [x] 1.3 Add `scripts/i18n-extract` (Lingui template, `xgettext` over the Rust crates with `--keyword='msg!' --keyword='msg_ctx!:1c,2' --add-comments=i18n:`, `msgcat`, `msgmerge --previous` per language) and its `--check` mode; verify it produces `locales/messages.pot` with a test `msg!` string, its `// i18n:` note and a window string
+- [x] 1.4 Add the CI job: GNU gettext from packages, `scripts/i18n-extract --check`, `msgfmt -c` on every `.po`, and a test comparing placeholder names and `max-length:N` flags between msgids and translations; verify the job fails on a stale template and on a `.po` with a renamed placeholder (the "catalog is checked" scenarios), then passes
+- [x] 1.5 Add Lingui's pseudo-locale for development builds; verify by running the window in it that only text outside the catalog stays plain English
 
 ## 2. Message IDs, and errors.rs onto the catalog
 

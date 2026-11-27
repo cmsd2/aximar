@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useLingui } from "@lingui/react/macro";
 import type { ErrorInfo } from "../types/maxima";
 import { useNotebookStore } from "../store/notebookStore";
 
@@ -16,6 +17,7 @@ export function EnhancedErrorOutput({
   errorTranslated,
   cellId,
 }: EnhancedErrorOutputProps) {
+  const { t } = useLingui();
   const [showRaw, setShowRaw] = useState(false);
   const updateCellInput = useNotebookStore((s) => s.updateCellInput);
 
@@ -29,7 +31,15 @@ export function EnhancedErrorOutput({
               className="enhanced-error-toggle"
               onClick={() => setShowRaw(!showRaw)}
             >
-              {showRaw ? "Hide" : "Show"} original
+              {showRaw
+                ? t({
+                    message: "Hide original",
+                    comment: "Button: hides Maxima's English error message, shown below its translation",
+                  })
+                : t({
+                    message: "Show original",
+                    comment: "Button: shows Maxima's English error message below its translation",
+                  })}
             </button>
             {showRaw && <pre className="enhanced-error-raw">{error}</pre>}
           </>
@@ -98,7 +108,15 @@ export function EnhancedErrorOutput({
         className="enhanced-error-toggle"
         onClick={() => setShowRaw(!showRaw)}
       >
-        {showRaw ? "Hide" : "Show"} raw error
+        {showRaw
+          ? t({
+              message: "Hide raw error",
+              comment: "Button: hides the error exactly as Maxima printed it",
+            })
+          : t({
+              message: "Show raw error",
+              comment: "Button: shows the error exactly as Maxima printed it, below Aximar's explanation",
+            })}
       </button>
       {showRaw && <pre className="enhanced-error-raw">{error}</pre>}
     </div>

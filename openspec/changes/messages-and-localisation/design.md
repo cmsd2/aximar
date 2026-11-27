@@ -80,7 +80,7 @@ Placeholders are named, in braces (`{expr}`), which Lingui, Rust format strings 
 ```rust
 pub struct Message {
     pub id: String,                       // "question.sign", the msgctxt
-    pub template: &'static str,           // "Maxima needs to know the sign of {expr}", the msgid
+    pub template: Cow<'static, str>,      // "Maxima needs to know the sign of {expr}", the msgid
     pub params: BTreeMap<String, String>, // {"expr": "a"}
     pub text: String,                     // the English, rendered from template and params
 }
