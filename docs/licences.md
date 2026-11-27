@@ -8,7 +8,7 @@ The built app holds them in `licenses/`.
 | --- | --- | --- |
 | `JetBrainsMono-OFL.txt` | The monospace font | `public/licenses/`, copied from `@fontsource/jetbrains-mono` |
 | `ComputerModern-OFL.txt` | The Computer Modern Markdown font | `public/licenses/`, copied from `computer-modern` |
-| `third-party-npm.txt` | Every npm package in the window's bundle | Written by `npm run build` |
+| `third-party-npm.html` | Every npm package in the window's bundle | Written by `npm run build` |
 | `third-party-rust.html` | Every Rust crate the app and the tools link | `public/licenses/`, written by `npm run licences:rust` |
 
 The tools release archives carry `third-party-rust.html` as
@@ -37,9 +37,11 @@ it. Everything else on the list asks only for the notice.
 ## The npm notices
 
 `rollup-plugin-license`, in `vite.config.ts`, sees every module Rollup puts
-in the window's bundle, and writes `dist/licenses/third-party-npm.txt` from
-`scripts/npm-notices.ts`: each package's name and version, the licence
-Aximar uses it under, its source, and its licence and notice files. A
+in the window's bundle, and writes `dist/licenses/third-party-npm.html` from
+`scripts/npm-notices.ts`, in the same shape as the Rust page: a contents
+list by licence, then each licence text once, with the packages Aximar uses
+under it, each linking its source. A package's text is its licence and
+notice files. A
 package with no licence file gets its copyright line from `package.json`
 and, for MIT, the licence's standard text. Packages that only run at build
 time, such as Lingui's command line and Babel, never reach the bundle and
@@ -50,7 +52,17 @@ fonts, such as `@fontsource/jetbrains-mono` and `computer-modern`, needs
 its licence copied into `public/licenses/` by hand, and a line in
 `public/licenses/README.txt`.
 
-The plugin doesn't run in `vite dev` or in Storybook's build.
+The plugin doesn't run in `vite dev` or in Storybook's build, so a
+development build has no npm notices; the Licences window says so, rather
+than showing the app's page that the development server sends for a
+missing file.
+
+## The Licences window
+
+Settings, General, Licences opens `licenses/index.html`, a viewer whose
+tabs (Overview, npm packages, Rust crates, Fonts) stay along the top while
+`licenses/viewer.js` loads each notice below them, so there is always a
+way back. Links to a package's source open in the system browser.
 
 ### When the build fails on a licence
 

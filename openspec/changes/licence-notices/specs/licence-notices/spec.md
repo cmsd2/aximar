@@ -6,17 +6,17 @@ Aximar ships the copyright notices and licence texts of the open-source code and
 
 ### Requirement: The app ships a notice for every bundled npm package
 
-The build SHALL write `licenses/third-party-npm.txt` into the built app, listing every npm package whose code is in the window's bundle with its name, version, licence and licence text, or its copyright line where the package has no licence file. It SHALL NOT list packages used only to build.
+The build SHALL write `licenses/third-party-npm.html` into the built app, listing every npm package whose code is in the window's bundle with its name, version, licence and a link to its source, under its licence text, or its copyright line where the package has no licence file. Packages sharing a licence text SHALL share one copy of it. It SHALL NOT list packages used only to build.
 
 #### Scenario: A bundled package is listed
 
 - **WHEN** `npm run build` finishes
-- **THEN** `dist/licenses/third-party-npm.txt` lists `react` and `katex` with their MIT licence texts
+- **THEN** `dist/licenses/third-party-npm.html` lists `react` and `katex` under MIT licence texts, each with a link to its source
 
 #### Scenario: Build tooling is left out
 
 - **WHEN** `npm run build` finishes
-- **THEN** `dist/licenses/third-party-npm.txt` doesn't list `caniuse-lite` or `@lingui/cli`
+- **THEN** `dist/licenses/third-party-npm.html` doesn't list `caniuse-lite` or `@lingui/cli`
 
 ### Requirement: The app and the tools ship a notice for every Rust crate they link
 
@@ -63,6 +63,16 @@ The app SHALL show the notices in a window of their own, opened from a Licences 
 
 - **WHEN** the user presses Show licences in Settings, General
 - **THEN** a window titled Licences opens on the index, and its links show each notice file
+
+#### Scenario: Every notice has a way back
+
+- **WHEN** the user opens the npm packages, the Rust crates or the fonts in the Licences window
+- **THEN** the tabs stay along the top of the window, and a link to a package's source opens in the system browser
+
+#### Scenario: A development build explains the missing npm notices
+
+- **WHEN** the app runs from `npm run tauri dev` and the user opens the npm packages tab
+- **THEN** the window says the npm notices come with a built app, and shows no HTML source
 
 #### Scenario: The notices work offline
 

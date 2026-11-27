@@ -10,6 +10,6 @@ Computer Modern Unicode (the Computer Modern Markdown font)
   Bundled from the computer-modern npm package.
 
 Open-source code
-  third-party-npm.txt: the npm packages in the app's window
+  third-party-npm.html: the npm packages in the app's window
   third-party-rust.html: the Rust crates in the app and its tools
   See docs/licences.md in Aximar's source for how these are made.

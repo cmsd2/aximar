@@ -107,6 +107,7 @@ export function render(licences) {
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<meta name="aximar-notices" content="rust">
 <title>Rust crates: licence notices</title>
 <style>
   :root { color-scheme: light dark; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }

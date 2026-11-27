@@ -19,7 +19,7 @@ export default defineConfig(async () => ({
   // and fails on a licence Aximar hasn't accepted.  See docs/licences.md.
   build: {
     rollupOptions: {
-      plugins: storybook ? [] : [license({ thirdParty: thirdPartyNotices("dist/licenses/third-party-npm.txt") })],
+      plugins: storybook ? [] : [license({ thirdParty: thirdPartyNotices("dist/licenses/third-party-npm.html") })],
     },
   },
 

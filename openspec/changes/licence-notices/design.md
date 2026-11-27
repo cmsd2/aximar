@@ -26,7 +26,7 @@ A survey of the dependency trees on 27 November 2026:
 
 ### 1. npm: `rollup-plugin-license` in the Vite build
 
-`rollup-plugin-license` (3.7.2, pinned, a dev dependency) runs in `vite.config.ts` and sees the modules Rollup actually bundles, so build tooling stays out without a hand-kept exclude list. Its `thirdParty.output` writes `dist/licenses/third-party-npm.txt`. Its `thirdParty.allow.test` is the accepted list as an SPDX expression check, with `failOnUnlicensed` and `failOnViolation` set, so a violation fails `npm run build`. It runs only in `vite build`, not in `vite dev` or Storybook.
+`rollup-plugin-license` (3.7.2, pinned, a dev dependency) runs in `vite.config.ts` and sees the modules Rollup actually bundles, so build tooling stays out without a hand-kept exclude list. Its `thirdParty.output` writes `dist/licenses/third-party-npm.html`. Its `thirdParty.allow.test` is the accepted list as an SPDX expression check, with `failOnUnlicensed` and `failOnViolation` set, so a violation fails `npm run build`. It runs only in `vite build`, not in `vite dev` or Storybook.
 
 The accepted list and an SPDX expression reader live in `scripts/accepted-licences.ts`, and the notices file's format in `scripts/npm-notices.ts`, both with vitest tests. The first build lists 111 packages, all MIT, ISC or BSD-3-Clause, two of them chosen from MIT or Apache-2.0. Two MIT packages (`remark-math`, `rehype-katex`) ship no licence file, so their entries carry the copyright line from `package.json` and MIT's standard text. The plugin sees only JavaScript, so the fonts, which come in through CSS, keep their licences in `public/licenses/` by hand.
 
@@ -51,10 +51,14 @@ Alternative: generate in `build.yml` only. Development builds would show an empt
 `public/licenses/index.html` is a static page, outside the window's React app and stylesheets. It sets `color-scheme: light dark` and the system font, and writes no colours of its own, so the webview's own light and dark colours apply and the design library's rule holds. It links:
 
 - `JetBrainsMono-OFL.txt` and `ComputerModern-OFL.txt`, with the README's lines;
-- `third-party-npm.txt`;
+- `third-party-npm.html`;
 - `third-party-rust.html`.
 
-A Tauri command, `open_licences`, opens a `WebviewWindow` labelled `licences` at `licenses/index.html`, sized 720 by 640, or focuses it if it is already open. The window loads only bundled files, so it needs no capability beyond the defaults.
+The npm notices are an HTML page shaped like the Rust one, a contents list by licence and each licence text once, since a plain list of 111 packages each repeating the MIT text was hard to read. Each generated page carries `<meta name="aximar-notices">`; the viewer shows an HTML notice only with that marker, and a text notice only if it isn't HTML. In `vite dev`, where the npm page isn't built, the development server answers its address with the app's own page, and the viewer says the notices come with a built app instead of showing that page as text.
+
+The page is a small viewer, because the notices are separate files and a text file can't link back: a bar along the top (Overview, npm packages, Rust crates, Fonts) stays put, and `licenses/viewer.js` loads each notice below it, by the address's `#` part, so the window never leaves the page. The script is a separate file because the app's content security policy allows scripts from the app only, not inline ones. A test fails if the page links anywhere but its own tabs.
+
+A Tauri command, `open_licences`, opens a `WebviewWindow` labelled `licences` at `licenses/index.html`, sized 720 by 640, or focuses it if it is already open. A link to a crate's source or repository, outside the app, opens in the system browser through the opener plugin; inside the window it would leave the notices with no way back. The window loads only bundled files, so it needs no capability beyond the defaults.
 
 The General section of Settings gains a row, Licences, with the hint "The open-source software and fonts Aximar uses, and their licences" and a Show licences button. The row is a link, not a setting, so the settings-window spec's sections are unchanged.
 

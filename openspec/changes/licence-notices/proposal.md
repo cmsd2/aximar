@@ -4,7 +4,7 @@ Aximar ships code from about 750 open-source packages and no notice for any of t
 
 ## What Changes
 
-- The Vite build writes `dist/licenses/third-party-npm.txt`: every npm package in the window's bundle, with its version, licence and licence text, from `rollup-plugin-license`. Build tooling that never reaches the bundle (such as `caniuse-lite`, which comes in through `@lingui/cli`) stays out.
+- The Vite build writes `dist/licenses/third-party-npm.html`: every npm package in the window's bundle, with its version, licence and licence text, from `rollup-plugin-license`. Build tooling that never reaches the bundle (such as `caniuse-lite`, which comes in through `@lingui/cli`) stays out.
 - `cargo-about` generates `public/licenses/third-party-rust.html` for the Rust crates the shipped binaries link: the desktop app and the three tools. The file is checked in, so every build, a developer's included, ships it, and a CI job regenerates it and fails when it is stale.
 - Both generators fail the build on a licence outside an accepted list: MIT, MIT-0, Apache-2.0 (with or without the LLVM exception), BSD-2-Clause, BSD-3-Clause, ISC, Zlib, 0BSD, Unicode-3.0, CC0-1.0, BSL-1.0, Unlicense, OFL-1.1 and MPL-2.0. A package under anything else, such as GPL, LGPL alone, or CC-BY-SA, stops the build until someone decides.
 - MPL-2.0 crates (today `cssparser`, `selectors`, `dtoa-short`, `option-ext` and `typed-generational-arena`, all unmodified) are listed with a link to their source on crates.io, which MPL-2.0 asks for.

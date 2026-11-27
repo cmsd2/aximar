@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Dependency } from "rollup-plugin-license";
-import { noticeOf, noticesFile, thirdPartyNotices } from "./npm-notices";
+import { groupNotices, noticesPage, sourceUrl, thirdPartyNotices } from "./npm-notices";
 
 function dep(fields: Partial<Dependency>): Dependency {
   return {
@@ -31,22 +31,48 @@ describe("the npm notices", () => {
     expect(allow.failOnViolation && allow.failOnUnlicensed).toBe(true);
   });
 
+  it("group packages that share a licence text, and keep different texts apart", () => {
+    const groups = groupNotices([
+      dep({ name: "b" }),
+      dep({ name: "a" }),
+      dep({ name: "c", licenseText: "Copyright (c) Someone else\nMIT text" }),
+      dep({ name: "d", license: "ISC", licenseText: "ISC text" }),
+    ]);
+    expect(groups.map((g) => [g.licence, g.packages.map((p) => p.name)])).toEqual([
+      ["ISC", ["d"]],
+      ["MIT", ["a", "b"]],
+      ["MIT", ["c"]],
+    ]);
+  });
+
   it("name the licence a package is used under", () => {
-    const text = noticeOf(dep({ name: "both", license: "Apache-2.0 OR MIT", repository: { type: "git", url: "https://example.com/both" } }));
-    expect(text).toContain("both@1.0.0\nLicence: MIT (offered: Apache-2.0 OR MIT)\nSource: https://example.com/both");
-    expect(text).toContain("MIT text");
+    const [group] = groupNotices([dep({ name: "both", license: "Apache-2.0 OR MIT" })]);
+    expect(group.licence).toBe("MIT");
+    expect(group.packages[0].offered).toBe("Apache-2.0 OR MIT");
   });
 
   it("give an MIT package without a licence file the standard text", () => {
-    const text = noticeOf(dep({ licenseText: null, author: { name: "Ada", email: null, url: null, text: () => "" } as never }));
-    expect(text).toContain("Copyright (c) Ada");
-    expect(text).toContain("Permission is hereby granted, free of charge");
+    const [group] = groupNotices([dep({ licenseText: null, author: { name: "Ada", email: null, url: null, text: () => "" } as never })]);
+    expect(group.text).toContain("Copyright (c) Ada");
+    expect(group.text).toContain("Permission is hereby granted, free of charge");
   });
 
-  it("list packages in name order under a header", () => {
-    const file = noticesFile([dep({ name: "zeta" }), dep({ name: "alpha" })]);
-    expect(file).toMatch(/^Aximar: notices/);
-    expect(file.indexOf("alpha@")).toBeLessThan(file.indexOf("zeta@"));
-    expect(file).toContain("the 2 packages below");
+  it("turn package.json's repository into a web address", () => {
+    expect(sourceUrl(dep({ repository: { type: "git", url: "git+https://github.com/codemirror/view.git" } }))).toBe(
+      "https://github.com/codemirror/view",
+    );
+    expect(sourceUrl(dep({ repository: "git://github.com/a/b.git" }))).toBe("https://github.com/a/b");
+    expect(sourceUrl(dep({ repository: "github:a/b" }))).toBe("https://github.com/a/b");
+    expect(sourceUrl(dep({ repository: "a/b" }))).toBe("https://github.com/a/b");
+    expect(sourceUrl(dep({ repository: "git@gitlab.com:a/b.git" }))).toBe("https://gitlab.com/a/b");
+    expect(sourceUrl(dep({ homepage: "https://example.com" }))).toBe("https://example.com");
+  });
+
+  it("render a page with a marker, a contents list, and escaped texts", () => {
+    const page = noticesPage([dep({ name: "x", licenseText: "a <b> & c", repository: "x/y" })]);
+    expect(page).toContain('<meta name="aximar-notices" content="npm">');
+    expect(page).toContain("<li>MIT: 1 package</li>");
+    expect(page).toContain('x 1.0.0: <a href="https://github.com/x/y">source</a>');
+    expect(page).toContain("a &lt;b&gt; &amp; c");
   });
 });
