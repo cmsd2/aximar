@@ -1,7 +1,7 @@
 use std::path::Path;
 use std::sync::{Arc, RwLock};
 
-use aximar_core::catalog::doc_index;
+use aximar_core::catalog::doc_index::{self, LanguageChain};
 use aximar_core::catalog::packages::PackageCatalog;
 use aximar_core::catalog::search::Catalog;
 use dashmap::DashMap;
@@ -25,6 +25,8 @@ pub struct MaximaLsp {
     catalog: RwLock<Arc<Catalog>>,
     packages: Arc<PackageCatalog>,
     documents: DashMap<Url, DocumentState>,
+    /// The languages to document in, from the client's `locale`
+    chain: RwLock<LanguageChain>,
 }
 
 impl MaximaLsp {
@@ -37,7 +39,13 @@ impl MaximaLsp {
             catalog,
             packages,
             documents: DashMap::new(),
+            chain: RwLock::new(LanguageChain::english()),
         }
+    }
+
+    /// The languages to document in: the client's locale, then English
+    fn chain(&self) -> LanguageChain {
+        self.chain.read().unwrap().clone()
     }
 
     /// Snapshot the current catalog (cheap Arc clone).
@@ -57,7 +65,12 @@ impl MaximaLsp {
 
 #[tower_lsp::async_trait]
 impl LanguageServer for MaximaLsp {
-    async fn initialize(&self, _params: InitializeParams) -> jsonrpc::Result<InitializeResult> {
+    async fn initialize(&self, params: InitializeParams) -> jsonrpc::Result<InitializeResult> {
+        // VS Code sends its display language, such as "es" or "pt-br"
+        if let Some(locale) = params.locale.as_deref().filter(|l| !l.is_empty()) {
+            tracing::info!("Documenting in {locale}, then English");
+            *self.chain.write().unwrap() = LanguageChain::for_locale(locale);
+        }
         Ok(InitializeResult {
             capabilities: ServerCapabilities {
                 text_document_sync: Some(TextDocumentSyncCapability::Kind(
@@ -177,8 +190,14 @@ impl LanguageServer for MaximaLsp {
         }
 
         let catalog = self.catalog();
-        let items =
-            completion::completions(&prefix, &catalog, &self.packages, &self.documents, &uri);
+        let items = completion::completions(
+            &prefix,
+            &catalog,
+            &self.chain(),
+            &self.packages,
+            &self.documents,
+            &uri,
+        );
         Ok(Some(CompletionResponse::Array(items)))
     }
 
@@ -200,6 +219,7 @@ impl LanguageServer for MaximaLsp {
         Ok(hover::hover_info(
             &word,
             &catalog,
+            &self.chain(),
             &self.packages,
             &self.documents,
         ))
@@ -227,6 +247,7 @@ impl LanguageServer for MaximaLsp {
             &func_name,
             active_param,
             &catalog,
+            &self.chain(),
             &self.packages,
             &self.documents,
         ))
@@ -486,4 +507,109 @@ fn inline_images(md: &str, doc_dir: Option<&Path>) -> String {
         }
     })
     .to_string()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use tower_lsp::LspService;
+
+    const SPANISH_INTEGRATE: &str = "Calcula simbólicamente";
+
+    /// A server started with `locale`, with a document calling integrate
+    async fn started(locale: Option<&str>) -> (LspService<MaximaLsp>, Url) {
+        let (service, _socket) = LspService::new(MaximaLsp::new);
+        let server = service.inner();
+        server
+            .initialize(InitializeParams {
+                locale: locale.map(Into::into),
+                ..Default::default()
+            })
+            .await
+            .unwrap();
+        let uri = Url::parse("file:///test.mac").unwrap();
+        server
+            .did_open(DidOpenTextDocumentParams {
+                text_document: TextDocumentItem {
+                    uri: uri.clone(),
+                    language_id: "maxima".into(),
+                    version: 1,
+                    text: "integrate(x^2, x);\ninteg".into(),
+                },
+            })
+            .await;
+        (service, uri)
+    }
+
+    async fn hover_over_integrate(locale: Option<&str>) -> String {
+        let (service, uri) = started(locale).await;
+        let hover = service
+            .inner()
+            .hover(HoverParams {
+                text_document_position_params: TextDocumentPositionParams {
+                    text_document: TextDocumentIdentifier { uri },
+                    position: Position::new(0, 3),
+                },
+                work_done_progress_params: Default::default(),
+            })
+            .await
+            .unwrap()
+            .expect("integrate has a hover");
+        match hover.contents {
+            HoverContents::Markup(m) => m.value,
+            other => panic!("{other:?}"),
+        }
+    }
+
+    async fn integrate_completion(locale: Option<&str>) -> String {
+        let (service, uri) = started(locale).await;
+        let Some(CompletionResponse::Array(items)) = service
+            .inner()
+            .completion(CompletionParams {
+                text_document_position: TextDocumentPositionParams {
+                    text_document: TextDocumentIdentifier { uri },
+                    position: Position::new(1, 5),
+                },
+                work_done_progress_params: Default::default(),
+                partial_result_params: Default::default(),
+                context: None,
+            })
+            .await
+            .unwrap()
+        else {
+            panic!("no completions")
+        };
+        let item = items.into_iter().find(|i| i.label == "integrate").unwrap();
+        match item.documentation {
+            Some(Documentation::MarkupContent(m)) => m.value,
+            other => panic!("{other:?}"),
+        }
+    }
+
+    #[tokio::test]
+    async fn a_spanish_locale_gives_spanish_hover_text() {
+        let md = hover_over_integrate(Some("es")).await;
+        assert!(md.contains(SPANISH_INTEGRATE), "{md}");
+    }
+
+    #[tokio::test]
+    async fn a_regional_locale_finds_its_language() {
+        let md = hover_over_integrate(Some("es-ES")).await;
+        assert!(md.contains(SPANISH_INTEGRATE), "{md}");
+    }
+
+    #[tokio::test]
+    async fn no_locale_gives_english_hover_text() {
+        let md = hover_over_integrate(None).await;
+        assert!(md.contains("integrate"), "{md}");
+        assert!(!md.contains(SPANISH_INTEGRATE), "{md}");
+    }
+
+    #[tokio::test]
+    async fn completion_follows_the_locale() {
+        assert!(integrate_completion(Some("es"))
+            .await
+            .starts_with(SPANISH_INTEGRATE));
+        assert!(!integrate_completion(None).await.contains(SPANISH_INTEGRATE));
+    }
 }

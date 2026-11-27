@@ -13,8 +13,8 @@
 
 ## 3. MCP and the language server (aximar, one PR)
 
-- [ ] 3.1 Add the optional `language` to `get_function_docs` and `search_functions`, with `language`, `fallback_from` and `stale` in results; verify with MCP server tests `docs_in_spanish`, `docs_without_a_language_are_english` and `search_in_spanish`
-- [ ] 3.2 Read `locale` from `initialize` in maxima-lsp and use it for hover, completion and signature help; verify with LSP tests that a `locale` of `es` gives Spanish hover text, and that a missing `locale` gives English
+- [x] 3.1 Add the optional `language` to `get_function_docs` and `search_functions`, with `language`, `fallback_from` and `stale` in results; verify with MCP server tests `docs_in_spanish`, `docs_without_a_language_are_english` and `search_in_spanish`
+- [x] 3.2 Read `locale` from `initialize` in maxima-lsp and use it for hover, completion and signature help; verify with LSP tests that a `locale` of `es` gives Spanish hover text, and that a missing `locale` gives English
 
 ## 4. mxpm (mxpm repository, one PR)
 

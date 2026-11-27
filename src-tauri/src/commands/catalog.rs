@@ -73,12 +73,12 @@ fn resolved_to_function(name: &str, resolved: Resolved) -> MaximaFunction {
 #[tauri::command]
 pub fn search_functions(state: State<AppState>, query: String) -> Vec<SearchResult> {
     let chain = docs_chain();
-    queries::search(&state.catalog, &state.packages, &query)
+    queries::search(&state.catalog, &state.packages, &query, &chain)
         .into_iter()
         .filter_map(|hit| {
             // The catalog's ranked hits only
             let score = hit.score?;
-            if !documented(&state, &hit.name) {
+            if !documented(&state, &hit.name, &chain) {
                 return None;
             }
             function_in(&state.catalog, &hit.name, &chain)
@@ -105,16 +105,17 @@ pub fn complete_function(state: State<AppState>, prefix: String) -> Vec<Completi
 /// function only a package provides (`package_for_function`).
 #[tauri::command]
 pub fn get_function(state: State<AppState>, name: String) -> Option<MaximaFunction> {
-    if !documented(&state, &name) {
+    let chain = docs_chain();
+    if !documented(&state, &name, &chain) {
         return None;
     }
-    function_in(&state.catalog, &name, &docs_chain())
+    function_in(&state.catalog, &name, &chain)
 }
 
-fn documented(state: &AppState, name: &str) -> bool {
+fn documented(state: &AppState, name: &str, chain: &LanguageChain) -> bool {
     matches!(
-        queries::docs(&state.catalog, &state.packages, name),
-        FunctionDocs::Documented { .. }
+        queries::docs(&state.catalog, &state.packages, name, chain),
+        FunctionDocs::Documented(_)
     )
 }
 
@@ -215,12 +216,13 @@ pub fn docs_languages(app: tauri::AppHandle, state: State<AppState>) -> DocsLang
 /// A function's full documentation in the help language, where there is any
 #[tauri::command]
 pub fn get_function_docs(state: State<AppState>, name: String) -> Option<String> {
-    if !documented(&state, &name) {
+    let chain = docs_chain();
+    if !documented(&state, &name, &chain) {
         return None;
     }
     state
         .catalog
-        .resolve(&name, &docs_chain())
+        .resolve(&name, &chain)
         .map(|r| r.entry.body_md)
         .filter(|body| !body.is_empty())
 }

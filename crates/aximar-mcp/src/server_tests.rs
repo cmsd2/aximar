@@ -57,6 +57,7 @@ async fn search_functions_returns_results() {
     let v = parse_ok(
         s.search_functions(Parameters(SearchFunctionsParams {
             query: "integrate".into(),
+            language: None,
         }))
         .await,
     );
@@ -71,6 +72,7 @@ async fn get_function_docs_found() {
     let result = s
         .get_function_docs(Parameters(GetFunctionDocsParams {
             name: "diff".into(),
+            language: None,
         }))
         .await;
     assert!(result.is_ok());
@@ -82,6 +84,7 @@ async fn get_function_docs_not_found_suggests() {
     let result = s
         .get_function_docs(Parameters(GetFunctionDocsParams {
             name: "integarte".into(),
+            language: None,
         }))
         .await;
     assert!(result.is_err());
@@ -1654,6 +1657,7 @@ async fn docs_for_a_function_only_a_package_provides() {
     let v = parse_ok(
         s.get_function_docs(Parameters(GetFunctionDocsParams {
             name: "jcubic".into(),
+            language: None,
         }))
         .await,
     );
@@ -1671,6 +1675,7 @@ async fn a_misspelt_package_function_suggests_it() {
     let msg = s
         .get_function_docs(Parameters(GetFunctionDocsParams {
             name: "jcubik".into(),
+            language: None,
         }))
         .await
         .expect_err("jcubik is not a function");
@@ -1686,6 +1691,7 @@ async fn search_includes_undocumented_package_functions() {
     let v = parse_ok(
         s.search_functions(Parameters(SearchFunctionsParams {
             query: "jcubic".into(),
+            language: None,
         }))
         .await,
     );
@@ -1704,6 +1710,7 @@ async fn search_labels_hits_by_their_docs_and_scores_only_ranked_ones() {
     let v = parse_ok(
         s.search_functions(Parameters(SearchFunctionsParams {
             query: "pdf_".into(),
+            language: None,
         }))
         .await,
     );
@@ -1756,6 +1763,7 @@ async fn undocumented_function_docs_read_cleanly() {
     let v = parse_ok(
         s.get_function_docs(Parameters(GetFunctionDocsParams {
             name: "jcubic".into(),
+            language: None,
         }))
         .await,
     );
@@ -2033,4 +2041,156 @@ async fn the_messages_template_shows_what_it_says() {
         }
     }
     assert!(failures.is_empty(), "{}", failures.join("\n\n"));
+}
+
+// ── Documentation languages ──────────────────────────────────────────
+
+/// A server whose catalog has English core docs and a Spanish translation:
+/// `integrate` in both, with the same signatures; `diff` in both, the
+/// Spanish one with fewer signatures; `fft` in English only
+fn build_server_with_spanish() -> AximarMcpServer {
+    use aximar_core::catalog::doc_index::{DocIndex, DocIndexStore};
+
+    fn index(language: &str, symbols: serde_json::Value) -> DocIndex {
+        serde_json::from_value(serde_json::json!({
+            "version": 1,
+            "package": "maxima-core-docs",
+            "language": language,
+            "symbols": symbols,
+        }))
+        .unwrap()
+    }
+    fn entry(signatures: &[&str], summary: &str, body: &str) -> serde_json::Value {
+        serde_json::json!({
+            "type": "Function",
+            "signature": signatures[0],
+            "signatures": signatures,
+            "summary": summary,
+            "body_md": body,
+        })
+    }
+
+    let mut store = DocIndexStore::new_empty();
+    store.ingest_index(index(
+        "en",
+        serde_json::json!({
+            "integrate": entry(&["integrate(expr, x)"], "Computes the integral.", "About integrate."),
+            "diff": entry(&["diff(expr, x)", "diff(expr, x, n)"], "Computes the derivative.", "About diff."),
+            "fft": entry(&["fft(x)"], "Fast Fourier transform.", "About fft."),
+        }),
+    ));
+    store.ingest_index(index(
+        "es",
+        serde_json::json!({
+            "integrate": entry(&["integrate(expr, x)"], "Calcula la integral definida o indefinida.", "Sobre integrate."),
+            "diff": entry(&["diff(expr, x)"], "Calcula la derivada.", "Sobre diff."),
+        }),
+    ));
+    AximarMcpServer::new(
+        Arc::new(Mutex::new(NotebookRegistry::new())),
+        Arc::new(Catalog::from_store(store)),
+        Arc::new(PackageCatalog::load()),
+        local_settings(),
+        false,
+    )
+}
+
+async fn docs_in(s: &AximarMcpServer, name: &str, language: Option<&str>) -> serde_json::Value {
+    parse_ok(
+        s.get_function_docs(Parameters(GetFunctionDocsParams {
+            name: name.into(),
+            language: language.map(Into::into),
+        }))
+        .await,
+    )
+}
+
+#[tokio::test]
+async fn docs_in_spanish() {
+    let s = build_server_with_spanish();
+    let v = docs_in(&s, "integrate", Some("es")).await;
+    assert_eq!(v["full_docs"], "Sobre integrate.");
+    assert_eq!(v["language"], "es");
+    assert_eq!(
+        v["description"],
+        "Calcula la integral definida o indefinida."
+    );
+    assert_eq!(v["description_language"], "es");
+    assert!(v.get("fallback_from").is_none(), "{v:#}");
+    assert!(v.get("stale").is_none(), "{v:#}");
+}
+
+#[tokio::test]
+async fn docs_without_a_language_are_english() {
+    let s = build_server_with_spanish();
+    let v = docs_in(&s, "integrate", None).await;
+    assert_eq!(v["full_docs"], "About integrate.");
+    assert_eq!(v["language"], "en");
+    assert_eq!(v["description_language"], "en");
+}
+
+#[tokio::test]
+async fn docs_say_when_they_fall_back_to_english() {
+    let s = build_server_with_spanish();
+    let v = docs_in(&s, "fft", Some("es")).await;
+    assert_eq!(v["full_docs"], "About fft.");
+    assert_eq!(v["language"], "en");
+    assert_eq!(v["fallback_from"], "es");
+}
+
+#[tokio::test]
+async fn docs_say_when_a_translation_may_be_out_of_date() {
+    let s = build_server_with_spanish();
+    let v = docs_in(&s, "diff", Some("es")).await;
+    assert_eq!(v["full_docs"], "Sobre diff.");
+    assert_eq!(v["stale"], true);
+    assert_eq!(
+        v["english_signatures"],
+        serde_json::json!(["diff(expr, x)", "diff(expr, x, n)"])
+    );
+}
+
+#[tokio::test]
+async fn search_in_spanish() {
+    let s = build_server_with_spanish();
+    let v = parse_ok(
+        s.search_functions(Parameters(SearchFunctionsParams {
+            query: "integral definida".into(),
+            language: Some("es".into()),
+        }))
+        .await,
+    );
+    let integrate = v["results"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|r| r["name"] == "integrate")
+        .cloned()
+        .unwrap_or_else(|| panic!("integrate is found: {v:#}"));
+    assert_eq!(
+        integrate["description"],
+        "Calcula la integral definida o indefinida."
+    );
+    assert_eq!(integrate["language"], "es");
+}
+
+#[tokio::test]
+async fn search_without_a_language_is_english() {
+    let s = build_server_with_spanish();
+    let v = parse_ok(
+        s.search_functions(Parameters(SearchFunctionsParams {
+            query: "integral".into(),
+            language: None,
+        }))
+        .await,
+    );
+    let integrate = v["results"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|r| r["name"] == "integrate")
+        .cloned()
+        .unwrap_or_else(|| panic!("integrate is found: {v:#}"));
+    assert_eq!(integrate["description"], "Computes the integral.");
+    assert_eq!(integrate["language"], "en");
 }

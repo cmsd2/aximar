@@ -82,9 +82,11 @@ Building this found an older bug: a `null` in a config update read as "no change
 
 `get_function_docs` and `search_functions` take an optional `language`; results gain `language` per text, and `fallback_from` and `stale` where they apply. Without `language` the chain is English alone, so existing clients get what they get today. maxima-lsp stores `InitializeParams.locale` and builds its chain from it; VS Code sends its display language there.
 
+As built: `get_function_docs` names `full_docs`'s language in `language` and `description`'s in `description_language`, since a summary-only layer can put a Spanish summary over English documentation; a stale result carries `english_signatures` too. Each search result has `language`. The shared `catalog::queries::search` and `docs` take the chain, so the window and MCP still answer from one place. The LSP's chain comes from `LanguageChain::for_locale`, which adds a regional locale's language (`es-ES`, then `es`, then English), since editors send regional tags. Its hover puts a translated summary above documentation in another language. The LSP's `maxima.searchFunctions` and `maxima.getFunctionDocs` commands, which VS Code's docs view calls, stay English; moving them needs the extension to show languages as the docs panel does.
+
 ### What changes for MCP clients and saved notebooks
 
-MCP clients gain optional fields and see no change unless they pass `language`. Notebooks don't store documentation.
+MCP clients gain fields naming each text's language (`en` without `language`), and the text itself doesn't change unless they pass `language`. Notebooks don't store documentation.
 
 ## Risks / Trade-offs
 

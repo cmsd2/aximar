@@ -154,25 +154,29 @@ Unicode Greek letters (α, β, γ, θ, π, etc.) are translated to Maxima symbol
     // ── Documentation tools ───────────────────────────────────────
 
     #[tool(
-        description = "Search the Maxima function catalog by name or description. Returns matching functions with signatures and brief descriptions. Searches across 2500+ built-in and package functions. Supports partial name matching (e.g. \"integ\" finds integrate) and description keywords (e.g. \"matrix inverse\").",
+        description = "Search the Maxima function catalog by name or description. Returns matching functions with signatures and brief descriptions. Searches across 2500+ built-in and package functions. Supports partial name matching (e.g. \"integ\" finds integrate) and description keywords (e.g. \"matrix inverse\"). Pass `language` (e.g. \"es\") to match and describe functions in that language, with English where there is no translation; each result's `language` names its description's language.",
         annotations(read_only_hint = true)
     )]
     async fn search_functions(
         &self,
         Parameters(params): Parameters<SearchFunctionsParams>,
     ) -> Result<String, String> {
-        self.core.do_search_functions(&params.query).await
+        self.core
+            .do_search_functions(&params.query, params.language.as_deref())
+            .await
     }
 
     #[tool(
-        description = "Get full documentation for a Maxima function, including usage, examples, and related functions. Falls back to a catalog summary if full docs are unavailable. Suggests similar function names if the exact name is not found.",
+        description = "Get full documentation for a Maxima function, including usage, examples, and related functions. Falls back to a catalog summary if full docs are unavailable. Suggests similar function names if the exact name is not found. Pass `language` (e.g. \"es\") for documentation in that language: `language` and `description_language` name the language of `full_docs` and `description`, `fallback_from` says the function isn't documented in the language asked for, and `stale` with `english_signatures` says a translation may be out of date.",
         annotations(read_only_hint = true)
     )]
     async fn get_function_docs(
         &self,
         Parameters(params): Parameters<GetFunctionDocsParams>,
     ) -> Result<String, String> {
-        self.core.do_get_function_docs(&params.name).await
+        self.core
+            .do_get_function_docs(&params.name, params.language.as_deref())
+            .await
     }
 
     #[tool(
