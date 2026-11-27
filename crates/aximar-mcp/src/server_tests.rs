@@ -1942,3 +1942,86 @@ async fn survey_cells_over_mcp() {
     }
     assert!(failures.is_empty(), "{}", failures.join("\n\n"));
 }
+
+/// The "Messages from Maxima" template, run a cell at a time as its text
+/// says: each cell shows the error, question or note it's there for, and
+/// the suggested fixes work
+#[tokio::test]
+#[ignore = "requires Maxima to be installed"]
+async fn the_messages_template_shows_what_it_says() {
+    use Expect::*;
+    /// A cell that should run cleanly
+    const OK: Option<Expect> = None;
+    let expected = [
+        Some(Error("error.division_by_zero")),
+        Some(Error("error.arg_count")),
+        Some(Error("error.syntax_missing")),
+        Some(Error("error.recursion")),
+        Some(Error("question.sign")),
+        OK,
+        Some(Error("question.equal")),
+        OK,
+        Some(Error("question.sign")),
+        OK,
+        Some(Note("note.rat_replaced")),
+        Some(Note("note.solve_arc_trig")),
+        Some(Note("note.principal_value")),
+        OK,
+    ];
+
+    let s = build_server();
+    parse_ok(
+        s.load_template(Parameters(LoadTemplateParams {
+            template_id: "maxima-messages".into(),
+            notebook_id: None,
+        }))
+        .await,
+    );
+    let cells = parse_ok(
+        s.list_cells(Parameters(NotebookIdParam { notebook_id: None }))
+            .await,
+    );
+    let code: Vec<String> = cells
+        .as_array()
+        .unwrap()
+        .iter()
+        .filter(|c| c["cell_type"] == "code")
+        .map(|c| c["id"].as_str().unwrap().to_string())
+        .collect();
+    assert_eq!(code.len(), expected.len(), "one expectation per code cell");
+
+    let mut failures = Vec::new();
+    for (cell_id, expect) in code.into_iter().zip(expected) {
+        let _ = s
+            .run_cell(Parameters(CellIdParams {
+                cell_id: cell_id.clone(),
+                notebook_id: None,
+            }))
+            .await;
+        let cell = parse_ok(
+            s.get_cell(Parameters(CellIdParams {
+                cell_id,
+                notebook_id: None,
+            }))
+            .await,
+        );
+        let output = &cell["output"];
+        let ok = match expect {
+            Some(Error(id)) => output["is_error"] == true && output["error_info"]["id"] == id,
+            Some(Note(id)) => {
+                output["is_error"] == false
+                    && output["notes"]
+                        .as_array()
+                        .is_some_and(|notes| notes.iter().any(|n| n["id"] == id))
+            }
+            None => {
+                output["is_error"] == false
+                    && output["notes"].as_array().is_none_or(|n| n.is_empty())
+            }
+        };
+        if !ok {
+            failures.push(format!("{}: {output}", cell["input"]));
+        }
+    }
+    assert!(failures.is_empty(), "{}", failures.join("\n\n"));
+}

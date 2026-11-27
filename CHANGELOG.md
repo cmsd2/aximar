@@ -66,6 +66,9 @@ see the `v*` releases on GitHub.
   ends too early, and two values with no operator between them each get
   their own explanation, naming the delimiter or the value. Input that ends
   too early used to get the generic syntax-error text.
+- **A "Messages from Maxima" template** (`maxima-messages`) walks through
+  errors, questions and notes, and how to answer a question with
+  `assume`.
 - **Wrong argument counts name the definition**: calling a user function or
   lambda with the wrong arguments explains it with the definition and the
   arguments given ("f is defined as f(x), but was called with [1,2]."),
