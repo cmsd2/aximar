@@ -421,8 +421,31 @@
   user-select: none;
 }
 
+/* In line with a LaTeX result, which starts below its 8px padding */
 .cell-output-area > .cell-gutter {
   padding-top: 14px;
+}
+
+/* On the baseline of the first line, when the output starts with printed
+   text, a note or an error.  The output keeps its place and the label
+   moves to meet it. */
+.cell-output-area:has(
+    > .cell-output > :is(.text-output, .output-note):is(:first-child, .copy-actions + *),
+    > :is(.enhanced-error, .error-output)
+  ) {
+  align-items: first baseline;
+}
+
+.cell-output-area:has(
+    > .cell-output > :is(.text-output, .output-note):is(:first-child, .copy-actions + *),
+    > :is(.enhanced-error, .error-output)
+  )
+  > .cell-gutter {
+  padding-top: 0;
+  /* Half a pixel above the baseline, as the In label sits above its
+     code line, which looks better in line than an exact match */
+  position: relative;
+  top: -0.5px;
 }
 
 .cell-indicator.running {

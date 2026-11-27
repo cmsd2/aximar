@@ -9,12 +9,24 @@ interface RichTextOutputProps {
 /** Split text_output on $$...$$ blocks, rendering LaTeX segments with KaTeX. */
 export function RichTextOutput({ text }: RichTextOutputProps) {
   const segments = useMemo(() => {
-    // Split preserving $$...$$ delimiters as separate segments
-    const parts = text.split(/(\$\$[\s\S]*?\$\$)/);
+    // Split preserving $$...$$ delimiters as separate segments: the odd
+    // parts are the blocks
+    const raw = text.split(/(\$\$[\s\S]*?\$\$)/);
+    const parts = raw.map((part, i) => {
+      if (i % 2 === 1) return part;
+      // Maxima prints tex() output on lines of its own.  The block breaks
+      // the line itself, so the newline after one would show as a blank
+      // line under it.
+      let out = part;
+      if (i > 0) out = out.replace(/^\n/, "");
+      if (i < raw.length - 1) out = out.replace(/\n$/, "");
+      return out;
+    });
     return parts
-      .filter((p) => p !== "")
-      .map((part, i) => {
-        if (part.startsWith("$$") && part.endsWith("$$")) {
+      .map((part, i) => ({ part, i }))
+      .filter(({ part }) => part !== "")
+      .map(({ part, i }) => {
+        if (i % 2 === 1) {
           const inner = part.slice(2, -2);
           try {
             const processed = preprocessLatex(inner);

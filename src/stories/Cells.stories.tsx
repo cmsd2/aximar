@@ -51,3 +51,40 @@ export const TrustBannerShown: StoryObj = {
   loaders: [async () => seedNotebook([], { trusted: false, pendingTrust: ["system", "load"] })],
   render: () => <TrustBanner />,
 };
+
+const printed: SyncCell[] = [
+  {
+    id: "p1", cell_type: "code", status: "success",
+    input: 'print("before")$ tex(x^2)$ print("a =", x^2)$\nfor n:1 thru 2 do (print("n =", n, ":"), tex(n/(n+1)))$ print("after")$',
+    output: { ...output, output_label: null, text_output: "before\n$$x^2$$\na = x^2\nn = 1 :\n$${{1}\\over{2}}$$\nn = 2 :\n$${{2}\\over{3}}$$\nafter" },
+  },
+  {
+    id: "p2", cell_type: "code", status: "success",
+    input: 'print("label:")$ tex(sqrt(x))$ tex(integrate(1/(1+x^2),x))$ print("tail")$ x^2/2;',
+    output: { ...output, latex: "{{x^2}\\over{2}}", text_plain: "x^2/2", text_output: "label:\n$$\\sqrt{x}$$\n$$\\arctan x$$\ntail" },
+  },
+  {
+    id: "p3", cell_type: "code", status: "success",
+    input: 'print("plain text only")$ print("second line")$ x;',
+    output: { ...output, latex: "x", text_plain: "x", text_output: "plain text only\nsecond line" },
+  },
+  {
+    id: "p4", cell_type: "code", status: "success",
+    input: "x^2/2;",
+    output: { ...output, latex: "{{x^2}\\over{2}}", text_plain: "x^2/2" },
+  },
+  {
+    id: "p5", cell_type: "code", status: "error",
+    input: "frobnicate(1);",
+    output: { ...output, is_error: true, output_label: null, error: "frobnicate: something went wrong.\n -- an error. To debug this try: debugmode(true);" },
+  },
+];
+
+/**
+ * print() and tex() output mixed, and the Out label beside each kind of
+ * first line: printed text, a LaTeX result, an error with no explanation
+ */
+export const PrintAndTex: StoryObj = {
+  loaders: [async () => seedNotebook(printed)],
+  render: () => <Cells />,
+};
