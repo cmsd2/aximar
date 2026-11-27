@@ -36,3 +36,14 @@ describe("the accepted licences", () => {
     expect(chosenLicence("SEE LICENSE IN LICENSE.txt")).toBeNull();
   });
 });
+
+describe("about.toml", () => {
+  it("accepts the same licences as the npm build, in the same order", async () => {
+    const { readFileSync } = await import("node:fs");
+    const toml = readFileSync(new URL("../about.toml", import.meta.url), "utf8");
+    const block = toml.match(/^accepted = \[([\s\S]*?)\]/m)?.[1] ?? "";
+    const rust = [...block.matchAll(/"([^"]+)"/g)].map((m) => m[1]);
+    const { ACCEPTED_LICENCES } = await import("./accepted-licences");
+    expect(rust).toEqual([...ACCEPTED_LICENCES]);
+  });
+});

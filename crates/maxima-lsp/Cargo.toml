@@ -3,6 +3,7 @@ name = "maxima-lsp"
 version = "0.6.2"
 edition = "2021"
 description = "Language Server Protocol server for Maxima .mac files"
+license = "GPL-3.0-or-later"
 
 [[bin]]
 name = "maxima-lsp"

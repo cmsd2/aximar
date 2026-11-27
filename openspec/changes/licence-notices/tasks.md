@@ -6,10 +6,10 @@
 
 ## 2. Rust notices, checked in and checked (one PR)
 
-- [ ] 2.1 Add `about.toml` (accepted list in order, the five build targets) and `about.hbs` (licences grouped, each text once, MPL-2.0 crates with a crates.io source link), and `npm run licences:rust`; generate `public/licenses/third-party-rust.html`; verify the file lists `tauri`, `aximar-core`'s dependencies, a Windows-only crate such as `windows-sys`, and links `cssparser`'s source
-- [ ] 2.2 Add the CI job `licences` that installs `cargo-about` 0.9.3 with `taiki-e/install-action`, regenerates the file and fails on a diff, naming `npm run licences:rust`; verify it passes on this branch and fails on a branch that adds a crate without regenerating
-- [ ] 2.3 Copy the file into the tools archives as `THIRD-PARTY-RUST.html` in `release-tools.yml`, for the tar and the zip; verify by running the packaging steps locally for one Unix target and listing the archive
-- [ ] 2.4 Add the Rust side to `docs/licences.md`
+- [x] 2.1 Add `about.toml` (accepted list in order, the five build targets, Aximar's own crates by name) and `scripts/rust-notices.mjs` (one cargo-about run per shipped binary, merged, Aximar's crates left out, licences grouped with each text once, every crate linking its source), and `npm run licences:rust`; give `maxima-lsp` and `maxima-mac-parser` the repository's licence; generate `public/licenses/third-party-rust.html`; verify the file lists `tauri`, `aximar-core`'s dependencies, a Windows-only crate such as `windows-sys`, and links `cssparser`'s source; test the merge and render with `node --test`, and that `about.toml` and `scripts/accepted-licences.ts` list the same licences
+- [x] 2.2 Add the CI job `licences` that installs `cargo-about` 0.9.3 with `taiki-e/install-action` and runs `npm run licences:rust -- --check`, which fails on a stale file and names the command; verify it passes on this branch, and that generating fails when a licence in use leaves the accepted list
+- [x] 2.3 Copy the file into the tools archives as `THIRD-PARTY-RUST.html` in `release-tools.yml`, for the tar and the zip; verify by running the Unix packaging step on placeholder binaries and listing the archive, and actionlint on the workflow
+- [x] 2.4 Add the Rust side to `docs/licences.md`
 
 ## 3. Reaching the notices from the app (one PR)
 

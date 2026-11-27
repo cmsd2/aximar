@@ -13,6 +13,7 @@
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",
     "check:tokens": "node scripts/check-css-tokens.mjs",
+    "licences:rust": "node scripts/rust-notices.mjs",
     "i18n:gallery": "storybook build -o storybook-static --quiet && node scripts/i18n-gallery.mjs"
   },
   "dependencies": {

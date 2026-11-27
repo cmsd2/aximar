@@ -54,19 +54,22 @@ jobs:
       - name: Build tools
         run: cargo build --release --target ${{ matrix.target }} -p maxima-lsp -p maxima-dap -p aximar-mcp
 
+      # The crates' licence notices go beside the binaries; see docs/licences.md
       - name: Package archive (Unix)
         if: runner.os != 'Windows'
         run: |
+          cp public/licenses/third-party-rust.html target/${{ matrix.target }}/release/THIRD-PARTY-RUST.html
           cd target/${{ matrix.target }}/release
           tar czf ../../../aximar-tools-${{ matrix.target }}.tar.gz \
-            maxima-lsp maxima-dap aximar-mcp
+            maxima-lsp maxima-dap aximar-mcp THIRD-PARTY-RUST.html
 
       - name: Package archive (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
           $binDir = "target/${{ matrix.target }}/release"
-          Compress-Archive -Path "$binDir/maxima-lsp.exe","$binDir/maxima-dap.exe","$binDir/aximar-mcp.exe" `
+          Copy-Item public/licenses/third-party-rust.html "$binDir/THIRD-PARTY-RUST.html"
+          Compress-Archive -Path "$binDir/maxima-lsp.exe","$binDir/maxima-dap.exe","$binDir/aximar-mcp.exe","$binDir/THIRD-PARTY-RUST.html" `
             -DestinationPath "aximar-tools-${{ matrix.target }}.zip"
 
       - name: Upload release assets

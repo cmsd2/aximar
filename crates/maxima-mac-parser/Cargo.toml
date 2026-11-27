@@ -3,6 +3,7 @@ name = "maxima-mac-parser"
 version = "0.1.0"
 edition = "2021"
 description = "Parser for Maxima .mac files — extracts function definitions, variable assignments, and load() calls"
+license = "GPL-3.0-or-later"
 
 [dependencies]
 chumsky = "0.12"
