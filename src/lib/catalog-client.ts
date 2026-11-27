@@ -8,6 +8,7 @@ import type {
   PackageCompletionResult,
   PackageInfo,
   PackageFunctionSearchResult,
+  DocsLanguages,
 } from "../types/catalog";
 
 export async function searchFunctions(
@@ -68,4 +69,9 @@ export async function searchPackageFunctions(
   query: string
 ): Promise<PackageFunctionSearchResult[]> {
   return invoke<PackageFunctionSearchResult[]>("search_package_functions", { query });
+}
+
+/** The help's languages: chosen, in use, and with documentation */
+export async function docsLanguages(): Promise<DocsLanguages> {
+  return invoke<DocsLanguages>("docs_languages");
 }

@@ -28,19 +28,21 @@ pub fn languages() -> Vec<&'static str> {
     langs
 }
 
-/// The language of help summaries: the setting's, or `None` for English
-static HELP_LANGUAGE: RwLock<Option<String>> = RwLock::new(None);
+/// The language of the help: the setting's, or `None` for English
+static DOCS_LANGUAGE: RwLock<Option<String>> = RwLock::new(None);
 
-/// Show help summaries in `language` from now on
-pub fn set_help_language(language: &str) {
-    *HELP_LANGUAGE.write().unwrap() = (language != ENGLISH).then(|| language.to_string());
+/// Show the help in `language` from now on, where it has documentation in
+/// it, and in English elsewhere
+pub fn set_docs_language(language: &str) {
+    *DOCS_LANGUAGE.write().unwrap() = (language != ENGLISH).then(|| language.to_string());
 }
 
-/// A symbol's help summary in the help language, when Maxima's manual in
-/// it covers the symbol, or `english` otherwise
-pub fn help_summary(name: &str, english: &str) -> String {
-    let language = HELP_LANGUAGE.read().unwrap().clone();
-    aximar_core::catalog::summaries::localised(language.as_deref(), name, english).into_owned()
+/// The languages to look the help up in: the help language, then English
+pub fn docs_chain() -> aximar_core::catalog::doc_index::LanguageChain {
+    match DOCS_LANGUAGE.read().unwrap().as_deref() {
+        Some(language) => aximar_core::catalog::doc_index::LanguageChain::new(&[language]),
+        None => aximar_core::catalog::doc_index::LanguageChain::english(),
+    }
 }
 
 /// The system's language, such as `es-CO`
@@ -175,12 +177,11 @@ mod tests {
     }
 
     #[test]
-    fn help_summaries_follow_the_language() {
-        set_help_language("es");
-        assert!(help_summary("integrate", "English").starts_with("Calcula"));
-        assert_eq!(help_summary("no_such_symbol", "English"), "English");
-        set_help_language("en");
-        assert_eq!(help_summary("integrate", "English"), "English");
+    fn the_help_follows_the_language() {
+        set_docs_language("es");
+        assert_eq!(docs_chain().languages(), ["es", "en"]);
+        set_docs_language("en");
+        assert_eq!(docs_chain().languages(), ["en"]);
     }
 
     #[test]
