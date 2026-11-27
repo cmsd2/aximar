@@ -80,7 +80,7 @@ describe("Maxima's errors in the user's language", () => {
     activateSpanish();
     const html = render(null);
     expect(html).toContain("División por cero");
-    expect(html).toContain("Show raw error");
+    expect(html).toMatch(/Show Maxima(&#x27;|')s error/);
     expect(html).not.toContain("Mostrar original");
   });
 
@@ -88,6 +88,6 @@ describe("Maxima's errors in the user's language", () => {
     const html = render(null);
     expect(html).toContain("Division by Zero");
     expect(html).not.toContain(spanish);
-    expect(html).toContain("Show raw error");
+    expect(html).toMatch(/Show Maxima(&#x27;|')s error/);
   });
 });

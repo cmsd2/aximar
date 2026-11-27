@@ -84,7 +84,7 @@ describe("switching language", () => {
     expect(html).toContain("Número de argumentos incorrecto");
     // Neither the suggestion nor the window's button is in this catalog
     expect(html).toContain("Call f with the arguments f(x) names, or change its definition.");
-    expect(html).toContain("Show raw error");
+    expect(html).toMatch(/Show Maxima(&#x27;|')s error/);
     expect(html).not.toContain("{func}");
   });
 

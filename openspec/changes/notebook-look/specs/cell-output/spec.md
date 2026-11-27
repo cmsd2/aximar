@@ -6,12 +6,12 @@ How a code cell's output and state look in the notebook window, in bracket and c
 
 ### Requirement: An error shows one red signal
 
-A cell whose run failed SHALL show red in one place only: its bracket in bracket style, or its border in card style. An explained error SHALL show its title in the normal text colour beside a red error icon, its explanation in the secondary text colour, and its suggestion after a lightbulb icon, with no coloured box or bar. A button labelled "Show Maxima's error" SHALL show Maxima's own text in monospace. An error Aximar can't explain SHALL show Maxima's text in monospace, in the normal text colour, after the same red error icon, with no coloured box.
+A cell whose run failed SHALL show that it failed on its bracket in bracket style, or its border in card style, in the error colour. In its output, the only red SHALL be a small error icon: no red text, red background or red bar. An explained error SHALL show its title in the normal text colour after the error icon, its explanation in the secondary text colour, and its suggestion after a lightbulb icon, with no coloured box or bar. A button labelled "Show Maxima's error" SHALL show Maxima's own text in monospace. An error Aximar can't explain SHALL show Maxima's text in monospace, in the normal text colour, after the same red error icon, with no coloured box.
 
 #### Scenario: Division by zero
 
 - **WHEN** a cell's output carries the `error.division_by_zero` explanation
-- **THEN** the title "Division by Zero" is not red, the error icon before it is, the suggestion has no box around it, and the cell's bracket (or border) is red
+- **THEN** the title "Division by Zero" is in the normal text colour, the small icon before it is red, the suggestion has a lightbulb and no box, and the cell's bracket (or border) is red
 
 #### Scenario: An error with no explanation
 

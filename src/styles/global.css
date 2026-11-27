@@ -1113,9 +1113,29 @@
   border-color: var(--accent);
 }
 
+/* An error Aximar can't explain: the icon, then Maxima's text */
 .error-output {
   flex: 1;
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-1);
   padding: 12px 12px 12px 0;
+}
+
+.error-output-body {
+  flex: 1;
+  min-width: 0;
+}
+
+/* The one red mark in a failed cell's output; the bracket or border
+   carries the rest */
+.error-icon {
+  flex: none;
+  color: var(--error-color);
+}
+
+.error-output > .error-icon {
+  margin-top: var(--space-half);
 }
 
 /* Command Palette */
@@ -1402,10 +1422,8 @@
 .error-output pre {
   font-family: var(--font-mono);
   font-size: 13px;
-  color: var(--error-color);
-  background: var(--error-bg);
-  padding: 10px;
-  border-radius: 4px;
+  color: var(--text-primary);
+  margin: 0;
   white-space: pre-wrap;
   word-break: break-word;
 }
@@ -1417,10 +1435,18 @@
 }
 
 .enhanced-error-title {
-  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-weight: 600;
   font-size: 14px;
-  color: var(--error-color);
+  color: var(--text-primary);
   margin-bottom: 6px;
+}
+
+/* Under the title's text, past the icon */
+.enhanced-error > :not(.enhanced-error-title) {
+  margin-left: calc(16px + var(--space-1));
 }
 
 /* A note on Maxima's output (TextWithNotes.tsx) */
@@ -1474,19 +1500,24 @@
 
 .enhanced-error-explanation {
   font-size: 13px;
-  color: var(--text-primary);
+  color: var(--text-secondary);
   margin-bottom: 8px;
   line-height: 1.4;
 }
 
 .enhanced-error-suggestion {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-1);
   font-size: 13px;
-  color: var(--text-secondary);
+  color: var(--text-primary);
   margin-bottom: 8px;
-  padding: 8px 10px;
-  background: var(--error-bg);
-  border-radius: 4px;
-  border-left: 3px solid var(--error-color);
+}
+
+.enhanced-error-bulb {
+  flex: none;
+  margin-top: var(--space-half);
+  color: var(--text-secondary);
 }
 
 .enhanced-error-dym {

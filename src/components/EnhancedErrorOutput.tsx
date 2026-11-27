@@ -3,6 +3,7 @@ import { Trans, useLingui } from "@lingui/react/macro";
 import type { ErrorInfo } from "../types/maxima";
 import { errorText } from "../lib/messages";
 import { useNotebookStore } from "../store/notebookStore";
+import { IconAlertCircle, IconBulb } from "./ui/icons";
 
 interface EnhancedErrorOutputProps {
   error: string;
@@ -22,37 +23,44 @@ export function EnhancedErrorOutput({
   const [showRaw, setShowRaw] = useState(false);
 
   if (!errorInfo) {
+    // No explanation: Maxima's own text, after the error icon
     return (
       <div className="error-output">
-        {errorTranslated ? (
-          <>
-            <pre>{errorTranslated}</pre>
-            <button
-              className="enhanced-error-toggle"
-              onClick={() => setShowRaw(!showRaw)}
-            >
-              {showRaw
-                ? t({
-                    message: "Hide original",
-                    comment: "Button: hides Maxima's English error message, shown below its translation",
-                  })
-                : t({
-                    message: "Show original",
-                    comment: "Button: shows Maxima's English error message below its translation",
-                  })}
-            </button>
-            {showRaw && <pre className="enhanced-error-raw">{error}</pre>}
-          </>
-        ) : (
-          <pre>{error}</pre>
-        )}
+        <ErrorIcon />
+        <div className="error-output-body">
+          {errorTranslated ? (
+            <>
+              <pre>{errorTranslated}</pre>
+              <button
+                className="enhanced-error-toggle"
+                onClick={() => setShowRaw(!showRaw)}
+              >
+                {showRaw
+                  ? t({
+                      message: "Hide original",
+                      comment: "Button: hides Maxima's English error message, shown below its translation",
+                    })
+                  : t({
+                      message: "Show original",
+                      comment: "Button: shows Maxima's English error message below its translation",
+                    })}
+              </button>
+              {showRaw && <pre className="enhanced-error-raw">{error}</pre>}
+            </>
+          ) : (
+            <pre>{error}</pre>
+          )}
+        </div>
       </div>
     );
   }
 
   return (
     <div className="enhanced-error">
-      <div className="enhanced-error-title">{errorText(i18n, errorInfo, "title")}</div>
+      <div className="enhanced-error-title">
+        <ErrorIcon />
+        <span>{errorText(i18n, errorInfo, "title")}</span>
+      </div>
       <div className="enhanced-error-explanation">
         {errorText(i18n, errorInfo, "explanation")}
       </div>
@@ -63,7 +71,8 @@ export function EnhancedErrorOutput({
 
       {errorInfo.suggestion && (
         <div className="enhanced-error-suggestion">
-          {errorText(i18n, errorInfo, "suggestion")}
+          <IconBulb className="enhanced-error-bulb" size={15} stroke={1.75} aria-hidden="true" />
+          <span>{errorText(i18n, errorInfo, "suggestion")}</span>
         </div>
       )}
 
@@ -111,12 +120,12 @@ export function EnhancedErrorOutput({
               })
           : showRaw
             ? t({
-                message: "Hide raw error",
-                comment: "Button: hides the error exactly as Maxima printed it",
+                message: "Hide Maxima's error",
+                comment: "Button under an error explanation: hides the error exactly as Maxima printed it",
               })
             : t({
-                message: "Show raw error",
-                comment: "Button: shows the error exactly as Maxima printed it, below Aximar's explanation",
+                message: "Show Maxima's error",
+                comment: "Button under an error explanation: shows the error exactly as Maxima printed it, below Aximar's explanation",
               })}
       </button>
       {showRaw && <pre className="enhanced-error-raw">{error}</pre>}
@@ -167,4 +176,9 @@ function ErrorExample({ example: exampleText, cellId }: { example: string; cellI
       Example: {example}
     </Trans>
   );
+}
+
+/** The red mark before an error: the one place the output itself is red */
+function ErrorIcon() {
+  return <IconAlertCircle className="error-icon" size={16} stroke={1.75} aria-hidden="true" />;
 }

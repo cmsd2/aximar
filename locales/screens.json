@@ -521,6 +521,16 @@
     "errors--maxima-error-without-explanation",
     "errors--translated-maxima-error"
   ],
+  "LoONb5": [
+    "cells--bracket-selection",
+    "cells--notebook",
+    "cells--selection",
+    "errors--all-explanations",
+    "screens--drop-mixed",
+    "screens--drop-notebooks",
+    "screens--drop-refused",
+    "screens--whole-window"
+  ],
   "M1co_O": [
     "dialogs--settings-ai-assistants"
   ],
@@ -1106,6 +1116,11 @@
   "gRBeao": [
     "errors--all-explanations"
   ],
+  "gWhtwS": [
+    "dialogs--settings",
+    "dialogs--settings-translation",
+    "ui-segmentedcontrol--options"
+  ],
   "gexjIF": [
     "errors--all-explanations"
   ],
@@ -1178,16 +1193,6 @@
   ],
   "igb8BH": [
     "dialogs--settings-notebook"
-  ],
-  "ip5Gnc": [
-    "cells--bracket-selection",
-    "cells--notebook",
-    "cells--selection",
-    "errors--all-explanations",
-    "screens--drop-mixed",
-    "screens--drop-notebooks",
-    "screens--drop-refused",
-    "screens--whole-window"
   ],
   "ivlLtN": [
     "errors--all-explanations"

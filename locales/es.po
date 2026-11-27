@@ -1111,6 +1111,11 @@ msgstr ""
 msgid "Hide Aximar"
 msgstr ""
 
+#. Button under an error explanation: hides the error exactly as Maxima printed it
+#: src/components/EnhancedErrorOutput.tsx
+msgid "Hide Maxima's error"
+msgstr ""
+
 #. Button on a note in a cell's output: hides the lines Maxima printed, which the note explains
 #: src/components/TextWithNotes.tsx
 msgid "Hide Maxima's text"
@@ -1125,11 +1130,6 @@ msgstr ""
 #. Application menu (macOS): hides the other apps' windows. max-length:30
 #: src/commands/menu-model.ts
 msgid "Hide Others"
-msgstr ""
-
-#. Button: hides the error exactly as Maxima printed it
-#: src/components/EnhancedErrorOutput.tsx
-msgid "Hide raw error"
 msgstr ""
 
 #. Settings: argument help button; shows a function's arguments as a hint while typing
@@ -1823,6 +1823,9 @@ msgid "Packages"
 msgstr ""
 
 #. Settings: theme button for a light theme on warm off-white, like paper
+#. screen: dialogs--settings
+#. screen: dialogs--settings-translation
+#. screen: ui-segmentedcontrol--options
 #: src/components/settings/GeneralSection.tsx
 msgid "Paper"
 msgstr ""
@@ -2243,6 +2246,19 @@ msgstr ""
 msgid "Show licences"
 msgstr ""
 
+#. Button under an error explanation: shows the error exactly as Maxima printed it, below Aximar's explanation
+#. screen: cells--bracket-selection
+#. screen: cells--notebook
+#. screen: cells--selection
+#. screen: errors--all-explanations
+#. screen: screens--drop-mixed
+#. screen: screens--drop-notebooks
+#. screen: screens--drop-refused
+#. screen: screens--whole-window
+#: src/components/EnhancedErrorOutput.tsx
+msgid "Show Maxima's error"
+msgstr ""
+
 #. Button on a note in a cell's output: shows the lines Maxima printed, which the note explains
 #. screen: cells--bracket-selection
 #. screen: cells--notebook
@@ -2262,19 +2278,6 @@ msgstr ""
 #. screen: errors--translated-maxima-error
 #: src/components/EnhancedErrorOutput.tsx
 msgid "Show original"
-msgstr ""
-
-#. Button: shows the error exactly as Maxima printed it, below Aximar's explanation
-#. screen: cells--bracket-selection
-#. screen: cells--notebook
-#. screen: cells--selection
-#. screen: errors--all-explanations
-#. screen: screens--drop-mixed
-#. screen: screens--drop-notebooks
-#. screen: screens--drop-refused
-#. screen: screens--whole-window
-#: src/components/EnhancedErrorOutput.tsx
-msgid "Show raw error"
 msgstr ""
 
 #. Settings, pre-release builds: when on, holding Alt and pointing at text shows its English, note and source file
