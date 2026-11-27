@@ -13,8 +13,8 @@
 
 ## 3. Reaching the notices from the app (one PR)
 
-- [ ] 3.1 Write `public/licenses/index.html`, linking the two font licences, `third-party-npm.txt` and `third-party-rust.html`; verify every link resolves in `dist/` after `npm run build`, with a vitest test that reads the page and checks each `href` names a file the build writes or `public/licenses/` holds
-- [ ] 3.2 Add the Tauri command `open_licences`, which opens or focuses a `licences` window at `licenses/index.html`; verify with a Rust test of the window's URL and size, and by hand that it opens, opens once, and works with the network off
-- [ ] 3.3 Add the Licences row to Settings, General, with a hint and a Show licences button that calls `open_licences`; add the strings to the catalog with translator notes; verify with a vitest test that the button calls the command, the settings-sections tests with the new row, and the General story in the gallery
-- [ ] 3.4 Set `AboutMetadata.credits` to the translated "Open-source licences: Settings, General, Licences" on macOS and Linux; verify with a `menu.rs` test of the label, and by hand in the About panel
-- [ ] 3.5 Add a line on the licences to `README.md`, and verify `openspec validate licence-notices --strict` passes
+- [x] 3.1 Write `public/licenses/index.html`, linking the two font licences, `third-party-npm.txt` and `third-party-rust.html`; verify every link resolves in `dist/` after `npm run build`, with a vitest test that reads the page and checks each `href` names a file the build writes or `public/licenses/` holds
+- [x] 3.2 Add the Tauri command `open_licences`, which opens or focuses a `licences` window at `licenses/index.html`; verify with a Rust test of the window's page and size; by hand that it opens, opens once, and works with the network off is left for the in-app check
+- [x] 3.3 Add the Licences row to Settings, General, with a hint and a Show licences button that calls `open_licences`; add the strings to the catalog with translator notes; verify with a vitest test that the button calls the command, the settings-sections tests with the new row, and the General story in the gallery
+- [x] 3.4 Set `AboutMetadata.credits` to the translated "Open-source licences: Settings, General, Licences" on macOS and Linux; also set the panel's licence field to GPL-3.0-or-later; verify with a `menu.rs` test of the label, and by hand in the About panel (left for the in-app check)
+- [x] 3.5 Add a line on the licences to `README.md`, and verify `openspec validate licence-notices --strict` passes
