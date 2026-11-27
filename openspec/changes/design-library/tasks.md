@@ -9,9 +9,9 @@
 
 ## 2. The token check (one PR)
 
-- [ ] 2.1 Write `scripts/check-css-tokens.mjs` with `--update`, and `scripts/css-tokens-baseline.json` with today's counts; verify with `node --test` tests over fixture stylesheets: `counts_hex_rgb_and_hsl`, `ignores_comments_and_url_fragments`, `ignores_percent_and_zero_radii`, `fails_above_the_baseline`, `passes_and_reports_below_it`, `update_never_raises_a_count`, `names_the_matching_token`
-- [ ] 2.2 Add the check for direct `@tabler/icons-react` imports, and `src/components/ui/icons.ts` with the icons Settings uses, each with a `use` note; move Settings' imports onto it; verify the test `flags_a_direct_icon_import` and that the check passes on the tree
-- [ ] 2.3 Add `npm run check:tokens` and a step in the CI `test` job; verify the job fails on a branch that adds `color: #333;` and passes on this one
+- [x] 2.1 Write `scripts/check-css-tokens.mjs` with `--update`, and `scripts/css-tokens-baseline.json` with today's counts; verify with `node --test` tests over fixture stylesheets: `counts_hex_rgb_and_hsl`, `counts_px_font_sizes_but_not_tokens`, `gives_each_declaration_its_line`, `a_file_with_no_raw_values_leaves_the_baseline`, `ignores_comments_and_url_fragments`, `ignores_percent_and_zero_radii`, `fails_above_the_baseline`, `asks_to_record_a_lower_count`, `update_never_raises_a_count`, `names_the_matching_token`
+- [x] 2.2 Add the check for direct `@tabler/icons-react` imports, and `src/components/ui/icons.ts` with the icons Settings uses, each with a `use` note; move Settings' imports onto it; add the Foundations icons story, which lists `icons.ts`; verify the test `flags_a_direct_icon_import`, the vitest test that every icon in `icons.ts` has a note, and that the check passes on the tree
+- [x] 2.3 Add `npm run check:tokens` and a step in the CI `test` job; verify the job fails on a branch that adds `color: #333;` and passes on this one
 
 ## 3. Primitives (one PR)
 

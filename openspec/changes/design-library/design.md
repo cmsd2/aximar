@@ -67,15 +67,17 @@ The scales keep the sizes the stylesheet uses most, so moving a rule onto a toke
 
 ### 3. A ratchet, not a rewrite
 
-`scripts/check-css-tokens.mjs` (Node, no dependencies) reads each `.css` file under `src/` except `tokens.css`, strips comments, and counts per file:
+`scripts/check-css-tokens.mjs` (Node, no dependencies) reads each `.css` file under `src/` except `tokens.css`, blanks out comments, and finds the declarations that write a raw value:
 
-- colours: `#` followed by 3, 4, 6 or 8 hex digits, and `rgb(`, `rgba(`, `hsl(`, `hsla(`;
-- `font-size` in px;
-- `border-radius` with a px value.
+- a colour: `#` followed by 3 to 8 hex digits outside `url()`, or `rgb(`, `rgba(`, `hsl(`, `hsla(`;
+- a `font-size` in px;
+- a `border-radius` (or one corner's) with a px value other than 0.
 
-It also lists every `.ts` and `.tsx` file that imports `@tabler/icons-react`, other than `src/components/ui/icons.ts`.
+`scripts/css-tokens-baseline.json` records each such declaration, as `property: value`, and how often it appears in each file. Keying by declaration rather than by a count per file lets the check name the new one exactly: a declaration the baseline doesn't hold fails at its line, and one it holds fewer times fails with one line saying how many times it appears and how many the baseline allows. Either way the message names the token whose light value matches, such as `use --text-sm`.
 
-It compares the counts with `scripts/css-tokens-baseline.json`. A count above its baseline fails, printing each offending line and, for a colour or size equal to a token's light value, the token's name. A count below its baseline passes but prints the new count; `--update` writes the lower counts, and never raises one. `npm run check:tokens` runs it, and CI runs it in the `test` job after `npm ci`.
+A declaration that appears less often than its entry says also fails, until `--update` records the lower count, so the baseline never sits above the tree. `--update` never adds or raises an entry. `--init` records a tree with no baseline. It also lists every `.ts` and `.tsx` file that imports `@tabler/icons-react`, other than `src/components/ui/icons.ts`.
+
+`npm run check:tokens` runs it, and CI runs it, with its tests (`node --test scripts/check-css-tokens.node-test.mjs`), in the `test` job after `npm ci`. The first baseline holds 254 raw values, all in `global.css`: 134 font sizes, 61 radii and the rest colours.
 
 Alternative: Stylelint with `declaration-strict-value`. It catches the same values, but it adds a dependency tree and a config to keep, and it can't hold a per-file baseline without a plugin. Rejected for now. The script is about 100 lines, and Stylelint can replace it if the rules grow.
 

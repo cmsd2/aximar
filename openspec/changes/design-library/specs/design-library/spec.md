@@ -37,7 +37,7 @@ Each text colour token SHALL be listed with the background tokens it appears on,
 
 ### Requirement: New rules use tokens, not raw values
 
-A check SHALL count, outside `tokens.css`, the colours written as hex, `rgb()` or `hsl()`, the font sizes in px, and the corner radii in px, in each stylesheet. It SHALL fail when any count is above the baseline recorded in the repository. When a count falls, the check SHALL say so and the baseline SHALL be lowered in the same change. CI SHALL run the check.
+A check SHALL find, outside `tokens.css`, the declarations that write a colour as hex, `rgb()` or `hsl()`, a font size in px, or a corner radius in px, in each stylesheet. A baseline in the repository SHALL record each such declaration and how often it appears. The check SHALL fail on a declaration the baseline doesn't hold, or holds fewer times. When one appears less often than its entry says, the check SHALL fail until the baseline records the lower count, and its update SHALL never add or raise an entry. CI SHALL run the check.
 
 #### Scenario: A new raw colour fails
 
@@ -47,7 +47,7 @@ A check SHALL count, outside `tokens.css`, the colours written as hex, `rgb()` o
 #### Scenario: Moving a rule onto tokens lowers the baseline
 
 - **WHEN** a change replaces three raw font sizes with `--text-sm`
-- **THEN** the check passes, reports the lower count, and fails until the baseline file records it
+- **THEN** the check reports the lower count and fails until the change records it with the check's update option, which then passes
 
 ### Requirement: Storybook shows the foundations
 

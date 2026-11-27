@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { IconAlertTriangle, IconCircleCheck, IconInfoCircle, IconLoader2 } from "@tabler/icons-react";
+import { IconAlertTriangle, IconCircleCheck, IconInfoCircle, IconLoader2 } from "./icons";
 
 export type StatusTone = "ok" | "warn" | "err" | "busy" | "info";
 

@@ -7,7 +7,7 @@ import {
   IconPlugConnected,
   IconPrinter,
   type Icon,
-} from "@tabler/icons-react";
+} from "../ui/icons";
 import type { MessageDescriptor } from "@lingui/core";
 import { msg } from "@lingui/core/macro";
 import { TRANSLATOR_TOOLS } from "../../lib/translation-preview";

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { useLingui } from "@lingui/react/macro";
-import { IconX } from "@tabler/icons-react";
+import { IconX } from "../ui/icons";
 import { getConfig, setConfig, type AppConfig } from "../../lib/config-client";
 import { applyConfig } from "../../lib/apply-config";
 import { useNotebookStore } from "../../store/notebookStore";
