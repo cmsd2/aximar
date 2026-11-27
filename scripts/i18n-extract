@@ -2,7 +2,8 @@
 # Writes locales/messages.pot from the window's and the Rust crates' text,
 # and merges it into each locales/<lang>.po.  See docs/i18n.md.
 #
-#   scripts/i18n-extract          update the template and the catalogs
+#   scripts/i18n-extract          update the template, the catalogs and
+#                                 docs/maxima-messages.md
 #   scripts/i18n-extract --check  fail if they're out of date, changing nothing
 #
 # Needs GNU gettext 0.24 or later (for Rust) and the npm dependencies.
@@ -106,4 +107,11 @@ done
 
 if $stale; then
   exit 1
+fi
+
+# The list of Aximar's messages about Maxima, from the template.  The
+# test job checks it, since this script's CI job has no Rust.
+if ! $check; then
+  AXIMAR_UPDATE_DOCS=1 cargo test --quiet -p aximar-core --test maxima_messages \
+    the_list_of_messages_is_current >/dev/null
 fi

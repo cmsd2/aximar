@@ -86,7 +86,7 @@ pub struct Message {
 }
 ```
 
-`msg_ctx!("question.sign", "Maxima needs to know the sign of {expr}", expr = e)` builds one. `ErrorInfo` gains `id` and `params`; its `title`, `explanation`, `suggestion` and `example` become `Message`s, each still serialised with its English `text`, so MCP clients and saved data read as they do now. Notes are `Message`s plus the range of `text_output` lines they cover.
+`msg_ctx!("question.sign", "Maxima needs to know the sign of {expr}", expr = e)` builds one. `ErrorInfo` gains `id`; its `title`, `explanation` and `suggestion` become `Message`s, each still serialised as its English `text`, so MCP clients read them as they do now. Beside them the JSON carries `params` (every message's parameters) and `messages` (each field's context and English template), which is what the window needs to look a field up. `example` stays a string: it's Maxima code, which no language changes. A field with variants has a context per variant (`error.arg_count.explanation.too_few`). Notes are `Message`s plus the range of `text_output` lines they cover.
 
 The window translates a `Message` with Lingui, looking up the template under the ID's context and filling in the parameters, and falls back to `text`. aximar-core never needs the user's language, so the MCP server, batch runs and the window share one code path, and switching language re-renders existing outputs without re-running anything.
 

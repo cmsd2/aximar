@@ -45,14 +45,22 @@ fn name(entry: &POEntry) -> String {
 fn problems(po: &POFile) -> Vec<String> {
     let mut out = Vec::new();
     for entry in &po.entries {
-        // Rust writes a brace as `{{`, the window's ICU messages as `'{'`
-        if entry.flags.iter().any(|f| f == "rust-format")
-            && (entry.msgid.contains("{{") || entry.msgid.contains("}}"))
-        {
-            out.push(format!(
-                "{}: literal braces can't be translated the same way in Rust and the window",
-                name(entry)
-            ));
+        // Rust writes a brace as `{{`, the window's ICU messages as `'{'`;
+        // and in ICU an apostrophe before a brace quotes it, hiding the value
+        if entry.flags.iter().any(|f| f == "rust-format") {
+            let id = &entry.msgid;
+            if id.contains("{{") || id.contains("}}") {
+                out.push(format!(
+                    "{}: literal braces can't be translated the same way in Rust and the window",
+                    name(entry)
+                ));
+            }
+            if id.contains("'{") || id.contains("'}") {
+                out.push(format!(
+                    "{}: an apostrophe before a brace hides the placeholder in the window; use double quotes",
+                    name(entry)
+                ));
+            }
         }
         if entry.obsolete || entry.fuzzy() {
             continue;
@@ -186,4 +194,14 @@ fn literal_braces_in_rust_text_fail() {
         "{HEADER}#, rust-format\nmsgid \"a set {{{{x}}}}\"\nmsgstr \"\"\n"
     ));
     assert_eq!(problems(&po).len(), 1);
+}
+
+#[test]
+fn an_apostrophe_before_a_placeholder_fails() {
+    let po = parse(&format!(
+        "{HEADER}#, rust-format\nmsgid \"'{{func}}' is unknown\"\nmsgstr \"\"\n"
+    ));
+    let problems = problems(&po);
+    assert_eq!(problems.len(), 1, "{problems:?}");
+    assert!(problems[0].contains("apostrophe"));
 }

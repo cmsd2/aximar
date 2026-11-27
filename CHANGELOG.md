@@ -16,6 +16,23 @@ see the `v*` releases on GitHub.
   tools now start Maxima with `LANGUAGE=en`, which Maxima reads before
   `LC_ALL`, `LC_MESSAGES` and `LANG`.
 
+### aximar-mcp
+
+- **Error explanations have IDs**: `error_info` gains `id` (such as
+  `error.division_by_zero`), `params` with the values in its text, and
+  `messages` with each field's catalog context and English template.
+  `title`, `explanation` and `suggestion` keep their English text.
+  [docs/maxima-messages.md](docs/maxima-messages.md) lists every ID.
+- **Syntax errors are explained by kind**: a missing `)` or `]`, input that
+  ends too early, and two values with no operator between them each get
+  their own explanation, naming the delimiter or the value. Input that ends
+  too early used to get the generic syntax-error text.
+- **Wrong argument counts name the definition**: calling a user function or
+  lambda with the wrong arguments explains it with the definition and the
+  arguments given ("f is defined as f(x), but was called with [1,2]."),
+  and no longer suggests `describe`, which only knows Maxima's own
+  functions.
+
 ## [0.6.2] — 2026-11-25
 
 ### maxima-dap

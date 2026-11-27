@@ -336,7 +336,7 @@ mod tests {
             .error_info
             .as_ref()
             .expect("an explanation");
-        assert_eq!(info.title, "Division by Zero");
+        assert_eq!(info.title.text, "Division by Zero");
         // Outputs that aren't errors get none
         assert!(file
             .cells

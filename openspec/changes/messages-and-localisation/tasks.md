@@ -10,10 +10,10 @@ Each numbered group is one pull request, landing in order unless a group says ot
 
 ## 2. Message IDs, and errors.rs onto the catalog
 
-- [ ] 2.1 `ErrorInfo` gains `id` and `params`; its fields become `Message`s, serialised with their English `text`; verify existing MCP result tests pass unchanged apart from the new fields
-- [ ] 2.2 Move every `errors.rs` pattern onto `msg_ctx!` with its ID (`error.division_by_zero.title`, and so on); `error.arg_count` names the function, its definition and the arguments found, and stops suggesting `describe` for user functions; verify each existing `errors.rs` test passes with the same English text, plus the "Parameters fill the text" scenario
-- [ ] 2.3 Add the syntax-error IDs (`error.syntax_missing`, `error.incomplete_input`, `error.syntax_operator`, `error.syntax` for the rest) matching the parser's English patterns; verify with parser tests and Maxima-backed tests for `f(x;` and `1+;`
-- [ ] 2.4 Generate `docs/maxima-messages.md` from the template (each ID, the Maxima text it covers from its `// i18n:` note, its parameters and its English text) with a check mode in CI; add the test that every ID the code can produce is in the template; verify "The catalog and the code agree"
+- [x] 2.1 `ErrorInfo` gains `id` and `params`; its fields become `Message`s, serialised with their English `text`; verify existing MCP result tests pass unchanged apart from the new fields
+- [x] 2.2 Move every `errors.rs` pattern onto `msg_ctx!` with its ID (`error.division_by_zero.title`, and so on); `error.arg_count` names the function, its definition and the arguments found, and stops suggesting `describe` for user functions; verify each existing `errors.rs` test passes with the same English text, plus the "Parameters fill the text" scenario
+- [x] 2.3 Add the syntax-error IDs (`error.syntax_missing`, `error.incomplete_input`, `error.syntax_operator`, `error.syntax` for the rest) matching the parser's English patterns; verify with parser tests and Maxima-backed tests for `f(x;` and `1+;`
+- [x] 2.4 Generate `docs/maxima-messages.md` from the template (each ID, the Maxima text it covers from its `// i18n:` note, its parameters and its English text) with a check mode in CI; add the test that every ID the code can produce is in the template; verify "The catalog and the code agree"
 
 ## 3. The language setting and switching
 

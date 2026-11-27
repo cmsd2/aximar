@@ -1,12 +1,25 @@
+//! Aximar's explanations of Maxima's errors.
+//!
+//! Each explanation has an ID, such as `error.division_by_zero`, and its
+//! messages have that ID and the field as their context
+//! (`error.division_by_zero.title`), so the catalog has one entry per
+//! field.  The `// i18n:` note on each title says which Maxima text the
+//! explanation covers; `docs/maxima-messages.md` lists them.  Text is in
+//! English: the window translates it.
+
 use regex::Regex;
 use std::sync::LazyLock;
 
 use crate::catalog::packages::PackageCatalog;
 use crate::catalog::search::Catalog;
 use crate::maxima::types::ErrorInfo;
+use crate::msg_ctx;
 
-static ARG_COUNT_RE: LazyLock<Regex> =
-    LazyLock::new(|| Regex::new(r"Too (few|many) arguments supplied to (\w+)").unwrap());
+/// User functions and lambdas print their definition; old Maxima printed
+/// built-in functions' names alone
+static ARG_COUNT_RE: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"(?m)Too (few|many) arguments supplied to (.+?)(?:; found: (.*))?$").unwrap()
+});
 
 static UNDEFINED_VAR_RE: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"(?:unbound|undefined) variable (\w+)").unwrap());
@@ -24,6 +37,16 @@ static MISSING_ASSUMPTION_RE: LazyLock<Regex> = LazyLock::new(|| {
 static LOAD_FAILED_RE: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"(?:failed to load|Cannot find file)\s+(\S+)").unwrap());
 
+/// The parser's message, after Maxima's "incorrect syntax: "
+static SYNTAX_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"(?m)incorrect syntax: (.+?)\s*$").unwrap());
+
+static SYNTAX_MISSING_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"^Missing (\S+)$").unwrap());
+
+static SYNTAX_OPERATOR_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"^(.+) is not an? (prefix|infix) operator$").unwrap());
+
 pub fn enhance_error(raw_error: &str, catalog: &Catalog) -> Option<ErrorInfo> {
     enhance_error_with_packages(raw_error, catalog, None)
 }
@@ -33,136 +56,232 @@ pub fn enhance_error_with_packages(
     catalog: &Catalog,
     packages: Option<&PackageCatalog>,
 ) -> Option<ErrorInfo> {
-    // Try each pattern in order
-    if let Some(info) = check_division_by_zero(raw_error) {
-        return Some(info);
-    }
-    if let Some(info) = check_syntax_error(raw_error) {
-        return Some(info);
-    }
-    if let Some(info) = check_arg_count(raw_error, catalog) {
-        return Some(info);
-    }
-    if let Some(info) = check_undefined_variable(raw_error) {
-        return Some(info);
-    }
-    if let Some(info) = check_undefined_function(raw_error, catalog, packages) {
-        return Some(info);
-    }
-    if let Some(info) = check_lisp_error(raw_error) {
-        return Some(info);
-    }
-    if let Some(info) = check_divergent_integral(raw_error) {
-        return Some(info);
-    }
-    if let Some(info) = check_inconsistent_equations(raw_error) {
-        return Some(info);
-    }
-    if let Some(info) = check_missing_assumption(raw_error) {
-        return Some(info);
-    }
-    if let Some(info) = check_matrix_dimension(raw_error) {
-        return Some(info);
-    }
-    if let Some(info) = check_premature_termination(raw_error) {
-        return Some(info);
-    }
-    if let Some(info) = check_load_failed(raw_error) {
-        return Some(info);
-    }
-
-    None
+    check_division_by_zero(raw_error)
+        // Before the other syntax errors: it's one of them
+        .or_else(|| check_premature_termination(raw_error))
+        .or_else(|| check_syntax_error(raw_error))
+        .or_else(|| check_arg_count(raw_error, catalog))
+        .or_else(|| check_undefined_variable(raw_error))
+        .or_else(|| check_undefined_function(raw_error, catalog, packages))
+        .or_else(|| check_lisp_error(raw_error))
+        .or_else(|| check_divergent_integral(raw_error))
+        .or_else(|| check_inconsistent_equations(raw_error))
+        .or_else(|| check_missing_assumption(raw_error))
+        .or_else(|| check_matrix_dimension(raw_error))
+        .or_else(|| check_load_failed(raw_error))
 }
 
 fn check_division_by_zero(raw: &str) -> Option<ErrorInfo> {
-    if raw.contains("0 to a negative exponent") || raw.contains("Division by 0") {
-        return Some(ErrorInfo {
-            title: "Division by Zero".into(),
-            explanation: "The expression involves division by zero or raising zero to a negative power, which is undefined.".into(),
-            suggestion: Some("Check your denominator or exponent for cases where the value might be zero.".into()),
-            example: None,
-            did_you_mean: Vec::new(),
-            correct_signatures: Vec::new(),
-        });
+    if !(raw.contains("0 to a negative exponent") || raw.contains("Division by 0")) {
+        return None;
     }
-    None
+    Some(
+        ErrorInfo::new(
+            "error.division_by_zero",
+            // i18n: Maxima: "expt: undefined: 0 to a negative exponent." or "Division by 0"
+            msg_ctx!("error.division_by_zero.title", "Division by Zero"),
+            msg_ctx!(
+                "error.division_by_zero.explanation",
+                "The expression involves division by zero or raising zero to a negative power, which is undefined."
+            ),
+        )
+        .with_suggestion(msg_ctx!(
+            "error.division_by_zero.suggestion",
+            "Check your denominator or exponent for cases where the value might be zero."
+        )),
+    )
+}
+
+fn check_premature_termination(raw: &str) -> Option<ErrorInfo> {
+    if !raw.contains("Premature termination") {
+        return None;
+    }
+    Some(
+        ErrorInfo::new(
+            "error.incomplete_input",
+            // i18n: Maxima: "incorrect syntax: Premature termination of input at ;."
+            msg_ctx!("error.incomplete_input.title", "Incomplete Expression"),
+            msg_ctx!(
+                "error.incomplete_input.explanation",
+                "The expression ended unexpectedly. This usually means a missing closing parenthesis, bracket, or semicolon."
+            ),
+        )
+        .with_suggestion(msg_ctx!(
+            "error.incomplete_input.suggestion",
+            "Check that all parentheses () and brackets [] are matched, and the expression ends with ; or $"
+        )),
+    )
 }
 
 fn check_syntax_error(raw: &str) -> Option<ErrorInfo> {
-    if raw.contains("incorrect syntax:") {
-        let explanation = if raw.contains("is not a prefix operator") {
-            "An operator was used in a position where it's not valid. Check for missing operands or misplaced operators.".into()
-        } else if raw.contains("is not an infix operator") {
-            "Two values appear next to each other without an operator between them.".into()
-        } else {
-            "The expression contains a syntax error. Check for missing operators, unmatched parentheses, or misplaced characters.".into()
-        };
+    let message = SYNTAX_RE.captures(raw)?.get(1)?.as_str();
 
-        return Some(ErrorInfo {
-            title: "Syntax Error".into(),
-            explanation,
-            suggestion: Some(
-                "Check for missing *, +, or other operators. Ensure all parentheses are matched."
-                    .into(),
-            ),
-            example: None,
-            did_you_mean: Vec::new(),
-            correct_signatures: Vec::new(),
-        });
+    if let Some(caps) = SYNTAX_MISSING_RE.captures(message) {
+        let delimiter = &caps[1];
+        return Some(
+            ErrorInfo::new(
+                "error.syntax_missing",
+                // i18n: Maxima: "incorrect syntax: Missing )", or another closing delimiter
+                msg_ctx!("error.syntax_missing.title", "Syntax Error"),
+                msg_ctx!(
+                    "error.syntax_missing.explanation",
+                    // i18n: delimiter is a closing bracket, such as ) or ]
+                    "A closing {delimiter} is missing.",
+                    delimiter = delimiter
+                ),
+            )
+            .with_suggestion(msg_ctx!(
+                "error.syntax_missing.suggestion",
+                "Check that every opening bracket has its closing {delimiter}, in the right order.",
+                delimiter = delimiter
+            )),
+        );
     }
-    None
+
+    if let Some(caps) = SYNTAX_OPERATOR_RE.captures(message) {
+        let token = &caps[1];
+        let explanation = if &caps[2] == "prefix" {
+            msg_ctx!(
+                "error.syntax_operator.explanation.prefix",
+                // i18n: token is what Maxima read where an expression should start, such as !
+                "\"{token}\" can't start an expression here. Check for a missing operand or a misplaced operator.",
+                token = token
+            )
+        } else {
+            msg_ctx!(
+                "error.syntax_operator.explanation.infix",
+                // i18n: token is the value Maxima read after another value, as y in "x y"
+                "Two values appear next to each other without an operator between them, before \"{token}\".",
+                token = token
+            )
+        };
+        return Some(
+            ErrorInfo::new(
+                "error.syntax_operator",
+                // i18n: Maxima: "incorrect syntax: y is not an infix operator" or "! is not a prefix operator"
+                msg_ctx!("error.syntax_operator.title", "Syntax Error"),
+                explanation,
+            )
+            .with_suggestion(msg_ctx!(
+                "error.syntax_operator.suggestion",
+                "Check for missing *, +, or other operators. Ensure all parentheses are matched."
+            )),
+        );
+    }
+
+    Some(
+        ErrorInfo::new(
+            "error.syntax",
+            // i18n: Maxima: any other "incorrect syntax: ..." message
+            msg_ctx!("error.syntax.title", "Syntax Error"),
+            msg_ctx!(
+                "error.syntax.explanation",
+                // i18n: message is Maxima's own description of the error, in English
+                "The expression contains a syntax error: {message}. Check for missing operators, unmatched parentheses, or misplaced characters.",
+                message = message.trim_end_matches('.')
+            ),
+        )
+        .with_suggestion(msg_ctx!(
+            "error.syntax.suggestion",
+            "Check for missing *, +, or other operators. Ensure all parentheses are matched."
+        )),
+    )
 }
 
 fn check_arg_count(raw: &str, catalog: &Catalog) -> Option<ErrorInfo> {
     let caps = ARG_COUNT_RE.captures(raw)?;
+    let too_few = &caps[1] == "few";
+    let called = caps[2].trim();
 
-    let direction = caps.get(1)?.as_str();
-    let func_name = caps.get(2)?.as_str();
+    // i18n: Maxima: "Too many arguments supplied to f(x); found: [1, 2]" or "Too few ..."
+    let title = msg_ctx!("error.arg_count.title", "Wrong Argument Count");
 
+    // A user function or lambda: Maxima prints its definition
+    if let (Some(paren), Some(found)) = (called.find('('), caps.get(3)) {
+        let func = called[..paren].trim();
+        return Some(
+            ErrorInfo::new(
+                "error.arg_count",
+                title,
+                msg_ctx!(
+                    "error.arg_count.explanation",
+                    // i18n: func is the function's name; definition is its name and parameters
+                    // as defined, such as f(x); found is the list of arguments it was given
+                    "{func} is defined as {definition}, but was called with {found}.",
+                    func = func,
+                    definition = called,
+                    found = found.as_str()
+                ),
+            )
+            .with_suggestion(msg_ctx!(
+                "error.arg_count.suggestion",
+                "Call {func} with the arguments {definition} names, or change its definition.",
+                func = func,
+                definition = called
+            )),
+        );
+    }
+
+    let func = called;
     let correct_signatures = catalog
-        .signature_info(func_name)
+        .signature_info(func)
         .map(|sigs| sigs.into_iter().map(|(sig, _, _)| sig).collect::<Vec<_>>())
         .unwrap_or_default();
 
-    let explanation = format!("Too {} arguments were passed to {}.", direction, func_name);
-
-    let suggestion = if correct_signatures.is_empty() {
-        Some(format!(
-            "Check the documentation for {} with describe({}).",
-            func_name, func_name
-        ))
+    let explanation = if too_few {
+        msg_ctx!(
+            "error.arg_count.explanation.too_few",
+            "Too few arguments were passed to {func}.",
+            func = func
+        )
     } else {
-        Some(format!(
-            "Correct usage: {}",
-            correct_signatures.join(" or ")
-        ))
+        msg_ctx!(
+            "error.arg_count.explanation.too_many",
+            "Too many arguments were passed to {func}.",
+            func = func
+        )
     };
-
-    Some(ErrorInfo {
-        title: "Wrong Argument Count".into(),
-        explanation,
-        suggestion,
-        example: None,
-        did_you_mean: Vec::new(),
-        correct_signatures,
-    })
+    let suggestion = if correct_signatures.is_empty() {
+        msg_ctx!(
+            "error.arg_count.suggestion.describe",
+            "Check the documentation for {func} with describe({func}).",
+            func = func
+        )
+    } else {
+        msg_ctx!(
+            "error.arg_count.suggestion.signatures",
+            // i18n: signatures is one or more ways to call the function, separated by semicolons
+            "Correct usage: {signatures}",
+            signatures = correct_signatures.join("; ")
+        )
+    };
+    let mut info =
+        ErrorInfo::new("error.arg_count", title, explanation).with_suggestion(suggestion);
+    info.correct_signatures = correct_signatures;
+    Some(info)
 }
 
 fn check_undefined_variable(raw: &str) -> Option<ErrorInfo> {
     let caps = UNDEFINED_VAR_RE.captures(raw)?;
-    let var_name = caps.get(1)?.as_str();
-
-    Some(ErrorInfo {
-        title: "Undefined Variable".into(),
-        explanation: format!("The variable '{}' has not been assigned a value.", var_name),
-        suggestion: Some(format!(
-            "Assign it first with {}: value; or use it as a symbolic variable.",
-            var_name
-        )),
-        example: Some(format!("{}: 42;", var_name)),
-        did_you_mean: Vec::new(),
-        correct_signatures: Vec::new(),
-    })
+    let name = caps.get(1)?.as_str();
+    Some(
+        ErrorInfo::new(
+            "error.undefined_variable",
+            // i18n: Maxima: "unbound variable x" or "undefined variable x"
+            msg_ctx!("error.undefined_variable.title", "Undefined Variable"),
+            msg_ctx!(
+                "error.undefined_variable.explanation",
+                "The variable \"{name}\" has not been assigned a value.",
+                name = name
+            ),
+        )
+        .with_suggestion(msg_ctx!(
+            "error.undefined_variable.suggestion",
+            "Assign it first with {name}: value; or use it as a symbolic variable.",
+            name = name
+        ))
+        .with_example(format!("{name}: 42;")),
+    )
 }
 
 fn check_undefined_function(
@@ -170,160 +289,200 @@ fn check_undefined_function(
     catalog: &Catalog,
     packages: Option<&PackageCatalog>,
 ) -> Option<ErrorInfo> {
-    let patterns = [&*UNDEFINED_FUNC_RE_1, &*UNDEFINED_FUNC_RE_2];
+    let caps = UNDEFINED_FUNC_RE_1
+        .captures(raw)
+        .or_else(|| UNDEFINED_FUNC_RE_2.captures(raw))?;
+    let func = caps.get(1)?.as_str();
+    // i18n: Maxima: "funcall: no such function: f" or "The function f is not known to Maxima"
+    let title = msg_ctx!("error.unknown_function.title", "Unknown Function");
 
-    for re in patterns {
-        if let Some(caps) = re.captures(raw) {
-            let func_name = caps.get(1)?.as_str();
-
-            // Check if this function is provided by a loadable package
-            if let Some(pkg_name) = packages.and_then(|p| p.package_for_function(func_name)) {
-                return Some(ErrorInfo {
-                    title: "Unknown Function".into(),
-                    explanation: format!(
-                        "'{}' is provided by the '{}' package, which needs to be loaded first.",
-                        func_name, pkg_name
-                    ),
-                    suggestion: Some(format!(
-                        "Add load(\"{}\")$ before using this function.",
-                        pkg_name
-                    )),
-                    example: Some(format!("load(\"{}\")$", pkg_name)),
-                    did_you_mean: Vec::new(),
-                    correct_signatures: Vec::new(),
-                });
-            }
-
-            let similar = catalog.find_similar(func_name, 3);
-
-            return Some(ErrorInfo {
-                title: "Unknown Function".into(),
-                explanation: format!("'{}' is not a known Maxima function.", func_name),
-                suggestion: if similar.is_empty() {
-                    Some(format!(
-                        "Check the spelling or use describe(\"{}\") to search.",
-                        func_name
-                    ))
-                } else {
-                    None
-                },
-                example: None,
-                did_you_mean: similar,
-                correct_signatures: Vec::new(),
-            });
-        }
+    // A function from a package that isn't loaded
+    if let Some(package) = packages.and_then(|p| p.package_for_function(func)) {
+        return Some(
+            ErrorInfo::new(
+                "error.unknown_function",
+                title,
+                msg_ctx!(
+                    "error.unknown_function.explanation.in_package",
+                    "\"{func}\" is provided by the \"{package}\" package, which needs to be loaded first.",
+                    func = func,
+                    package = package
+                ),
+            )
+            .with_suggestion(msg_ctx!(
+                "error.unknown_function.suggestion.in_package",
+                "Add load(\"{package}\")$ before using this function.",
+                package = package
+            ))
+            .with_example(format!("load(\"{package}\")$")),
+        );
     }
-    None
+
+    let similar = catalog.find_similar(func, 3);
+    let mut info = ErrorInfo::new(
+        "error.unknown_function",
+        title,
+        msg_ctx!(
+            "error.unknown_function.explanation",
+            "\"{func}\" is not a known Maxima function.",
+            func = func
+        ),
+    );
+    if similar.is_empty() {
+        info.suggestion = Some(msg_ctx!(
+            "error.unknown_function.suggestion",
+            "Check the spelling or use describe(\"{func}\") to search.",
+            func = func
+        ));
+    }
+    info.did_you_mean = similar;
+    Some(info)
 }
 
 fn check_lisp_error(raw: &str) -> Option<ErrorInfo> {
-    if raw.contains("Maxima encountered a Lisp error") || raw.contains("MACSYMA restart") {
-        return Some(ErrorInfo {
-            title: "Internal Error".into(),
-            explanation: "Maxima encountered an internal error in the underlying Lisp system.".into(),
-            suggestion: Some("Try restarting the Maxima session. If the error persists, the expression may be too complex or trigger a bug in Maxima.".into()),
-            example: None,
-            did_you_mean: Vec::new(),
-            correct_signatures: Vec::new(),
-        });
+    if !(raw.contains("Maxima encountered a Lisp error") || raw.contains("MACSYMA restart")) {
+        return None;
     }
-    None
+    Some(
+        ErrorInfo::new(
+            "error.lisp",
+            // i18n: Maxima: "Maxima encountered a Lisp error:" and the condition
+            msg_ctx!("error.lisp.title", "Internal Error"),
+            msg_ctx!(
+                "error.lisp.explanation",
+                "Maxima encountered an internal error in the underlying Lisp system."
+            ),
+        )
+        .with_suggestion(msg_ctx!(
+            "error.lisp.suggestion",
+            "Try restarting the Maxima session. If the error persists, the expression may be too complex or trigger a bug in Maxima."
+        )),
+    )
 }
 
 fn check_divergent_integral(raw: &str) -> Option<ErrorInfo> {
-    if raw.contains("integral is divergent") {
-        return Some(ErrorInfo {
-            title: "Divergent Integral".into(),
-            explanation: "The definite integral does not converge to a finite value.".into(),
-            suggestion: Some("Check the integration bounds and integrand. The function may have singularities or not decay fast enough.".into()),
-            example: None,
-            did_you_mean: Vec::new(),
-            correct_signatures: Vec::new(),
-        });
+    if !raw.contains("integral is divergent") {
+        return None;
     }
-    None
+    Some(
+        ErrorInfo::new(
+            "error.divergent_integral",
+            // i18n: Maxima: "defint: integral is divergent."
+            msg_ctx!("error.divergent_integral.title", "Divergent Integral"),
+            msg_ctx!(
+                "error.divergent_integral.explanation",
+                "The definite integral does not converge to a finite value."
+            ),
+        )
+        .with_suggestion(msg_ctx!(
+            "error.divergent_integral.suggestion",
+            "Check the integration bounds and integrand. The function may have singularities or not decay fast enough."
+        )),
+    )
 }
 
 fn check_inconsistent_equations(raw: &str) -> Option<ErrorInfo> {
-    if raw.contains("inconsistent equations") {
-        return Some(ErrorInfo {
-            title: "Inconsistent Equations".into(),
-            explanation:
-                "The system of equations has no solution -- the equations contradict each other."
-                    .into(),
-            suggestion: Some("Check that the equations are correct and compatible.".into()),
-            example: None,
-            did_you_mean: Vec::new(),
-            correct_signatures: Vec::new(),
-        });
+    if !raw.contains("inconsistent equations") {
+        return None;
     }
-    None
+    Some(
+        ErrorInfo::new(
+            "error.inconsistent_equations",
+            msg_ctx!(
+                "error.inconsistent_equations.title",
+                // i18n: Maxima: "solve: inconsistent equations" and similar
+                "Inconsistent Equations"
+            ),
+            msg_ctx!(
+                "error.inconsistent_equations.explanation",
+                "The system of equations has no solution: the equations contradict each other."
+            ),
+        )
+        .with_suggestion(msg_ctx!(
+            "error.inconsistent_equations.suggestion",
+            "Check that the equations are correct and compatible."
+        )),
+    )
 }
 
 fn check_missing_assumption(raw: &str) -> Option<ErrorInfo> {
-    if MISSING_ASSUMPTION_RE.is_match(raw) {
-        return Some(ErrorInfo {
-            title: "Assumption Required".into(),
-            explanation:
-                "Maxima needs to know a property of a variable to proceed with the computation."
-                    .into(),
-            suggestion: Some("Use assume() to declare properties, e.g.: assume(x > 0);".into()),
-            example: Some("assume(x > 0);".into()),
-            did_you_mean: Vec::new(),
-            correct_signatures: Vec::new(),
-        });
+    if !MISSING_ASSUMPTION_RE.is_match(raw) {
+        return None;
     }
-    None
+    Some(
+        ErrorInfo::new(
+            "question.other",
+            // i18n: Maxima asked a question, such as "Is x positive, negative or zero?"
+            msg_ctx!("question.other.title", "Assumption Required"),
+            msg_ctx!(
+                "question.other.explanation",
+                "Maxima needs to know a property of a variable to proceed with the computation."
+            ),
+        )
+        .with_suggestion(msg_ctx!(
+            "question.other.suggestion",
+            "Use assume() to declare properties, e.g.: assume(x > 0);"
+        ))
+        .with_example("assume(x > 0);"),
+    )
 }
 
 fn check_matrix_dimension(raw: &str) -> Option<ErrorInfo> {
-    if raw.contains("all rows must be the same length") || raw.contains("incompatible dimensions") {
-        return Some(ErrorInfo {
-            title: "Matrix Dimension Error".into(),
-            explanation: "Matrix rows have different lengths, or the matrices have incompatible dimensions for the operation.".into(),
-            suggestion: Some("Ensure all rows have the same number of elements and matrices have compatible dimensions.".into()),
-            example: Some("matrix([1,2,3], [4,5,6]);".into()),
-            did_you_mean: Vec::new(),
-            correct_signatures: Vec::new(),
-        });
+    if !(raw.contains("all rows must be the same length")
+        || raw.contains("incompatible dimensions"))
+    {
+        return None;
     }
-    None
-}
-
-fn check_premature_termination(raw: &str) -> Option<ErrorInfo> {
-    if raw.contains("Premature termination") {
-        return Some(ErrorInfo {
-            title: "Incomplete Expression".into(),
-            explanation: "The expression ended unexpectedly. This usually means a missing closing parenthesis, bracket, or semicolon.".into(),
-            suggestion: Some("Check that all parentheses () and brackets [] are matched, and the expression ends with ; or $".into()),
-            example: None,
-            did_you_mean: Vec::new(),
-            correct_signatures: Vec::new(),
-        });
-    }
-    None
+    Some(
+        ErrorInfo::new(
+            "error.matrix_dimension",
+            // i18n: Maxima: "matrix: all rows must be the same length." or "incompatible dimensions"
+            msg_ctx!("error.matrix_dimension.title", "Matrix Dimension Error"),
+            msg_ctx!(
+                "error.matrix_dimension.explanation",
+                "Matrix rows have different lengths, or the matrices have incompatible dimensions for the operation."
+            ),
+        )
+        .with_suggestion(msg_ctx!(
+            "error.matrix_dimension.suggestion",
+            "Ensure all rows have the same number of elements and matrices have compatible dimensions."
+        ))
+        .with_example("matrix([1,2,3], [4,5,6]);"),
+    )
 }
 
 fn check_load_failed(raw: &str) -> Option<ErrorInfo> {
-    if raw.contains("loadfile: failed to load") || raw.contains("Cannot find file") {
-        let pkg = LOAD_FAILED_RE
-            .captures(raw)
-            .and_then(|c| c.get(1))
-            .map(|m| m.as_str().to_string());
-
-        return Some(ErrorInfo {
-            title: "Package Not Found".into(),
-            explanation: format!(
-                "The package{} could not be found or loaded.",
-                pkg.as_ref().map(|p| format!(" '{}'", p)).unwrap_or_default()
-            ),
-            suggestion: Some("Check the package name. Common packages: draw, simplex, lsquares, descriptive, distrib.".into()),
-            example: Some("load(draw);".into()),
-            did_you_mean: Vec::new(),
-            correct_signatures: Vec::new(),
-        });
+    if !(raw.contains("loadfile: failed to load") || raw.contains("Cannot find file")) {
+        return None;
     }
-    None
+    let package = LOAD_FAILED_RE
+        .captures(raw)
+        .and_then(|c| c.get(1))
+        .map(|m| m.as_str());
+    let explanation = match package {
+        Some(package) => msg_ctx!(
+            "error.package_not_found.explanation",
+            "The package \"{package}\" could not be found or loaded.",
+            package = package
+        ),
+        None => msg_ctx!(
+            "error.package_not_found.explanation.unnamed",
+            "The package could not be found or loaded."
+        ),
+    };
+    Some(
+        ErrorInfo::new(
+            "error.package_not_found",
+            // i18n: Maxima: "loadfile: failed to load x" or "Cannot find file x"
+            msg_ctx!("error.package_not_found.title", "Package Not Found"),
+            explanation,
+        )
+        .with_suggestion(msg_ctx!(
+            "error.package_not_found.suggestion",
+            "Check the package name. Common packages: draw, simplex, lsquares, descriptive, distrib."
+        ))
+        .with_example("load(draw);"),
+    )
 }
 
 #[cfg(test)]
@@ -341,14 +500,14 @@ mod tests {
             &catalog(),
         );
         assert!(info.is_some());
-        assert_eq!(info.unwrap().title, "Division by Zero");
+        assert_eq!(info.unwrap().title.text, "Division by Zero");
     }
 
     #[test]
     fn test_syntax_error() {
         let info = enhance_error("incorrect syntax: ! is not a prefix operator", &catalog());
         assert!(info.is_some());
-        assert_eq!(info.unwrap().title, "Syntax Error");
+        assert_eq!(info.unwrap().title.text, "Syntax Error");
     }
 
     #[test]
@@ -359,7 +518,7 @@ mod tests {
         );
         assert!(info.is_some());
         let info = info.unwrap();
-        assert_eq!(info.title, "Wrong Argument Count");
+        assert_eq!(info.title.text, "Wrong Argument Count");
         assert!(!info.correct_signatures.is_empty());
     }
 
@@ -368,7 +527,7 @@ mod tests {
         let info = enhance_error("funcall: no such function: intgrate", &catalog());
         assert!(info.is_some());
         let info = info.unwrap();
-        assert_eq!(info.title, "Unknown Function");
+        assert_eq!(info.title.text, "Unknown Function");
         assert!(info.did_you_mean.contains(&"integrate".to_string()));
     }
 
@@ -376,7 +535,7 @@ mod tests {
     fn test_divergent() {
         let info = enhance_error("defint: integral is divergent.", &catalog());
         assert!(info.is_some());
-        assert_eq!(info.unwrap().title, "Divergent Integral");
+        assert_eq!(info.unwrap().title.text, "Divergent Integral");
     }
 
     #[test]
@@ -389,118 +548,118 @@ mod tests {
     fn test_division_by_zero_alternate() {
         let info = enhance_error("Division by 0", &catalog());
         assert!(info.is_some());
-        assert_eq!(info.unwrap().title, "Division by Zero");
+        assert_eq!(info.unwrap().title.text, "Division by Zero");
     }
 
     #[test]
     fn test_syntax_error_infix() {
         let info = enhance_error("incorrect syntax: x is not an infix operator", &catalog());
         let info = info.unwrap();
-        assert_eq!(info.title, "Syntax Error");
-        assert!(info.explanation.contains("Two values"));
+        assert_eq!(info.title.text, "Syntax Error");
+        assert!(info.explanation.text.contains("Two values"));
     }
 
     #[test]
     fn test_syntax_error_generic() {
         let info = enhance_error("incorrect syntax: unexpected end", &catalog());
         let info = info.unwrap();
-        assert_eq!(info.title, "Syntax Error");
-        assert!(info.explanation.contains("syntax error"));
+        assert_eq!(info.title.text, "Syntax Error");
+        assert!(info.explanation.text.contains("syntax error"));
     }
 
     #[test]
     fn test_too_many_args() {
         let info = enhance_error("Too many arguments supplied to sin", &catalog());
         assert!(info.is_some());
-        assert_eq!(info.unwrap().title, "Wrong Argument Count");
+        assert_eq!(info.unwrap().title.text, "Wrong Argument Count");
     }
 
     #[test]
     fn test_arg_count_unknown_func() {
         let info = enhance_error("Too few arguments supplied to myfunc", &catalog());
         let info = info.unwrap();
-        assert_eq!(info.title, "Wrong Argument Count");
+        assert_eq!(info.title.text, "Wrong Argument Count");
         assert!(info.correct_signatures.is_empty());
-        assert!(info.suggestion.as_ref().unwrap().contains("describe"));
+        assert!(info.suggestion.as_ref().unwrap().text.contains("describe"));
     }
 
     #[test]
     fn test_undefined_variable() {
         let info = enhance_error("unbound variable foo", &catalog());
         let info = info.unwrap();
-        assert_eq!(info.title, "Undefined Variable");
-        assert!(info.explanation.contains("foo"));
+        assert_eq!(info.title.text, "Undefined Variable");
+        assert!(info.explanation.text.contains("foo"));
     }
 
     #[test]
     fn test_undefined_func_not_known() {
         let info = enhance_error("The function intgrate is not known to Maxima", &catalog());
         let info = info.unwrap();
-        assert_eq!(info.title, "Unknown Function");
+        assert_eq!(info.title.text, "Unknown Function");
     }
 
     #[test]
     fn test_lisp_error() {
         let info = enhance_error("Maxima encountered a Lisp error", &catalog());
-        assert_eq!(info.unwrap().title, "Internal Error");
+        assert_eq!(info.unwrap().title.text, "Internal Error");
     }
 
     #[test]
     fn test_macsyma_restart() {
         let info = enhance_error("MACSYMA restart", &catalog());
-        assert_eq!(info.unwrap().title, "Internal Error");
+        assert_eq!(info.unwrap().title.text, "Internal Error");
     }
 
     #[test]
     fn test_inconsistent_equations() {
         let info = enhance_error("solve: inconsistent equations", &catalog());
-        assert_eq!(info.unwrap().title, "Inconsistent Equations");
+        assert_eq!(info.unwrap().title.text, "Inconsistent Equations");
     }
 
     #[test]
     fn test_missing_assumption() {
         let info = enhance_error("Is x positive, negative, or zero?", &catalog());
-        assert_eq!(info.unwrap().title, "Assumption Required");
+        assert_eq!(info.unwrap().title.text, "Assumption Required");
     }
 
     #[test]
     fn test_missing_assumption_integer() {
         let info = enhance_error("Is n an integer?", &catalog());
-        assert_eq!(info.unwrap().title, "Assumption Required");
+        assert_eq!(info.unwrap().title.text, "Assumption Required");
     }
 
     #[test]
     fn test_matrix_dimension_rows() {
         let info = enhance_error("all rows must be the same length", &catalog());
-        assert_eq!(info.unwrap().title, "Matrix Dimension Error");
+        assert_eq!(info.unwrap().title.text, "Matrix Dimension Error");
     }
 
     #[test]
     fn test_matrix_dimension_incompatible() {
         let info = enhance_error("incompatible dimensions", &catalog());
-        assert_eq!(info.unwrap().title, "Matrix Dimension Error");
+        assert_eq!(info.unwrap().title.text, "Matrix Dimension Error");
     }
 
     #[test]
     fn test_premature_termination() {
         let info = enhance_error("Premature termination", &catalog());
-        assert_eq!(info.unwrap().title, "Incomplete Expression");
+        assert_eq!(info.unwrap().title.text, "Incomplete Expression");
     }
 
     #[test]
     fn test_load_failed() {
         let info = enhance_error("loadfile: failed to load mypackage", &catalog());
         let info = info.unwrap();
-        assert_eq!(info.title, "Package Not Found");
-        assert!(info.explanation.contains("mypackage"));
+        assert_eq!(info.title.text, "Package Not Found");
+        assert!(info.explanation.text.contains("mypackage"));
     }
 
     #[test]
     fn test_cannot_find_file() {
         let info = enhance_error("Cannot find file draw", &catalog());
         let info = info.unwrap();
-        assert_eq!(info.title, "Package Not Found");
-        assert!(info.explanation.contains("draw"));
+        assert_eq!(info.title.text, "Package Not Found");
+        assert!(info.explanation.text.contains("draw"));
     }
 
     #[test]
@@ -511,11 +670,11 @@ mod tests {
         let info =
             enhance_error_with_packages("funcall: no such function: pdf_normal", &cat, Some(&pkgs));
         let info = info.unwrap();
-        assert_eq!(info.title, "Unknown Function");
+        assert_eq!(info.title.text, "Unknown Function");
         assert!(
-            info.explanation.contains("distrib"),
+            info.explanation.text.contains("distrib"),
             "Expected 'distrib' in explanation: {}",
-            info.explanation
+            info.explanation.text
         );
         assert!(info.example.is_some());
         assert!(info.example.unwrap().contains("load(\"distrib\")"));
@@ -530,7 +689,120 @@ mod tests {
         let info =
             enhance_error_with_packages("funcall: no such function: intgrate", &cat, Some(&pkgs));
         let info = info.unwrap();
-        assert_eq!(info.title, "Unknown Function");
+        assert_eq!(info.title.text, "Unknown Function");
         assert!(info.did_you_mean.contains(&"integrate".to_string()));
+    }
+
+    fn ids(raw: &str) -> (String, Vec<String>) {
+        let info = enhance_error(raw, &catalog()).expect("an explanation");
+        let ids = info.messages().map(|(_, m)| m.id.clone()).collect();
+        (info.id, ids)
+    }
+
+    #[test]
+    fn explanations_carry_their_id() {
+        let (id, messages) = ids("expt: undefined: 0 to a negative exponent.");
+        assert_eq!(id, "error.division_by_zero");
+        assert_eq!(
+            messages,
+            [
+                "error.division_by_zero.title",
+                "error.division_by_zero.explanation",
+                "error.division_by_zero.suggestion"
+            ]
+        );
+    }
+
+    #[test]
+    fn parameters_fill_the_text() {
+        let info = enhance_error(
+            "Too many arguments supplied to f(x); found: [1, 2]\n -- an error.",
+            &catalog(),
+        )
+        .unwrap();
+        assert_eq!(info.id, "error.arg_count");
+        assert_eq!(info.title.text, "Wrong Argument Count");
+        let e = &info.explanation;
+        assert_eq!(e.params["func"], "f");
+        assert_eq!(e.params["definition"], "f(x)");
+        assert_eq!(e.params["found"], "[1, 2]");
+        assert_eq!(e.text, "f is defined as f(x), but was called with [1, 2].");
+        // A user function isn't in the manual
+        let suggestion = &info.suggestion.unwrap().text;
+        assert!(!suggestion.contains("describe"), "{suggestion}");
+        assert!(info.correct_signatures.is_empty());
+    }
+
+    #[test]
+    fn a_lambda_is_named_by_its_definition() {
+        let info = enhance_error(
+            "Too many arguments supplied to lambda([x], x); found: [1, 2]",
+            &catalog(),
+        )
+        .unwrap();
+        assert_eq!(info.explanation.params["definition"], "lambda([x], x)");
+    }
+
+    #[test]
+    fn syntax_errors_have_their_own_ids() {
+        let missing = enhance_error("incorrect syntax: Missing )\nf(x;\n  ^", &catalog()).unwrap();
+        assert_eq!(missing.id, "error.syntax_missing");
+        assert_eq!(missing.explanation.params["delimiter"], ")");
+
+        let (id, _) = ids("incorrect syntax: Premature termination of input at ;.\n1+;\n ^");
+        assert_eq!(id, "error.incomplete_input");
+
+        let infix = enhance_error(
+            "incorrect syntax: y is not an infix operator\nx y;",
+            &catalog(),
+        )
+        .unwrap();
+        assert_eq!(infix.id, "error.syntax_operator");
+        assert_eq!(infix.explanation.params["token"], "y");
+
+        let other = enhance_error("incorrect syntax: Too many )'s\n1+2)", &catalog()).unwrap();
+        assert_eq!(other.id, "error.syntax");
+        assert_eq!(other.explanation.params["message"], "Too many )'s");
+    }
+
+    #[test]
+    fn json_keeps_the_english_text_and_adds_the_sources() {
+        let info = enhance_error("unbound variable foo", &catalog()).unwrap();
+        let json = serde_json::to_value(&info).unwrap();
+        assert_eq!(json["id"], "error.undefined_variable");
+        assert_eq!(json["title"], "Undefined Variable");
+        assert_eq!(
+            json["explanation"],
+            "The variable \"foo\" has not been assigned a value."
+        );
+        assert_eq!(json["params"]["name"], "foo");
+        assert_eq!(
+            json["messages"]["explanation"]["id"],
+            "error.undefined_variable.explanation"
+        );
+        assert_eq!(
+            json["messages"]["explanation"]["template"],
+            "The variable \"{name}\" has not been assigned a value."
+        );
+        assert_eq!(json["example"], "foo: 42;");
+
+        let back: ErrorInfo = serde_json::from_value(json).unwrap();
+        assert_eq!(back, info);
+    }
+
+    #[test]
+    fn json_from_before_ids_still_reads() {
+        let json = serde_json::json!({
+            "title": "Division by Zero",
+            "explanation": "x",
+            "suggestion": null,
+            "example": null,
+            "did_you_mean": [],
+            "correct_signatures": [],
+        });
+        let info: ErrorInfo = serde_json::from_value(json).unwrap();
+        assert_eq!(info.id, "");
+        assert_eq!(info.title.text, "Division by Zero");
+        assert_eq!(info.title.template, "Division by Zero");
     }
 }

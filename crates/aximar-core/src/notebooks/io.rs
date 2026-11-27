@@ -75,7 +75,10 @@ mod tests {
         let out = cell.output.as_ref().unwrap();
         assert!(out.is_error && out.stale);
         assert_eq!(out.error.as_deref(), Some(error.as_str()));
-        assert_eq!(out.error_info.as_ref().unwrap().title, "Division by Zero");
+        assert_eq!(
+            out.error_info.as_ref().unwrap().title.text,
+            "Division by Zero"
+        );
         assert!(file.metadata.contains_key("kernelspec"));
     }
 

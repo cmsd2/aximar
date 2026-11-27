@@ -1,4 +1,17 @@
+/** Where a message's translation is found: its catalog context and English template */
+export interface MessageSource {
+  id: string;
+  template: string;
+}
+
+/** Aximar's explanation of an error, in English (see aximar-core's `errors.rs`) */
 export interface ErrorInfo {
+  /** Such as `error.division_by_zero`; missing from before IDs */
+  id?: string;
+  /** Every message's parameters, by placeholder name */
+  params?: Record<string, string>;
+  /** Each translatable field's source: `title`, `explanation`, `suggestion` */
+  messages?: Record<string, MessageSource>;
   title: string;
   explanation: string;
   suggestion: string | null;

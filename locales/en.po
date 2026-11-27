@@ -30,3 +30,292 @@ msgstr ""
 #: src/components/EnhancedErrorOutput.tsx
 msgid "Show raw error"
 msgstr ""
+
+#. i18n: Maxima: "expt: undefined: 0 to a negative exponent." or "Division by 0"
+#: crates/aximar-core/src/maxima/errors.rs
+msgctxt "error.division_by_zero.title"
+msgid "Division by Zero"
+msgstr ""
+
+#: crates/aximar-core/src/maxima/errors.rs
+msgctxt "error.division_by_zero.explanation"
+msgid "The expression involves division by zero or raising zero to a negative power, which is undefined."
+msgstr ""
+
+#: crates/aximar-core/src/maxima/errors.rs
+msgctxt "error.division_by_zero.suggestion"
+msgid "Check your denominator or exponent for cases where the value might be zero."
+msgstr ""
+
+#. i18n: Maxima: "incorrect syntax: Premature termination of input at ;."
+#: crates/aximar-core/src/maxima/errors.rs
+msgctxt "error.incomplete_input.title"
+msgid "Incomplete Expression"
+msgstr ""
+
+#: crates/aximar-core/src/maxima/errors.rs
+msgctxt "error.incomplete_input.explanation"
+msgid "The expression ended unexpectedly. This usually means a missing closing parenthesis, bracket, or semicolon."
+msgstr ""
+
+#: crates/aximar-core/src/maxima/errors.rs
+msgctxt "error.incomplete_input.suggestion"
+msgid "Check that all parentheses () and brackets [] are matched, and the expression ends with ; or $"
+msgstr ""
+
+#. i18n: Maxima: "incorrect syntax: Missing )", or another closing delimiter
+#: crates/aximar-core/src/maxima/errors.rs
+msgctxt "error.syntax_missing.title"
+msgid "Syntax Error"
+msgstr ""
+
+#. i18n: delimiter is a closing bracket, such as ) or ]
+#: crates/aximar-core/src/maxima/errors.rs
+#, rust-format
+msgctxt "error.syntax_missing.explanation"
+msgid "A closing {delimiter} is missing."
+msgstr ""
+
+#: crates/aximar-core/src/maxima/errors.rs
+#, rust-format
+msgctxt "error.syntax_missing.suggestion"
+msgid "Check that every opening bracket has its closing {delimiter}, in the right order."
+msgstr ""
+
+#. i18n: token is what Maxima read where an expression should start, such as !
+#: crates/aximar-core/src/maxima/errors.rs
+#, rust-format
+msgctxt "error.syntax_operator.explanation.prefix"
+msgid "\"{token}\" can't start an expression here. Check for a missing operand or a misplaced operator."
+msgstr ""
+
+#. i18n: token is the value Maxima read after another value, as y in "x y"
+#: crates/aximar-core/src/maxima/errors.rs
+#, rust-format
+msgctxt "error.syntax_operator.explanation.infix"
+msgid "Two values appear next to each other without an operator between them, before \"{token}\"."
+msgstr ""
+
+#. i18n: Maxima: "incorrect syntax: y is not an infix operator" or "! is not a prefix operator"
+#: crates/aximar-core/src/maxima/errors.rs
+msgctxt "error.syntax_operator.title"
+msgid "Syntax Error"
+msgstr ""
+
+#: crates/aximar-core/src/maxima/errors.rs
+msgctxt "error.syntax_operator.suggestion"
+msgid "Check for missing *, +, or other operators. Ensure all parentheses are matched."
+msgstr ""
+
+#. i18n: Maxima: any other "incorrect syntax: ..." message
+#: crates/aximar-core/src/maxima/errors.rs
+msgctxt "error.syntax.title"
+msgid "Syntax Error"
+msgstr ""
+
+#. i18n: message is Maxima's own description of the error, in English
+#: crates/aximar-core/src/maxima/errors.rs
+#, rust-format
+msgctxt "error.syntax.explanation"
+msgid "The expression contains a syntax error: {message}. Check for missing operators, unmatched parentheses, or misplaced characters."
+msgstr ""
+
+#: crates/aximar-core/src/maxima/errors.rs
+msgctxt "error.syntax.suggestion"
+msgid "Check for missing *, +, or other operators. Ensure all parentheses are matched."
+msgstr ""
+
+#. i18n: Maxima: "Too many arguments supplied to f(x); found: [1, 2]" or "Too few ..."
+#: crates/aximar-core/src/maxima/errors.rs
+msgctxt "error.arg_count.title"
+msgid "Wrong Argument Count"
+msgstr ""
+
+#. i18n: func is the function's name; definition is its name and parameters
+#. as defined, such as f(x); found is the list of arguments it was given
+#: crates/aximar-core/src/maxima/errors.rs
+#, rust-format
+msgctxt "error.arg_count.explanation"
+msgid "{func} is defined as {definition}, but was called with {found}."
+msgstr ""
+
+#: crates/aximar-core/src/maxima/errors.rs
+#, rust-format
+msgctxt "error.arg_count.suggestion"
+msgid "Call {func} with the arguments {definition} names, or change its definition."
+msgstr ""
+
+#: crates/aximar-core/src/maxima/errors.rs
+#, rust-format
+msgctxt "error.arg_count.explanation.too_few"
+msgid "Too few arguments were passed to {func}."
+msgstr ""
+
+#: crates/aximar-core/src/maxima/errors.rs
+#, rust-format
+msgctxt "error.arg_count.explanation.too_many"
+msgid "Too many arguments were passed to {func}."
+msgstr ""
+
+#: crates/aximar-core/src/maxima/errors.rs
+#, rust-format
+msgctxt "error.arg_count.suggestion.describe"
+msgid "Check the documentation for {func} with describe({func})."
+msgstr ""
+
+#. i18n: signatures is one or more ways to call the function, separated by semicolons
+#: crates/aximar-core/src/maxima/errors.rs
+#, rust-format
+msgctxt "error.arg_count.suggestion.signatures"
+msgid "Correct usage: {signatures}"
+msgstr ""
+
+#. i18n: Maxima: "unbound variable x" or "undefined variable x"
+#: crates/aximar-core/src/maxima/errors.rs
+msgctxt "error.undefined_variable.title"
+msgid "Undefined Variable"
+msgstr ""
+
+#: crates/aximar-core/src/maxima/errors.rs
+#, rust-format
+msgctxt "error.undefined_variable.explanation"
+msgid "The variable \"{name}\" has not been assigned a value."
+msgstr ""
+
+#: crates/aximar-core/src/maxima/errors.rs
+#, rust-format
+msgctxt "error.undefined_variable.suggestion"
+msgid "Assign it first with {name}: value; or use it as a symbolic variable."
+msgstr ""
+
+#. i18n: Maxima: "funcall: no such function: f" or "The function f is not known to Maxima"
+#: crates/aximar-core/src/maxima/errors.rs
+msgctxt "error.unknown_function.title"
+msgid "Unknown Function"
+msgstr ""
+
+#: crates/aximar-core/src/maxima/errors.rs
+#, rust-format
+msgctxt "error.unknown_function.explanation.in_package"
+msgid "\"{func}\" is provided by the \"{package}\" package, which needs to be loaded first."
+msgstr ""
+
+#: crates/aximar-core/src/maxima/errors.rs
+#, rust-format
+msgctxt "error.unknown_function.suggestion.in_package"
+msgid "Add load(\"{package}\")$ before using this function."
+msgstr ""
+
+#: crates/aximar-core/src/maxima/errors.rs
+#, rust-format
+msgctxt "error.unknown_function.explanation"
+msgid "\"{func}\" is not a known Maxima function."
+msgstr ""
+
+#: crates/aximar-core/src/maxima/errors.rs
+#, rust-format
+msgctxt "error.unknown_function.suggestion"
+msgid "Check the spelling or use describe(\"{func}\") to search."
+msgstr ""
+
+#. i18n: Maxima: "Maxima encountered a Lisp error:" and the condition
+#: crates/aximar-core/src/maxima/errors.rs
+msgctxt "error.lisp.title"
+msgid "Internal Error"
+msgstr ""
+
+#: crates/aximar-core/src/maxima/errors.rs
+msgctxt "error.lisp.explanation"
+msgid "Maxima encountered an internal error in the underlying Lisp system."
+msgstr ""
+
+#: crates/aximar-core/src/maxima/errors.rs
+msgctxt "error.lisp.suggestion"
+msgid "Try restarting the Maxima session. If the error persists, the expression may be too complex or trigger a bug in Maxima."
+msgstr ""
+
+#. i18n: Maxima: "defint: integral is divergent."
+#: crates/aximar-core/src/maxima/errors.rs
+msgctxt "error.divergent_integral.title"
+msgid "Divergent Integral"
+msgstr ""
+
+#: crates/aximar-core/src/maxima/errors.rs
+msgctxt "error.divergent_integral.explanation"
+msgid "The definite integral does not converge to a finite value."
+msgstr ""
+
+#: crates/aximar-core/src/maxima/errors.rs
+msgctxt "error.divergent_integral.suggestion"
+msgid "Check the integration bounds and integrand. The function may have singularities or not decay fast enough."
+msgstr ""
+
+#. i18n: Maxima: "solve: inconsistent equations" and similar
+#: crates/aximar-core/src/maxima/errors.rs
+msgctxt "error.inconsistent_equations.title"
+msgid "Inconsistent Equations"
+msgstr ""
+
+#: crates/aximar-core/src/maxima/errors.rs
+msgctxt "error.inconsistent_equations.explanation"
+msgid "The system of equations has no solution: the equations contradict each other."
+msgstr ""
+
+#: crates/aximar-core/src/maxima/errors.rs
+msgctxt "error.inconsistent_equations.suggestion"
+msgid "Check that the equations are correct and compatible."
+msgstr ""
+
+#. i18n: Maxima asked a question, such as "Is x positive, negative or zero?"
+#: crates/aximar-core/src/maxima/errors.rs
+msgctxt "question.other.title"
+msgid "Assumption Required"
+msgstr ""
+
+#: crates/aximar-core/src/maxima/errors.rs
+msgctxt "question.other.explanation"
+msgid "Maxima needs to know a property of a variable to proceed with the computation."
+msgstr ""
+
+#: crates/aximar-core/src/maxima/errors.rs
+msgctxt "question.other.suggestion"
+msgid "Use assume() to declare properties, e.g.: assume(x > 0);"
+msgstr ""
+
+#. i18n: Maxima: "matrix: all rows must be the same length." or "incompatible dimensions"
+#: crates/aximar-core/src/maxima/errors.rs
+msgctxt "error.matrix_dimension.title"
+msgid "Matrix Dimension Error"
+msgstr ""
+
+#: crates/aximar-core/src/maxima/errors.rs
+msgctxt "error.matrix_dimension.explanation"
+msgid "Matrix rows have different lengths, or the matrices have incompatible dimensions for the operation."
+msgstr ""
+
+#: crates/aximar-core/src/maxima/errors.rs
+msgctxt "error.matrix_dimension.suggestion"
+msgid "Ensure all rows have the same number of elements and matrices have compatible dimensions."
+msgstr ""
+
+#: crates/aximar-core/src/maxima/errors.rs
+#, rust-format
+msgctxt "error.package_not_found.explanation"
+msgid "The package \"{package}\" could not be found or loaded."
+msgstr ""
+
+#: crates/aximar-core/src/maxima/errors.rs
+msgctxt "error.package_not_found.explanation.unnamed"
+msgid "The package could not be found or loaded."
+msgstr ""
+
+#. i18n: Maxima: "loadfile: failed to load x" or "Cannot find file x"
+#: crates/aximar-core/src/maxima/errors.rs
+msgctxt "error.package_not_found.title"
+msgid "Package Not Found"
+msgstr ""
+
+#: crates/aximar-core/src/maxima/errors.rs
+msgctxt "error.package_not_found.suggestion"
+msgid "Check the package name. Common packages: draw, simplex, lsquares, descriptive, distrib."
+msgstr ""

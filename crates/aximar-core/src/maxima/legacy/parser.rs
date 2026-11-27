@@ -720,7 +720,7 @@ mod tests {
         assert!(result.latex.is_none());
         // Should have enhanced error info
         assert!(result.error_info.is_some());
-        assert_eq!(result.error_info.unwrap().title, "Division by Zero");
+        assert_eq!(result.error_info.unwrap().title.text, "Division by Zero");
     }
 
     #[test]
@@ -741,7 +741,36 @@ mod tests {
         let err = result.error.unwrap();
         assert!(err.contains("incorrect syntax"));
         assert!(err.contains("^"));
-        assert!(result.error_info.is_some());
+        let info = result.error_info.unwrap();
+        assert_eq!(info.id, "error.syntax_operator");
+        assert_eq!(info.explanation.params["token"], "!");
+    }
+
+    #[test]
+    fn syntax_errors_are_explained_by_kind() {
+        let parse = |first: &str, input: &str| {
+            let lines = vec![
+                format!("incorrect syntax: {first}"),
+                input.to_string(),
+                "   ^".to_string(),
+                "$$\\mathbf{false}$$".to_string(),
+                "false".to_string(),
+                "__AXIMAR_EVAL_END__".to_string(),
+            ];
+            parse_output("cell-1", &lines, 100, &catalog(), &Backend::Local)
+                .error_info
+                .unwrap()
+        };
+        let missing = parse("Missing )", "f(x;");
+        assert_eq!(missing.id, "error.syntax_missing");
+        assert_eq!(missing.explanation.params["delimiter"], ")");
+        assert_eq!(
+            parse("Premature termination of input at ;.", "1+;").id,
+            "error.incomplete_input"
+        );
+        let other = parse("Too many )'s", "1+2)");
+        assert_eq!(other.id, "error.syntax");
+        assert_eq!(other.explanation.params["message"], "Too many )'s");
     }
 
     #[test]

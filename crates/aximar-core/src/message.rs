@@ -8,7 +8,10 @@
 //!
 //! `scripts/i18n-extract` finds every call with `xgettext`, so the template
 //! (and the context of `msg_ctx!`) must be a string literal.  A note for
-//! translators goes in a `// i18n:` comment directly above the call.
+//! translators goes in a `// i18n:` comment on the lines just above the
+//! template: above the call when it fits on one line, and inside the call,
+//! after the context, when it doesn't.  `xgettext` misses a note anywhere
+//! else.
 //! Placeholders are named, in braces (`{expr}`), and take no format spec:
 //! a translation can only move them.  The text can't hold a literal brace,
 //! which Rust and the window's ICU messages escape differently; the
