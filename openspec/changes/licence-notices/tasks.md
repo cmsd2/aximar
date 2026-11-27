@@ -1,8 +1,8 @@
 ## 1. npm notices in the build (first PR)
 
-- [ ] 1.1 Add `rollup-plugin-license` 3.7.2, pinned, as a dev dependency, and configure it in `vite.config.ts` for `vite build` only, writing `dist/licenses/third-party-npm.txt` and failing on a licence outside the accepted list; verify `npm run build` writes the file, that it lists `react` and `katex` and not `caniuse-lite` or `@lingui/cli`, and that Storybook and `vite dev` still start
-- [ ] 1.2 Add a vitest test `npm_licences_are_accepted` that runs the plugin's accepted-list check over a fixture of package licences (MIT; "MIT OR Apache-2.0"; "(MIT AND Zlib)"; GPL-3.0-only; a package with none); verify the GPL and unlicensed cases fail and the rest pass
-- [ ] 1.3 Document the npm side in `docs/licences.md`: what the file holds, the accepted list, and what to do when a new dependency fails it
+- [x] 1.1 Add `rollup-plugin-license` 3.7.2, pinned, as a dev dependency, and configure it in `vite.config.ts` for `vite build` only, writing `dist/licenses/third-party-npm.txt` and failing on a licence outside the accepted list; verify `npm run build` writes the file, that it lists `react` and `katex` and not `caniuse-lite` or `@lingui/cli`, and that Storybook and `vite dev` still start
+- [x] 1.2 Add a vitest test `npm_licences_are_accepted` that runs the plugin's accepted-list check over a fixture of package licences (MIT; "MIT OR Apache-2.0"; "(MIT AND Zlib)"; GPL-3.0-only; a package with none); verify the GPL and unlicensed cases fail and the rest pass
+- [x] 1.3 Document the npm side in `docs/licences.md`: what the file holds, the accepted list, and what to do when a new dependency fails it
 
 ## 2. Rust notices, checked in and checked (one PR)
 

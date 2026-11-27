@@ -28,6 +28,8 @@ A survey of the dependency trees on 27 November 2026:
 
 `rollup-plugin-license` (3.7.2, pinned, a dev dependency) runs in `vite.config.ts` and sees the modules Rollup actually bundles, so build tooling stays out without a hand-kept exclude list. Its `thirdParty.output` writes `dist/licenses/third-party-npm.txt`. Its `thirdParty.allow.test` is the accepted list as an SPDX expression check, with `failOnUnlicensed` and `failOnViolation` set, so a violation fails `npm run build`. It runs only in `vite build`, not in `vite dev` or Storybook.
 
+The accepted list and an SPDX expression reader live in `scripts/accepted-licences.ts`, and the notices file's format in `scripts/npm-notices.ts`, both with vitest tests. The first build lists 111 packages, all MIT, ISC or BSD-3-Clause, two of them chosen from MIT or Apache-2.0. Two MIT packages (`remark-math`, `rehype-katex`) ship no licence file, so their entries carry the copyright line from `package.json` and MIT's standard text. The plugin sees only JavaScript, so the fonts, which come in through CSS, keep their licences in `public/licenses/` by hand.
+
 Alternative: `license-checker` over `npm ls --omit=dev`. It reports packages that never reach the bundle, such as `caniuse-lite`, so the list would need excludes that go stale. Rejected.
 
 ### 2. Rust: `cargo-about`, checked in, checked in CI
