@@ -24,7 +24,7 @@
 - [x] 4.1 Add the toolbar icons to `src/components/ui/icons.ts` (`IconPlayerTrackNext`, `IconPlayerStop`, `IconRefresh`, `IconVariable`, `IconBook`, `IconListDetails`, `IconSettings`); verify the Foundations icons story lists them and `node scripts/check-css-tokens.mjs` passes
 - [x] 4.2 Rewrite `Toolbar.tsx` from the registry: Run All, Interrupt (enabled only while a cell runs), Restart, status | Variables, Docs, Log (with its badge) as tinted toggles, Settings; remove + Cell, + Markdown, Undo, Redo, Templates and the file name; verify with vitest `toolbar.test.tsx`: `shows_only_the_session_and_panels`, `interrupt_is_disabled_when_idle`, `a_toggle_is_pressed_when_its_panel_is_open`
 - [x] 4.3 Update the Window stories (toolbar idle, running, panels open; the whole window) in both themes; verify the contrast scan finds no text or icon under 4.5:1 and 3:1 respectively (the docs panel's accent links at 4.31:1 are the audit's item 24, outside this change)
-- [ ] 4.4 Remove the toolbar's old strings and run the gallery and `scripts/i18n-extract`; verify `--check` passes
+- [x] 4.4 Remove the toolbar's old strings and run the gallery and `scripts/i18n-extract`; verify `--check` passes
 
 ## 5. Commands in the palette (one PR, after 1)
 

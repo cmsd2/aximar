@@ -125,18 +125,6 @@ msgid_plural "# seconds"
 msgstr[0] ""
 msgstr[1] ""
 
-#. Toolbar button: adds a code cell below the active cell. max-length:12
-#. screen: screens--drop-mixed
-#. screen: screens--drop-notebooks
-#. screen: screens--drop-refused
-#. screen: screens--first-run
-#. screen: screens--maxima-not-found
-#. screen: screens--whole-window
-#. screen: window--toolbar-and-tabs
-#: src/components/Toolbar.tsx
-msgid "+ Cell"
-msgstr ""
-
 #. Button in the bar between cells: inserts a code cell there. max-length:12
 #. screen: cells--bracket-selection
 #. screen: editor--caret-bracket-style
@@ -145,21 +133,14 @@ msgid "+ Code"
 msgstr ""
 
 #. Button in the bar between cells: inserts a markdown cell there. max-length:14
-#. Toolbar button: adds a Markdown text cell below the active cell. max-length:12
 #. screen: cells--bracket-selection
 #. screen: editor--caret-bracket-style
-#. screen: screens--drop-mixed
-#. screen: screens--drop-notebooks
-#. screen: screens--drop-refused
-#. screen: screens--first-run
-#. screen: screens--maxima-not-found
-#. screen: screens--whole-window
-#. screen: window--toolbar-and-tabs
-#: src/components/CellGap.tsx src/components/Toolbar.tsx
+#: src/components/CellGap.tsx
 msgid "+ Markdown"
 msgstr ""
 
 #. Command palette footer: the arrow keys move through the list
+#. screen: dialogs--command-palette-commands
 #. screen: dialogs--command-palette-open
 #: src/components/CommandPalette.tsx
 msgid "<0>↑</0> <1>↓</1> navigate"
@@ -176,6 +157,7 @@ msgid "<0>Backspace</0> back"
 msgstr ""
 
 #. Command palette footer: Enter inserts the selected function or symbol into the cell
+#. screen: dialogs--command-palette-commands
 #: src/components/CommandPalette.tsx
 msgid "<0>Enter</0> insert"
 msgstr ""
@@ -192,6 +174,7 @@ msgid "<0>Enter</0> select"
 msgstr ""
 
 #. Command palette footer: Esc closes the palette
+#. screen: dialogs--command-palette-commands
 #. screen: dialogs--command-palette-open
 #: src/components/CommandPalette.tsx
 msgid "<0>Esc</0> close"
@@ -201,6 +184,11 @@ msgstr ""
 #. screen: dialogs--settings-maxima
 #: src/components/settings/MaximaSection.tsx
 msgid "A cell running longer than this stops."
+msgstr ""
+
+#. Application menu (macOS): shows Aximar's version and licence. max-length:30
+#: src/commands/menu-model.ts
+msgid "About Aximar"
 msgstr ""
 
 #. Settings: argument help button; the hint follows the argument under the cursor
@@ -293,6 +281,11 @@ msgstr ""
 msgid "Auto-detect"
 msgstr ""
 
+#. The application menu's title on macOS: the app's name, usually left as it is. max-length:12
+#: src/commands/menu-model.ts
+msgid "Aximar"
+msgstr ""
+
 #. Maxima Not Found dialog: the first line, shown when Aximar can't start Maxima
 #: src/hooks/useMaxima.ts
 msgid "Aximar could not find Maxima on your system."
@@ -301,6 +294,11 @@ msgstr ""
 #. Settings, Maxima section: status when Aximar can't find Maxima anywhere
 #: src/components/settings/MaximaSection.tsx
 msgid "Aximar found no Maxima. Install it, or set the Maxima path above."
+msgstr ""
+
+#. Help menu item: opens the documentation panel. max-length:30
+#: src/commands/registry.ts
+msgid "Aximar Help"
 msgstr ""
 
 #. Under the drop message when some dragged files aren't notebooks. .macnb and .ipynb are file extensions and stay as they are
@@ -347,6 +345,7 @@ msgid "Browse packages... (Backspace to go back)"
 msgstr ""
 
 #. Toolbar: session status while Maxima runs a cell. max-length:12
+#. screen: window--toolbar-running
 #: src/components/Toolbar.tsx
 msgid "Busy"
 msgstr ""
@@ -387,6 +386,12 @@ msgstr ""
 #. screen: dialogs--settings-notebook
 #: src/components/settings/NotebookSection.tsx
 msgid "Card draws each cell in a box. Bracket marks it in the margin."
+msgstr ""
+
+#. Menu bar: the menu of commands for notebook cells. max-length:12
+#. screen: dialogs--keyboard-shortcuts
+#: src/commands/menu-model.ts
+msgid "Cell"
 msgstr ""
 
 #. Settings: the label of the buttons that choose how cells are drawn
@@ -478,14 +483,37 @@ msgstr ""
 msgid "Close docs"
 msgstr ""
 
+#. Log window: tooltip of the x button that closes the log
+#. screen: panels--log-app
+#. screen: panels--log-events
+#. screen: panels--log-maxima-output
+#: src/components/LogPanel.tsx
+msgid "Close log"
+msgstr ""
+
 #. Tab bar: tooltip of the x button that closes a notebook tab
 #: src/components/TabBar.tsx
 msgid "Close tab"
 msgstr ""
 
+#. File menu item: closes the notebook tab, or the window when it is the last tab. max-length:30
 #. Tab context menu item: closes the notebook tab
-#: src/components/TabBar.tsx
+#. screen: dialogs--keyboard-shortcuts
+#: src/commands/registry.ts src/components/TabBar.tsx
 msgid "Close Tab"
+msgstr ""
+
+#. Variable panel: tooltip of the x button that closes the panel
+#. screen: screens--whole-window
+#. screen: window--variables
+#: src/components/VariablePanel.tsx
+msgid "Close variables"
+msgstr ""
+
+#. File menu item: closes the window and its tabs. max-length:30
+#. screen: dialogs--keyboard-shortcuts
+#: src/commands/registry.ts
+msgid "Close Window"
 msgstr ""
 
 #. Item in the menu of the + between cells: inserts a Maxima code cell. max-length:16
@@ -501,6 +529,7 @@ msgstr ""
 #. screen: cells--selection
 #. screen: editor--caret-between-cells
 #. screen: editor--caret-bracket-style
+#. screen: editor--cell-context-menu
 #. screen: editor--find-and-replace
 #. screen: editor--insert-menu
 #. screen: outputs--plotly-plot
@@ -515,6 +544,19 @@ msgstr ""
 #. screen: screens--whole-window
 #: src/components/Cell.tsx
 msgid "Collapse output"
+msgstr ""
+
+#. View menu item: opens the palette, which finds commands, functions and symbols. max-length:24
+#. screen: dialogs--keyboard-shortcuts
+#. screen: window--shortcuts
+#: src/commands/registry.ts
+msgid "Command Palette"
+msgstr ""
+
+#. Command palette: heading of the commands that match what the user typed, above the functions
+#. screen: dialogs--command-palette-commands
+#: src/components/CommandPalette.tsx
+msgid "Commands"
 msgstr ""
 
 #. Settings button: adds Aximar's MCP server to an AI tool's configuration, such as Claude Code's
@@ -572,6 +614,7 @@ msgstr ""
 
 #. Button above a result: copies it to the clipboard as Maxima code. max-length:8
 #. Docs panel button: copies the mxpm install command to the clipboard
+#. Edit menu item: copies the selected text. max-length:24
 #. Settings button: copies the MCP token to the clipboard
 #. screen: cells--bracket-selection
 #. screen: cells--notebook
@@ -580,6 +623,7 @@ msgstr ""
 #. screen: docs-panel--summary-above-english
 #. screen: editor--caret-between-cells
 #. screen: editor--caret-bracket-style
+#. screen: editor--cell-context-menu
 #. screen: editor--find-and-replace
 #. screen: editor--insert-menu
 #. screen: outputs--running-and-queued
@@ -589,7 +633,8 @@ msgstr ""
 #. screen: screens--drop-notebooks
 #. screen: screens--drop-refused
 #. screen: screens--whole-window
-#: src/components/CellOutput.tsx src/components/docs/DocsLanguageNotes.tsx
+#: src/commands/menu-model.ts src/components/CellOutput.tsx
+#: src/components/docs/DocsLanguageNotes.tsx
 #: src/components/settings/AiAssistantsSection.tsx
 msgid "Copy"
 msgstr ""
@@ -601,6 +646,7 @@ msgstr ""
 #. screen: cells--selection
 #. screen: editor--caret-between-cells
 #. screen: editor--caret-bracket-style
+#. screen: editor--cell-context-menu
 #. screen: editor--find-and-replace
 #. screen: editor--insert-menu
 #. screen: outputs--running-and-queued
@@ -621,6 +667,7 @@ msgstr ""
 #. screen: cells--selection
 #. screen: editor--caret-between-cells
 #. screen: editor--caret-bracket-style
+#. screen: editor--cell-context-menu
 #. screen: editor--find-and-replace
 #. screen: editor--insert-menu
 #. screen: outputs--running-and-queued
@@ -654,8 +701,13 @@ msgstr ""
 
 #. Title of the error dialog when a notebook file fails to open; the dialog shows the reason below
 #. Title of the error dialog when a notebook file fails to open; the dialog shows the reason below
-#: src/App.tsx src/hooks/useFileDrop.ts
+#: src/hooks/useFileDrop.ts src/lib/file-commands.ts
 msgid "Couldn't Open Notebook"
+msgstr ""
+
+#. Edit menu item: cuts the selected text. max-length:24
+#: src/commands/menu-model.ts
+msgid "Cut"
 msgstr ""
 
 #. Settings: theme button for the dark theme
@@ -680,6 +732,7 @@ msgstr ""
 #. screen: cells--selection
 #. screen: editor--caret-between-cells
 #. screen: editor--caret-bracket-style
+#. screen: editor--cell-context-menu
 #. screen: editor--find-and-replace
 #. screen: editor--insert-menu
 #. screen: outputs--running-and-queued
@@ -693,9 +746,11 @@ msgstr ""
 msgid "Delete cell"
 msgstr ""
 
-#. Shortcut hints shown while Cmd or Ctrl is held: deletes the active cell. max-length:16
+#. Cell menu item: deletes the cell; Undo brings it back. max-length:30
+#. screen: dialogs--keyboard-shortcuts
+#. screen: editor--cell-context-menu
 #. screen: window--shortcuts
-#: src/components/ShortcutHints.tsx
+#: src/commands/registry.ts
 msgid "Delete Cell"
 msgstr ""
 
@@ -721,7 +776,7 @@ msgstr ""
 msgid "Docker image"
 msgstr ""
 
-#. Toolbar button: shows or hides the documentation panel. max-length:12
+#. View menu item and toolbar toggle: shows or hides the documentation panel. max-length:24
 #. screen: screens--drop-mixed
 #. screen: screens--drop-notebooks
 #. screen: screens--drop-refused
@@ -729,7 +784,9 @@ msgstr ""
 #. screen: screens--maxima-not-found
 #. screen: screens--whole-window
 #. screen: window--toolbar-and-tabs
-#: src/components/Toolbar.tsx
+#. screen: window--toolbar-panels-open
+#. screen: window--toolbar-running
+#: src/commands/registry.ts
 msgid "Docs"
 msgstr ""
 
@@ -742,6 +799,12 @@ msgstr ""
 #. Button in the Unsaved Changes dialog: closes the notebooks and loses the changes
 #: src/lib/unsaved-changes.ts
 msgid "Don't Save"
+msgstr ""
+
+#. Keyboard Shortcuts dialog: the button that closes it. max-length:12
+#. screen: dialogs--keyboard-shortcuts
+#: src/components/ShortcutsDialog.tsx
+msgid "Done"
 msgstr ""
 
 #. Tooltip of the tick button on a markdown cell being edited: shows the rendered text. Escape is the key; keep it as it is
@@ -764,6 +827,12 @@ msgstr ""
 #. Settings: placeholder in the Docker image field. exampleImage is an image name, such as aximar/maxima
 #: src/components/settings/MaximaSection.tsx
 msgid "e.g. {exampleImage}"
+msgstr ""
+
+#. Menu bar: the Edit menu. max-length:12
+#. screen: dialogs--keyboard-shortcuts
+#: src/commands/menu-model.ts
+msgid "Edit"
 msgstr ""
 
 #. Tooltip of the pencil button on a markdown cell: opens its text for editing
@@ -842,6 +911,12 @@ msgstr ""
 msgid "Export as LaTeX"
 msgstr ""
 
+#. File menu item: exports the notebook as a LaTeX document. max-length:30
+#. screen: dialogs--keyboard-shortcuts
+#: src/commands/registry.ts
+msgid "Export as LaTeX..."
+msgstr ""
+
 #. Button in the plot viewer window: saves the chart as a PNG image. max-length:14
 #. screen: outputs--plot-viewer-tab
 #: src/components/PlotViewer.tsx
@@ -870,21 +945,29 @@ msgstr ""
 msgid "Failed to render plot: {reason}"
 msgstr ""
 
+#. Menu bar: the File menu. max-length:12
+#. screen: dialogs--keyboard-shortcuts
+#: src/commands/menu-model.ts
+msgid "File"
+msgstr ""
+
 #. Command palette: placeholder of the search box while it lists one category of functions; categoryLabel is the category name, such as Calculus; Backspace is the key
 #: src/components/CommandPalette.tsx
 msgid "Filter {categoryLabel}... (Backspace to go back)"
 msgstr ""
 
-#. Shortcut hints shown while Cmd or Ctrl is held: opens the find bar. max-length:16
+#. Edit menu item: opens the find bar. max-length:24
+#. screen: dialogs--keyboard-shortcuts
 #. screen: window--shortcuts
-#: src/components/ShortcutHints.tsx
+#: src/commands/registry.ts
 msgid "Find"
 msgstr ""
 
-#. Shortcut hints shown while Cmd or Ctrl is held: opens find and replace. max-length:16
+#. Edit menu item: opens the find bar with its replace field. max-length:24
+#. screen: dialogs--keyboard-shortcuts
 #. screen: window--shortcuts
-#: src/components/ShortcutHints.tsx
-msgid "Find & Replace"
+#: src/commands/registry.ts
+msgid "Find and Replace"
 msgstr ""
 
 #. Find bar: placeholder of the box for the text to find in the notebook's cells
@@ -936,6 +1019,12 @@ msgstr ""
 msgid "Found: {found}"
 msgstr ""
 
+#. Keyboard Shortcuts list: what the Up and Down arrows do at the edge of a cell
+#. screen: dialogs--keyboard-shortcuts
+#: src/components/ShortcutsDialog.tsx
+msgid "From a cell's first or last line, to the gap beside it, then the next cell"
+msgstr ""
+
 #. Tooltip of a dimmed cell output that was saved in the file and not produced by this session
 #. screen: outputs--running-and-queued
 #: src/components/Cell.tsx
@@ -964,6 +1053,11 @@ msgstr ""
 msgid "Full documentation in {language} isn't installed. To install it, run:"
 msgstr ""
 
+#. Command palette: heading of the Maxima functions and packages that match, below the commands
+#: src/components/CommandPalette.tsx
+msgid "Functions"
+msgstr ""
+
 #. Docs panel: heading above the list of functions on a package page; functionCount is how many there are
 #: src/components/DocsPanel.tsx
 msgid "Functions ({functionCount})"
@@ -986,6 +1080,12 @@ msgstr ""
 msgid "Generate new token (restarts MCP server)"
 msgstr ""
 
+#. Menu bar: the Help menu. max-length:12
+#. screen: dialogs--keyboard-shortcuts
+#: src/commands/menu-model.ts
+msgid "Help"
+msgstr ""
+
 #. Settings: the label of the menu that chooses the language of the docs panel's help
 #. screen: dialogs--settings
 #. screen: dialogs--settings-translation
@@ -1002,6 +1102,11 @@ msgstr ""
 msgid "Help language settings"
 msgstr ""
 
+#. Application menu (macOS): hides Aximar's windows. max-length:30
+#: src/commands/menu-model.ts
+msgid "Hide Aximar"
+msgstr ""
+
 #. Button on a note in a cell's output: hides the lines Maxima printed, which the note explains
 #: src/components/TextWithNotes.tsx
 msgid "Hide Maxima's text"
@@ -1011,6 +1116,11 @@ msgstr ""
 #. Button: hides Maxima's English error message, shown below its translation
 #: src/components/EnhancedErrorOutput.tsx
 msgid "Hide original"
+msgstr ""
+
+#. Application menu (macOS): hides the other apps' windows. max-length:30
+#: src/commands/menu-model.ts
+msgid "Hide Others"
 msgstr ""
 
 #. Button: hides the error exactly as Maxima printed it
@@ -1053,6 +1163,7 @@ msgstr ""
 #. screen: editor--argument-help
 #. screen: editor--caret-between-cells
 #. screen: editor--caret-bracket-style
+#. screen: editor--cell-context-menu
 #. screen: editor--completion
 #. screen: editor--insert-menu
 #. screen: outputs--running-and-queued
@@ -1069,6 +1180,7 @@ msgstr ""
 #. screen: cells--selection
 #. screen: editor--caret-between-cells
 #. screen: editor--caret-bracket-style
+#. screen: editor--cell-context-menu
 #. screen: editor--find-and-replace
 #. screen: editor--insert-menu
 #. screen: outputs--plotly-plot
@@ -1092,6 +1204,12 @@ msgstr ""
 msgid "In a standard install location."
 msgstr ""
 
+#. Keyboard Shortcuts dialog: heading of the keys the cell editor handles itself
+#. screen: dialogs--keyboard-shortcuts
+#: src/components/ShortcutsDialog.tsx
+msgid "In cells"
+msgstr ""
+
 #. Export as LaTeX: checkbox label; when on, the export includes each cell's Maxima input
 #. screen: dialogs--export-latex
 #. screen: ui-dialog--small
@@ -1112,6 +1230,7 @@ msgstr ""
 #. screen: cells--selection
 #. screen: editor--argument-help
 #. screen: editor--caret-between-cells
+#. screen: editor--cell-context-menu
 #. screen: editor--completion
 #. screen: editor--find-and-replace
 #. screen: editor--insert-menu
@@ -1155,9 +1274,31 @@ msgid ""
 "  Fedora: {dnfCommand}"
 msgstr ""
 
+#. Session menu item and toolbar button: asks the running cell to stop. It works only when the computation checks for it; Restart always stops Maxima. max-length:24
+#. screen: dialogs--keyboard-shortcuts
+#. screen: screens--drop-mixed
+#. screen: screens--drop-notebooks
+#. screen: screens--drop-refused
+#. screen: screens--first-run
+#. screen: screens--maxima-not-found
+#. screen: screens--whole-window
+#. screen: window--toolbar-and-tabs
+#. screen: window--toolbar-panels-open
+#. screen: window--toolbar-running
+#: src/commands/registry.ts
+msgid "Interrupt"
+msgstr ""
+
 #. File type in the Open and Save dialogs, for .ipynb files
 #: src/lib/notebooks-client.ts
 msgid "Jupyter Notebook"
+msgstr ""
+
+#. Help menu item: lists every keyboard shortcut. max-length:30
+#. Title of the dialog that lists every keyboard shortcut
+#. screen: dialogs--keyboard-shortcuts
+#: src/commands/registry.ts src/components/ShortcutsDialog.tsx
+msgid "Keyboard Shortcuts"
 msgstr ""
 
 #. Variable panel button: unbinds every variable, like Maxima's kill(all). max-length:12
@@ -1188,6 +1329,12 @@ msgstr ""
 #. screen: ui-fields--rows
 #: src/components/settings/MaximaSection.tsx
 msgid "Leave it empty and Aximar finds Maxima itself."
+msgstr ""
+
+#. Keyboard Shortcuts list: what Escape does
+#. screen: dialogs--keyboard-shortcuts
+#: src/components/ShortcutsDialog.tsx
+msgid "Leave the cell, or remove the caret between cells"
 msgstr ""
 
 #. Settings: label of the left print margin field
@@ -1239,7 +1386,7 @@ msgstr ""
 msgid "Local"
 msgstr ""
 
-#. Toolbar button: shows or hides the log panel. max-length:12
+#. View menu item and toolbar toggle: shows or hides the log panel. max-length:24
 #. screen: screens--drop-mixed
 #. screen: screens--drop-notebooks
 #. screen: screens--drop-refused
@@ -1247,7 +1394,9 @@ msgstr ""
 #. screen: screens--maxima-not-found
 #. screen: screens--whole-window
 #. screen: window--toolbar-and-tabs
-#: src/components/Toolbar.tsx
+#. screen: window--toolbar-panels-open
+#. screen: window--toolbar-running
+#: src/commands/registry.ts
 msgid "Log"
 msgstr ""
 
@@ -1348,6 +1497,11 @@ msgstr ""
 msgid "MCP token"
 msgstr ""
 
+#. Window menu item: minimises the window to the Dock or taskbar. max-length:30
+#: src/commands/menu-model.ts
+msgid "Minimize"
+msgstr ""
+
 #. Settings: Markdown font button for the monospace font
 #. screen: dialogs--settings-notebook
 #. screen: ui-segmentedcontrol--options
@@ -1362,6 +1516,7 @@ msgstr ""
 #. screen: cells--selection
 #. screen: editor--caret-between-cells
 #. screen: editor--caret-bracket-style
+#. screen: editor--cell-context-menu
 #. screen: editor--find-and-replace
 #. screen: editor--insert-menu
 #. screen: outputs--running-and-queued
@@ -1381,6 +1536,7 @@ msgstr ""
 #. screen: cells--selection
 #. screen: editor--caret-between-cells
 #. screen: editor--caret-bracket-style
+#. screen: editor--cell-context-menu
 #. screen: editor--find-and-replace
 #. screen: editor--insert-menu
 #. screen: outputs--running-and-queued
@@ -1393,10 +1549,17 @@ msgstr ""
 msgid "Move cell up"
 msgstr ""
 
-#. Shortcut hints shown while Cmd or Ctrl is held: moves the active cell down one place. max-length:16
+#. Cell menu item: moves the cell down one place. max-length:30
+#. screen: dialogs--keyboard-shortcuts
+#. screen: editor--cell-context-menu
 #. screen: window--shortcuts
-#: src/components/ShortcutHints.tsx
+#: src/commands/registry.ts
 msgid "Move Down"
+msgstr ""
+
+#. Window menu item: moves the active tab to a window of its own. max-length:30
+#: src/commands/registry.ts
+msgid "Move Tab to New Window"
 msgstr ""
 
 #. Tab context menu item: moves the notebook tab into a new window
@@ -1404,9 +1567,11 @@ msgstr ""
 msgid "Move to New Window"
 msgstr ""
 
-#. Shortcut hints shown while Cmd or Ctrl is held: moves the active cell up one place. max-length:16
+#. Cell menu item: moves the cell up one place. max-length:30
+#. screen: dialogs--keyboard-shortcuts
+#. screen: editor--cell-context-menu
 #. screen: window--shortcuts
-#: src/components/ShortcutHints.tsx
+#: src/commands/registry.ts
 msgid "Move Up"
 msgstr ""
 
@@ -1418,7 +1583,46 @@ msgstr ""
 msgid "New cell: type to start a code cell, or # for a Markdown heading"
 msgstr ""
 
-#. Tab bar: tooltip of the + button that opens a new notebook tab. newTabShortcut is its keyboard shortcut, such as Cmd+T
+#. Cell menu item: inserts a Maxima code cell below the active cell. max-length:30
+#: src/commands/registry.ts
+msgid "New Code Cell"
+msgstr ""
+
+#. Cell context menu item: inserts a Maxima code cell above this cell. max-length:30
+#. screen: editor--cell-context-menu
+#: src/commands/registry.ts
+msgid "New Code Cell Above"
+msgstr ""
+
+#. Cell context menu item: inserts a Maxima code cell below this cell. max-length:30
+#. screen: editor--cell-context-menu
+#: src/commands/registry.ts
+msgid "New Code Cell Below"
+msgstr ""
+
+#. File menu item: opens the starter notebook chooser. max-length:30
+#: src/commands/registry.ts
+msgid "New from Template..."
+msgstr ""
+
+#. Cell menu item: inserts a Markdown text cell below the active cell. max-length:30
+#: src/commands/registry.ts
+msgid "New Markdown Cell"
+msgstr ""
+
+#. Cell context menu item: inserts a Markdown text cell below this cell. max-length:30
+#. screen: editor--cell-context-menu
+#: src/commands/registry.ts
+msgid "New Markdown Cell Below"
+msgstr ""
+
+#. File menu item: opens an empty notebook in a new tab. max-length:30
+#. screen: dialogs--keyboard-shortcuts
+#: src/commands/registry.ts
+msgid "New Notebook"
+msgstr ""
+
+#. Tab bar: tooltip of the + button that opens a new notebook tab. newTabShortcut is its keyboard shortcut in the platform's names, such as ⌘N or Ctrl+N
 #. screen: screens--drop-mixed
 #. screen: screens--drop-notebooks
 #. screen: screens--drop-refused
@@ -1426,14 +1630,34 @@ msgstr ""
 #. screen: screens--maxima-not-found
 #. screen: screens--whole-window
 #. screen: window--toolbar-and-tabs
+#. screen: window--toolbar-panels-open
+#. screen: window--toolbar-running
 #: src/components/TabBar.tsx
 msgid "New notebook ({newTabShortcut})"
+msgstr ""
+
+#. File menu item: opens a new window. max-length:30
+#. screen: dialogs--keyboard-shortcuts
+#: src/commands/registry.ts
+msgid "New Window"
+msgstr ""
+
+#. Keyboard Shortcuts list: what Ctrl+Tab and Ctrl+Shift+Tab do
+#. screen: dialogs--keyboard-shortcuts
+#: src/components/ShortcutsDialog.tsx
+msgid "Next and previous tab"
 msgstr ""
 
 #. Find bar: tooltip of the down arrow button that selects the next match; Enter is the shortcut
 #. screen: editor--find-and-replace
 #: src/components/FindBar.tsx
 msgid "Next Match (Enter)"
+msgstr ""
+
+#. Window menu item: switches to the next notebook tab. max-length:30
+#. screen: dialogs--keyboard-shortcuts
+#: src/commands/registry.ts
+msgid "Next Tab"
 msgstr ""
 
 #. Variable panel: shown when the Maxima session has no bound variables
@@ -1456,6 +1680,11 @@ msgstr ""
 #. Status bar at the bottom of the window: shown when the app log is empty
 #: src/components/LogPanel.tsx
 msgid "No log entries"
+msgstr ""
+
+#. Command palette: shown when no command matches what the user typed after >
+#: src/components/CommandPalette.tsx
+msgid "No matching commands"
 msgstr ""
 
 #. Command palette: shown when no math symbol matches what the user typed
@@ -1516,6 +1745,12 @@ msgstr ""
 msgid "Open Settings"
 msgstr ""
 
+#. File menu item: opens a notebook or plot file. max-length:30
+#. screen: dialogs--keyboard-shortcuts
+#: src/commands/registry.ts
+msgid "Open..."
+msgstr ""
+
 #. Label left of the output of a code cell with no run number, as in Jupyter. max-length:6
 #: src/components/Cell.tsx
 msgid "Out"
@@ -1528,6 +1763,7 @@ msgstr ""
 #. screen: cells--selection
 #. screen: editor--caret-between-cells
 #. screen: editor--caret-bracket-style
+#. screen: editor--cell-context-menu
 #. screen: editor--find-and-replace
 #. screen: editor--insert-menu
 #. screen: outputs--plotly-plot
@@ -1566,10 +1802,9 @@ msgstr ""
 msgid "Packages"
 msgstr ""
 
-#. Shortcut hints shown while Cmd or Ctrl is held: opens the command palette. max-length:16
-#. screen: window--shortcuts
-#: src/components/ShortcutHints.tsx
-msgid "Palette"
+#. Edit menu item: pastes text. max-length:24
+#: src/commands/menu-model.ts
+msgid "Paste"
 msgstr ""
 
 #. Command palette: short badge before a name that marks a Maxima package or a function from one. max-length:4
@@ -1579,7 +1814,7 @@ msgid "pkg"
 msgstr ""
 
 #. Tab title for an opened plot file whose file name could not be read
-#: src/App.tsx
+#: src/lib/file-commands.ts
 msgid "Plot"
 msgstr ""
 
@@ -1595,6 +1830,12 @@ msgstr ""
 msgid "Previous Match (Shift+Enter)"
 msgstr ""
 
+#. Window menu item: switches to the previous notebook tab. max-length:30
+#. screen: dialogs--keyboard-shortcuts
+#: src/commands/registry.ts
+msgid "Previous Tab"
+msgstr ""
+
 #. Settings: the label of the menu that chooses the size of text when printing
 #. screen: dialogs--settings-printing
 #: src/components/settings/PrintingSection.tsx
@@ -1605,6 +1846,12 @@ msgstr ""
 #. screen: dialogs--settings-printing
 #: src/components/settings/PrintingSection.tsx
 msgid "Print margins (mm)"
+msgstr ""
+
+#. File menu item: prints the notebook. max-length:30
+#. screen: dialogs--keyboard-shortcuts
+#: src/commands/registry.ts
+msgid "Print..."
 msgstr ""
 
 #. Settings sidebar: print font size and margins. max-length:16
@@ -1624,6 +1871,11 @@ msgstr ""
 msgid "Provided by the <0>{packageName}</0> package."
 msgstr ""
 
+#. Application menu (macOS): quits Aximar. max-length:30
+#: src/commands/menu-model.ts
+msgid "Quit Aximar"
+msgstr ""
+
 #. Label left of a raw cell from a Jupyter file, in the place of In for a code cell. max-length:6
 #: src/components/RawCell.tsx
 msgid "Raw"
@@ -1639,6 +1891,8 @@ msgstr ""
 #. screen: screens--drop-notebooks
 #. screen: screens--drop-refused
 #. screen: screens--whole-window
+#. screen: window--toolbar-and-tabs
+#. screen: window--toolbar-panels-open
 #: src/components/Toolbar.tsx
 msgid "Ready"
 msgstr ""
@@ -1649,30 +1903,11 @@ msgstr ""
 msgid "Reconfigure"
 msgstr ""
 
-#. Shortcut hints shown while Cmd or Ctrl is held: redoes the last undone edit. max-length:16
-#. Toolbar button: redoes the last undone change. max-length:12
-#. screen: screens--drop-mixed
-#. screen: screens--drop-notebooks
-#. screen: screens--drop-refused
-#. screen: screens--first-run
-#. screen: screens--maxima-not-found
-#. screen: screens--whole-window
+#. Edit menu item: redoes the last undone change. max-length:24
+#. screen: dialogs--keyboard-shortcuts
 #. screen: window--shortcuts
-#. screen: window--toolbar-and-tabs
-#: src/components/ShortcutHints.tsx src/components/Toolbar.tsx
+#: src/commands/registry.ts
 msgid "Redo"
-msgstr ""
-
-#. Toolbar: tooltip of the Redo button. redoShortcut is its keyboard shortcut, such as Cmd+Shift+Z
-#. screen: screens--drop-mixed
-#. screen: screens--drop-notebooks
-#. screen: screens--drop-refused
-#. screen: screens--first-run
-#. screen: screens--maxima-not-found
-#. screen: screens--whole-window
-#. screen: window--toolbar-and-tabs
-#: src/components/Toolbar.tsx
-msgid "Redo ({redoShortcut})"
 msgstr ""
 
 #. Settings button: replaces the MCP token with a new random one
@@ -1704,6 +1939,11 @@ msgstr ""
 msgid "Replace..."
 msgstr ""
 
+#. Help menu item: opens a new issue on Aximar's GitHub page. max-length:30
+#: src/commands/registry.ts
+msgid "Report an Issue"
+msgstr ""
+
 #. Command palette: under a function from a package that is not loaded yet; load(...) is Maxima code and stays as it is; packageName is the package name
 #: src/components/CommandPalette.tsx
 msgid "requires load(\"{packageName}\")"
@@ -1715,7 +1955,7 @@ msgstr ""
 msgid "requires load(\"{pkgName}\")"
 msgstr ""
 
-#. Toolbar button: restarts the Maxima session, clearing its state. max-length:12
+#. Session menu item and toolbar button: restarts Maxima, clearing its variables. max-length:24
 #. screen: screens--drop-mixed
 #. screen: screens--drop-notebooks
 #. screen: screens--drop-refused
@@ -1723,7 +1963,9 @@ msgstr ""
 #. screen: screens--maxima-not-found
 #. screen: screens--whole-window
 #. screen: window--toolbar-and-tabs
-#: src/components/Toolbar.tsx
+#. screen: window--toolbar-panels-open
+#. screen: window--toolbar-running
+#: src/commands/registry.ts
 msgid "Restart"
 msgstr ""
 
@@ -1733,7 +1975,15 @@ msgstr ""
 msgid "Right"
 msgstr ""
 
-#. Toolbar button: runs every cell in order. max-length:12
+#. Cell menu item: runs the cell and moves on to the next one. max-length:30
+#. screen: dialogs--command-palette-commands
+#. screen: editor--cell-context-menu
+#: src/commands/registry.ts
+msgid "Run"
+msgstr ""
+
+#. Cell menu item and toolbar button: runs every cell in order. max-length:30
+#. screen: dialogs--command-palette-commands
 #. screen: screens--drop-mixed
 #. screen: screens--drop-notebooks
 #. screen: screens--drop-refused
@@ -1741,8 +1991,17 @@ msgstr ""
 #. screen: screens--maxima-not-found
 #. screen: screens--whole-window
 #. screen: window--toolbar-and-tabs
-#: src/components/Toolbar.tsx
+#. screen: window--toolbar-panels-open
+#. screen: window--toolbar-running
+#: src/commands/registry.ts
 msgid "Run All"
+msgstr ""
+
+#. Cell menu item: runs the cell and keeps the cursor in it. max-length:30
+#. screen: dialogs--command-palette-commands
+#. screen: editor--cell-context-menu
+#: src/commands/registry.ts
+msgid "Run and Stay"
 msgstr ""
 
 #. Tooltip of a code cell's run button. Shift+Enter is the keyboard shortcut; keep it as it is
@@ -1753,6 +2012,7 @@ msgstr ""
 #. screen: editor--argument-help
 #. screen: editor--caret-between-cells
 #. screen: editor--caret-bracket-style
+#. screen: editor--cell-context-menu
 #. screen: editor--completion
 #. screen: editor--find-and-replace
 #. screen: editor--insert-menu
@@ -1772,6 +2032,18 @@ msgstr ""
 msgid "Run cell (Shift+Enter)"
 msgstr ""
 
+#. Keyboard Shortcuts list: what Shift+Enter does in a cell
+#. screen: dialogs--keyboard-shortcuts
+#: src/components/ShortcutsDialog.tsx
+msgid "Run the cell and move on"
+msgstr ""
+
+#. Keyboard Shortcuts list: what Cmd+Enter or Ctrl+Enter does in a cell
+#. screen: dialogs--keyboard-shortcuts
+#: src/components/ShortcutsDialog.tsx
+msgid "Run the cell and stay in it"
+msgstr ""
+
 #. Settings: the first choice for Help language; the help follows the Language setting above it. max-length:32
 #. screen: dialogs--settings
 #. screen: dialogs--settings-translation
@@ -1787,8 +2059,16 @@ msgid "Sans-serif"
 msgstr ""
 
 #. Button in the Unsaved Changes dialog: saves the notebooks, then closes them
-#: src/lib/unsaved-changes.ts
+#. File menu item: saves the notebook. max-length:30
+#. screen: dialogs--keyboard-shortcuts
+#: src/commands/registry.ts src/lib/unsaved-changes.ts
 msgid "Save"
+msgstr ""
+
+#. File menu item: saves the notebook under a new name. max-length:30
+#. screen: dialogs--keyboard-shortcuts
+#: src/commands/registry.ts
+msgid "Save As..."
 msgstr ""
 
 #. Button in the plot viewer window: saves the chart's Plotly data as a JSON file. max-length:14
@@ -1797,16 +2077,22 @@ msgstr ""
 msgid "Save JSON"
 msgstr ""
 
+#. Command palette: placeholder of the search box; typing > lists only commands, and a backslash switches to the list of math symbols
+#. screen: dialogs--command-palette-commands
+#. screen: dialogs--command-palette-open
+#: src/components/CommandPalette.tsx
+msgid "Search commands and functions (> for commands, \\ for symbols)..."
+msgstr ""
+
+#. Command palette: placeholder while it lists only commands, after the user typed >
+#: src/components/CommandPalette.tsx
+msgid "Search commands..."
+msgstr ""
+
 #. Docs panel: shown when no page is open; Docs is the name of the button on a function's hover tooltip
 #. screen: panels--docs-empty
 #: src/components/DocsPanel.tsx
 msgid "Search for a function or click “Docs” on a hover tooltip to view documentation."
-msgstr ""
-
-#. Command palette: placeholder of the search box; typing a backslash switches to the list of math symbols
-#. screen: dialogs--command-palette-open
-#: src/components/CommandPalette.tsx
-msgid "Search functions (or type \\ for symbols)..."
 msgstr ""
 
 #. Docs panel: placeholder of the search box at the top of the panel
@@ -1833,6 +2119,11 @@ msgstr ""
 msgid "See Also"
 msgstr ""
 
+#. Edit menu item: selects all the text in the field. max-length:24
+#: src/commands/menu-model.ts
+msgid "Select All"
+msgstr ""
+
 #. Tooltip of the place that selects a cell: the bracket right of it in bracket style, the margin with its In and Out labels in card style. Shift+click selects every cell up to it; Cmd+click adds it to the selection
 #. screen: cells--bracket-selection
 #. screen: cells--notebook
@@ -1841,6 +2132,7 @@ msgstr ""
 #. screen: editor--argument-help
 #. screen: editor--caret-between-cells
 #. screen: editor--caret-bracket-style
+#. screen: editor--cell-context-menu
 #. screen: editor--completion
 #. screen: editor--find-and-replace
 #. screen: editor--insert-menu
@@ -1875,14 +2167,30 @@ msgstr ""
 msgid "Serif"
 msgstr ""
 
+#. Application menu (macOS): the system's Services submenu. max-length:30
+#: src/commands/menu-model.ts
+msgid "Services"
+msgstr ""
+
+#. Menu bar: the menu that interrupts and restarts Maxima. max-length:12
+#. screen: dialogs--keyboard-shortcuts
+#: src/commands/menu-model.ts
+msgid "Session"
+msgstr ""
+
 #. Settings: the title of the settings window
-#. Toolbar button: opens the settings window. max-length:12
 #. screen: dialogs--settings
 #. screen: dialogs--settings-ai-assistants
 #. screen: dialogs--settings-maxima
 #. screen: dialogs--settings-notebook
 #. screen: dialogs--settings-printing
 #. screen: dialogs--settings-translation
+#: src/components/settings/SettingsShell.tsx
+msgid "Settings"
+msgstr ""
+
+#. Menu item: opens the Settings window. In the Aximar menu on macOS, the Edit menu elsewhere. max-length:24
+#. screen: dialogs--keyboard-shortcuts
 #. screen: screens--drop-mixed
 #. screen: screens--drop-notebooks
 #. screen: screens--drop-refused
@@ -1890,8 +2198,15 @@ msgstr ""
 #. screen: screens--maxima-not-found
 #. screen: screens--whole-window
 #. screen: window--toolbar-and-tabs
-#: src/components/settings/SettingsShell.tsx src/components/Toolbar.tsx
-msgid "Settings"
+#. screen: window--toolbar-panels-open
+#. screen: window--toolbar-running
+#: src/commands/registry.ts
+msgid "Settings..."
+msgstr ""
+
+#. Application menu (macOS): shows every app's windows. max-length:30
+#: src/commands/menu-model.ts
+msgid "Show All"
 msgstr ""
 
 #. Settings button: opens a window listing the open-source code and fonts Aximar uses, with their licences
@@ -1990,7 +2305,6 @@ msgid "Stop preview"
 msgstr ""
 
 #. Toolbar: session status when Maxima is not running. max-length:12
-#. screen: window--toolbar-and-tabs
 #: src/components/Toolbar.tsx
 msgid "Stopped"
 msgstr ""
@@ -2010,18 +2324,6 @@ msgstr ""
 #. screen: dialogs--command-palette-open
 #: src/components/CommandPalette.tsx
 msgid "Symbols"
-msgstr ""
-
-#. Toolbar button: opens the starter notebook chooser. max-length:12
-#. screen: screens--drop-mixed
-#. screen: screens--drop-notebooks
-#. screen: screens--drop-refused
-#. screen: screens--first-run
-#. screen: screens--maxima-not-found
-#. screen: screens--whole-window
-#. screen: window--toolbar-and-tabs
-#: src/components/Toolbar.tsx
-msgid "Templates"
 msgstr ""
 
 #. Settings, AI assistants section: hint under MCP listen address
@@ -2166,30 +2468,11 @@ msgstr ""
 msgid "Type symbol name (e.g. \\alpha, \\leq, \\nabla)..."
 msgstr ""
 
-#. Shortcut hints shown while Cmd or Ctrl is held: undoes the last edit. max-length:16
-#. Toolbar button: undoes the last change to the notebook. max-length:12
-#. screen: screens--drop-mixed
-#. screen: screens--drop-notebooks
-#. screen: screens--drop-refused
-#. screen: screens--first-run
-#. screen: screens--maxima-not-found
-#. screen: screens--whole-window
+#. Edit menu item: undoes the last change to the notebook, or to the text field being typed in. max-length:24
+#. screen: dialogs--keyboard-shortcuts
 #. screen: window--shortcuts
-#. screen: window--toolbar-and-tabs
-#: src/components/ShortcutHints.tsx src/components/Toolbar.tsx
+#: src/commands/registry.ts
 msgid "Undo"
-msgstr ""
-
-#. Toolbar: tooltip of the Undo button. undoShortcut is its keyboard shortcut, such as Cmd+Z
-#. screen: screens--drop-mixed
-#. screen: screens--drop-notebooks
-#. screen: screens--drop-refused
-#. screen: screens--first-run
-#. screen: screens--maxima-not-found
-#. screen: screens--whole-window
-#. screen: window--toolbar-and-tabs
-#: src/components/Toolbar.tsx
-msgid "Undo ({undoShortcut})"
 msgstr ""
 
 #. Title of the dialog asking whether to save notebooks before closing them
@@ -2205,6 +2488,8 @@ msgstr ""
 #. screen: screens--maxima-not-found
 #. screen: screens--whole-window
 #. screen: window--toolbar-and-tabs
+#. screen: window--toolbar-panels-open
+#. screen: window--toolbar-running
 #: src/lib/tab-title.ts
 msgid "Untitled"
 msgstr ""
@@ -2217,8 +2502,8 @@ msgstr ""
 msgid "Variable panel open by default"
 msgstr ""
 
-#. Toolbar button: shows or hides the variable panel. max-length:12
 #. Variable panel: the title of the panel that lists the variables bound in the Maxima session
+#. View menu item and toolbar toggle: shows or hides the variables panel. max-length:24
 #. screen: screens--drop-mixed
 #. screen: screens--drop-notebooks
 #. screen: screens--drop-refused
@@ -2226,9 +2511,17 @@ msgstr ""
 #. screen: screens--maxima-not-found
 #. screen: screens--whole-window
 #. screen: window--toolbar-and-tabs
+#. screen: window--toolbar-panels-open
+#. screen: window--toolbar-running
 #. screen: window--variables
-#: src/components/Toolbar.tsx src/components/VariablePanel.tsx
+#: src/commands/registry.ts src/components/VariablePanel.tsx
 msgid "Variables"
+msgstr ""
+
+#. Menu bar: the menu that shows and hides the panels. max-length:12
+#. screen: dialogs--keyboard-shortcuts
+#: src/commands/menu-model.ts
+msgid "View"
 msgstr ""
 
 #. Command palette: tooltip of the ? button that opens a function's documentation
@@ -2241,10 +2534,21 @@ msgstr ""
 msgid "View package docs"
 msgstr ""
 
+#. Help menu item: opens the release notes on GitHub. max-length:30
+#: src/commands/registry.ts
+msgid "What's New"
+msgstr ""
+
 #. Settings, Maxima section: hint under Backend
 #. screen: dialogs--settings-maxima
 #: src/components/settings/MaximaSection.tsx
 msgid "Where Maxima runs."
+msgstr ""
+
+#. Menu bar: the Window menu. max-length:12
+#. screen: dialogs--keyboard-shortcuts
+#: src/commands/menu-model.ts
+msgid "Window"
 msgstr ""
 
 #. Settings: the label of the menu that chooses the Linux distribution under WSL that runs Maxima
@@ -2255,6 +2559,11 @@ msgstr ""
 #. Unsaved Changes dialog: the line under the question
 #: src/lib/unsaved-changes.ts
 msgid "Your changes will be lost if you don't save them."
+msgstr ""
+
+#. Window menu item: makes the window fill the screen, or back. max-length:30
+#: src/commands/menu-model.ts
+msgid "Zoom"
 msgstr ""
 
 #. i18n: Maxima: "expt: undefined: 0 to a negative exponent." or "Division by 0"
@@ -3105,112 +3414,7 @@ msgctxt "note.tellsimp_noncommutative.text"
 msgid "tellsimp will treat the rule's main operator as noncommutative and nonassociative, so the rule matches only terms in the order it was written."
 msgstr ""
 
-#. i18n: App menu (macOS). max-length:30
-#: src-tauri/src/menu.rs
-msgid "About Aximar"
-msgstr ""
-
 #. i18n: The About panel (macOS and Linux): where to find the open-source licences. Settings, General and Licences name the window, section and row
 #: src-tauri/src/menu.rs
 msgid "Open-source licences: Settings, General, Licences"
-msgstr ""
-
-#. i18n: App menu on macOS, Edit menu elsewhere: opens the Settings window. max-length:24
-#: src-tauri/src/menu.rs
-msgid "Settings..."
-msgstr ""
-
-#. i18n: App menu (macOS): the system's Services submenu. max-length:30
-#: src-tauri/src/menu.rs
-msgid "Services"
-msgstr ""
-
-#. i18n: App menu (macOS). max-length:30
-#: src-tauri/src/menu.rs
-msgid "Hide Aximar"
-msgstr ""
-
-#. i18n: App menu (macOS): hides every other app. max-length:30
-#: src-tauri/src/menu.rs
-msgid "Hide Others"
-msgstr ""
-
-#. i18n: App menu (macOS). max-length:30
-#: src-tauri/src/menu.rs
-msgid "Show All"
-msgstr ""
-
-#. i18n: App menu. max-length:30
-#: src-tauri/src/menu.rs
-msgid "Quit Aximar"
-msgstr ""
-
-#. i18n: Menu bar. max-length:16
-#: src-tauri/src/menu.rs
-msgid "File"
-msgstr ""
-
-#. i18n: File menu. max-length:30
-#: src-tauri/src/menu.rs
-msgid "New Notebook"
-msgstr ""
-
-#. i18n: File menu. max-length:30
-#: src-tauri/src/menu.rs
-msgid "New Window"
-msgstr ""
-
-#. i18n: File menu: opens a notebook file. max-length:30
-#: src-tauri/src/menu.rs
-msgid "Open..."
-msgstr ""
-
-#. i18n: File menu. max-length:30
-#: src-tauri/src/menu.rs
-msgid "Save As..."
-msgstr ""
-
-#. i18n: File menu: saves the notebook as a LaTeX document. max-length:30
-#: src-tauri/src/menu.rs
-msgid "Export as LaTeX..."
-msgstr ""
-
-#. i18n: File menu. max-length:30
-#: src-tauri/src/menu.rs
-msgid "Print..."
-msgstr ""
-
-#. i18n: File menu. max-length:30
-#: src-tauri/src/menu.rs
-msgid "Close Window"
-msgstr ""
-
-#. i18n: Menu bar. max-length:16
-#: src-tauri/src/menu.rs
-msgid "Edit"
-msgstr ""
-
-#. i18n: Edit menu. max-length:30
-#: src-tauri/src/menu.rs
-msgid "Cut"
-msgstr ""
-
-#. i18n: Edit menu. max-length:30
-#: src-tauri/src/menu.rs
-msgid "Paste"
-msgstr ""
-
-#. i18n: Edit menu. max-length:30
-#: src-tauri/src/menu.rs
-msgid "Select All"
-msgstr ""
-
-#. i18n: Menu bar. max-length:16
-#: src-tauri/src/menu.rs
-msgid "Window"
-msgstr ""
-
-#. i18n: Window menu. max-length:30
-#: src-tauri/src/menu.rs
-msgid "Minimize"
 msgstr ""
