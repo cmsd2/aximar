@@ -10,10 +10,10 @@
 
 ## 2. Errors (one PR)
 
-- [ ] 2.1 Add `IconAlertCircle` and `IconBulb` to `ui/icons.ts`; verify with the icons-list test and the Foundations story
-- [ ] 2.2 Restyle `EnhancedErrorOutput`: red icon before a title in the normal text colour, explanation in secondary text, lightbulb before the suggestion with no box or bar, "Show Maxima's error" and "Hide Maxima's error"; verify with vitest tests that the title has no error colour class and the suggestion has no box, and the Errors stories in both styles and themes
-- [ ] 2.3 Give the unexplained error the same header (icon, then Maxima's text in a neutral `<pre>`); verify with a vitest test and the "Maxima error without explanation" story
-- [ ] 2.4 Check that red shows only on the bracket or border: run the contrast scan and look at the Cells "Notebook" and Errors stories in bracket and card style, light and dark
+- [x] 2.1 Add `IconAlertCircle` and `IconBulb` to `ui/icons.ts`; verify with the icons-list test and the Foundations story
+- [x] 2.2 Restyle `EnhancedErrorOutput`: red icon before a title in the normal text colour, explanation in secondary text, lightbulb before the suggestion with no box or bar, "Show Maxima's error" and "Hide Maxima's error"; verify with vitest tests that the title has no error colour class and the suggestion has no box, and the Errors stories in both styles and themes
+- [x] 2.3 Give the unexplained error the same header (icon, then Maxima's text in a neutral `<pre>`); verify with a vitest test and the "Maxima error without explanation" story
+- [x] 2.4 Check that red shows only on the bracket or border: run the contrast scan and look at the Cells "Notebook" and Errors stories in bracket and card style, light and dark
 
 ## 3. Code in explanations and notes (one PR)
 

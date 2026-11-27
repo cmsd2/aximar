@@ -63,3 +63,7 @@ export { IconReplace } from "@tabler/icons-react";
 export { IconArrowLeft } from "@tabler/icons-react";
 /** Docs panel: forward */
 export { IconArrowRight } from "@tabler/icons-react";
+/** A failed cell's output: before the error's title, or Maxima's text when Aximar has no explanation */
+export { IconAlertCircle } from "@tabler/icons-react";
+/** A failed cell's output: before the suggestion of what to try */
+export { IconBulb } from "@tabler/icons-react";
