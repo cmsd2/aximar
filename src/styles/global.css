@@ -334,8 +334,8 @@
 /* The gap between two cells in card style (CellGap): 8px, with a hit
    area a little taller that reaches over the cards' edges.  Hovering
    shows a grey line and a + in the left margin.  Clicking places a
-   caret: the line, with a text caret standing on it where a new cell's
-   first character would go, blinking as the editor's does.  Bracket
+   caret: the line, with a short horizontal caret on it where a new
+   cell's first character would go, blinking as the editor's does.  Bracket
    style draws the gap as the insert bar above. */
 .cell-gap:not(.insert-bar) {
   position: relative;
@@ -368,17 +368,19 @@
   opacity: 1;
 }
 
-/* The editor's caret: 2px, the text colour, about a line of code tall,
-   blinking on CodeMirror's 1.2s cycle.  It sits at the In column's edge
-   (past the card's 1px border in card style), centred on the line. */
+/* The editor's caret laid flat: 2px thick, the text colour, as long as
+   the editor's caret is tall, blinking on CodeMirror's 1.2s cycle.  It
+   lies on the line from the In column's edge (past the card's 1px border
+   in card style), where the new cell's text would start. */
 .cell-gap-caret {
   position: absolute;
   left: calc(var(--gutter-width) + 1px);
   top: 50%;
   z-index: 4;
-  width: 2px;
-  height: calc(var(--font-size-mono) * 1.2);
-  transform: translateY(-50%);
+  width: calc(var(--font-size-mono) * 1.2);
+  height: 2px;
+  /* Centred on the 1px line, which starts at 50% */
+  transform: translateY(-0.5px);
   background: var(--text-primary);
   pointer-events: none;
   animation: cell-gap-blink 1.2s steps(1) infinite;
