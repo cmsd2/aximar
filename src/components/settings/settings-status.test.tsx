@@ -26,8 +26,8 @@ afterEach(unmount);
 describe("the Maxima status line", () => {
   function parts(box: Element | null) {
     return {
-      main: box?.querySelector(".status-box-main")?.textContent,
-      detail: box?.querySelector(".status-box-detail")?.textContent ?? null,
+      main: box?.querySelector(".ui-status-main")?.textContent,
+      detail: box?.querySelector(".ui-status-detail")?.textContent ?? null,
     };
   }
 
@@ -42,7 +42,7 @@ describe("the Maxima status line", () => {
   ])("says where Maxima comes from: %o", async (location, main, detail, tone) => {
     const box = await statusLine("maxima", "maxima", { maxima_status: location, maxima_version: "5.50.0" });
     expect(parts(box)).toEqual({ main, detail });
-    expect(box?.classList.contains(tone)).toBe(true);
+    expect(box?.classList.contains(`ui-status--${tone}`)).toBe(true);
   });
 
   it("leaves the version out when Maxima doesn't give one", async () => {
@@ -81,6 +81,6 @@ describe("the MCP server status line", () => {
   ])("reports %o", async (state, text, tone) => {
     const line = await statusLine("ai-assistants", "mcp-server", { mcp_server_status: state });
     expect(line?.textContent).toBe(text);
-    expect(line?.classList.contains(tone)).toBe(true);
+    expect(line?.classList.contains(`ui-status--${tone}`)).toBe(true);
   });
 });

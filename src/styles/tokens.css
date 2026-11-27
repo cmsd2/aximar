@@ -61,6 +61,9 @@
   /* Shadows */
   --shadow-popover: 0 4px 16px rgba(0, 0, 0, 0.18);
   --shadow-dialog: 0 16px 48px rgba(0, 0, 0, 0.2);
+
+  /* Behind dialogs */
+  --overlay-bg: rgba(0, 0, 0, 0.4);
 }
 
 /* Auto dark: applies when OS prefers dark AND user hasn't forced light */

@@ -2,9 +2,14 @@ import { msg } from "@lingui/core/macro";
 import { useLingui } from "@lingui/react/macro";
 import { activateLanguage, languageName } from "../../lib/i18n";
 import type { Theme } from "../../store/notebookStore";
-import { ChoiceButtons, SettingRow, type Label, type SectionProps } from "./SettingRow";
+import { Checkbox } from "../ui/Checkbox";
+import { FieldRow } from "../ui/FieldRow";
+import type { Label } from "../ui/label";
+import { SegmentedControl } from "../ui/SegmentedControl";
+import { Select } from "../ui/Select";
+import type { SectionProps } from "./types";
 
-const THEMES: { value: Theme; label: Label }[] = [
+export const THEMES: { value: Theme; label: Label }[] = [
   {
     value: "auto",
     label: msg({ message: "Auto", comment: "Settings: theme button that follows the system's light or dark mode" }),
@@ -17,7 +22,8 @@ export function GeneralSection({ config, update }: SectionProps) {
   const { t } = useLingui();
   return (
     <>
-      <SettingRow
+      <FieldRow
+        divided
         label={t({ message: "Language", comment: "Settings: the label of the language picker" })}
         hint={t({
           message: "The language of the window, the menus and Maxima's messages.",
@@ -25,36 +31,32 @@ export function GeneralSection({ config, update }: SectionProps) {
         })}
       >
         {({ id, describedBy }) => (
-          <select
+          <Select
             id={id}
-            aria-describedby={describedBy}
-            className="settings-select"
+            describedBy={describedBy}
             value={config.language}
-            onChange={(e) => {
-              update({ language: e.target.value });
-              void activateLanguage(e.target.value);
+            options={config.languages.map((code) => ({ value: code, label: languageName(code) }))}
+            onChange={(language) => {
+              update({ language });
+              void activateLanguage(language);
             }}
-          >
-            {config.languages.map((code) => (
-              <option key={code} value={code}>
-                {languageName(code)}
-              </option>
-            ))}
-          </select>
+          />
         )}
-      </SettingRow>
+      </FieldRow>
 
-      <SettingRow
+      <FieldRow
+        divided
         label={t({ message: "Theme", comment: "Settings: the label of the theme buttons" })}
         hint={t({
           message: "Auto follows your system's light or dark mode.",
           comment: "Settings, General section: hint under Theme",
         })}
       >
-        {(ids) => <ChoiceButtons {...ids} options={THEMES} value={config.theme} onChange={(theme) => update({ theme })} />}
-      </SettingRow>
+        {(ids) => <SegmentedControl {...ids} options={THEMES} value={config.theme} onChange={(theme) => update({ theme })} />}
+      </FieldRow>
 
-      <SettingRow
+      <FieldRow
+        divided
         label={t({
           message: "Variable panel open by default",
           comment: "Settings: the label of the checkbox that opens the variable panel when Aximar starts",
@@ -65,16 +67,9 @@ export function GeneralSection({ config, update }: SectionProps) {
         })}
       >
         {({ id, describedBy }) => (
-          <input
-            id={id}
-            aria-describedby={describedBy}
-            type="checkbox"
-            className="settings-checkbox"
-            checked={config.variables_open}
-            onChange={(e) => update({ variables_open: e.target.checked })}
-          />
+          <Checkbox id={id} describedBy={describedBy} checked={config.variables_open} onChange={(checked) => update({ variables_open: checked })} />
         )}
-      </SettingRow>
+      </FieldRow>
     </>
   );
 }

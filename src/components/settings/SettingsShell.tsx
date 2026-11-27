@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type KeyboardEvent } from "react";
+import { Button } from "../ui/Button";
+import { DialogFrame, DialogOverlay } from "../ui/Dialog";
 import { useLingui } from "@lingui/react/macro";
 import { IconX } from "../ui/icons";
 import { getConfig, setConfig, type AppConfig } from "../../lib/config-client";
@@ -81,28 +83,13 @@ export function SettingsShell({ onClose, onSetVariablesOpen, initialSection, req
     choose(sections[to].id, true);
   };
 
-  const onKey = (e: KeyboardEvent) => {
-    if (e.key !== "Escape" || e.defaultPrevented) return;
-    // Esc in a menu closes the menu
-    if ((e.target as Element).tagName === "SELECT") return;
-    e.stopPropagation();
-    onClose();
-  };
-
   if (!config || !section) return null;
   const current = sections.find((s) => s.id === section) ?? sections[0];
   const Page = current.Component;
 
   return (
-    <div className="palette-overlay" onClick={onClose}>
-      <div
-        className="settings-window"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="settings-title"
-        onClick={(e) => e.stopPropagation()}
-        onKeyDown={onKey}
-      >
+    <DialogOverlay onClose={onClose}>
+      <DialogFrame onClose={onClose} size="lg" labelledBy="settings-title" className="settings-window">
         <nav className="settings-sidebar">
           <h2 className="settings-sidebar-title" id="settings-title">
             {t({ message: "Settings", comment: "Settings: the title of the settings window" })}
@@ -148,15 +135,13 @@ export function SettingsShell({ onClose, onSetVariablesOpen, initialSection, req
         >
           <div className="settings-page-head">
             <h3 className="settings-page-title">{i18n._(current.label)}</h3>
-            <button
-              type="button"
-              className="settings-close"
+            <Button
+              variant="quiet"
+              icon={IconX}
               onClick={onClose}
-              aria-label={t({ message: "Close", comment: "Settings button: closes the settings window" })}
-              title={t({ message: "Close", comment: "Settings button: closes the settings window" })}
-            >
-              <IconX size={16} stroke={1.75} aria-hidden="true" />
-            </button>
+              label={t({ message: "Close", comment: "Settings button: closes the settings window" })}
+              className="settings-close"
+            />
           </div>
           <div className="settings-section">
             <Page config={config} update={update} />
@@ -168,7 +153,7 @@ export function SettingsShell({ onClose, onSetVariablesOpen, initialSection, req
             })}
           </p>
         </div>
-      </div>
-    </div>
+      </DialogFrame>
+    </DialogOverlay>
   );
 }

@@ -1,0 +1,347 @@
+/* The shared primitives in src/components/ui/.  Tokens only: the token
+   check's baseline for this file is empty, so a raw colour, font size or
+   radius here fails CI.  See docs/design-library.md. */
+
+/* Button */
+.ui-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  font-family: var(--font-ui);
+  line-height: var(--leading-tight);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.ui-button--md {
+  padding: var(--space-1) var(--space-3);
+  font-size: var(--text-md);
+}
+
+.ui-button--sm {
+  padding: var(--space-1) var(--space-2);
+  font-size: var(--text-sm);
+}
+
+.ui-button--icon {
+  padding: var(--space-1);
+}
+
+.ui-button--primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--bg-primary);
+  font-weight: 500;
+}
+
+.ui-button--primary:hover:not(:disabled) {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+}
+
+.ui-button--secondary {
+  background: var(--bg-secondary);
+  border-color: var(--border-color);
+  color: var(--text-primary);
+}
+
+.ui-button--secondary:hover:not(:disabled) {
+  background: var(--border-color);
+}
+
+.ui-button--quiet {
+  background: transparent;
+  color: var(--text-secondary);
+}
+
+.ui-button--quiet:hover:not(:disabled) {
+  background: var(--bg-cell);
+  color: var(--text-primary);
+}
+
+.ui-button:focus-visible,
+.ui-segmented-option:focus-visible,
+.ui-select:focus-visible,
+.ui-checkbox:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.ui-button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+/* SegmentedControl */
+.ui-segmented {
+  display: inline-flex;
+  max-width: 100%;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.ui-segmented-option {
+  flex-shrink: 0;
+  padding: var(--space-1) var(--space-3);
+  background: transparent;
+  border: none;
+  border-right: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  font-family: var(--font-ui);
+  font-size: var(--text-md);
+  line-height: var(--leading-normal);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.ui-segmented-option:last-child {
+  border-right: none;
+}
+
+.ui-segmented-option:hover {
+  background: var(--bg-cell);
+}
+
+.ui-segmented-option[aria-checked="true"] {
+  background: var(--accent);
+  color: var(--bg-primary);
+}
+
+.ui-segmented-option:focus-visible {
+  outline-offset: -2px;
+}
+
+/* TextField, Select and Checkbox */
+.ui-text-field {
+  width: 230px;
+  padding: var(--space-1) var(--space-2);
+  background: var(--bg-input);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-family: var(--font-ui);
+  font-size: var(--text-md);
+  line-height: var(--leading-normal);
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.ui-text-field--mono {
+  font-family: var(--font-mono);
+}
+
+.ui-text-field::placeholder {
+  color: var(--text-placeholder);
+}
+
+.ui-text-field:focus {
+  border-color: var(--accent);
+}
+
+.ui-text-field[readonly] {
+  cursor: default;
+  user-select: all;
+}
+
+.ui-select {
+  padding: var(--space-1) var(--space-2);
+  background: var(--bg-input);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-family: var(--font-ui);
+  font-size: var(--text-md);
+  line-height: var(--leading-normal);
+  cursor: pointer;
+}
+
+.ui-checkbox {
+  width: var(--space-4);
+  height: var(--space-4);
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+/* FieldRow: a label and hint, and a control */
+.ui-field-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.ui-field-row--divided {
+  padding: var(--space-2) 0;
+  border-bottom: 0.5px solid var(--border-color);
+}
+
+.ui-field-row--wide {
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--space-2);
+}
+
+.ui-field-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.ui-field-label {
+  display: block;
+  font-size: var(--text-lg);
+  color: var(--text-primary);
+}
+
+.ui-field-hint {
+  margin: var(--space-half) 0 0;
+  font-size: var(--text-sm);
+  line-height: var(--leading-tight);
+  color: var(--text-secondary);
+}
+
+.ui-field-control {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-shrink: 0;
+}
+
+.ui-field-row--wide .ui-field-control {
+  flex-shrink: 1;
+}
+
+/* StatusBox */
+.ui-status {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  margin: var(--space-3) 0;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  font-size: var(--text-md);
+  line-height: var(--leading-tight);
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+}
+
+.ui-status-icon {
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.ui-status-text {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-half);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.ui-status-detail {
+  font-size: var(--text-sm);
+  opacity: 0.85;
+}
+
+.ui-status--ok {
+  background: var(--success-bg);
+  color: var(--success-text);
+}
+
+.ui-status--warn {
+  background: var(--warn-bg);
+  color: var(--warning-text);
+}
+
+.ui-status--err {
+  background: var(--error-bg);
+  color: var(--error-color);
+}
+
+.ui-status--busy .ui-status-icon {
+  animation: ui-spin 0.8s linear infinite;
+}
+
+@keyframes ui-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Dialog */
+.ui-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 80px var(--space-4) var(--space-4);
+  background: var(--overlay-bg);
+}
+
+.ui-dialog {
+  display: flex;
+  flex-direction: column;
+  max-width: calc(100vw - 48px);
+  max-height: calc(100vh - 104px);
+  background: var(--bg-primary);
+  border: 0.5px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-dialog);
+  overflow: hidden;
+  outline: none;
+}
+
+.ui-dialog--sm {
+  width: 420px;
+}
+
+.ui-dialog--md {
+  width: 560px;
+}
+
+.ui-dialog--lg {
+  width: 760px;
+}
+
+.ui-dialog-header {
+  padding: var(--space-5) var(--space-5) var(--space-3);
+  border-bottom: 0.5px solid var(--border-color);
+}
+
+.ui-dialog-title {
+  margin: 0;
+  font-size: var(--text-2xl);
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.ui-dialog-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-5);
+  overflow-y: auto;
+}
+
+.ui-dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-5);
+  border-top: 0.5px solid var(--border-color);
+}
+
+@media print {
+  .ui-overlay {
+    display: none !important;
+  }
+}

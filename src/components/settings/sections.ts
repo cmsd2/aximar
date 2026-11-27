@@ -11,7 +11,7 @@ import {
 import type { MessageDescriptor } from "@lingui/core";
 import { msg } from "@lingui/core/macro";
 import { TRANSLATOR_TOOLS } from "../../lib/translation-preview";
-import type { SectionProps } from "./SettingRow";
+import type { SectionProps } from "./types";
 import { GeneralSection } from "./GeneralSection";
 import { NotebookSection } from "./NotebookSection";
 import { MaximaSection } from "./MaximaSection";

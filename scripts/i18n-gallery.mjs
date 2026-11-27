@@ -89,15 +89,29 @@ try {
   const index = JSON.parse(await readFile(join(site, "index.json"), "utf8"));
   const stories = Object.values(index.entries).filter((e) => e.type === "story");
 
-  // Screenshots, per language and theme
+  // Screenshots, per language and theme.  Each shot also checks that no
+  // SegmentedControl label wraps or overflows, as a long translation might.
   for (const lang of LANGUAGES) await mkdir(join(gallery, lang), { recursive: true });
   let shots = 0;
+  const wrapped = [];
   for (const story of stories) {
     for (const { lang, theme } of shotsOf(story)) {
       await open(page, base, story.id, `locale:${lang};theme:${theme}`);
       await page.screenshot({ path: join(gallery, lang, shotFile(story, theme)), fullPage: true });
+      const bad = await page.evaluate(() =>
+        [...document.querySelectorAll(".ui-segmented-option")]
+          .filter((el) => {
+            const lineHeight = parseFloat(getComputedStyle(el).lineHeight) || 20;
+            return el.scrollWidth > el.clientWidth + 1 || el.getBoundingClientRect().height > lineHeight * 1.9;
+          })
+          .map((el) => el.textContent),
+      );
+      for (const label of bad) wrapped.push(`${story.id} (${lang}): "${label}"`);
       shots++;
     }
+  }
+  if (wrapped.length > 0) {
+    throw new Error(`SegmentedControl labels that wrap or overflow:\n${wrapped.join("\n")}`);
   }
 
   // Which strings each story shows, from the tagged English

@@ -15,10 +15,10 @@
 
 ## 3. Primitives (one PR)
 
-- [ ] 3.1 Add `src/styles/ui.css` and `Button`, `Select`, `Checkbox` with stories of every state, tagged `themes`; verify vitest tests `button_variants_render_their_classes`, `icon_only_button_needs_a_label` (a type test with `@ts-expect-error`), and that `ui.css` has a baseline of zero in the check
-- [ ] 3.2 Move `StatusBox`, and `ChoiceButtons`, `SettingRow` and `TextSetting` as `SegmentedControl`, `FieldRow` and `TextField`, into `src/components/ui/` with stories; add arrow-key movement to `SegmentedControl`; verify the existing Settings tests pass unchanged apart from imports, and new tests `segmented_arrow_keys_move_the_choice` and `segmented_labels_do_not_wrap_in_pseudo`
-- [ ] 3.3 Add `DialogOverlay`, `DialogFrame` and `Dialog` with stories; verify tests `esc_closes`, `a_click_outside_closes`, `focus_returns_to_the_opener`
-- [ ] 3.4 Move the Settings window and Export LaTeX onto the primitives and delete the rules they no longer use; lower the baseline; verify the gallery shows both screens with the same layout as before, by comparing the screenshots, and that `npm run check:tokens` reports lower counts
+- [x] 3.1 Add `src/styles/ui.css` and `Button`, `Select`, `Checkbox` with stories of every state, tagged `themes`; verify vitest tests `button_variants_render_their_classes`, `icon_only_button_needs_a_label` (a type test with `@ts-expect-error`), and that `ui.css` has a baseline of zero in the check
+- [x] 3.2 Move `StatusBox`, and `ChoiceButtons`, `SettingRow` and `TextSetting` as `SegmentedControl`, `FieldRow` and `TextField`, into `src/components/ui/` with stories; add arrow-key movement to `SegmentedControl`; verify the existing Settings tests pass with only their imports and class selectors changed, the test `segmented_arrow_keys_move_the_choice`, and a gallery check that fails when a `SegmentedControl` label wraps or overflows in any language
+- [x] 3.3 Add `DialogOverlay`, `DialogFrame` and `Dialog` with stories; verify tests `esc_closes`, `a_click_outside_closes`, `focus_returns_to_the_opener`
+- [x] 3.4 Move the Settings window and Export LaTeX onto the primitives and delete the rules they no longer use; lower the baseline; verify the gallery shows both screens with the same layout as before, by comparing the screenshots, and that `npm run check:tokens` reports lower counts
 
 ## 4. The monospace font (one PR)
 

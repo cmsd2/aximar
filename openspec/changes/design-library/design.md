@@ -114,6 +114,8 @@ The primitives hold no text of their own except the icon-only button's label, wh
 
 The Settings window and Export LaTeX move onto them in this change, as the first users, with before and after gallery screenshots to compare. The rest of the window moves in later changes, screen by screen, each lowering the baseline.
 
+Moving those two screens took the baseline from 254 raw values to 232. The comparison shows the same layout, with three differences from rounding onto the scales: setting rows are 2px tighter (10px padding to `--space-2`), Export LaTeX's labels grow from 13px to 14px (`--text-lg`, as in Settings), and a disabled button now looks disabled, which the old Settings buttons didn't. A segmented group too narrow for its labels scrolls sideways rather than wrapping them, and the gallery fails if a label wraps in any language. The Settings window keeps its own grid inside `DialogFrame`, through the `settings-window` class.
+
 ### 8. Tabler through one file
 
 `src/components/ui/icons.ts` re-exports each icon the app uses, under the name it uses, with a `use` note:

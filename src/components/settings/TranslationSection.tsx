@@ -4,7 +4,10 @@ import { useLingui } from "@lingui/react/macro";
 import { open as openDialog } from "@tauri-apps/plugin-dialog";
 import { currentPreviewPath, startPreview, stopPreview } from "../../lib/translation-preview";
 import { setShowSources, showingSources } from "../../lib/show-sources";
-import { SettingRow, type SectionProps } from "./SettingRow";
+import { Button } from "../ui/Button";
+import { Checkbox } from "../ui/Checkbox";
+import { FieldRow } from "../ui/FieldRow";
+import type { SectionProps } from "./types";
 
 export function TranslationSection({ config }: SectionProps) {
   return (
@@ -47,7 +50,8 @@ function TranslationPreviewRow({ language }: { language: string }) {
   };
 
   return (
-    <SettingRow
+    <FieldRow
+        divided
       label={t({
         message: "Translation preview",
         comment: "Settings, pre-release builds: shows a translation file from disk in the window as the translator saves it",
@@ -64,19 +68,19 @@ function TranslationPreviewRow({ language }: { language: string }) {
               <span className="settings-claude-status" title={path}>
                 {path.split(/[\\/]/).pop()}
               </span>
-              <button id={id} aria-describedby={describedBy} type="button" className="settings-token-btn" onClick={() => void stop()}>
+              <Button size="sm" id={id} aria-describedby={describedBy} onClick={() => void stop()}>
                 {t({ message: "Stop preview", comment: "Settings: stops showing the translation file, going back to the language setting" })}
-              </button>
+              </Button>
             </>
           ) : (
-            <button id={id} aria-describedby={describedBy} type="button" className="settings-token-btn" onClick={() => void load()}>
+            <Button size="sm" id={id} aria-describedby={describedBy} onClick={() => void load()}>
               {t({ message: "Load translation file...", comment: "Settings, pre-release builds: chooses a .po file to show in the window" })}
-            </button>
+            </Button>
           )}
           {error && <span className="settings-claude-status settings-claude-warn">{error}</span>}
         </div>
       )}
-    </SettingRow>
+    </FieldRow>
   );
 }
 
@@ -84,7 +88,8 @@ function TranslationPreviewRow({ language }: { language: string }) {
 function ShowSourcesRow() {
   const { t, i18n } = useLingui();
   return (
-    <SettingRow
+    <FieldRow
+        divided
       label={t({
         message: "Show sources",
         comment: "Settings, pre-release builds: when on, holding Alt and pointing at text shows its English, note and source file",
@@ -95,15 +100,8 @@ function ShowSourcesRow() {
       })}
     >
       {({ id, describedBy }) => (
-        <input
-          id={id}
-          aria-describedby={describedBy}
-          type="checkbox"
-          className="settings-checkbox"
-          checked={showingSources(i18n)}
-          onChange={(e) => setShowSources(i18n, e.target.checked)}
-        />
+        <Checkbox id={id} describedBy={describedBy} checked={showingSources(i18n)} onChange={(checked) => setShowSources(i18n, checked)} />
       )}
-    </SettingRow>
+    </FieldRow>
   );
 }

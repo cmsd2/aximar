@@ -26,7 +26,8 @@
   ],
   "1njn7W": [
     "dialogs--settings",
-    "dialogs--settings-translation"
+    "dialogs--settings-translation",
+    "ui-segmentedcontrol--options"
   ],
   "1wYCQr": [
     "errors--all-explanations"
@@ -38,7 +39,8 @@
     "dialogs--command-palette-open"
   ],
   "2Ajfpu": [
-    "dialogs--settings-maxima"
+    "dialogs--settings-maxima",
+    "ui-statusbox--all-tones"
   ],
   "2uZJcF": [
     "errors--all-explanations"
@@ -78,10 +80,12 @@
     "errors--all-explanations"
   ],
   "7FK-LY": [
-    "dialogs--export-latex"
+    "dialogs--export-latex",
+    "ui-fields--rows"
   ],
   "7V9N66": [
-    "dialogs--settings-maxima"
+    "dialogs--settings-maxima",
+    "ui-fields--rows"
   ],
   "7VwqiU": [
     "errors--all-explanations"
@@ -98,11 +102,13 @@
     "dialogs--settings-maxima",
     "dialogs--settings-notebook",
     "dialogs--settings-printing",
-    "dialogs--settings-translation"
+    "dialogs--settings-translation",
+    "ui-statusbox--all-tones"
   ],
   "88YXb4": [
     "dialogs--settings",
-    "dialogs--settings-translation"
+    "dialogs--settings-translation",
+    "ui-fields--rows"
   ],
   "8HXhaB": [
     "errors--all-explanations"
@@ -133,7 +139,8 @@
     "cells--print-and-tex"
   ],
   "A0B1z3": [
-    "dialogs--settings-maxima"
+    "dialogs--settings-maxima",
+    "ui-statusbox--all-tones"
   ],
   "AR39Q1": [
     "errors--all-explanations"
@@ -154,7 +161,8 @@
     "cells--print-and-tex"
   ],
   "BNropb": [
-    "dialogs--settings-notebook"
+    "dialogs--settings-notebook",
+    "ui-segmentedcontrol--options"
   ],
   "Bb0i4s": [
     "errors--all-explanations"
@@ -201,7 +209,8 @@
   ],
   "FiijwZ": [
     "dialogs--settings",
-    "dialogs--settings-translation"
+    "dialogs--settings-translation",
+    "ui-fields--rows"
   ],
   "G1YN7S": [
     "errors--all-explanations"
@@ -210,7 +219,10 @@
     "dialogs--templates"
   ],
   "GS-Mus": [
-    "dialogs--export-latex"
+    "dialogs--export-latex",
+    "ui-button--focused",
+    "ui-button--variants",
+    "ui-dialog--small"
   ],
   "Ge7gv1": [
     "errors--all-explanations"
@@ -223,7 +235,8 @@
     "errors--all-explanations"
   ],
   "Ie7D4l": [
-    "dialogs--settings-notebook"
+    "dialogs--settings-notebook",
+    "ui-segmentedcontrol--options"
   ],
   "IjzeiI": [
     "errors--all-explanations"
@@ -244,7 +257,8 @@
     "errors--all-explanations"
   ],
   "KnmLZH": [
-    "dialogs--settings-notebook"
+    "dialogs--settings-notebook",
+    "ui-fields--rows"
   ],
   "KrwLDh": [
     "notes--all-notes"
@@ -259,7 +273,8 @@
     "dialogs--settings-notebook"
   ],
   "LBrDY3": [
-    "dialogs--settings-maxima"
+    "dialogs--settings-maxima",
+    "ui-fields--rows"
   ],
   "LH79sl": [
     "dialogs--command-palette-open"
@@ -356,13 +371,17 @@
   ],
   "R9Khdg": [
     "dialogs--settings",
-    "dialogs--settings-translation"
+    "dialogs--settings-translation",
+    "ui-segmentedcontrol--options"
   ],
   "RPKyRE": [
     "errors--all-explanations"
   ],
   "RShCw3": [
     "dialogs--settings-printing"
+  ],
+  "RnxDx5": [
+    "ui-statusbox--all-tones"
   ],
   "SH-UEH": [
     "errors--all-explanations"
@@ -503,7 +522,8 @@
     "errors--all-explanations"
   ],
   "cW-T4V": [
-    "dialogs--settings-notebook"
+    "dialogs--settings-notebook",
+    "ui-segmentedcontrol--options"
   ],
   "cj6h01": [
     "errors--all-explanations"
@@ -515,7 +535,8 @@
     "dialogs--settings-notebook"
   ],
   "crH4A3": [
-    "dialogs--export-latex"
+    "dialogs--export-latex",
+    "ui-dialog--small"
   ],
   "d1mZYK": [
     "errors--all-explanations"
@@ -527,7 +548,9 @@
     "window--shortcuts"
   ],
   "dEgA5A": [
-    "dialogs--export-latex"
+    "dialogs--export-latex",
+    "ui-button--variants",
+    "ui-dialog--small"
   ],
   "dZNneU": [
     "errors--all-explanations"
@@ -536,16 +559,21 @@
     "notes--all-notes"
   ],
   "e5bnvv": [
-    "dialogs--settings-notebook"
+    "dialogs--settings-notebook",
+    "ui-segmentedcontrol--options"
   ],
   "eLLVVx": [
     "errors--all-explanations"
+  ],
+  "eiRFO8": [
+    "ui-statusbox--all-tones"
   ],
   "eorLsE": [
     "errors--all-explanations"
   ],
   "f-BFfG": [
-    "dialogs--settings-notebook"
+    "dialogs--settings-notebook",
+    "ui-segmentedcontrol--options"
   ],
   "fWLk_q": [
     "dialogs--settings",
@@ -587,11 +615,15 @@
     "cells--notebook",
     "cells--print-and-tex"
   ],
+  "i17GIR": [
+    "ui-fields--rows"
+  ],
   "i9Yht5": [
     "errors--all-explanations"
   ],
   "iAL9tI": [
-    "dialogs--settings-ai-assistants"
+    "dialogs--settings-ai-assistants",
+    "ui-button--variants"
   ],
   "iTylMl": [
     "window--toolbar-and-tabs"
@@ -639,13 +671,17 @@
     "errors--all-explanations"
   ],
   "mkPx6Y": [
-    "dialogs--settings-notebook"
+    "dialogs--settings-notebook",
+    "ui-segmentedcontrol--options"
   ],
   "mkn0j1": [
     "window--toolbar-and-tabs"
   ],
   "nOPbWJ": [
     "dialogs--settings-printing"
+  ],
+  "nlINJr": [
+    "ui-fields--rows"
   ],
   "npwBqu": [
     "dialogs--settings-notebook"
@@ -663,7 +699,8 @@
     "errors--all-explanations"
   ],
   "pEb1UY": [
-    "dialogs--settings-maxima"
+    "dialogs--settings-maxima",
+    "ui-fields--rows"
   ],
   "pIibSm": [
     "errors--all-explanations"
@@ -680,10 +717,12 @@
   ],
   "pvnfJD": [
     "dialogs--settings",
-    "dialogs--settings-translation"
+    "dialogs--settings-translation",
+    "ui-segmentedcontrol--options"
   ],
   "q3il6U": [
-    "dialogs--settings-notebook"
+    "dialogs--settings-notebook",
+    "ui-fields--rows"
   ],
   "q4YdS8": [
     "dialogs--settings",
@@ -721,6 +760,9 @@
   ],
   "uHwszI": [
     "errors--all-explanations"
+  ],
+  "uNQVvs": [
+    "ui-statusbox--all-tones"
   ],
   "uQF6ZX": [
     "dialogs--templates"
@@ -787,10 +829,12 @@
     "dialogs--settings-maxima",
     "dialogs--settings-notebook",
     "dialogs--settings-printing",
-    "dialogs--settings-translation"
+    "dialogs--settings-translation",
+    "ui-button--variants"
   ],
   "z1XfrD": [
-    "dialogs--export-latex"
+    "dialogs--export-latex",
+    "ui-dialog--small"
   ],
   "z9YkSR": [
     "errors--all-explanations"
