@@ -1,7 +1,10 @@
 import { msg } from "@lingui/core/macro";
 import { useLingui } from "@lingui/react/macro";
 import type { AppConfig } from "../../lib/config-client";
-import { labelText, SettingRow, type Label, type SectionProps } from "./SettingRow";
+import { FieldRow } from "../ui/FieldRow";
+import { labelText, type Label } from "../ui/label";
+import { Select } from "../ui/Select";
+import type { SectionProps } from "./types";
 
 const PRINT_FONT_SIZES = [8, 9, 10, 11, 12, 13, 14, 15, 16];
 const MARGIN_SIDES: { side: "top" | "bottom" | "left" | "right"; label: Label }[] = [
@@ -15,7 +18,8 @@ export function PrintingSection({ config, update }: SectionProps) {
   const { t, i18n } = useLingui();
   return (
     <>
-      <SettingRow
+      <FieldRow
+        divided
         label={t({
           message: "Print font size",
           comment: "Settings: the label of the menu that chooses the size of text when printing",
@@ -23,23 +27,18 @@ export function PrintingSection({ config, update }: SectionProps) {
         hint={t({ message: "The size of text on paper.", comment: "Settings, Printing section: hint under Print font size" })}
       >
         {({ id, describedBy }) => (
-          <select
+          <Select
             id={id}
-            aria-describedby={describedBy}
-            className="settings-select"
+            describedBy={describedBy}
             value={config.print_font_size}
-            onChange={(e) => update({ print_font_size: Number(e.target.value) })}
-          >
-            {PRINT_FONT_SIZES.map((s) => (
-              <option key={s} value={s}>
-                {s}px
-              </option>
-            ))}
-          </select>
+            options={PRINT_FONT_SIZES.map((s) => ({ value: s, label: `${s}px` }))}
+            onChange={(print_font_size) => update({ print_font_size })}
+          />
         )}
-      </SettingRow>
+      </FieldRow>
 
-      <SettingRow
+      <FieldRow
+        divided
         label={t({
           message: "Print margins (mm)",
           comment: "Settings: the label of the four print margin fields, in millimetres",
@@ -69,7 +68,7 @@ export function PrintingSection({ config, update }: SectionProps) {
             })}
           </div>
         )}
-      </SettingRow>
+      </FieldRow>
     </>
   );
 }

@@ -168,6 +168,7 @@ msgstr ""
 
 #. Settings: argument help button; the hint follows the argument under the cursor
 #. screen: dialogs--settings-notebook
+#. screen: ui-segmentedcontrol--options
 #: src/components/settings/NotebookSection.tsx
 msgid "Active hint"
 msgstr ""
@@ -190,6 +191,7 @@ msgid "AI assistants"
 msgstr ""
 
 #. Settings, AI assistants section: hint under MCP token. Reconfigure is the button beside each AI assistant
+#. screen: ui-fields--rows
 #: src/components/settings/AiAssistantsSection.tsx
 msgid "AI assistants send this secret with each request. Reconfigure them after a change."
 msgstr ""
@@ -230,6 +232,7 @@ msgstr ""
 #. Settings: theme button that follows the system's light or dark mode
 #. screen: dialogs--settings
 #. screen: dialogs--settings-translation
+#. screen: ui-segmentedcontrol--options
 #: src/components/settings/GeneralSection.tsx
 msgid "Auto"
 msgstr ""
@@ -243,6 +246,7 @@ msgstr ""
 
 #. Settings: placeholder in the Maxima path field; when empty, Aximar finds maxima itself
 #. screen: dialogs--settings-maxima
+#. screen: ui-fields--rows
 #: src/components/settings/MaximaSection.tsx
 msgid "Auto-detect"
 msgstr ""
@@ -298,6 +302,8 @@ msgstr ""
 #. Button in the Unsaved Changes dialog: keeps the notebooks open
 #. Export as LaTeX button: closes the window without exporting
 #. screen: dialogs--export-latex
+#. screen: ui-button--variants
+#. screen: ui-dialog--small
 #: src/components/ExportLatexModal.tsx src/lib/unsaved-changes.ts
 msgid "Cancel"
 msgstr ""
@@ -332,6 +338,7 @@ msgstr ""
 #. screen: dialogs--settings-notebook
 #. screen: dialogs--settings-printing
 #. screen: dialogs--settings-translation
+#. screen: ui-statusbox--all-tones
 #: src/components/settings/SettingsShell.tsx
 msgid "Changes apply as you make them."
 msgstr ""
@@ -374,13 +381,13 @@ msgstr ""
 
 #. Maxima Not Found dialog: the button that closes the dialog
 #. Settings button: closes the settings window
-#. Settings button: closes the settings window
 #. screen: dialogs--settings
 #. screen: dialogs--settings-ai-assistants
 #. screen: dialogs--settings-maxima
 #. screen: dialogs--settings-notebook
 #. screen: dialogs--settings-printing
 #. screen: dialogs--settings-translation
+#. screen: ui-button--variants
 #: src/components/settings/SettingsShell.tsx src/hooks/useMaxima.ts
 msgid "Close"
 msgstr ""
@@ -414,6 +421,7 @@ msgstr ""
 
 #. Settings button: adds Aximar's MCP server to an AI tool's configuration, such as Claude Code's
 #. screen: dialogs--settings-ai-assistants
+#. screen: ui-button--variants
 #: src/components/settings/AiClients.tsx
 msgid "Configure"
 msgstr ""
@@ -498,6 +506,7 @@ msgid "Correct usage:"
 msgstr ""
 
 #. Settings, AI assistants section: the MCP server's status when it failed to start; the system's reason follows. address is its address and port
+#. screen: ui-statusbox--all-tones
 #: src/components/settings/AiAssistantsSection.tsx
 msgid "Couldn't listen on {address}."
 msgstr ""
@@ -510,6 +519,7 @@ msgstr ""
 #. Settings: theme button for the dark theme
 #. screen: dialogs--settings
 #. screen: dialogs--settings-translation
+#. screen: ui-segmentedcontrol--options
 #: src/components/settings/GeneralSection.tsx
 msgid "Dark"
 msgstr ""
@@ -646,12 +656,16 @@ msgstr ""
 
 #. Export as LaTeX button: asks where to save the .tex file and writes it
 #. screen: dialogs--export-latex
+#. screen: ui-button--focused
+#. screen: ui-button--variants
+#. screen: ui-dialog--small
 #: src/components/ExportLatexModal.tsx
 msgid "Export"
 msgstr ""
 
 #. Export as LaTeX: the title of the export window
 #. screen: dialogs--export-latex
+#. screen: ui-dialog--small
 #: src/components/ExportLatexModal.tsx
 msgid "Export as LaTeX"
 msgstr ""
@@ -712,6 +726,7 @@ msgstr ""
 
 #. Settings: the label of the menu that chooses the size of code text
 #. screen: dialogs--settings-notebook
+#. screen: ui-fields--rows
 #: src/components/settings/NotebookSection.tsx
 msgid "Font size"
 msgstr ""
@@ -723,6 +738,7 @@ msgstr ""
 
 #. Settings, Maxima section: status. version is Maxima's version, such as 5.50.0; path is the program
 #. screen: dialogs--settings-maxima
+#. screen: ui-statusbox--all-tones
 #: src/components/settings/MaximaSection.tsx
 msgid "Found Maxima {version} at {path}"
 msgstr ""
@@ -792,6 +808,7 @@ msgstr ""
 
 #. Settings: argument help button; shows a function's arguments as a hint while typing
 #. screen: dialogs--settings-notebook
+#. screen: ui-segmentedcontrol--options
 #: src/components/settings/NotebookSection.tsx
 msgid "Hint"
 msgstr ""
@@ -832,18 +849,21 @@ msgstr ""
 
 #. Settings, Maxima section: under the found Maxima, where Aximar found it
 #. screen: dialogs--settings-maxima
+#. screen: ui-statusbox--all-tones
 #: src/components/settings/MaximaSection.tsx
 msgid "In a standard install location."
 msgstr ""
 
 #. Export as LaTeX: checkbox label; when on, the export includes each cell's Maxima input
 #. screen: dialogs--export-latex
+#. screen: ui-dialog--small
 #: src/components/ExportLatexModal.tsx
 msgid "Include code input"
 msgstr ""
 
 #. Export as LaTeX: checkbox label; when on, the export includes plots as image files
 #. screen: dialogs--export-latex
+#. screen: ui-fields--rows
 #: src/components/ExportLatexModal.tsx
 msgid "Include plots"
 msgstr ""
@@ -899,6 +919,7 @@ msgstr ""
 
 #. Settings, Maxima section: hint under Maxima path
 #. screen: dialogs--settings-maxima
+#. screen: ui-fields--rows
 #: src/components/settings/MaximaSection.tsx
 msgid "Leave it empty and Aximar finds Maxima itself."
 msgstr ""
@@ -918,6 +939,7 @@ msgstr ""
 #. Settings: theme button for the light theme
 #. screen: dialogs--settings
 #. screen: dialogs--settings-translation
+#. screen: ui-segmentedcontrol--options
 #: src/components/settings/GeneralSection.tsx
 msgid "Light"
 msgstr ""
@@ -1015,6 +1037,7 @@ msgstr ""
 
 #. Settings: the label of the field for the location of the maxima program
 #. screen: dialogs--settings-maxima
+#. screen: ui-fields--rows
 #: src/components/settings/MaximaSection.tsx
 msgid "Maxima path"
 msgstr ""
@@ -1031,12 +1054,14 @@ msgid "MCP server"
 msgstr ""
 
 #. Settings: the label of the secret that AI tools send to Aximar's MCP server
+#. screen: ui-fields--rows
 #: src/components/settings/AiAssistantsSection.tsx
 msgid "MCP token"
 msgstr ""
 
 #. Settings: Markdown font button for the monospace font
 #. screen: dialogs--settings-notebook
+#. screen: ui-segmentedcontrol--options
 #: src/components/settings/NotebookSection.tsx
 msgid "Mono"
 msgstr ""
@@ -1348,6 +1373,7 @@ msgstr ""
 
 #. Settings: Markdown font button for the system sans-serif font
 #. screen: dialogs--settings-notebook
+#. screen: ui-segmentedcontrol--options
 #: src/components/settings/NotebookSection.tsx
 msgid "Sans-serif"
 msgstr ""
@@ -1390,6 +1416,7 @@ msgstr ""
 
 #. Settings: Markdown font button for the system serif font
 #. screen: dialogs--settings-notebook
+#. screen: ui-segmentedcontrol--options
 #: src/components/settings/NotebookSection.tsx
 msgid "Serif"
 msgstr ""
@@ -1437,6 +1464,7 @@ msgstr ""
 #. Settings, General section: hint under Variable panel open by default
 #. screen: dialogs--settings
 #. screen: dialogs--settings-translation
+#. screen: ui-fields--rows
 #: src/components/settings/GeneralSection.tsx
 msgid "Show the variable panel when Aximar starts."
 msgstr ""
@@ -1448,6 +1476,7 @@ msgstr ""
 
 #. Settings: argument help button; completing a function inserts its arguments as placeholders to fill in
 #. screen: dialogs--settings-notebook
+#. screen: ui-segmentedcontrol--options
 #: src/components/settings/NotebookSection.tsx
 msgid "Snippet"
 msgstr ""
@@ -1470,6 +1499,7 @@ msgid "Starting"
 msgstr ""
 
 #. Settings, AI assistants section: the MCP server's status while it starts
+#. screen: ui-statusbox--all-tones
 #: src/components/settings/AiAssistantsSection.tsx
 msgid "Starting..."
 msgstr ""
@@ -1508,6 +1538,7 @@ msgid "The address and port AI assistants connect to."
 msgstr ""
 
 #. Settings: shown beside Claude Code when its claude command took too long to answer
+#. screen: ui-statusbox--all-tones
 #: src/components/settings/AiClients.tsx
 msgid "The check timed out"
 msgstr ""
@@ -1542,6 +1573,7 @@ msgstr ""
 
 #. Settings, Notebook section: hint under Font size
 #. screen: dialogs--settings-notebook
+#. screen: ui-fields--rows
 #: src/components/settings/NotebookSection.tsx
 msgid "The size of code and output text."
 msgstr ""
@@ -1636,6 +1668,7 @@ msgstr ""
 #. Settings: the label of the checkbox that opens the variable panel when Aximar starts
 #. screen: dialogs--settings
 #. screen: dialogs--settings-translation
+#. screen: ui-fields--rows
 #: src/components/settings/GeneralSection.tsx
 msgid "Variable panel open by default"
 msgstr ""

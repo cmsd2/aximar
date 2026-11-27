@@ -4,7 +4,12 @@ import { useLingui } from "@lingui/react/macro";
 import { checkWslMaxima, listWslDistros, maximaStatus, maximaVersion, type MaximaLocation } from "../../lib/config-client";
 import { StatusBox } from "../ui/StatusBox";
 import { useLogStore } from "../../store/logStore";
-import { ChoiceButtons, SettingRow, TextSetting, type Label, type SectionProps } from "./SettingRow";
+import { FieldRow } from "../ui/FieldRow";
+import type { Label } from "../ui/label";
+import { SegmentedControl } from "../ui/SegmentedControl";
+import { Select } from "../ui/Select";
+import { TextField } from "../ui/TextField";
+import type { SectionProps } from "./types";
 
 const EVAL_TIMEOUTS = [10, 30, 60, 120];
 const BACKENDS: { value: string; label: Label }[] = [
@@ -26,18 +31,20 @@ export function MaximaSection({ config, update }: SectionProps) {
 
   return (
     <>
-      <SettingRow
+      <FieldRow
+        divided
         label={t({ message: "Backend", comment: "Settings: the label of the buttons that choose where Maxima runs" })}
         hint={t({
           message: "Where Maxima runs.",
           comment: "Settings, Maxima section: hint under Backend",
         })}
       >
-        {(ids) => <ChoiceButtons {...ids} options={BACKENDS} value={config.backend} onChange={(backend) => update({ backend })} />}
-      </SettingRow>
+        {(ids) => <SegmentedControl {...ids} options={BACKENDS} value={config.backend} onChange={(backend) => update({ backend })} />}
+      </FieldRow>
 
       {config.backend === "local" && (
-        <SettingRow
+        <FieldRow
+        divided
           label={t({ message: "Maxima path", comment: "Settings: the label of the field for the location of the maxima program" })}
           hint={t({
             message: "Leave it empty and Aximar finds Maxima itself.",
@@ -45,8 +52,9 @@ export function MaximaSection({ config, update }: SectionProps) {
           })}
         >
           {(ids) => (
-            <TextSetting
+            <TextField
               {...ids}
+              mono
               value={config.maxima_path ?? ""}
               placeholder={t({
                 message: "Auto-detect",
@@ -55,13 +63,14 @@ export function MaximaSection({ config, update }: SectionProps) {
               onSave={(path) => update({ maxima_path: path.trim() || null })}
             />
           )}
-        </SettingRow>
+        </FieldRow>
       )}
       {config.backend === "local" && <MaximaStatusLine maximaPath={config.maxima_path} />}
 
       {config.backend === "docker" && (
         <>
-          <SettingRow
+          <FieldRow
+        divided
             label={t({
               message: "Container engine",
               comment: "Settings: the label of the buttons that choose the program that runs the Maxima container",
@@ -72,21 +81,23 @@ export function MaximaSection({ config, update }: SectionProps) {
             })}
           >
             {(ids) => (
-              <ChoiceButtons
+              <SegmentedControl
                 {...ids}
                 options={CONTAINER_ENGINES}
                 value={config.container_engine}
                 onChange={(container_engine) => update({ container_engine })}
               />
             )}
-          </SettingRow>
-          <SettingRow
+          </FieldRow>
+          <FieldRow
+        divided
             label={t({ message: "Docker image", comment: "Settings: the label of the field for the container image that holds Maxima" })}
             hint={t({ message: "The container image that holds Maxima.", comment: "Settings, Maxima section: hint under Docker image" })}
           >
             {(ids) => (
-              <TextSetting
+              <TextField
                 {...ids}
+                mono
                 value={config.docker_image}
                 placeholder={t({
                   message: `e.g. ${exampleImage}`,
@@ -95,13 +106,14 @@ export function MaximaSection({ config, update }: SectionProps) {
                 onSave={(docker_image) => update({ docker_image })}
               />
             )}
-          </SettingRow>
+          </FieldRow>
         </>
       )}
 
       {config.backend === "wsl" && <WslDistroRow config={config} update={update} />}
 
-      <SettingRow
+      <FieldRow
+        divided
         label={t({
           message: "Evaluation timeout",
           comment: "Settings: the label of the menu that chooses how long a cell may run before Aximar stops it",
@@ -112,24 +124,21 @@ export function MaximaSection({ config, update }: SectionProps) {
         })}
       >
         {({ id, describedBy }) => (
-          <select
+          <Select
             id={id}
-            aria-describedby={describedBy}
-            className="settings-select"
+            describedBy={describedBy}
             value={config.eval_timeout}
-            onChange={(e) => update({ eval_timeout: Number(e.target.value) })}
-          >
-            {EVAL_TIMEOUTS.map((secs) => (
-              <option key={secs} value={secs}>
-                {t({
-                  message: plural(secs, { one: "# second", other: "# seconds" }),
-                  comment: "Settings, Maxima section: an evaluation timeout in the menu",
-                })}
-              </option>
-            ))}
-          </select>
+            options={EVAL_TIMEOUTS.map((secs) => ({
+              value: secs,
+              label: t({
+                message: plural(secs, { one: "# second", other: "# seconds" }),
+                comment: "Settings, Maxima section: an evaluation timeout in the menu",
+              }),
+            }))}
+            onChange={(eval_timeout) => update({ eval_timeout })}
+          />
         )}
-      </SettingRow>
+      </FieldRow>
     </>
   );
 }
@@ -161,7 +170,8 @@ function WslDistroRow({ config, update }: SectionProps) {
   }, [config.wsl_distro, addLogEntry]);
 
   return (
-    <SettingRow
+    <FieldRow
+        divided
       label={t({
         message: "WSL distro",
         comment: "Settings: the label of the menu that chooses the Linux distribution under WSL that runs Maxima",
@@ -170,22 +180,19 @@ function WslDistroRow({ config, update }: SectionProps) {
     >
       {({ id, describedBy }) => (
         <>
-          <select
+          <Select
             id={id}
-            aria-describedby={describedBy}
-            className="settings-select"
+            describedBy={describedBy}
             value={config.wsl_distro}
-            onChange={(e) => update({ wsl_distro: e.target.value })}
-          >
-            <option value="">
-              {t({ message: "Default", comment: "Settings: WSL distro menu item for the distribution WSL uses by default" })}
-            </option>
-            {distros.map((d) => (
-              <option key={d} value={d}>
-                {d}
-              </option>
-            ))}
-          </select>
+            options={[
+              {
+                value: "",
+                label: t({ message: "Default", comment: "Settings: WSL distro menu item for the distribution WSL uses by default" }),
+              },
+              ...distros.map((d) => ({ value: d, label: d })),
+            ]}
+            onChange={(wsl_distro) => update({ wsl_distro })}
+          />
           <span
             className={`settings-wsl-status${found === undefined ? " checking" : found ? " found" : " missing"}`}
             title={
@@ -210,7 +217,7 @@ function WslDistroRow({ config, update }: SectionProps) {
           </span>
         </>
       )}
-    </SettingRow>
+    </FieldRow>
   );
 }
 

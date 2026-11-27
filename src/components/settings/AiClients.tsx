@@ -8,7 +8,8 @@ import {
   type McpClient,
   type McpClientsStatus,
 } from "../../lib/config-client";
-import { SettingRow } from "./SettingRow";
+import { Button } from "../ui/Button";
+import { FieldRow } from "../ui/FieldRow";
 
 const CLIENTS: { id: McpClient; name: string; cli: string }[] = [
   { id: "claude", name: "Claude Code", cli: "claude" },
@@ -130,14 +131,13 @@ function AiClientRow({
 
   return (
     <div data-client={client.id} title={installed ?? undefined}>
-      <SettingRow label={client.name} hint={hint}>
+      <FieldRow divided label={client.name} hint={hint}>
         {({ id, describedBy }) => (
         <div className="settings-claude-setup">
-          <button
+          <Button
+            size="sm"
             id={id}
             aria-describedby={describedBy}
-            type="button"
-            className="settings-token-btn"
             disabled={busy !== null || notInstalled}
             onClick={() => void configure()}
           >
@@ -152,16 +152,16 @@ function AiClientRow({
                     message: "Configure",
                     comment: "Settings button: adds Aximar's MCP server to an AI tool's configuration, such as Claude Code's",
                   })}
-          </button>
+          </Button>
           {onCheck && !notInstalled && (
-            <button type="button" className="settings-token-btn" disabled={busy !== null} onClick={() => void run("check", onCheck)}>
+            <Button size="sm" disabled={busy !== null} onClick={() => void run("check", onCheck)}>
               {busy === "check"
                 ? t({ message: "Checking...", comment: "Settings: the Check button of Claude Code while Aximar asks Claude Code whether it lists Aximar's MCP server" })
                 : t({
                     message: "Check",
                     comment: "Settings button: asks Claude Code, by running its claude command, whether its configuration lists Aximar's MCP server",
                   })}
-            </button>
+            </Button>
           )}
           {error ? (
             <span className="settings-claude-status settings-claude-err">{error}</span>
@@ -177,7 +177,7 @@ function AiClientRow({
           )}
         </div>
         )}
-      </SettingRow>
+      </FieldRow>
     </div>
   );
 }

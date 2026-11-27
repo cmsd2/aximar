@@ -1,34 +1,11 @@
 @import "katex/dist/katex.min.css";
 @import "computer-modern/cmu-serif.css";
+@import "./tokens.css";
+@import "./ui.css";
 
 :root {
-  /* Light theme (default) */
-  --bg-primary: #ffffff;
-  --bg-secondary: #f5f5f7;
-  --bg-cell: #fafafa;
-  --bg-input: #ffffff;
-  --text-primary: #1d1d1f;
-  --text-secondary: #636366;
-  --text-placeholder: #aeaeb2;
-  --border-color: #d2d2d7;
-  --accent: #0071e3;
-  --accent-hover: #0077ed;
-  --error-color: #c62828;
-  --error-bg: #fef2f2;
-  --success-color: #2d8a4e;
-  --success-bg: #edf7f0;
-  --success-text: #1e6b3a;
-  --running-color: #b8860b;
-  --warn-bg: #fdf6e3;
-  --selected-bg: #e8e8ed;
-  --warning-color: #e5a00d;
-  --warning-text: #7a4f00;
-  --syntax-builtin: #8a6508;
-  --syntax-string: #237a42;
-  --syntax-number: #8e44ad;
   --gutter-width: 56px;
   --font-size-mono: 14px;
-  --font-mono: "JetBrains Mono", "Fira Code", "SF Mono", Menlo, Consolas, monospace;
   --font-family-markdown: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
   --markdown-indent: 16px;
 
@@ -38,62 +15,6 @@
   font-size: 15px;
   color: var(--text-primary);
   background-color: var(--bg-primary);
-}
-
-/* Auto dark: applies when OS prefers dark AND user hasn't forced light */
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --bg-primary: #1e1e2e;
-    --bg-secondary: #282840;
-    --bg-cell: #2a2a3e;
-    --bg-input: #1a1a2e;
-    --text-primary: #cdd6f4;
-    --text-secondary: #a6adc8;
-    --text-placeholder: #6c7086;
-    --border-color: #45475a;
-    --accent: #89b4fa;
-    --accent-hover: #74c7ec;
-    --error-color: #f38ba8;
-    --error-bg: #2e1a1e;
-    --success-color: #a6e3a1;
-    --success-bg: #1f2e26;
-    --success-text: #a6e3a1;
-    --running-color: #f9e2af;
-    --warn-bg: #2f2b1f;
-    --selected-bg: #35354f;
-    --warning-color: #e5a00d;
-    --warning-text: #f9e2af;
-    --syntax-builtin: #f9e2af;
-    --syntax-string: #a6e3a1;
-    --syntax-number: #cba6f7;
-  }
-}
-
-/* Manual dark override */
-[data-theme="dark"] {
-  --bg-primary: #1e1e2e;
-  --bg-secondary: #282840;
-  --bg-cell: #2a2a3e;
-  --bg-input: #1a1a2e;
-  --text-primary: #cdd6f4;
-  --text-secondary: #a6adc8;
-  --text-placeholder: #6c7086;
-  --border-color: #45475a;
-  --accent: #89b4fa;
-  --accent-hover: #74c7ec;
-  --error-color: #f38ba8;
-  --error-bg: #2e1a1e;
-  --success-color: #a6e3a1;
-  --success-bg: #1f2e26;
-  --success-text: #a6e3a1;
-  --running-color: #f9e2af;
-  --warn-bg: #2f2b1f;
-  --selected-bg: #35354f;
-  --warning-color: #e5a00d;
-  --warning-text: #f9e2af;
-  --syntax-builtin: #f9e2af;
-  --syntax-string: #a6e3a1;
-  --syntax-number: #cba6f7;
 }
 
 * {
@@ -1705,54 +1626,12 @@
   color: var(--text-placeholder);
 }
 
-/* Settings Modal */
-/* Shared by small dialogs, such as Export LaTeX: a header, a body of
-   rows and a footer */
-.settings-modal {
-  width: 480px;
-  background: var(--bg-primary);
-  border: 1px solid var(--border-color);
-  border-radius: 12px;
-  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.2);
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-.settings-header {
-  padding: 20px 20px 12px;
-  border-bottom: 1px solid var(--border-color);
-}
-
-.settings-title {
-  font-size: 18px;
-  font-weight: 700;
-  color: var(--text-primary);
-  margin: 0;
-}
-
-.settings-body {
-  padding: 12px 20px;
-  overflow-y: auto;
-}
-
-.settings-footer {
-  padding: 12px 20px;
-  border-top: 1px solid var(--border-color);
-  text-align: center;
-}
-
-/* The Settings window: a sidebar of sections and a page */
+/* The Settings window: a sidebar of sections and a page, in a DialogFrame */
 .settings-window {
   width: min(760px, calc(100vw - 48px));
   height: min(560px, calc(100vh - 48px));
-  background: var(--bg-primary);
-  border: 0.5px solid var(--border-color);
-  border-radius: 12px;
-  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.2);
   display: grid;
   grid-template-columns: 170px minmax(0, 1fr);
-  overflow: hidden;
 }
 
 .settings-sidebar-title {
@@ -1845,20 +1724,8 @@
   color: var(--text-primary);
 }
 
-.settings-close {
-  display: flex;
-  padding: 4px;
-  margin: -4px -6px 0 0;
-  background: transparent;
-  border: none;
-  border-radius: 6px;
-  color: var(--text-secondary);
-  cursor: pointer;
-}
-
-.settings-close:hover {
-  background: var(--bg-cell);
-  color: var(--text-primary);
+.settings-page-head .settings-close {
+  margin: calc(-1 * var(--space-1)) calc(-1 * var(--space-1)) 0 0;
 }
 
 .settings-note {
@@ -1871,118 +1738,15 @@
 .settings-section {
   display: flex;
   flex-direction: column;
-  gap: 14px;
 }
 
-.settings-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-}
-
-.settings-window .settings-section {
-  gap: 0;
-}
-
-.settings-window .settings-row {
-  padding: 10px 0;
-  border-bottom: 0.5px solid var(--border-color);
-}
-
-.settings-row-wide {
-  flex-direction: column;
-  align-items: stretch;
-  gap: 8px;
-}
-
-.settings-row-wide .settings-token-actions {
+.ui-field-row--wide .settings-token-actions {
   flex: 1;
 }
 
-.settings-row-wide .settings-token-input {
+.ui-field-row--wide .settings-token-input {
   flex: 1;
   width: auto;
-}
-
-.settings-text {
-  min-width: 0;
-  flex: 1;
-}
-
-.settings-label {
-  font-size: 13px;
-  color: var(--text-primary);
-  flex-shrink: 0;
-}
-
-.settings-window .settings-label {
-  display: block;
-  font-size: 14px;
-}
-
-.settings-hint {
-  margin: 2px 0 0;
-  font-size: 12px;
-  line-height: 1.35;
-  color: var(--text-secondary);
-}
-
-.settings-control {
-  display: flex;
-  align-items: center;
-  flex-shrink: 0;
-}
-
-/* A tinted box with an icon: the state of something (StatusBox) */
-.status-box {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  margin: 12px 0;
-  padding: 8px 12px;
-  border-radius: 6px;
-  font-size: 13px;
-  line-height: 1.4;
-  background: var(--bg-secondary);
-  color: var(--text-secondary);
-}
-
-.status-box-icon {
-  flex-shrink: 0;
-  margin-top: 1px;
-}
-
-.status-box-text {
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-  min-width: 0;
-  overflow-wrap: anywhere;
-}
-
-.status-box-detail {
-  font-size: 12px;
-  opacity: 0.85;
-}
-
-.status-box.ok {
-  background: var(--success-bg);
-  color: var(--success-text);
-}
-
-.status-box.warn {
-  background: var(--warn-bg);
-  color: var(--warning-text);
-}
-
-.status-box.err {
-  background: var(--error-bg);
-  color: var(--error-color);
-}
-
-.status-box.busy .status-box-icon {
-  animation: settings-spin 0.8s linear infinite;
 }
 
 .settings-advanced {
@@ -1996,38 +1760,6 @@
 .settings-advanced > summary {
   font-size: 13px;
   color: var(--text-secondary);
-  cursor: pointer;
-}
-
-.settings-input {
-  width: 230px;
-  padding: 6px 10px;
-  background: var(--bg-input);
-  border: 1px solid var(--border-color);
-  border-radius: 6px;
-  color: var(--text-primary);
-  font-size: 13px;
-  font-family: var(--font-mono);
-  outline: none;
-  transition: border-color 0.15s;
-}
-
-.settings-input::placeholder {
-  color: var(--text-placeholder);
-}
-
-.settings-input:focus {
-  border-color: var(--accent);
-}
-
-.settings-select {
-  padding: 6px 10px;
-  background: var(--bg-input);
-  border: 1px solid var(--border-color);
-  border-radius: 6px;
-  color: var(--text-primary);
-  font-size: 13px;
-  outline: none;
   cursor: pointer;
 }
 
@@ -2096,40 +1828,15 @@
   border-color: var(--accent);
 }
 
-.settings-checkbox {
-  width: 16px;
-  height: 16px;
-  accent-color: var(--accent);
-  cursor: pointer;
-}
-
 .settings-token-actions {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-2);
 }
 
 .settings-token-input {
   width: 250px;
-  font-size: 12px;
-  user-select: all;
-  cursor: default;
-}
-
-.settings-token-btn {
-  padding: 5px 10px;
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-color);
-  border-radius: 6px;
-  color: var(--text-primary);
-  font-size: 12px;
-  cursor: pointer;
-  white-space: nowrap;
-  transition: background 0.15s;
-}
-
-.settings-token-btn:hover {
-  background: var(--border-color);
+  font-size: var(--text-sm);
 }
 
 .settings-claude-setup {
@@ -2154,55 +1861,10 @@
   color: var(--error-color);
 }
 
-.settings-theme-group {
-  display: flex;
-  border: 1px solid var(--border-color);
-  border-radius: 6px;
-  overflow: hidden;
-}
-
-.settings-theme-btn {
-  padding: 6px 14px;
-  background: transparent;
-  border: none;
-  border-right: 1px solid var(--border-color);
-  color: var(--text-secondary);
-  font-size: 13px;
-  cursor: pointer;
-  transition: background 0.15s, color 0.15s;
-}
-
-.settings-theme-btn:last-child {
-  border-right: none;
-}
-
-.settings-theme-btn:hover {
-  background: var(--bg-cell);
-}
-
-.settings-theme-btn.active {
-  background: var(--accent);
-  color: var(--bg-primary);
-}
-
-
-/* Export LaTeX modal: as tall as its content, not the overlay */
-.export-latex-modal {
-  max-width: 420px;
-  align-self: flex-start;
-}
 
 .export-latex-scope {
-  padding: 4px 0 12px;
   color: var(--text-secondary);
-  font-size: 13px;
-}
-
-.export-latex-modal .settings-footer {
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-  gap: 8px;
+  font-size: var(--text-md);
 }
 
 /* The button that carries out a dialog's action */
@@ -3307,20 +2969,8 @@
     --font-size-mono: var(--print-font-size-mono, 11px) !important;
   }
 
-  /* Force light theme */
+  /* Print colours as they are; the palette is in tokens.css */
   :root {
-    --bg-primary: #ffffff !important;
-    --bg-secondary: #f5f5f7 !important;
-    --bg-cell: #ffffff !important;
-    --bg-input: #ffffff !important;
-    --text-primary: #1d1d1f !important;
-    --text-secondary: #6e6e73 !important;
-    --text-placeholder: #aeaeb2 !important;
-    --border-color: #d2d2d7 !important;
-    --accent: #0071e3 !important;
-    --error-color: #e3342f !important;
-    --success-color: #2d8a4e !important;
-    --running-color: #b8860b !important;
     color-adjust: exact;
     -webkit-print-color-adjust: exact;
   }
@@ -3336,7 +2986,6 @@
   .docs-panel,
   .shortcut-hints,
   .palette-overlay,
-  .settings-modal,
   .settings-window,
   .template-modal,
   .cell-actions,

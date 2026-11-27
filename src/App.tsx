@@ -383,7 +383,7 @@ function App() {
 
       // Skip when focus is inside a modal
       const target = e.target as Element | null;
-      if (target?.closest(".palette-overlay, .settings-modal, .settings-window, .template-modal")) {
+      if (target?.closest(".palette-overlay, .ui-overlay, .template-modal")) {
         return;
       }
 

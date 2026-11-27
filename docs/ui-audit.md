@@ -48,6 +48,9 @@ trust banner, syntax colours and warning colours are theme variables now.
    Consolas on Windows.  Three different monospace stacks appear in the
    stylesheet.  Bundling one monospace font (JetBrains Mono is under the
    OFL) and defining `--font-mono` and `--font-ui` once fixes both.
+   *Done:* the design-library change defines `--font-ui` and
+   `--font-mono` once, in `src/styles/tokens.css`, and the app bundles
+   JetBrains Mono, with its licence in `public/licenses/`.
 6. **The two themes come from two design languages.**  Light uses Apple's
    system colours (`#0071e3`, `#1d1d1f`, `#f5f5f7`).  Dark uses Catppuccin
    Mocha's pastels (`#89b4fa`, `#f38ba8`, `#a6e3a1`).  So the accent,
@@ -60,6 +63,10 @@ trust banner, syntax colours and warning colours are theme variables now.
    because two neighbouring parts used different paddings and line
    heights.  A type scale of 4 or 5 steps, spacing on a 4px grid and two
    or three radii, all as variables, removes that class of problem.
+   *Done for new UI:* `src/styles/tokens.css` holds the scales, the
+   Settings window and Export LaTeX use them, and `npm run check:tokens`
+   holds the rest of the stylesheet to a baseline that only falls.  See
+   [design-library.md](design-library.md).
 
 ## The notebook
 
@@ -89,6 +96,9 @@ trust banner, syntax colours and warning colours are theme variables now.
 14. **Text characters stand in for icons**: ×, ⓘ, ⚠, ▸ and ▾.  Their
     size and weight follow the font, so they never line up with each
     other or with the text beside them.
+    *Done for new UI:* Tabler is the icon set, imported through
+    `src/components/ui/icons.ts`; the older screens still use the
+    characters until they move onto it.
 15. **Capitalisation is mixed.**  "Starter Notebooks", "Trust Notebook",
     "Delete Cell", "Find & Replace" and "Division by Zero" are in title
     case.  "Start with empty notebook", "Linear algebra" and "Show raw

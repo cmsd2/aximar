@@ -4,13 +4,18 @@ import { mcpServerStatus, type McpServerState } from "../../lib/config-client";
 import { StatusBox } from "../ui/StatusBox";
 import { useLingui } from "@lingui/react/macro";
 import { AiClients } from "./AiClients";
-import { SettingRow, TextSetting, type SectionProps } from "./SettingRow";
+import { Button } from "../ui/Button";
+import { Checkbox } from "../ui/Checkbox";
+import { FieldRow } from "../ui/FieldRow";
+import { TextField } from "../ui/TextField";
+import type { SectionProps } from "./types";
 
 export function AiAssistantsSection({ config, update }: SectionProps) {
   const { t } = useLingui();
   return (
     <>
-      <SettingRow
+      <FieldRow
+        divided
         label={t({
           message: "MCP server",
           comment: "Settings: the label of the checkbox that turns on Aximar's MCP server for AI tools",
@@ -21,16 +26,9 @@ export function AiAssistantsSection({ config, update }: SectionProps) {
         })}
       >
         {({ id, describedBy }) => (
-          <input
-            id={id}
-            aria-describedby={describedBy}
-            type="checkbox"
-            className="settings-checkbox"
-            checked={config.mcp_enabled}
-            onChange={(e) => update({ mcp_enabled: e.target.checked })}
-          />
+          <Checkbox id={id} describedBy={describedBy} checked={config.mcp_enabled} onChange={(checked) => update({ mcp_enabled: checked })} />
         )}
-      </SettingRow>
+      </FieldRow>
 
       {config.mcp_enabled && <McpServerStatusLine />}
 
@@ -46,7 +44,8 @@ export function AiAssistantsSection({ config, update }: SectionProps) {
               })}
             </summary>
             <div className="settings-section">
-            <SettingRow
+            <FieldRow
+        divided
               label={t({
                 message: "MCP listen address",
                 comment: "Settings: the label of the field for the address and port the MCP server listens on",
@@ -57,14 +56,15 @@ export function AiAssistantsSection({ config, update }: SectionProps) {
               })}
             >
               {(ids) => (
-                <TextSetting
+                <TextField
                   {...ids}
+                  mono
                   value={config.mcp_listen_address}
                   placeholder="127.0.0.1:19542"
                   onSave={(mcp_listen_address) => update({ mcp_listen_address })}
                 />
               )}
-            </SettingRow>
+            </FieldRow>
             <McpTokenRow token={config.mcp_token} onRegenerate={(mcp_token) => update({ mcp_token })} />
             </div>
           </details>
@@ -94,8 +94,9 @@ function McpTokenRow({ token, onRegenerate }: { token: string; onRegenerate: (to
   }, [onRegenerate]);
 
   return (
-    <SettingRow
-      className="settings-row-wide"
+    <FieldRow
+        divided
+      wide
       label={t({
         message: "MCP token",
         comment: "Settings: the label of the secret that AI tools send to Aximar's MCP server",
@@ -107,20 +108,18 @@ function McpTokenRow({ token, onRegenerate }: { token: string; onRegenerate: (to
     >
       {({ id, describedBy }) => (
         <div className="settings-token-actions">
-          <input id={id} aria-describedby={describedBy} type="text" className="settings-input settings-token-input" readOnly value={token} />
-          <button
-            type="button"
-            className="settings-token-btn"
+          <TextField id={id} describedBy={describedBy} mono readOnly value={token} className="settings-token-input" />
+          <Button
+            size="sm"
             onClick={handleCopy}
             title={t({ message: "Copy token", comment: "Settings: tooltip of the button that copies the MCP token" })}
           >
             {copied
               ? t({ message: "Copied", comment: "Settings: the MCP token copy button, for two seconds after a copy" })
               : t({ message: "Copy", comment: "Settings button: copies the MCP token to the clipboard" })}
-          </button>
-          <button
-            type="button"
-            className="settings-token-btn"
+          </Button>
+          <Button
+            size="sm"
             onClick={handleRegenerate}
             title={t({
               message: "Generate new token (restarts MCP server)",
@@ -128,10 +127,10 @@ function McpTokenRow({ token, onRegenerate }: { token: string; onRegenerate: (to
             })}
           >
             {t({ message: "Regenerate", comment: "Settings button: replaces the MCP token with a new random one" })}
-          </button>
+          </Button>
         </div>
       )}
-    </SettingRow>
+    </FieldRow>
   );
 }
 

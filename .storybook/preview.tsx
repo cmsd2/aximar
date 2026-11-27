@@ -5,6 +5,9 @@ import { messages as pseudo } from "../locales/pseudo.po";
 import { activateLanguage, i18n } from "../src/lib/i18n";
 import { installSourceTags, setShowSources } from "../src/lib/show-sources";
 import { installTauriMock } from "./tauri-mock";
+import { applyStoryTheme } from "../src/stories/theme";
+import "@fontsource/jetbrains-mono/400.css";
+import "@fontsource/jetbrains-mono/700.css";
 import "../src/styles/global.css";
 
 installTauriMock();
@@ -12,8 +15,9 @@ installTauriMock();
 // story shows which strings
 installSourceTags(i18n);
 
-/** Show the story in the toolbar's language, tagging strings when asked */
+/** Show the story in the toolbar's language and theme, tagging strings when asked */
 const withLanguage: Decorator = (Story, context) => {
+  applyStoryTheme(context.globals.theme);
   const language = context.globals.locale ?? "en";
   const tag = context.globals.tagStrings === "on";
   const [ready, setReady] = useState(false);
@@ -59,12 +63,24 @@ const preview: Preview = {
         dynamicTitle: true,
       },
     },
+    theme: {
+      description: "Theme",
+      toolbar: {
+        title: "Theme",
+        icon: "mirror",
+        items: [
+          { value: "light", title: "Light", icon: "sun" },
+          { value: "dark", title: "Dark", icon: "moon" },
+        ],
+        dynamicTitle: true,
+      },
+    },
     tagStrings: {
       description: "Tag strings with their IDs, for the screenshot run",
       toolbar: { title: "Tags", items: ["off", "on"] },
     },
   },
-  initialGlobals: { locale: "en", tagStrings: "off" },
+  initialGlobals: { locale: "en", theme: "light", tagStrings: "off" },
   parameters: { layout: "fullscreen" },
 };
 

@@ -131,6 +131,13 @@ jobs:
       - name: Install npm dependencies
         run: npm ci
 
+      # New styles use the design tokens: no raw colour, font size or
+      # radius beyond the baseline.  See docs/design-library.md.
+      - name: Check the stylesheets use the design tokens
+        run: |
+          node --test scripts/check-css-tokens.node-test.mjs
+          npm run check:tokens
+
       # Type-checks the frontend, and produces dist/, which src-tauri's
       # generate_context! needs at compile time.
       - name: Build frontend

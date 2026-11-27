@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { IconAlertTriangle, IconCircleCheck, IconInfoCircle, IconLoader2 } from "@tabler/icons-react";
+import { IconAlertTriangle, IconCircleCheck, IconInfoCircle, IconLoader2 } from "./icons";
 
 export type StatusTone = "ok" | "warn" | "err" | "busy" | "info";
 
@@ -30,11 +30,11 @@ export function StatusBox({
 }) {
   const Icon = ICONS[tone];
   return (
-    <div className={`status-box ${tone}`} role="status" data-status={status}>
-      <Icon className="status-box-icon" size={16} stroke={1.75} aria-hidden="true" />
-      <div className="status-box-text">
-        <span className="status-box-main">{children}</span>
-        {detail && <span className="status-box-detail">{detail}</span>}
+    <div className={`ui-status ui-status--${tone}`} role="status" data-status={status}>
+      <Icon className="ui-status-icon" size={16} stroke={1.75} aria-hidden="true" />
+      <div className="ui-status-text">
+        <span className="ui-status-main">{children}</span>
+        {detail && <span className="ui-status-detail">{detail}</span>}
       </div>
     </div>
   );

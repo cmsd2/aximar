@@ -40,7 +40,7 @@ const OLD_WINDOW = [
 ];
 
 function labels(container: HTMLElement): string[] {
-  return [...container.querySelectorAll(".settings-page .settings-label")].map((l) => l.textContent?.trim() ?? "");
+  return [...container.querySelectorAll(".settings-page .ui-field-label")].map((l) => l.textContent?.trim() ?? "");
 }
 
 function tabs(container: HTMLElement): string[] {
@@ -96,8 +96,8 @@ describe("the Settings sections", () => {
   it("give every setting a hint", async () => {
     for (const id of Object.keys(LABELS) as SectionId[]) {
       const { container } = await open({}, id);
-      for (const row of container.querySelectorAll(".settings-page .settings-row")) {
-        expect(row.querySelector(".settings-hint")?.textContent?.trim(), row.textContent ?? "").toBeTruthy();
+      for (const row of container.querySelectorAll(".settings-page .ui-field-row")) {
+        expect(row.querySelector(".ui-field-hint")?.textContent?.trim(), row.textContent ?? "").toBeTruthy();
       }
       unmount();
     }
