@@ -6,6 +6,8 @@ import { activateLanguage, i18n } from "../src/lib/i18n";
 import { installSourceTags, setShowSources } from "../src/lib/show-sources";
 import { installTauriMock } from "./tauri-mock";
 import { applyStoryTheme } from "../src/stories/theme";
+import "@fontsource/jetbrains-mono/400.css";
+import "@fontsource/jetbrains-mono/700.css";
 import "../src/styles/global.css";
 
 installTauriMock();

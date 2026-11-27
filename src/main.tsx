@@ -1,4 +1,7 @@
 import React from "react";
+// The monospace font ships with the app; its licence is public/licenses/JetBrainsMono-OFL.txt
+import "@fontsource/jetbrains-mono/400.css";
+import "@fontsource/jetbrains-mono/700.css";
 import ReactDOM from "react-dom/client";
 import { I18nProvider } from "@lingui/react";
 import App from "./App";

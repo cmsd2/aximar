@@ -60,7 +60,9 @@ each ratio.
 `--leading-tight` (1.3) is for headings, buttons and hints;
 `--leading-normal` (1.5) for body text. `--font-ui` is the system's UI
 font, for the window's own text; `--font-mono` is for code, output, paths,
-addresses and tokens. [Foundations / Type](?path=/story/foundations-type--scale).
+addresses and tokens. It is JetBrains Mono, which ships with the app
+(`@fontsource/jetbrains-mono`), so it looks the same on every machine.
+A font the app bundles needs its licence in `public/licenses/`. [Foundations / Type](?path=/story/foundations-type--scale).
 
 ### Space, radii and shadows
 

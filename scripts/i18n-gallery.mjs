@@ -94,6 +94,7 @@ try {
   for (const lang of LANGUAGES) await mkdir(join(gallery, lang), { recursive: true });
   let shots = 0;
   const wrapped = [];
+  let monoChecked = false;
   for (const story of stories) {
     for (const { lang, theme } of shotsOf(story)) {
       await open(page, base, story.id, `locale:${lang};theme:${theme}`);
@@ -107,9 +108,27 @@ try {
           .map((el) => el.textContent),
       );
       for (const label of bad) wrapped.push(`${story.id} (${lang}): "${label}"`);
+      // The bundled monospace font: loaded, and what a code cell uses
+      if (!monoChecked && story.id.startsWith("cells--")) {
+        const mono = await page.evaluate(async () => {
+          await document.fonts.ready;
+          const code = document.querySelector(".cm-content");
+          return {
+            loaded: [...document.fonts].some((f) => f.family.replace(/"/g, "") === "JetBrains Mono" && f.status === "loaded"),
+            family: code ? getComputedStyle(code).fontFamily : null,
+          };
+        });
+        if (mono.family !== null) {
+          if (!mono.loaded || !mono.family.startsWith('"JetBrains Mono"')) {
+            throw new Error(`${story.id}: the code cell isn't in the bundled JetBrains Mono (${JSON.stringify(mono)})`);
+          }
+          monoChecked = true;
+        }
+      }
       shots++;
     }
   }
+  if (!monoChecked) throw new Error("No Cells story showed a code cell to check the monospace font on");
   if (wrapped.length > 0) {
     throw new Error(`SegmentedControl labels that wrap or overflow:\n${wrapped.join("\n")}`);
   }

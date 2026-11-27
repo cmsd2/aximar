@@ -21,6 +21,7 @@
     "@codemirror/language": "^6.12.2",
     "@codemirror/state": "^6.6.0",
     "@codemirror/view": "^6.40.0",
+    "@fontsource/jetbrains-mono": "5.3.0",
     "@lezer/highlight": "^1.2.3",
     "@lingui/core": "^6.12.0",
     "@lingui/message-utils": "^6.12.0",

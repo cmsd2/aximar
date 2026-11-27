@@ -44,7 +44,7 @@ const MARKDOWN_FONT_STACKS: Record<string, string> = {
     '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif',
   serif: 'Georgia, "Times New Roman", Times, serif',
   "computer-modern": '"CMU Serif", Georgia, serif',
-  mono: '"JetBrains Mono", "Fira Code", "SF Mono", Menlo, Consolas, monospace',
+  mono: "var(--font-mono)",
 };
 
 export function markdownFontStack(value: string): string {

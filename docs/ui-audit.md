@@ -48,9 +48,9 @@ trust banner, syntax colours and warning colours are theme variables now.
    Consolas on Windows.  Three different monospace stacks appear in the
    stylesheet.  Bundling one monospace font (JetBrains Mono is under the
    OFL) and defining `--font-mono` and `--font-ui` once fixes both.
-   *Part done:* the design-library change defines `--font-ui` and
-   `--font-mono` once, in `src/styles/tokens.css`; bundling JetBrains
-   Mono is its group 4.
+   *Done:* the design-library change defines `--font-ui` and
+   `--font-mono` once, in `src/styles/tokens.css`, and the app bundles
+   JetBrains Mono, with its licence in `public/licenses/`.
 6. **The two themes come from two design languages.**  Light uses Apple's
    system colours (`#0071e3`, `#1d1d1f`, `#f5f5f7`).  Dark uses Catppuccin
    Mocha's pastels (`#89b4fa`, `#f38ba8`, `#a6e3a1`).  So the accent,

@@ -7,7 +7,7 @@ export const maximaTheme = EditorView.theme({
     color: "var(--text-primary)",
     backgroundColor: "transparent",
     fontSize: "var(--font-size-mono)",
-    fontFamily: '"JetBrains Mono", "Fira Code", "SF Mono", Menlo, Consolas, monospace',
+    fontFamily: "var(--font-mono)",
   },
   "&.cm-focused": {
     outline: "none",
@@ -52,7 +52,7 @@ export const maximaTheme = EditorView.theme({
     maxHeight: "240px",
     minWidth: "260px",
     maxWidth: "400px",
-    fontFamily: '"JetBrains Mono", "Fira Code", "SF Mono", Menlo, Consolas, monospace',
+    fontFamily: "var(--font-mono)",
     fontSize: "13px",
   },
   ".cm-tooltip.cm-tooltip-autocomplete > ul > li": {

@@ -22,7 +22,7 @@
 
 ## 4. The monospace font (one PR)
 
-- [ ] 4.1 Add `@fontsource/jetbrains-mono` 5.3.0, pinned, import its regular and bold weights in `src/main.tsx` and `.storybook/preview.tsx`, and point `--font-mono` at it; verify the gallery script's `document.fonts.check` assertion on a code cell story, and that `npm run tauri build` bundles the woff2 files (they appear in `dist/assets`)
+- [x] 4.1 Add `@fontsource/jetbrains-mono` 5.3.0, pinned, import its regular and bold weights in `src/main.tsx` and `.storybook/preview.tsx`, point `--font-mono` at it, and make the editor theme and the Markdown Mono font use `var(--font-mono)`; ship its OFL licence, and Computer Modern's, in `public/licenses/`; verify the gallery's check that a code cell's font is the loaded JetBrains Mono (and that it fails without the import), and that `npm run build` puts the font files in `dist/assets` and the licences in `dist/licenses`
 
 ## 5. The guide (with group 3's PR)
 

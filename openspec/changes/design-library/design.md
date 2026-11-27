@@ -131,6 +131,8 @@ The icons story lists these by parsing the module's exports and their doc commen
 
 `@fontsource/jetbrains-mono` (5.3.0, pinned) supplies the regular and bold weights as woff2, with the OFL. `tokens.css` declares `--font-mono: "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;`. The import goes in `src/main.tsx` and `.storybook/preview.tsx`, so both bundle the files and nothing loads over the network. The gallery script asserts `document.fonts.check("13px 'JetBrains Mono'")` on a code cell story.
 
+The OFL lets the font ship with the app if its copyright notice and licence travel with it. `public/licenses/` holds `JetBrainsMono-OFL.txt`, copied from the package, and Vite copies it into the built app. Computer Modern, which the app already bundled for the Markdown font under the same licence, had no notice in the bundle; `ComputerModern-OFL.txt` goes beside it, with a README naming both. The editor theme and the Markdown "Mono" font, which wrote out their own copies of the old monospace stack, now use `var(--font-mono)`. The bundle grows by 224 KB: both weights in five subsets, as woff2 with woff fallbacks.
+
 `--font-ui` stays the system stack (`-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`), as each platform's own UI font is what users expect for chrome.
 
 ### 10. The guide is the doc
@@ -146,5 +148,5 @@ Nothing. Styles reach neither.
 - **[Rounding the scales shifts some screens by a pixel or two]** → Only rules moved onto tokens change, a screen at a time, and the gallery shows each before and after.
 - **[The baseline hides old raw values]** → It only goes down, and `docs/ui-audit.md` lists where they are. The check prints the token that matches a raw value, so moving a rule is mostly mechanical.
 - **[Parsing CSS with regular expressions]** → The stylesheet has no id selectors and no colours in selectors or strings, so `#` plus hex digits only matches colours. The check has unit tests over a fixture stylesheet for the cases it must ignore (comments, `url(#...)`, `50%`).
-- **[A bundled font adds about 200 KB]** → Two weights in woff2 only, which the installer already dwarfs.
+- **[A bundled font adds 224 KB]** → Two weights, which the installer already dwarfs.
 - **[Dark screenshots double the gallery's time for tagged stories]** → Only Foundations and UI stories get both themes, about 15 stories.
