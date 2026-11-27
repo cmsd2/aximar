@@ -3,6 +3,7 @@
 //! text.  The window translates its own text with Lingui; see docs/i18n.md.
 
 use std::collections::{BTreeMap, HashMap};
+use std::sync::RwLock;
 
 use aximar_core::message::Message;
 use fluent_langneg::{negotiate_languages, LanguageIdentifier, NegotiationStrategy};
@@ -25,6 +26,21 @@ pub fn languages() -> Vec<&'static str> {
             .filter(|lang| *lang != ENGLISH),
     );
     langs
+}
+
+/// The language of help summaries: the setting's, or `None` for English
+static HELP_LANGUAGE: RwLock<Option<String>> = RwLock::new(None);
+
+/// Show help summaries in `language` from now on
+pub fn set_help_language(language: &str) {
+    *HELP_LANGUAGE.write().unwrap() = (language != ENGLISH).then(|| language.to_string());
+}
+
+/// A symbol's help summary in the help language, when Maxima's manual in
+/// it covers the symbol, or `english` otherwise
+pub fn help_summary(name: &str, english: &str) -> String {
+    let language = HELP_LANGUAGE.read().unwrap().clone();
+    aximar_core::catalog::summaries::localised(language.as_deref(), name, english).into_owned()
 }
 
 /// The system's language, such as `es-CO`
@@ -156,6 +172,15 @@ mod tests {
     fn english_comes_first() {
         assert_eq!(languages()[0], "en");
         assert!(!languages().contains(&"pseudo"));
+    }
+
+    #[test]
+    fn help_summaries_follow_the_language() {
+        set_help_language("es");
+        assert!(help_summary("integrate", "English").starts_with("Calcula"));
+        assert_eq!(help_summary("no_such_symbol", "English"), "English");
+        set_help_language("en");
+        assert_eq!(help_summary("integrate", "English"), "English");
     }
 
     #[test]

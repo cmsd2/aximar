@@ -57,8 +57,8 @@ Each numbered group is one pull request, landing in order unless a group says ot
 
 ## 9. Help in the user's language
 
-- [ ] 9.1 Give catalog-gen a language option reading `doc/info/<lang>/maxima.texi`, and generate `core-doc-index.es.json`; verify the Spanish index has an entry for `integrate` with Spanish text
-- [ ] 9.2 Look summaries up in the user's language, then English, and index both for search; verify with unit tests for the "Spanish summary" and "English fallback" scenarios and a search that finds a symbol by its Spanish summary
+- [x] 9.1 Give catalog-gen a language option reading `doc/info/<lang>/maxima.texi`, and generate `core-doc-summaries.es.json` (summaries only, through mxpm); verify the Spanish index has an entry for `integrate` with Spanish text
+- [x] 9.2 Look summaries up in the user's language, then English, and index both for search; verify with unit tests for the "Spanish summary" and "English fallback" scenarios and a search that finds a symbol by its Spanish summary
 
 ## 10. Close-out
 

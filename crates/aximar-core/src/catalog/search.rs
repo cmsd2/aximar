@@ -246,4 +246,22 @@ mod tests {
         assert!(!results.is_empty());
         assert_eq!(results[0].name, "ax_plot2d");
     }
+
+    #[test]
+    fn search_finds_a_symbol_by_its_spanish_summary() {
+        let catalog = Catalog::load();
+        let results = catalog.search("calcula simbólicamente la integral");
+        assert!(
+            results.iter().take(5).any(|r| r.name == "integrate"),
+            "{:?}",
+            results.iter().map(|r| &r.name).collect::<Vec<_>>()
+        );
+        // Results stay in English
+        let integrate = results.iter().find(|r| r.name == "integrate").unwrap();
+        assert!(
+            integrate.summary.starts_with("Attempts to"),
+            "{}",
+            integrate.summary
+        );
+    }
 }

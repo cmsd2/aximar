@@ -161,7 +161,7 @@ Both paths drop ` -- an error. To debug this try: debugmode(true);` from error t
 
 ### 11. Help per language
 
-catalog-gen takes a language and reads `doc/info/<lang>/maxima.texi`, writing `core-doc-index.<lang>.json`. Aximar embeds the Spanish index beside the English one and looks a symbol up in the user's language first, then in English. The search index covers both languages' summaries.
+catalog-gen takes a language and reads `doc/info/<lang>/maxima.texi` through mxpm's `doc generate-core-docs`, which makes the English index: it runs unchanged on a copy of the source whose `doc/info` is the translated manual, given the English tree's macro files. catalog-gen keeps only each symbol's summary, in `core-doc-summaries.<lang>.json`; signatures and the rest come from the English index. Aximar embeds the Spanish summaries beside the English index and looks a symbol's summary up in the user's language first, then in English. The search index covers both languages' summaries, and its results stay English; the window's catalog commands localise them.
 
 ### 12. CI checks
 

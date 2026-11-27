@@ -4,6 +4,7 @@ mod markdown;
 mod package_scanner;
 mod parser;
 mod share_files;
+mod summaries;
 
 use std::collections::HashMap;
 use std::fs;
@@ -152,6 +153,27 @@ enum Commands {
         /// Input ax_draw_context.json [default: <workspace>/crates/aximar-core/src/maxima/ax_draw_context.json]
         #[arg(short, long)]
         input: Option<PathBuf>,
+    },
+
+    /// Help summaries in another language, from Maxima's manual in it
+    /// (doc/info/<lang>/), for Aximar's help in the user's language.  Needs
+    /// mxpm and makeinfo on the PATH.
+    Summaries {
+        /// Language of the manual, such as `es`
+        #[arg(long)]
+        lang: String,
+
+        /// Path to an existing Maxima source checkout. If omitted, clones/updates /tmp/maxima-src.
+        #[arg(long)]
+        maxima_src: Option<PathBuf>,
+
+        /// Git ref (branch, tag, commit) to checkout. Only used when cloning/fetching.
+        #[arg(long, default_value = "master")]
+        git_ref: String,
+
+        /// Output path [default: <workspace>/crates/aximar-core/src/catalog/core-doc-summaries.<lang>.json]
+        #[arg(short, long)]
+        output: Option<PathBuf>,
     },
 
     /// Parse a pre-existing Maxima XML file (produced by `makeinfo --xml`).
@@ -412,6 +434,21 @@ fn main() {
         } => {
             let output = resolve_output(output, SECCOMP_REL);
             generate_seccomp(&upstream_url, &output);
+        }
+
+        Commands::Summaries {
+            lang,
+            maxima_src,
+            git_ref,
+            output,
+        } => {
+            let src = resolve_maxima_source(maxima_src.as_deref(), &git_ref);
+            let rel = format!("crates/aximar-core/src/catalog/core-doc-summaries.{lang}.json");
+            let output = resolve_output(output, &rel);
+            match summaries::generate(&src, &lang, &output) {
+                Ok(count) => eprintln!("Wrote {count} summaries to {}", output.display()),
+                Err(e) => fatal(&e),
+            }
         }
 
         Commands::FromXml {
