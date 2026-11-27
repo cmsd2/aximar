@@ -27,6 +27,26 @@ See the [vector calculus example](assets/vc.pdf) for a Stokes' theorem verificat
 - **Save & load** — persist notebooks in Jupyter-compatible format; drag `.macnb` or `.ipynb` files onto the window to open them, or open them from Finder (double-click, Open With, or a drop on the Dock icon)
 - **Print support** — configurable margins and font sizes for printing
 
+## Supported Platforms
+
+Each [release](https://github.com/cmsd2/aximar/releases) has packages for:
+
+| Platform | Architectures | Packages | Minimum version |
+|----------|---------------|----------|-----------------|
+| macOS | Apple silicon, Intel | `.dmg` | macOS 11 (Apple silicon), 10.13 (Intel) |
+| Windows | x64, ARM64 | `.msi`, `-setup.exe` | Windows 10 |
+| Linux | x86_64 | `.deb`, `.rpm`, `.AppImage` | glibc 2.39 and WebKitGTK 4.1, as in Ubuntu 24.04, Debian 13 and Fedora 40 |
+| Linux | arm64 | `.deb` | as for x86_64 |
+
+Aximar draws its window with the system web view: WebKit on macOS and
+Linux, WebView2 on Windows. Windows 11 includes WebView2, and the
+installers download it on Windows 10 if it's missing. Windows 7 and 8
+are not supported.
+
+The Linux packages are built on Ubuntu 24.04 and need the glibc it
+ships, so they don't run on older distributions. There, [build from
+source](#building-from-source).
+
 ## Getting Started
 
 ### Installing Maxima
@@ -236,10 +256,14 @@ This starts both the Vite dev server (frontend hot-reload) and the Tauri Rust ba
 npm run tauri build
 ```
 
-Build artifacts are placed in `src-tauri/target/release/bundle/`:
+The bundles go to `target/release/bundle/` at the repository root, one
+folder per package type:
 - macOS: `.app` bundle and `.dmg`
-- Linux: `.AppImage` and `.deb`
-- Windows: `.msi` installer
+- Linux: `.deb`, `.rpm` and `.AppImage`
+- Windows: `.msi` installer and NSIS `-setup.exe` installer
+
+To build one type, name it with `--bundles`, for example
+`npm run tauri build -- --bundles app` for the macOS `.app` alone.
 
 ### Running tests
 

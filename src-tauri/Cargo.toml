@@ -11,13 +11,13 @@ name = "aximar_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]
-tauri-build = { version = "2", features = [] }
+tauri-build = { version = "2.7.6", features = [] }
 
 [dependencies]
 aximar-core = { path = "../crates/aximar-core" }
 aximar-mcp = { path = "../crates/aximar-mcp" }
-tauri = { version = "2", features = [] }
-tauri-plugin-opener = "2"
+tauri = { version = "2.12.7", features = [] }
+tauri-plugin-opener = "2.7.3"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 tokio = { version = "1", features = ["full"] }
@@ -28,9 +28,9 @@ tracing = "0.1"
 rand = "0.9"
 regex = "1"
 thiserror = "2"
-tauri-plugin-dialog = "2.6.0"
+tauri-plugin-dialog = "2.8.4"
 toml_edit = "0.22"
-tauri-plugin-single-instance = "2.4.1"
+tauri-plugin-single-instance = "2.5.5"
 sys-locale = "0.3"
 fluent-langneg = "0.14"
 rspolib = "0.1.2"
