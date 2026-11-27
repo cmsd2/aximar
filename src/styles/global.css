@@ -426,13 +426,22 @@
   padding-top: 14px;
 }
 
-/* In line with the first line of text, when the output starts with
-   printed text or a note */
+/* On the baseline of the first line, when the output starts with printed
+   text, a note or an error.  The output keeps its place and the label
+   moves to meet it. */
 .cell-output-area:has(
-    > .cell-output > :is(.text-output, .output-note):is(:first-child, .copy-actions + *)
+    > .cell-output > :is(.text-output, .output-note):is(:first-child, .copy-actions + *),
+    > :is(.enhanced-error, .error-output)
+  ) {
+  align-items: first baseline;
+}
+
+.cell-output-area:has(
+    > .cell-output > :is(.text-output, .output-note):is(:first-child, .copy-actions + *),
+    > :is(.enhanced-error, .error-output)
   )
   > .cell-gutter {
-  padding-top: 6px;
+  padding-top: 0;
 }
 
 .cell-indicator.running {

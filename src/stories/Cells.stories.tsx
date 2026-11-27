@@ -68,9 +68,22 @@ const printed: SyncCell[] = [
     input: 'print("plain text only")$ print("second line")$ x;',
     output: { ...output, latex: "x", text_plain: "x", text_output: "plain text only\nsecond line" },
   },
+  {
+    id: "p4", cell_type: "code", status: "success",
+    input: "x^2/2;",
+    output: { ...output, latex: "{{x^2}\\over{2}}", text_plain: "x^2/2" },
+  },
+  {
+    id: "p5", cell_type: "code", status: "error",
+    input: "frobnicate(1);",
+    output: { ...output, is_error: true, output_label: null, error: "frobnicate: something went wrong.\n -- an error. To debug this try: debugmode(true);" },
+  },
 ];
 
-/** print() and tex() output mixed, with and without a result after it */
+/**
+ * print() and tex() output mixed, and the Out label beside each kind of
+ * first line: printed text, a LaTeX result, an error with no explanation
+ */
 export const PrintAndTex: StoryObj = {
   loaders: [async () => seedNotebook(printed)],
   render: () => <Cells />,
