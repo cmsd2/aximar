@@ -87,6 +87,25 @@ msgstr ""
 msgid "{kind} Image"
 msgstr ""
 
+#. Shown over the window while notebook files are dragged onto it. # is how many notebooks will open
+#. js-lingui:icu=%7Bnotebooks%2C+plural%2C+one+%7BDrop+to+open+%23+notebook%7D+other+%7BDrop+to+open+%23+notebooks%7D%7D&pluralize_on=notebooks
+#. screen: screens--drop-mixed
+#. screen: screens--drop-notebooks
+#: src/components/DropOverlay.tsx
+msgid "Drop to open # notebook"
+msgid_plural "Drop to open # notebooks"
+msgstr[0] ""
+msgstr[1] ""
+
+#. Shown over the window while files that Aximar can't open are dragged onto it
+#. js-lingui:icu=%7Bothers%2C+plural%2C+one+%7BThis+file+isn%27t+a+notebook%7D+other+%7BThese+files+aren%27t+notebooks%7D%7D&pluralize_on=others
+#. screen: screens--drop-refused
+#: src/components/DropOverlay.tsx
+msgid "This file isn't a notebook"
+msgid_plural "These files aren't notebooks"
+msgstr[0] ""
+msgstr[1] ""
+
 #. Settings, Maxima section: status when the Maxima path names no file. path is the path
 #: src/components/settings/MaximaSection.tsx
 msgid "{path} doesn't exist."
@@ -107,6 +126,9 @@ msgstr[0] ""
 msgstr[1] ""
 
 #. Toolbar button: adds a code cell below the active cell. max-length:12
+#. screen: screens--drop-mixed
+#. screen: screens--drop-notebooks
+#. screen: screens--drop-refused
 #. screen: screens--first-run
 #. screen: screens--maxima-not-found
 #. screen: screens--whole-window
@@ -126,6 +148,9 @@ msgstr ""
 #. Toolbar button: adds a Markdown text cell below the active cell. max-length:12
 #. screen: cells--bracket-selection
 #. screen: editor--caret-bracket-style
+#. screen: screens--drop-mixed
+#. screen: screens--drop-notebooks
+#. screen: screens--drop-refused
 #. screen: screens--first-run
 #. screen: screens--maxima-not-found
 #. screen: screens--whole-window
@@ -276,6 +301,13 @@ msgstr ""
 #. Settings, Maxima section: status when Aximar can't find Maxima anywhere
 #: src/components/settings/MaximaSection.tsx
 msgid "Aximar found no Maxima. Install it, or set the Maxima path above."
+msgstr ""
+
+#. Under the drop message when some dragged files aren't notebooks. .macnb and .ipynb are file extensions and stay as they are
+#. screen: screens--drop-mixed
+#. screen: screens--drop-refused
+#: src/components/DropOverlay.tsx
+msgid "Aximar opens .macnb and .ipynb notebooks."
 msgstr ""
 
 #. Docs panel: tooltip of the arrow button that goes back to the previous page
@@ -477,6 +509,9 @@ msgstr ""
 #. screen: outputs--suggestion-chips
 #. screen: outputs--suggestions-off
 #. screen: outputs--svg-plot
+#. screen: screens--drop-mixed
+#. screen: screens--drop-notebooks
+#. screen: screens--drop-refused
 #. screen: screens--whole-window
 #: src/components/Cell.tsx
 msgid "Collapse output"
@@ -550,6 +585,9 @@ msgstr ""
 #. screen: outputs--running-and-queued
 #. screen: outputs--suggestion-chips
 #. screen: outputs--suggestions-off
+#. screen: screens--drop-mixed
+#. screen: screens--drop-notebooks
+#. screen: screens--drop-refused
 #. screen: screens--whole-window
 #: src/components/CellOutput.tsx src/components/docs/DocsLanguageNotes.tsx
 #: src/components/settings/AiAssistantsSection.tsx
@@ -568,6 +606,9 @@ msgstr ""
 #. screen: outputs--running-and-queued
 #. screen: outputs--suggestion-chips
 #. screen: outputs--suggestions-off
+#. screen: screens--drop-mixed
+#. screen: screens--drop-notebooks
+#. screen: screens--drop-refused
 #. screen: screens--whole-window
 #: src/components/CellOutput.tsx
 msgid "Copy LaTeX source"
@@ -585,6 +626,9 @@ msgstr ""
 #. screen: outputs--running-and-queued
 #. screen: outputs--suggestion-chips
 #. screen: outputs--suggestions-off
+#. screen: screens--drop-mixed
+#. screen: screens--drop-notebooks
+#. screen: screens--drop-refused
 #. screen: screens--whole-window
 #: src/components/CellOutput.tsx
 msgid "Copy Maxima expression"
@@ -609,7 +653,8 @@ msgid "Couldn't listen on {address}."
 msgstr ""
 
 #. Title of the error dialog when a notebook file fails to open; the dialog shows the reason below
-#: src/App.tsx
+#. Title of the error dialog when a notebook file fails to open; the dialog shows the reason below
+#: src/App.tsx src/hooks/useFileDrop.ts
 msgid "Couldn't Open Notebook"
 msgstr ""
 
@@ -638,6 +683,9 @@ msgstr ""
 #. screen: editor--find-and-replace
 #. screen: editor--insert-menu
 #. screen: outputs--running-and-queued
+#. screen: screens--drop-mixed
+#. screen: screens--drop-notebooks
+#. screen: screens--drop-refused
 #. screen: screens--first-run
 #. screen: screens--whole-window
 #: src/components/Cell.tsx src/components/MarkdownCell.tsx
@@ -674,6 +722,9 @@ msgid "Docker image"
 msgstr ""
 
 #. Toolbar button: shows or hides the documentation panel. max-length:12
+#. screen: screens--drop-mixed
+#. screen: screens--drop-notebooks
+#. screen: screens--drop-refused
 #. screen: screens--first-run
 #. screen: screens--maxima-not-found
 #. screen: screens--whole-window
@@ -730,6 +781,9 @@ msgstr ""
 #. screen: cells--selection
 #. screen: editor--find-and-replace
 #. screen: outputs--markdown
+#. screen: screens--drop-mixed
+#. screen: screens--drop-notebooks
+#. screen: screens--drop-refused
 #. screen: screens--first-run
 #. screen: screens--whole-window
 #: src/components/MarkdownCell.tsx
@@ -1016,6 +1070,9 @@ msgstr ""
 #. screen: outputs--suggestion-chips
 #. screen: outputs--suggestions-off
 #. screen: outputs--svg-plot
+#. screen: screens--drop-mixed
+#. screen: screens--drop-notebooks
+#. screen: screens--drop-refused
 #. screen: screens--whole-window
 #: src/components/Cell.tsx
 msgid "In [{execNum}]"
@@ -1059,6 +1116,9 @@ msgstr ""
 #. screen: outputs--suggestion-chips
 #. screen: outputs--suggestions-off
 #. screen: outputs--svg-plot
+#. screen: screens--drop-mixed
+#. screen: screens--drop-notebooks
+#. screen: screens--drop-refused
 #. screen: screens--first-run
 #. screen: screens--maxima-not-found
 #. screen: screens--whole-window
@@ -1173,6 +1233,9 @@ msgid "Local"
 msgstr ""
 
 #. Toolbar button: shows or hides the log panel. max-length:12
+#. screen: screens--drop-mixed
+#. screen: screens--drop-notebooks
+#. screen: screens--drop-refused
 #. screen: screens--first-run
 #. screen: screens--maxima-not-found
 #. screen: screens--whole-window
@@ -1295,6 +1358,9 @@ msgstr ""
 #. screen: editor--find-and-replace
 #. screen: editor--insert-menu
 #. screen: outputs--running-and-queued
+#. screen: screens--drop-mixed
+#. screen: screens--drop-notebooks
+#. screen: screens--drop-refused
 #. screen: screens--first-run
 #. screen: screens--whole-window
 #: src/components/Cell.tsx
@@ -1311,6 +1377,9 @@ msgstr ""
 #. screen: editor--find-and-replace
 #. screen: editor--insert-menu
 #. screen: outputs--running-and-queued
+#. screen: screens--drop-mixed
+#. screen: screens--drop-notebooks
+#. screen: screens--drop-refused
 #. screen: screens--first-run
 #. screen: screens--whole-window
 #: src/components/Cell.tsx
@@ -1343,6 +1412,9 @@ msgid "New cell: type to start a code cell, or # for a Markdown heading"
 msgstr ""
 
 #. Tab bar: tooltip of the + button that opens a new notebook tab. newTabShortcut is its keyboard shortcut, such as Cmd+T
+#. screen: screens--drop-mixed
+#. screen: screens--drop-notebooks
+#. screen: screens--drop-refused
 #. screen: screens--first-run
 #. screen: screens--maxima-not-found
 #. screen: screens--whole-window
@@ -1457,6 +1529,9 @@ msgstr ""
 #. screen: outputs--suggestion-chips
 #. screen: outputs--suggestions-off
 #. screen: outputs--svg-plot
+#. screen: screens--drop-mixed
+#. screen: screens--drop-notebooks
+#. screen: screens--drop-refused
 #. screen: screens--whole-window
 #: src/components/Cell.tsx
 msgid "Out [{execNum}]"
@@ -1553,6 +1628,9 @@ msgid "Raw cell: kept as it is, never run"
 msgstr ""
 
 #. Toolbar: session status when Maxima is ready to run cells. max-length:12
+#. screen: screens--drop-mixed
+#. screen: screens--drop-notebooks
+#. screen: screens--drop-refused
 #. screen: screens--whole-window
 #: src/components/Toolbar.tsx
 msgid "Ready"
@@ -1566,6 +1644,9 @@ msgstr ""
 
 #. Shortcut hints shown while Cmd or Ctrl is held: redoes the last undone edit. max-length:16
 #. Toolbar button: redoes the last undone change. max-length:12
+#. screen: screens--drop-mixed
+#. screen: screens--drop-notebooks
+#. screen: screens--drop-refused
 #. screen: screens--first-run
 #. screen: screens--maxima-not-found
 #. screen: screens--whole-window
@@ -1576,6 +1657,9 @@ msgid "Redo"
 msgstr ""
 
 #. Toolbar: tooltip of the Redo button. redoShortcut is its keyboard shortcut, such as Cmd+Shift+Z
+#. screen: screens--drop-mixed
+#. screen: screens--drop-notebooks
+#. screen: screens--drop-refused
 #. screen: screens--first-run
 #. screen: screens--maxima-not-found
 #. screen: screens--whole-window
@@ -1625,6 +1709,9 @@ msgid "requires load(\"{pkgName}\")"
 msgstr ""
 
 #. Toolbar button: restarts the Maxima session, clearing its state. max-length:12
+#. screen: screens--drop-mixed
+#. screen: screens--drop-notebooks
+#. screen: screens--drop-refused
 #. screen: screens--first-run
 #. screen: screens--maxima-not-found
 #. screen: screens--whole-window
@@ -1640,6 +1727,9 @@ msgid "Right"
 msgstr ""
 
 #. Toolbar button: runs every cell in order. max-length:12
+#. screen: screens--drop-mixed
+#. screen: screens--drop-notebooks
+#. screen: screens--drop-refused
 #. screen: screens--first-run
 #. screen: screens--maxima-not-found
 #. screen: screens--whole-window
@@ -1665,6 +1755,9 @@ msgstr ""
 #. screen: outputs--suggestion-chips
 #. screen: outputs--suggestions-off
 #. screen: outputs--svg-plot
+#. screen: screens--drop-mixed
+#. screen: screens--drop-notebooks
+#. screen: screens--drop-refused
 #. screen: screens--first-run
 #. screen: screens--maxima-not-found
 #. screen: screens--whole-window
@@ -1753,6 +1846,9 @@ msgstr ""
 #. screen: outputs--suggestion-chips
 #. screen: outputs--suggestions-off
 #. screen: outputs--svg-plot
+#. screen: screens--drop-mixed
+#. screen: screens--drop-notebooks
+#. screen: screens--drop-refused
 #. screen: screens--first-run
 #. screen: screens--maxima-not-found
 #. screen: screens--whole-window
@@ -1782,6 +1878,9 @@ msgstr ""
 #. screen: dialogs--settings-notebook
 #. screen: dialogs--settings-printing
 #. screen: dialogs--settings-translation
+#. screen: screens--drop-mixed
+#. screen: screens--drop-notebooks
+#. screen: screens--drop-refused
 #. screen: screens--first-run
 #. screen: screens--maxima-not-found
 #. screen: screens--whole-window
@@ -1802,6 +1901,9 @@ msgstr ""
 #. screen: cells--notebook
 #. screen: cells--selection
 #. screen: notes--all-notes
+#. screen: screens--drop-mixed
+#. screen: screens--drop-notebooks
+#. screen: screens--drop-refused
 #. screen: screens--whole-window
 #: src/components/TextWithNotes.tsx
 msgid "Show Maxima's text"
@@ -1820,6 +1922,9 @@ msgstr ""
 #. screen: cells--notebook
 #. screen: cells--selection
 #. screen: errors--all-explanations
+#. screen: screens--drop-mixed
+#. screen: screens--drop-notebooks
+#. screen: screens--drop-refused
 #. screen: screens--whole-window
 #: src/components/EnhancedErrorOutput.tsx
 msgid "Show raw error"
@@ -1903,6 +2008,9 @@ msgid "Symbols"
 msgstr ""
 
 #. Toolbar button: opens the starter notebook chooser. max-length:12
+#. screen: screens--drop-mixed
+#. screen: screens--drop-notebooks
+#. screen: screens--drop-refused
 #. screen: screens--first-run
 #. screen: screens--maxima-not-found
 #. screen: screens--whole-window
@@ -2048,6 +2156,9 @@ msgstr ""
 
 #. Shortcut hints shown while Cmd or Ctrl is held: undoes the last edit. max-length:16
 #. Toolbar button: undoes the last change to the notebook. max-length:12
+#. screen: screens--drop-mixed
+#. screen: screens--drop-notebooks
+#. screen: screens--drop-refused
 #. screen: screens--first-run
 #. screen: screens--maxima-not-found
 #. screen: screens--whole-window
@@ -2058,6 +2169,9 @@ msgid "Undo"
 msgstr ""
 
 #. Toolbar: tooltip of the Undo button. undoShortcut is its keyboard shortcut, such as Cmd+Z
+#. screen: screens--drop-mixed
+#. screen: screens--drop-notebooks
+#. screen: screens--drop-refused
 #. screen: screens--first-run
 #. screen: screens--maxima-not-found
 #. screen: screens--whole-window
@@ -2072,6 +2186,9 @@ msgid "Unsaved Changes"
 msgstr ""
 
 #. Tab and toolbar: the name shown for a notebook that has not been saved to a file
+#. screen: screens--drop-mixed
+#. screen: screens--drop-notebooks
+#. screen: screens--drop-refused
 #. screen: screens--first-run
 #. screen: screens--maxima-not-found
 #. screen: screens--whole-window
@@ -2090,6 +2207,9 @@ msgstr ""
 
 #. Toolbar button: shows or hides the variable panel. max-length:12
 #. Variable panel: the title of the panel that lists the variables bound in the Maxima session
+#. screen: screens--drop-mixed
+#. screen: screens--drop-notebooks
+#. screen: screens--drop-refused
 #. screen: screens--first-run
 #. screen: screens--maxima-not-found
 #. screen: screens--whole-window
@@ -2131,6 +2251,9 @@ msgstr ""
 #. screen: cells--selection
 #. screen: errors--all-explanations
 #. screen: errors--translated-maxima-error
+#. screen: screens--drop-mixed
+#. screen: screens--drop-notebooks
+#. screen: screens--drop-refused
 #. screen: screens--whole-window
 #: crates/aximar-core/src/maxima/errors.rs
 msgctxt "error.division_by_zero.title"
@@ -2142,6 +2265,9 @@ msgstr ""
 #. screen: cells--selection
 #. screen: errors--all-explanations
 #. screen: errors--translated-maxima-error
+#. screen: screens--drop-mixed
+#. screen: screens--drop-notebooks
+#. screen: screens--drop-refused
 #. screen: screens--whole-window
 #: crates/aximar-core/src/maxima/errors.rs
 msgctxt "error.division_by_zero.explanation"
@@ -2153,6 +2279,9 @@ msgstr ""
 #. screen: cells--selection
 #. screen: errors--all-explanations
 #. screen: errors--translated-maxima-error
+#. screen: screens--drop-mixed
+#. screen: screens--drop-notebooks
+#. screen: screens--drop-refused
 #. screen: screens--whole-window
 #: crates/aximar-core/src/maxima/errors.rs
 msgctxt "error.division_by_zero.suggestion"
@@ -2888,6 +3017,9 @@ msgstr ""
 #. screen: cells--notebook
 #. screen: cells--selection
 #. screen: notes--all-notes
+#. screen: screens--drop-mixed
+#. screen: screens--drop-notebooks
+#. screen: screens--drop-refused
 #. screen: screens--whole-window
 #: crates/aximar-core/src/maxima/notes.rs
 #, rust-format

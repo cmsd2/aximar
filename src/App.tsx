@@ -43,6 +43,8 @@ import { TRANSLATOR_TOOLS, applyPreview, type PreviewCatalog } from "./lib/trans
 import { useNotebookStore, useActiveAnyTab, getActiveTabState } from "./store/notebookStore";
 import { mapSyncCells, openNotebookTab } from "./hooks/useNotebookEvents";
 import { PlotViewer } from "./components/PlotViewer";
+import { DropOverlay } from "./components/DropOverlay";
+import { useFileDrop } from "./hooks/useFileDrop";
 import { useLogStore } from "./store/logStore";
 import { useSettingsStore } from "./store/settingsStore";
 import type { LogLink } from "./types/log";
@@ -50,6 +52,8 @@ import { useFindStore } from "./store/findStore";
 import "./styles/global.css";
 
 function App() {
+  // Notebook files dragged onto the window open in tabs
+  const drag = useFileDrop();
   const { initSession } = useMaxima();
   useTheme();
   useNotebookEvents();
@@ -443,6 +447,7 @@ function App() {
       <LogWindow />
       <StatusBar />
       <ShortcutHints />
+      <DropOverlay drag={drag} />
       {paletteOpen && (
         <CommandPalette
           onClose={() => {
