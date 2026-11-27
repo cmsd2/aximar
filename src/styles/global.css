@@ -421,8 +421,18 @@
   user-select: none;
 }
 
+/* In line with a LaTeX result, which starts below its 8px padding */
 .cell-output-area > .cell-gutter {
   padding-top: 14px;
+}
+
+/* In line with the first line of text, when the output starts with
+   printed text or a note */
+.cell-output-area:has(
+    > .cell-output > :is(.text-output, .output-note):is(:first-child, .copy-actions + *)
+  )
+  > .cell-gutter {
+  padding-top: 6px;
 }
 
 .cell-indicator.running {
