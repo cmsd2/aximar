@@ -14,9 +14,9 @@
 
 ## 3. Shortcuts bound once, and Undo for the notebook (one PR, after 2)
 
-- [ ] 3.1 Remove the window `keydown` handlers in `App.tsx` and `TabBar.tsx` for keys the menu now binds, keeping Ctrl+Tab and Ctrl+Shift+Tab; drop Mod+T and Mod+D; verify with vitest `window-keys.test.tsx` that Mod+D and Mod+T dispatch nothing and Ctrl+Tab switches tabs
-- [ ] 3.2 Make Edit's Undo and Redo custom items whose commands call `nbUndo`/`nbRedo` from a cell or no field, and `document.execCommand` in other fields; verify with vitest `undo-target.test.tsx`: `undo_from_a_cell_undoes_the_notebook`, `undo_in_the_find_bar_undoes_its_text`
-- [ ] 3.3 Close Tab (Mod+W) closes the window on the last tab through the existing close check; Close Window is Mod+Shift+W; verify with vitest `close-tab.test.tsx` (two tabs: one closes; one tab: the window's close is called)
+- [x] 3.1 Remove the window `keydown` handlers in `App.tsx` and `TabBar.tsx` for keys the menu now binds, keeping Ctrl+Tab and Ctrl+Shift+Tab; drop Mod+T and Mod+D; verify with vitest `window-commands.test.tsx` that Mod+D and Mod+T dispatch nothing and Ctrl+Tab switches tabs; the cell editor lets Mod+Z, Mod+Shift+Z and Mod+Y through to the menu
+- [x] 3.2 Make Edit's Undo and Redo custom items whose commands call `nbUndo`/`nbRedo` from a cell or no field, and `document.execCommand` in other fields; verify with vitest `window-commands.test.tsx`: undo from a cell undoes the notebook, undo in the find bar undoes its text
+- [x] 3.3 Close Tab (Mod+W) closes the window on the last tab through the existing close check; Close Window is Mod+Shift+W; verify with vitest `window-commands.test.tsx` (two tabs: one closes; one tab: the window's close is called)
 - [ ] 3.4 Check by hand on macOS, Windows and Linux: each accelerator fires its command once with focus in a cell, in the find bar and nowhere; Mod+Z in a cell and in the find bar; Mod+W with one and two tabs; View's check marks following focus between two windows; record the result in this task, and decide Move Up/Down's keys (design, Open Questions)
 
 ## 4. The toolbar (one PR, after 1)

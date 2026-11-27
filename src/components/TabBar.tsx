@@ -1,13 +1,12 @@
 import { useCallback, useEffect, useState, useRef } from "react";
 import { openNewNotebook } from "../lib/new-notebook";
 import { command } from "../commands/registry";
-import { formatShortcut } from "../commands/shortcut";
+import { formatShortcut, matches } from "../commands/shortcut";
+import { closeTab, moveTabToNewWindow, stepTab, switchTab } from "../lib/tab-commands";
 import { useLingui } from "@lingui/react/macro";
-import { confirmClose } from "../lib/unsaved-changes";
 import { useNotebookStore } from "../store/notebookStore";
 import type { NotebookTab } from "../store/notebookStore";
 import { displayTitle } from "../lib/tab-title";
-import { nbClose, nbSetActive, createWindow } from "../lib/notebook-commands";
 
 function statusDotClass(status: NotebookTab["sessionStatus"]): string {
   if (status === "Ready") return "tab-status-dot ready";
@@ -27,8 +26,6 @@ export function TabBar() {
   const newTabShortcut = formatShortcut(command("file.new")!.shortcut!);
   const notebooks = useNotebookStore((s) => s.notebooks);
   const activeNotebookId = useNotebookStore((s) => s.activeNotebookId);
-  const removeTab = useNotebookStore((s) => s.removeTab);
-  const setActiveTab = useNotebookStore((s) => s.setActiveTab);
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
   const contextMenuRef = useRef<HTMLDivElement>(null);
 
@@ -38,37 +35,14 @@ export function TabBar() {
     await openNewNotebook();
   }, []);
 
-  const handleCloseTab = useCallback(async (id: string) => {
-    if (tabs.length <= 1) return;
-    const tab = notebooks[id];
-    // Save, Don't Save or Cancel when it has unsaved changes
-    if (!(await confirmClose([id]))) return;
-    try {
-      // Only close the backend notebook for notebook tabs
-      if (!tab || tab.type === "notebook") {
-        await nbClose(id);
-      }
-      removeTab(id);
-    } catch (e) {
-      console.warn("Failed to close tab:", e);
-    }
-  }, [tabs.length, notebooks, removeTab]);
+  const handleCloseTab = useCallback((id: string) => closeTab(id), []);
 
-  const handleSwitchTab = useCallback(async (id: string) => {
-    setActiveTab(id);
-    const tab = notebooks[id];
-    // Only notify backend for notebook tabs
-    if (tab?.type === "notebook") {
-      await nbSetActive(id);
-    }
-  }, [setActiveTab, notebooks]);
+  const handleSwitchTab = useCallback((id: string) => switchTab(id), []);
 
   const handleMoveToNewWindow = useCallback(async (tabId: string) => {
     setContextMenu(null);
-    if (tabs.length <= 1) return; // Don't move the last tab
-    await createWindow(tabId);
-    removeTab(tabId);
-  }, [tabs.length, removeTab]);
+    await moveTabToNewWindow(tabId);
+  }, []);
 
   // Dismiss context menu on click outside or Escape
   useEffect(() => {
@@ -89,56 +63,18 @@ export function TabBar() {
     };
   }, [contextMenu]);
 
-  // Keyboard shortcuts: Cmd+T (new), Cmd+W (close), Cmd+Shift+[/] / Ctrl+Tab (switch)
+  // Ctrl+Tab and Ctrl+Shift+Tab switch tabs too; a menu item has one
+  // shortcut, so these two are caught here.  The rest are the menu's.
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      // Skip when focus is inside a modal
-      const target = e.target as Element | null;
-      if (target?.closest(".palette-overlay, .settings-modal, .template-modal")) {
-        return;
-      }
-
-      // Ctrl+Tab / Ctrl+Shift+Tab — cycle tabs
-      if (e.ctrlKey && e.key === "Tab") {
-        e.preventDefault();
-        if (activeNotebookId && tabs.length > 1) {
-          const idx = tabs.findIndex((t) => t.id === activeNotebookId);
-          const next = e.shiftKey
-            ? (idx - 1 + tabs.length) % tabs.length
-            : (idx + 1) % tabs.length;
-          handleSwitchTab(tabs[next].id);
-        }
-        return;
-      }
-
-      const mod = e.metaKey || e.ctrlKey;
-      if (!mod) return;
-
-      if (e.key === "t" && !e.shiftKey) {
-        e.preventDefault();
-        handleNewTab();
-      } else if (e.key === "w" && !e.shiftKey) {
-        e.preventDefault();
-        if (activeNotebookId && tabs.length > 1) {
-          handleCloseTab(activeNotebookId);
-        }
-      } else if (e.shiftKey && e.key === "[") {
-        e.preventDefault();
-        if (activeNotebookId) {
-          const idx = tabs.findIndex((t) => t.id === activeNotebookId);
-          if (idx > 0) handleSwitchTab(tabs[idx - 1].id);
-        }
-      } else if (e.shiftKey && e.key === "]") {
-        e.preventDefault();
-        if (activeNotebookId) {
-          const idx = tabs.findIndex((t) => t.id === activeNotebookId);
-          if (idx < tabs.length - 1) handleSwitchTab(tabs[idx + 1].id);
-        }
-      }
+      const dir = matches("Ctrl+Tab", e) ? 1 : matches("Ctrl+Shift+Tab", e) ? -1 : 0;
+      if (!dir) return;
+      e.preventDefault();
+      void stepTab(dir);
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [activeNotebookId, tabs, handleNewTab, handleCloseTab, handleSwitchTab]);
+  }, []);
 
   return (
     <div className="tab-bar">

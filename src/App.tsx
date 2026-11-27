@@ -1,4 +1,4 @@
-import { useEffect, useCallback } from "react";
+import { useEffect } from "react";
 import { listen } from "@tauri-apps/api/event";
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
@@ -19,10 +19,6 @@ import { useMaxima } from "./hooks/useMaxima";
 import { useNotebookEvents } from "./hooks/useNotebookEvents";
 import { useTheme } from "./hooks/useTheme";
 import {
-  nbDeleteCell,
-  nbMoveCell,
-  nbUndo,
-  nbRedo,
   nbGetState,
   nbLoadTemplate,
 } from "./lib/notebook-commands";
@@ -34,7 +30,7 @@ import { getConfig } from "./lib/config-client";
 import { applyConfig } from "./lib/apply-config";
 import { activateLanguage } from "./lib/i18n";
 import { TRANSLATOR_TOOLS, applyPreview, type PreviewCatalog } from "./lib/translation-preview";
-import { useNotebookStore, useActiveAnyTab, getActiveTabState } from "./store/notebookStore";
+import { useNotebookStore, useActiveAnyTab } from "./store/notebookStore";
 import { mapSyncCells } from "./hooks/useNotebookEvents";
 import { PlotViewer } from "./components/PlotViewer";
 import { DropOverlay } from "./components/DropOverlay";
@@ -42,7 +38,6 @@ import { useFileDrop } from "./hooks/useFileDrop";
 import { useLogStore } from "./store/logStore";
 import { useSettingsStore } from "./store/settingsStore";
 import type { LogLink } from "./types/log";
-import { useFindStore } from "./store/findStore";
 import { useUiStore } from "./store/uiStore";
 import { useMenuBar } from "./commands/useMenuBar";
 import "./styles/global.css";
@@ -244,70 +239,7 @@ function App() {
     };
   }, []);
 
-  // --- Keyboard shortcut: Cmd+K for command palette ---
-
-  const handleKeyDown = useCallback((e: KeyboardEvent) => {
-    if ((e.metaKey || e.ctrlKey) && e.key === "k") {
-      e.preventDefault();
-      setPaletteOpen(!useUiStore.getState().paletteOpen);
-    }
-  }, []);
-
-  useEffect(() => {
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [handleKeyDown]);
-
-  // --- Notebook keyboard shortcuts ---
-
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      const mod = e.metaKey || e.ctrlKey;
-      if (!mod) return;
-
-      // Skip when focus is inside a modal
-      const target = e.target as Element | null;
-      if (target?.closest(".palette-overlay, .ui-overlay, .template-modal")) {
-        return;
-      }
-
-      const key = e.key.toLowerCase();
-
-      if (key === "z" && !e.shiftKey) {
-        e.preventDefault();
-        nbUndo();
-      } else if (key === "z" && e.shiftKey) {
-        e.preventDefault();
-        nbRedo();
-      } else if (key === "y") {
-        e.preventDefault();
-        nbRedo();
-      } else if (key === "f" && !e.shiftKey) {
-        e.preventDefault();
-        useFindStore.getState().open(false);
-      } else if (key === "f" && e.shiftKey) {
-        e.preventDefault();
-        useFindStore.getState().open(true);
-      } else if (key === "d") {
-        e.preventDefault();
-        const tab = getActiveTabState();
-        if (tab.activeCellId && tab.cells.length > 1) {
-          nbDeleteCell(tab.activeCellId);
-        }
-      } else if (e.shiftKey && key === "arrowup") {
-        e.preventDefault();
-        const tab = getActiveTabState();
-        if (tab.activeCellId) nbMoveCell(tab.activeCellId, "up");
-      } else if (e.shiftKey && key === "arrowdown") {
-        e.preventDefault();
-        const tab = getActiveTabState();
-        if (tab.activeCellId) nbMoveCell(tab.activeCellId, "down");
-      }
-    };
-
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, []);
+  // Keyboard shortcuts are the menu bar's accelerators (src/commands/registry.ts)
 
   const activeAnyTab = useActiveAnyTab();
   const isNotebookTab = !activeAnyTab || activeAnyTab.type === "notebook";
