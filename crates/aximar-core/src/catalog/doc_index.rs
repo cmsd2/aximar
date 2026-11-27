@@ -79,6 +79,21 @@ fn language_key(tag: &str) -> String {
     tag.trim().replace('_', "-").to_lowercase()
 }
 
+/// The languages maxima-core-docs has a pack in, as the package index lists
+/// them: `maxima-core-docs-<lang>`, built in core-docs' `lang/`.  A language
+/// gets one when Maxima's manual in it documents at least half the English
+/// manual's symbols and builds.
+const CORE_DOCS_PACKS: &[&str] = &["es", "pt", "pt-br"];
+
+/// The package that adds full core documentation in `language`, if there is
+/// one, such as `maxima-core-docs-es`
+pub fn core_docs_pack(language: &str) -> Option<String> {
+    let lang = language_key(language);
+    CORE_DOCS_PACKS
+        .contains(&lang.as_str())
+        .then(|| format!("maxima-core-docs-{lang}"))
+}
+
 // ---------------------------------------------------------------------------
 // Languages: the chain a lookup answers in, and what it found
 // ---------------------------------------------------------------------------
@@ -1384,6 +1399,17 @@ mod language_tests {
             integrate.entry.summary
         );
         assert_eq!(integrate.summary_language, "es");
+    }
+
+    #[test]
+    fn core_docs_packs_are_named_by_language() {
+        assert_eq!(core_docs_pack("es").as_deref(), Some("maxima-core-docs-es"));
+        assert_eq!(
+            core_docs_pack("pt_BR").as_deref(),
+            Some("maxima-core-docs-pt-br")
+        );
+        assert_eq!(core_docs_pack("de"), None);
+        assert_eq!(core_docs_pack("en"), None);
     }
 
     #[test]

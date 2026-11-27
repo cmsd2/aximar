@@ -160,8 +160,7 @@ pub struct DocsLanguage {
     pub tag: String,
     /// Full documentation, not only summaries
     pub full: bool,
-    /// The package that adds full documentation in it, when the package
-    /// index lists one
+    /// The package that adds full documentation in it, when there is one
     pub pack: Option<String>,
 }
 
@@ -179,7 +178,6 @@ pub struct DocsLanguages {
 
 pub fn docs_languages_in(
     catalog: &Catalog,
-    packages: &aximar_core::catalog::packages::PackageCatalog,
     choice: Option<String>,
     effective: String,
 ) -> DocsLanguages {
@@ -190,13 +188,10 @@ pub fn docs_languages_in(
     }
     let languages = tags
         .into_iter()
-        .map(|tag| {
-            let name = format!("maxima-core-docs-{tag}");
-            DocsLanguage {
-                full: catalog.has_full_documentation(&tag),
-                pack: packages.get(&name).is_some().then_some(name),
-                tag,
-            }
+        .map(|tag| DocsLanguage {
+            full: catalog.has_full_documentation(&tag),
+            pack: aximar_core::catalog::doc_index::core_docs_pack(&tag),
+            tag,
         })
         .collect();
     DocsLanguages {
@@ -210,7 +205,7 @@ pub fn docs_languages_in(
 pub fn docs_languages(app: tauri::AppHandle, state: State<AppState>) -> DocsLanguages {
     let choice = crate::commands::config::read_docs_choice(&app);
     let effective = crate::commands::config::read_docs_language(&app);
-    docs_languages_in(&state.catalog, &state.packages, choice, effective)
+    docs_languages_in(&state.catalog, choice, effective)
 }
 
 /// A function's full documentation in the help language, where there is any
@@ -338,17 +333,24 @@ mod tests {
     #[test]
     fn the_help_lists_its_languages() {
         let (_dir, catalog) = catalog_with_english_docs();
-        let packages = aximar_core::catalog::packages::PackageCatalog::load();
-        let info = docs_languages_in(&catalog, &packages, None, "es".into());
+        let info = docs_languages_in(&catalog, None, "es".into());
         let tags: Vec<_> = info
             .languages
             .iter()
             .map(|l| (l.tag.as_str(), l.full))
             .collect();
         assert_eq!(tags, [("en", true), ("es", false)]);
-        // No Spanish pack in the package index yet
-        assert_eq!(info.languages[1].pack, None);
+        // Full Spanish documentation comes in a pack
+        assert_eq!(info.languages[0].pack, None);
+        assert_eq!(
+            info.languages[1].pack.as_deref(),
+            Some("maxima-core-docs-es")
+        );
         assert_eq!(info.effective, "es");
+        // A language with no pack yet
+        let german = docs_languages_in(&catalog, None, "de".into());
+        let de = german.languages.iter().find(|l| l.tag == "de").unwrap();
+        assert_eq!(de.pack, None);
     }
 
     #[test]
