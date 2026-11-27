@@ -30,9 +30,21 @@ static UNDEFINED_FUNC_RE_1: LazyLock<Regex> =
 static UNDEFINED_FUNC_RE_2: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"The function (\w+) is not known").unwrap());
 
-static MISSING_ASSUMPTION_RE: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r"Is\s+(.+?)\s+(positive|negative|zero|an integer|even|odd)").unwrap()
+/// A question Maxima asked, as `ax_questions.lisp` turns it into an error
+static QUESTION_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"(?m)Maxima needs to know: (.+?)\s*$").unwrap());
+
+/// The sign questions, by the answers they take
+static SIGN_RE: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"^Is (.+?) (positive, negative or zero|positive or zero|negative or zero|positive or negative|zero or nonzero)\?$").unwrap()
 });
+
+static EQUAL_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"^Is (.+) equal to (.+)\?$").unwrap());
+
+/// `ask-prop`: "Is n an integer?"
+static PROPERTY_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"^Is (.+) an? ([a-z]\w*)\?$").unwrap());
 
 static LOAD_FAILED_RE: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"(?:failed to load|Cannot find file)\s+(\S+)").unwrap());
@@ -56,7 +68,8 @@ pub fn enhance_error_with_packages(
     catalog: &Catalog,
     packages: Option<&PackageCatalog>,
 ) -> Option<ErrorInfo> {
-    check_division_by_zero(raw_error)
+    check_question(raw_error)
+        .or_else(|| check_division_by_zero(raw_error))
         // Before the other syntax errors: it's one of them
         .or_else(|| check_premature_termination(raw_error))
         .or_else(|| check_syntax_error(raw_error))
@@ -66,7 +79,6 @@ pub fn enhance_error_with_packages(
         .or_else(|| check_lisp_error(raw_error))
         .or_else(|| check_divergent_integral(raw_error))
         .or_else(|| check_inconsistent_equations(raw_error))
-        .or_else(|| check_missing_assumption(raw_error))
         .or_else(|| check_matrix_dimension(raw_error))
         .or_else(|| check_load_failed(raw_error))
 }
@@ -405,25 +417,189 @@ fn check_inconsistent_equations(raw: &str) -> Option<ErrorInfo> {
     )
 }
 
-fn check_missing_assumption(raw: &str) -> Option<ErrorInfo> {
-    if !MISSING_ASSUMPTION_RE.is_match(raw) {
-        return None;
+fn check_question(raw: &str) -> Option<ErrorInfo> {
+    let question = QUESTION_RE.captures(raw)?.get(1)?.as_str();
+
+    if let Some(caps) = SIGN_RE.captures(question) {
+        let expr = &caps[1];
+        return Some(match &caps[2] {
+            "positive or zero" => {
+                let line = format!("assume({expr} > 0)$");
+                ErrorInfo::new(
+                    "question.sign_pz",
+                    // i18n: Maxima: "Maxima needs to know: Is a positive or zero?"
+                    msg_ctx!("question.sign_pz.title", "Maxima Needs to Know"),
+                    msg_ctx!(
+                        "question.sign_pz.explanation",
+                        // i18n: expr is a Maxima expression, such as a or b*c-1
+                        "Maxima needs to know whether {expr} is positive or zero to go on.",
+                        expr = expr
+                    ),
+                )
+                .with_suggestion(msg_ctx!(
+                    "question.sign_pz.suggestion",
+                    // i18n: line is Maxima code that answers the question, such as assume(a > 0)$
+                    "Add {line} before this line, or in a cell above, and run it again.",
+                    line = line.as_str()
+                ))
+                .with_example(line)
+            }
+            "negative or zero" => {
+                let line = format!("assume({expr} < 0)$");
+                ErrorInfo::new(
+                    "question.sign_nz",
+                    // i18n: Maxima: "Maxima needs to know: Is a negative or zero?"
+                    msg_ctx!("question.sign_nz.title", "Maxima Needs to Know"),
+                    msg_ctx!(
+                        "question.sign_nz.explanation",
+                        // i18n: expr is a Maxima expression, such as a or b*c-1
+                        "Maxima needs to know whether {expr} is negative or zero to go on.",
+                        expr = expr
+                    ),
+                )
+                .with_suggestion(msg_ctx!(
+                    "question.sign_nz.suggestion",
+                    // i18n: line is Maxima code that answers the question, such as assume(a < 0)$
+                    "Add {line} before this line, or in a cell above, and run it again.",
+                    line = line.as_str()
+                ))
+                .with_example(line)
+            }
+            "positive or negative" => {
+                let line = format!("assume({expr} > 0)$");
+                ErrorInfo::new(
+                    "question.sign_pn",
+                    // i18n: Maxima: "Maxima needs to know: Is k positive or negative?"
+                    msg_ctx!("question.sign_pn.title", "Maxima Needs to Know"),
+                    msg_ctx!(
+                        "question.sign_pn.explanation",
+                        // i18n: expr is a Maxima expression, such as k or b*c-1
+                        "Maxima needs to know whether {expr} is positive or negative to go on.",
+                        expr = expr
+                    ),
+                )
+                .with_suggestion(msg_ctx!(
+                    "question.sign_pn.suggestion",
+                    // i18n: line is Maxima code that answers the question, such as assume(k > 0)$
+                    "Add {line} before this line, or in a cell above, and run it again.",
+                    line = line.as_str()
+                ))
+                .with_example(line)
+            }
+            "zero or nonzero" => {
+                let line = format!("assume(notequal({expr}, 0))$");
+                ErrorInfo::new(
+                    "question.zero",
+                    // i18n: Maxima: "Maxima needs to know: Is x zero or nonzero?"
+                    msg_ctx!("question.zero.title", "Maxima Needs to Know"),
+                    msg_ctx!(
+                        "question.zero.explanation",
+                        // i18n: expr is a Maxima expression, such as x or b*c-1
+                        "Maxima needs to know whether {expr} is zero to go on.",
+                        expr = expr
+                    ),
+                )
+                .with_suggestion(msg_ctx!(
+                    "question.zero.suggestion",
+                    // i18n: line is Maxima code that answers the question, such as assume(notequal(x, 0))$
+                    "Add {line} before this line, or in a cell above, and run it again.",
+                    line = line.as_str()
+                ))
+                .with_example(line)
+            }
+            _ => {
+                let line = format!("assume({expr} > 0)$");
+                ErrorInfo::new(
+                    "question.sign",
+                    // i18n: Maxima: "Maxima needs to know: Is a positive, negative or zero?"
+                    msg_ctx!("question.sign.title", "Maxima Needs to Know"),
+                    msg_ctx!(
+                        "question.sign.explanation",
+                        // i18n: expr is a Maxima expression, such as a or b*c-1
+                        "Maxima needs to know whether {expr} is positive, negative or zero to go on.",
+                        expr = expr
+                    ),
+                )
+                .with_suggestion(msg_ctx!(
+                    "question.sign.suggestion",
+                    // i18n: line is Maxima code that answers the question, such as assume(a > 0)$
+                    "Add {line} before this line, or in a cell above, and run it again.",
+                    line = line.as_str()
+                ))
+                .with_example(line)
+            }
+        });
     }
+
+    if let Some(caps) = EQUAL_RE.captures(question) {
+        let (a, b) = (&caps[1], &caps[2]);
+        let line = format!("assume(notequal({a}, {b}))$");
+        return Some(
+            ErrorInfo::new(
+                "question.equal",
+                // i18n: Maxima: "Maxima needs to know: Is a equal to -1?"
+                msg_ctx!("question.equal.title", "Maxima Needs to Know"),
+                msg_ctx!(
+                    "question.equal.explanation",
+                    // i18n: a and b are Maxima expressions, such as a and -1
+                    "Maxima needs to know whether {a} equals {b} to go on.",
+                    a = a,
+                    b = b
+                ),
+            )
+            .with_suggestion(msg_ctx!(
+                "question.equal.suggestion",
+                // i18n: line is Maxima code that answers the question, such as assume(notequal(a, -1))$
+                "Add {line} before this line, or in a cell above, and run it again.",
+                line = line.as_str()
+            ))
+            .with_example(line),
+        );
+    }
+
+    if let Some(caps) = PROPERTY_RE.captures(question) {
+        let (expr, property) = (&caps[1], &caps[2]);
+        let line = format!("declare({expr}, {property})$");
+        return Some(
+            ErrorInfo::new(
+                "question.property",
+                // i18n: Maxima: "Maxima needs to know: Is n an integer?", or another property
+                msg_ctx!("question.property.title", "Maxima Needs to Know"),
+                msg_ctx!(
+                    "question.property.explanation",
+                    // i18n: expr is a Maxima expression; property is a Maxima
+                    // feature name such as integer or even, which stays in English
+                    "Maxima needs to know whether {expr} has the property {property} to go on.",
+                    expr = expr,
+                    property = property
+                ),
+            )
+            .with_suggestion(msg_ctx!(
+                "question.property.suggestion",
+                // i18n: line is Maxima code that answers the question, such as declare(n, integer)$
+                "Add {line} before this line, or in a cell above, and run it again.",
+                line = line.as_str()
+            ))
+            .with_example(line),
+        );
+    }
+
     Some(
         ErrorInfo::new(
             "question.other",
-            // i18n: Maxima asked a question, such as "Is x positive, negative or zero?"
-            msg_ctx!("question.other.title", "Assumption Required"),
+            // i18n: Maxima: "Maxima needs to know: ..." with any other question
+            msg_ctx!("question.other.title", "Maxima Needs to Know"),
             msg_ctx!(
                 "question.other.explanation",
-                "Maxima needs to know a property of a variable to proceed with the computation."
+                // i18n: question is Maxima's question, in English
+                "Maxima asked \"{question}\" and can't get an answer from a cell.",
+                question = question
             ),
         )
         .with_suggestion(msg_ctx!(
             "question.other.suggestion",
-            "Use assume() to declare properties, e.g.: assume(x > 0);"
-        ))
-        .with_example("assume(x > 0);"),
+            "Use assume() or declare() before this line to tell Maxima what it needs, then run the cell again."
+        )),
     )
 }
 
@@ -616,16 +792,94 @@ mod tests {
         assert_eq!(info.unwrap().title.text, "Inconsistent Equations");
     }
 
-    #[test]
-    fn test_missing_assumption() {
-        let info = enhance_error("Is x positive, negative, or zero?", &catalog());
-        assert_eq!(info.unwrap().title.text, "Assumption Required");
+    fn question(text: &str) -> ErrorInfo {
+        let raw = format!(
+            "Maxima needs to know: {text}\n -- an error. To debug this try: debugmode(true);"
+        );
+        enhance_error(&raw, &catalog()).expect("an explanation")
     }
 
     #[test]
-    fn test_missing_assumption_integer() {
-        let info = enhance_error("Is n an integer?", &catalog());
-        assert_eq!(info.unwrap().title.text, "Assumption Required");
+    fn sign_questions_suggest_an_assumption() {
+        let cases = [
+            (
+                "Is a positive, negative or zero?",
+                "question.sign",
+                "assume(a > 0)$",
+            ),
+            (
+                "Is a positive or zero?",
+                "question.sign_pz",
+                "assume(a > 0)$",
+            ),
+            (
+                "Is a negative or zero?",
+                "question.sign_nz",
+                "assume(a < 0)$",
+            ),
+            (
+                "Is k positive or negative?",
+                "question.sign_pn",
+                "assume(k > 0)$",
+            ),
+            (
+                "Is x zero or nonzero?",
+                "question.zero",
+                "assume(notequal(x, 0))$",
+            ),
+            (
+                "Is b*c-1 positive, negative or zero?",
+                "question.sign",
+                "assume(b*c-1 > 0)$",
+            ),
+        ];
+        for (text, id, line) in cases {
+            let info = question(text);
+            assert_eq!(info.id, id, "{text}");
+            assert_eq!(info.title.text, "Maxima Needs to Know");
+            assert_eq!(info.example.as_deref(), Some(line), "{text}");
+            assert!(info.suggestion.unwrap().text.contains(line), "{text}");
+        }
+        assert_eq!(
+            question("Is a positive or zero?").explanation.params["expr"],
+            "a"
+        );
+    }
+
+    #[test]
+    fn an_equality_question_names_both_sides() {
+        let info = question("Is a equal to -1?");
+        assert_eq!(info.id, "question.equal");
+        assert_eq!(info.explanation.params["a"], "a");
+        assert_eq!(info.explanation.params["b"], "-1");
+        assert_eq!(info.example.as_deref(), Some("assume(notequal(a, -1))$"));
+    }
+
+    #[test]
+    fn a_property_question_suggests_declare() {
+        let info = question("Is n an integer?");
+        assert_eq!(info.id, "question.property");
+        assert_eq!(info.explanation.params["property"], "integer");
+        assert_eq!(info.example.as_deref(), Some("declare(n, integer)$"));
+        assert_eq!(
+            question("Is n an even?").example.as_deref(),
+            Some("declare(n, even)$")
+        );
+    }
+
+    #[test]
+    fn other_questions_quote_maxima() {
+        let info = question("Answer 1, 2, 3 or 4 :");
+        assert_eq!(info.id, "question.other");
+        assert_eq!(info.explanation.params["question"], "Answer 1, 2, 3 or 4 :");
+        assert!(info.example.is_none());
+        // Another wording of a sign question
+        assert_eq!(question("Is a positive or not?").id, "question.other");
+    }
+
+    #[test]
+    fn a_question_without_the_error_is_not_one() {
+        assert!(enhance_error("Is x positive, negative or zero?", &catalog()).is_none());
     }
 
     #[test]

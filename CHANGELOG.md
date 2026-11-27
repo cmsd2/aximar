@@ -16,6 +16,19 @@ see the `v*` releases on GitHub.
   tools now start Maxima with `LANGUAGE=en`, which Maxima reads before
   `LC_ALL`, `LC_MESSAGES` and `LANG`.
 
+### aximar-mcp and maxima-dap
+
+- **Questions stop the cell instead of being answered**: when Maxima asked
+  a question ("Is a positive, negative or zero?"), the tools answered it
+  with a guess. A yes/no question hung the cell until the timeout, and the
+  spare answers ran as input in the next cell. Now every question is a
+  Maxima error, "Maxima needs to know: Is a positive, negative or zero?",
+  and `error_info` suggests the line that answers it, such as
+  `assume(a > 0)$`. `run_cell` returns it as a failed cell (`is_error`)
+  rather than a tool error, and `errcatch` catches it like any error:
+  `errcatch(integrate(exp(-a*x), x, 0, inf))` gives `[]` where it used to
+  get the result for a guessed `positive`.
+
 ### aximar-mcp
 
 - **Error explanations have IDs**: `error_info` gains `id` (such as

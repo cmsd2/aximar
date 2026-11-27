@@ -1407,20 +1407,163 @@ msgctxt "error.inconsistent_equations.suggestion"
 msgid "Check that the equations are correct and compatible."
 msgstr ""
 
-#. i18n: Maxima asked a question, such as "Is x positive, negative or zero?"
+#. i18n: Maxima: "Maxima needs to know: Is a positive or zero?"
 #: crates/aximar-core/src/maxima/errors.rs
-msgctxt "question.other.title"
-msgid "Assumption Required"
+msgctxt "question.sign_pz.title"
+msgid "Maxima Needs to Know"
 msgstr ""
 
+#. i18n: expr is a Maxima expression, such as a or b*c-1
 #: crates/aximar-core/src/maxima/errors.rs
+#, rust-format
+msgctxt "question.sign_pz.explanation"
+msgid "Maxima needs to know whether {expr} is positive or zero to go on."
+msgstr ""
+
+#. i18n: line is Maxima code that answers the question, such as assume(a > 0)$
+#: crates/aximar-core/src/maxima/errors.rs
+#, rust-format
+msgctxt "question.sign_pz.suggestion"
+msgid "Add {line} before this line, or in a cell above, and run it again."
+msgstr ""
+
+#. i18n: Maxima: "Maxima needs to know: Is a negative or zero?"
+#: crates/aximar-core/src/maxima/errors.rs
+msgctxt "question.sign_nz.title"
+msgid "Maxima Needs to Know"
+msgstr ""
+
+#. i18n: expr is a Maxima expression, such as a or b*c-1
+#: crates/aximar-core/src/maxima/errors.rs
+#, rust-format
+msgctxt "question.sign_nz.explanation"
+msgid "Maxima needs to know whether {expr} is negative or zero to go on."
+msgstr ""
+
+#. i18n: line is Maxima code that answers the question, such as assume(a < 0)$
+#: crates/aximar-core/src/maxima/errors.rs
+#, rust-format
+msgctxt "question.sign_nz.suggestion"
+msgid "Add {line} before this line, or in a cell above, and run it again."
+msgstr ""
+
+#. i18n: Maxima: "Maxima needs to know: Is k positive or negative?"
+#: crates/aximar-core/src/maxima/errors.rs
+msgctxt "question.sign_pn.title"
+msgid "Maxima Needs to Know"
+msgstr ""
+
+#. i18n: expr is a Maxima expression, such as k or b*c-1
+#: crates/aximar-core/src/maxima/errors.rs
+#, rust-format
+msgctxt "question.sign_pn.explanation"
+msgid "Maxima needs to know whether {expr} is positive or negative to go on."
+msgstr ""
+
+#. i18n: line is Maxima code that answers the question, such as assume(k > 0)$
+#: crates/aximar-core/src/maxima/errors.rs
+#, rust-format
+msgctxt "question.sign_pn.suggestion"
+msgid "Add {line} before this line, or in a cell above, and run it again."
+msgstr ""
+
+#. i18n: Maxima: "Maxima needs to know: Is x zero or nonzero?"
+#: crates/aximar-core/src/maxima/errors.rs
+msgctxt "question.zero.title"
+msgid "Maxima Needs to Know"
+msgstr ""
+
+#. i18n: expr is a Maxima expression, such as x or b*c-1
+#: crates/aximar-core/src/maxima/errors.rs
+#, rust-format
+msgctxt "question.zero.explanation"
+msgid "Maxima needs to know whether {expr} is zero to go on."
+msgstr ""
+
+#. i18n: line is Maxima code that answers the question, such as assume(notequal(x, 0))$
+#: crates/aximar-core/src/maxima/errors.rs
+#, rust-format
+msgctxt "question.zero.suggestion"
+msgid "Add {line} before this line, or in a cell above, and run it again."
+msgstr ""
+
+#. i18n: Maxima: "Maxima needs to know: Is a positive, negative or zero?"
+#: crates/aximar-core/src/maxima/errors.rs
+msgctxt "question.sign.title"
+msgid "Maxima Needs to Know"
+msgstr ""
+
+#. i18n: expr is a Maxima expression, such as a or b*c-1
+#: crates/aximar-core/src/maxima/errors.rs
+#, rust-format
+msgctxt "question.sign.explanation"
+msgid "Maxima needs to know whether {expr} is positive, negative or zero to go on."
+msgstr ""
+
+#. i18n: line is Maxima code that answers the question, such as assume(a > 0)$
+#: crates/aximar-core/src/maxima/errors.rs
+#, rust-format
+msgctxt "question.sign.suggestion"
+msgid "Add {line} before this line, or in a cell above, and run it again."
+msgstr ""
+
+#. i18n: Maxima: "Maxima needs to know: Is a equal to -1?"
+#: crates/aximar-core/src/maxima/errors.rs
+msgctxt "question.equal.title"
+msgid "Maxima Needs to Know"
+msgstr ""
+
+#. i18n: a and b are Maxima expressions, such as a and -1
+#: crates/aximar-core/src/maxima/errors.rs
+#, rust-format
+msgctxt "question.equal.explanation"
+msgid "Maxima needs to know whether {a} equals {b} to go on."
+msgstr ""
+
+#. i18n: line is Maxima code that answers the question, such as assume(notequal(a, -1))$
+#: crates/aximar-core/src/maxima/errors.rs
+#, rust-format
+msgctxt "question.equal.suggestion"
+msgid "Add {line} before this line, or in a cell above, and run it again."
+msgstr ""
+
+#. i18n: Maxima: "Maxima needs to know: Is n an integer?", or another property
+#: crates/aximar-core/src/maxima/errors.rs
+msgctxt "question.property.title"
+msgid "Maxima Needs to Know"
+msgstr ""
+
+#. i18n: expr is a Maxima expression; property is a Maxima
+#. feature name such as integer or even, which stays in English
+#: crates/aximar-core/src/maxima/errors.rs
+#, rust-format
+msgctxt "question.property.explanation"
+msgid "Maxima needs to know whether {expr} has the property {property} to go on."
+msgstr ""
+
+#. i18n: line is Maxima code that answers the question, such as declare(n, integer)$
+#: crates/aximar-core/src/maxima/errors.rs
+#, rust-format
+msgctxt "question.property.suggestion"
+msgid "Add {line} before this line, or in a cell above, and run it again."
+msgstr ""
+
+#. i18n: Maxima: "Maxima needs to know: ..." with any other question
+#: crates/aximar-core/src/maxima/errors.rs
+msgctxt "question.other.title"
+msgid "Maxima Needs to Know"
+msgstr ""
+
+#. i18n: question is Maxima's question, in English
+#: crates/aximar-core/src/maxima/errors.rs
+#, rust-format
 msgctxt "question.other.explanation"
-msgid "Maxima needs to know a property of a variable to proceed with the computation."
+msgid "Maxima asked \"{question}\" and can't get an answer from a cell."
 msgstr ""
 
 #: crates/aximar-core/src/maxima/errors.rs
 msgctxt "question.other.suggestion"
-msgid "Use assume() to declare properties, e.g.: assume(x > 0);"
+msgid "Use assume() or declare() before this line to tell Maxima what it needs, then run the cell again."
 msgstr ""
 
 #. i18n: Maxima: "matrix: all rows must be the same length." or "incompatible dimensions"

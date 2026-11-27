@@ -1816,3 +1816,46 @@ async fn connected_mode_stays_in_english() {
         Some("expt: no definido: desde 0 a un exponente negativo.")
     );
 }
+
+/// A question stops its cell with an error result, not a tool error
+#[tokio::test]
+#[ignore = "requires Maxima to be installed"]
+async fn run_cell_reports_a_question_as_a_cell_error() {
+    let s = build_server();
+    let v = parse_ok(
+        s.add_cell(Parameters(AddCellParams {
+            cell_type: Some("code".into()),
+            input: Some("integrate(exp(-a*x), x, 0, inf);".into()),
+            after_cell_id: None,
+            notebook_id: None,
+        }))
+        .await,
+    );
+    let cell_id = v["cell_id"].as_str().unwrap().to_string();
+    let run = parse_ok(
+        s.run_cell(Parameters(CellIdParams {
+            cell_id: cell_id.clone(),
+            notebook_id: None,
+        }))
+        .await,
+    );
+    assert_eq!(run["is_error"], true, "{run:#}");
+    assert!(
+        run["error"]
+            .as_str()
+            .unwrap()
+            .contains("Is a positive, negative or zero?"),
+        "{run:#}"
+    );
+    let cell = parse_ok(
+        s.get_cell(Parameters(CellIdParams {
+            cell_id,
+            notebook_id: None,
+        }))
+        .await,
+    );
+    assert_eq!(
+        cell["output"]["error_info"]["id"], "question.sign",
+        "{cell:#}"
+    );
+}

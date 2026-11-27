@@ -121,7 +121,7 @@ Goal: the kernel-events wired path becomes the default on local Unix sessions.
 - Prerequisites: F1, F2, F10.
 - Replace the environment variable with a setting, then flip the default.
 - Act on the envelopes that are parsed but ignored:
-  - `stdin_request` replaces the `ASSUMPTION_QUESTION_RE` regex;
+  - `stdin_request` has nothing left to replace: questions are errors now (`ax_questions.lisp`);
   - `debug_enter`/`debug_leave` replace prompt scraping;
   - `ready`/`capabilities` replace the init sentinels.
 - Remaining work stays as listed in [kernel-events-phases.md](kernel-events-phases.md): streaming envelopes, and Docker/WSL transports (deferred).

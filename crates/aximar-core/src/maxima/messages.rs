@@ -11,6 +11,7 @@ use std::sync::OnceLock;
 use crate::maxima::plotting::lisp_stdin_line;
 
 const AX_MESSAGES_LISP: &str = include_str!("ax_messages.lisp");
+const AX_QUESTIONS_LISP: &str = include_str!("ax_questions.lisp");
 
 const TAG: &str = "__AXIMAR_MSG__";
 const TAG_END: &str = "__AXIMAR_MSG_END__";
@@ -19,6 +20,13 @@ const TAG_END: &str = "__AXIMAR_MSG_END__";
 pub fn messages_lisp_stdin() -> &'static str {
     static CACHED: OnceLock<String> = OnceLock::new();
     CACHED.get_or_init(|| lisp_stdin_line(AX_MESSAGES_LISP))
+}
+
+/// The override that turns Maxima's questions into errors, as a single
+/// `:lisp` line for each process's start (see `ax_questions.lisp`)
+pub fn questions_lisp_stdin() -> &'static str {
+    static CACHED: OnceLock<String> = OnceLock::new();
+    CACHED.get_or_init(|| lisp_stdin_line(AX_QUESTIONS_LISP))
 }
 
 /// Maxima's code for the user's language, such as `es` or `pt_BR`: empty

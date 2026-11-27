@@ -156,12 +156,98 @@ Parameters: `func`, `package`
 | suggestion | Check the spelling or use describe("{func}") to search. |
 | suggestion.in_package | Add load("{package}")$ before using this function. |
 
-## `question.other`
+## `question.equal`
 
-Covers: Maxima asked a question, such as "Is x positive, negative or zero?"
+Covers: "Maxima needs to know: Is a equal to -1?"
+
+Parameters: `a`, `b`, `line`
 
 | Field | English |
 |---|---|
-| title | Assumption Required |
-| explanation | Maxima needs to know a property of a variable to proceed with the computation. |
-| suggestion | Use assume() to declare properties, e.g.: assume(x > 0); |
+| title | Maxima Needs to Know |
+| explanation | Maxima needs to know whether {a} equals {b} to go on. |
+| suggestion | Add {line} before this line, or in a cell above, and run it again. |
+
+## `question.other`
+
+Covers: "Maxima needs to know: ..." with any other question
+
+Parameters: `question`
+
+| Field | English |
+|---|---|
+| title | Maxima Needs to Know |
+| explanation | Maxima asked "{question}" and can't get an answer from a cell. |
+| suggestion | Use assume() or declare() before this line to tell Maxima what it needs, then run the cell again. |
+
+## `question.property`
+
+Covers: "Maxima needs to know: Is n an integer?", or another property
+
+Parameters: `expr`, `line`, `property`
+
+| Field | English |
+|---|---|
+| title | Maxima Needs to Know |
+| explanation | Maxima needs to know whether {expr} has the property {property} to go on. |
+| suggestion | Add {line} before this line, or in a cell above, and run it again. |
+
+## `question.sign`
+
+Covers: "Maxima needs to know: Is a positive, negative or zero?"
+
+Parameters: `expr`, `line`
+
+| Field | English |
+|---|---|
+| title | Maxima Needs to Know |
+| explanation | Maxima needs to know whether {expr} is positive, negative or zero to go on. |
+| suggestion | Add {line} before this line, or in a cell above, and run it again. |
+
+## `question.sign_nz`
+
+Covers: "Maxima needs to know: Is a negative or zero?"
+
+Parameters: `expr`, `line`
+
+| Field | English |
+|---|---|
+| title | Maxima Needs to Know |
+| explanation | Maxima needs to know whether {expr} is negative or zero to go on. |
+| suggestion | Add {line} before this line, or in a cell above, and run it again. |
+
+## `question.sign_pn`
+
+Covers: "Maxima needs to know: Is k positive or negative?"
+
+Parameters: `expr`, `line`
+
+| Field | English |
+|---|---|
+| title | Maxima Needs to Know |
+| explanation | Maxima needs to know whether {expr} is positive or negative to go on. |
+| suggestion | Add {line} before this line, or in a cell above, and run it again. |
+
+## `question.sign_pz`
+
+Covers: "Maxima needs to know: Is a positive or zero?"
+
+Parameters: `expr`, `line`
+
+| Field | English |
+|---|---|
+| title | Maxima Needs to Know |
+| explanation | Maxima needs to know whether {expr} is positive or zero to go on. |
+| suggestion | Add {line} before this line, or in a cell above, and run it again. |
+
+## `question.zero`
+
+Covers: "Maxima needs to know: Is x zero or nonzero?"
+
+Parameters: `expr`, `line`
+
+| Field | English |
+|---|---|
+| title | Maxima Needs to Know |
+| explanation | Maxima needs to know whether {expr} is zero to go on. |
+| suggestion | Add {line} before this line, or in a cell above, and run it again. |

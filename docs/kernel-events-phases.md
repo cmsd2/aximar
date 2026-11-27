@@ -124,7 +124,7 @@ consumed deletes a fragile stdout heuristic:
 
 | Kind | Replaces |
 |---|---|
-| `stdin_request` | `ASSUMPTION_QUESTION_RE` — a regex hunting stdout for "Is x positive?" and friends, then guessing an answer |
+| `stdin_request` | Nothing now: `ax_questions.lisp` turns every question into an error, so Aximar no longer hunts stdout for them (see [i18n.md](i18n.md)) |
 | `debug_enter` / `debug_leave` | `dbm:N>` prompt scraping in `maxima/debugger.rs` (`PromptKind`) |
 | `capabilities` / `ready` | The `__AXIMAR_READY__` / `__AXIMAR_INIT_DONE__` init sentinels |
 | `eval_begin` | Nothing today — would supply per-eval correlation ids, currently inferred positionally |

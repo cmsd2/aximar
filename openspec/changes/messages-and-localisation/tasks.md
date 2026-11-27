@@ -31,9 +31,9 @@ Each numbered group is one pull request, landing in order unless a group says ot
 
 ## 5. Questions become errors
 
-- [ ] 5.1 Override `retrieve` at session start, guarded by `fboundp`; delete `ASSUMPTION_QUESTION_RE`, `assumption_answer`, `drain_answering_questions`, the question branches in both readers and `AppError::AssumptionRequired`; verify with Maxima-backed tests (aximar-core, both paths) for the sign, yes/no, leak and `errcatch` scenarios
-- [ ] 5.2 Add the `question.*` IDs, mapping each question template to its ID and parameters, with `question.other` for anything else; verify with unit tests per template and one in another wording
-- [ ] 5.3 MCP reports a question as a cell error; verify with an aximar-mcp Maxima-backed test for the MCP scenario; check that the DAP server's tests still pass without its question handling
+- [x] 5.1 Override `retrieve` at session start, guarded by `fboundp`; delete `ASSUMPTION_QUESTION_RE`, `assumption_answer`, `drain_answering_questions`, the question branches in both readers and `AppError::AssumptionRequired`; verify with Maxima-backed tests (aximar-core, both paths) for the sign, yes/no, leak and `errcatch` scenarios
+- [x] 5.2 Add the `question.*` IDs, mapping each question template to its ID and parameters, with `question.other` for anything else; verify with unit tests per template and one in another wording
+- [x] 5.3 MCP reports a question as a cell error; verify with an aximar-mcp Maxima-backed test for the MCP scenario; check that the DAP server's tests still pass without its question handling
 
 ## 6. Every failure leaves an output, and Lisp errors keep their message
 
