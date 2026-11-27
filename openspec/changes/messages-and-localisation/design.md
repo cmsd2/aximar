@@ -153,7 +153,9 @@ Both paths drop ` -- an error. To debug this try: debugmode(true);` from error t
 ### 10. Translator tools
 
 - **Show sources:** in preview builds, holding a modifier and pointing at text shows its msgid, context, note and source file. Lingui's message descriptors carry all four in development; the preview build keeps them.
-- **Screenshots:** a Playwright script runs the window through Vite with Tauri's commands mocked, visits each screen in each language and saves a screenshot. In a tagging mode each translated string renders with its message ID in a data attribute, so the script records which entries appear on which screen and writes `#. screen: <name>` comments into the template. CI publishes the screenshots as a gallery.
+- **Gallery:** Storybook, on Vite like the window, holds a story for each state a translator needs to see, especially those hard to reach in a running app: each kind of error explanation, notes, questions, a timeout, the trust banner, Settings and the other dialogs. A shared decorator mocks Tauri's commands (`@tauri-apps/api/mocks`), and a toolbar switches the language through Lingui, the pseudo-locale included. Storybook's test runner screenshots every story in every language. In a tagging mode each translated string renders with its message ID in a data attribute, so the run records which entries appear in which story and writes `#. screen: <story>` comments into the template. CI publishes the static Storybook build, with the screenshots, as the gallery. Whole windows in context aren't covered: a story shows the component a string appears in.
+
+  *Alternative:* a Playwright script driving the whole window through Vite with Tauri mocked. It shows screens in context, but each state needs scripted steps to reach, and the mocks live in one script rather than beside the components.
 - **Glossary and guide:** `locales/glossary.tbx`, seeded from Maxima's Spanish terms, and `locales/README.md` with tone, capitalisation, the do-not-translate list and how to use the preview.
 - **Seeded `es.po`:** `msginit` plus `msgmerge --compendium` against Maxima's `es.po`, so matching strings arrive as fuzzy suggestions.
 
@@ -191,7 +193,7 @@ CI installs GNU gettext from the distribution's packages (0.24 or later).
 - [A question inside `errcatch` now stops the statement, where it used to get an automatic `positive`] → that answer was a guess the user never saw. Stopping matches Maxima, where `errcatch` doesn't stop a question reaching the user; letting `errcatch` swallow it would send user code and library functions such as `laplace` down their error paths without a word. The changelog says so.
 - [Maxima renames `toplevel-macsyma-eval` or `break-dbm-loop`] → the override skips what's missing, and the Maxima-backed tests fail on that version.
 - [Notes misread print output that looks like a note] → recognisers anchor on Maxima's exact prefixes and line starts; Maxima's lines stay one click away.
-- [Window text moved into the catalog by hand misses strings] → the pseudo-locale run shows any text that didn't go through the catalog, and the screenshot gallery covers each screen.
+- [Window text moved into the catalog by hand misses strings] → the pseudo-locale run shows any text that didn't go through the catalog, and the Storybook gallery shows each story's strings.
 - [Rewording English invalidates translations] → `msgmerge` keeps the old translation as fuzzy with the old English, so translators review instead of starting again.
 - [Maxima's catalog missing on some backends] → English only, as today; a later change can report which languages the installed Maxima has.
 

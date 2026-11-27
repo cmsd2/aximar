@@ -17,7 +17,7 @@ This change was planned as `friendly-maxima-messages` (no tasks done), which gav
 - **The window uses Lingui**; Rust marks strings with `msg!` and `msg_ctx!` macros, and `xgettext` extracts them. One script builds the template and merges each language, with Maxima's own catalog suggesting translations for new strings.
 - **A language setting**, defaulting to the system language. Changing it switches the window, the menus, Maxima's translated errors and the help without a restart. The `AXIMAR_LANGUAGE` variable from #108 goes.
 - **Spanish help summaries**: catalog-gen builds an index from Maxima's Spanish manual, with English for symbols it lacks.
-- **Translator tools**: a pre-release setting that loads a `.po` from disk and reloads it on save, a show-sources mode, screenshots of each screen tagged with their strings, a glossary and a translator guide. An `es.po` seeded from Maxima's Spanish is ready for #44's translator.
+- **Translator tools**: a pre-release setting that loads a `.po` from disk and reloads it on save, a show-sources mode, a Storybook gallery of the window's states in every language, its screenshots tagged with their strings, a glossary and a translator guide. An `es.po` seeded from Maxima's Spanish is ready for #44's translator.
 - **CI checks** that the template is current, that `msgfmt -c` passes, and that translations keep their placeholders and length limits.
 
 **Friendly messages** (from `friendly-maxima-messages`)
@@ -47,7 +47,7 @@ None. `cell-execution` describes statuses and trust, which this change keeps.
 - **MCP:** `server.rs` result shapes (see BREAKING). MCP text stays English.
 - **Tauri:** `menu.rs` (menus from the catalog, rebuilt on switch), `commands/config.rs` (the language setting), a command to load a `.po` from disk.
 - **Frontend:** Lingui throughout `src/components`, `EnhancedErrorOutput.tsx`, a note line component, Settings (language, preview loader), show-sources mode.
-- **Tools:** `tools/catalog-gen` (one index per language), new `scripts/i18n-*` scripts, a Playwright screenshot script, CI jobs.
+- **Tools:** `tools/catalog-gen` (one index per language), new `scripts/i18n-*` scripts, Storybook and its stories, CI jobs.
 - **Dependencies:** `@lingui/core`, `@lingui/react`, `@lingui/vite-plugin`, `@lingui/cli`, `@lingui/format-po-gettext`; `rspolib` and `tr` (with `po-translator`) in Rust; GNU gettext 0.24 or later in CI and for developers who extract.
 - **The DAP server** loses its question handling along with `process.rs`'s.
 - **Issues:** closes #44's localisation request; touches #56 (friendly errors reach the window, fixed in #82).
