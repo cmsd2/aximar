@@ -3,40 +3,10 @@ import { useLingui } from "@lingui/react/macro";
 import { useActiveTab, useNotebookStore } from "../store/notebookStore";
 import { Cell } from "./Cell";
 import { MarkdownCell } from "./MarkdownCell";
+import { selectHowOf } from "../lib/selection-utils";
 import { RawCell } from "./RawCell";
 import { TrustBanner } from "./TrustBanner";
-import { nbAddCell } from "../lib/notebook-commands";
-
-function InsertBar({ afterId, beforeId }: { afterId?: string; beforeId?: string }) {
-  const { t } = useLingui();
-  const handleAddCode = async () => {
-    await nbAddCell("code", undefined, afterId, beforeId);
-  };
-  const handleAddMarkdown = async () => {
-    await nbAddCell("markdown", undefined, afterId, beforeId);
-  };
-
-  return (
-    <div className="insert-bar">
-      <div className="insert-bar-line" />
-      <div className="insert-bar-buttons">
-        <button className="insert-bar-btn" onClick={handleAddCode}>
-          {t({
-            message: "+ Code",
-            comment: "Button in the bar between cells: inserts a code cell there. max-length:12",
-          })}
-        </button>
-        <button className="insert-bar-btn" onClick={handleAddMarkdown}>
-          {t({
-            message: "+ Markdown",
-            comment: "Button in the bar between cells: inserts a markdown cell there. max-length:14",
-          })}
-        </button>
-      </div>
-      <div className="insert-bar-line" />
-    </div>
-  );
-}
+import { CellGap } from "./CellGap";
 
 interface NotebookProps {
   onViewDocs?: (name: string) => void;
@@ -47,15 +17,16 @@ export function Notebook({ onViewDocs }: NotebookProps) {
   const tab = useActiveTab();
   const cells = tab.cells;
   const selectedCellIds = tab.selectedCellIds;
-  const toggleCellSelected = useNotebookStore((s) => s.toggleCellSelected);
+  const selectCell = useNotebookStore((s) => s.selectCell);
   const clearSelection = useNotebookStore((s) => s.clearSelection);
+  const setInsertionPoint = useNotebookStore((s) => s.setInsertionPoint);
 
   const handleBracketClick = useCallback(
     (e: React.MouseEvent, cellId: string) => {
       e.stopPropagation();
-      toggleCellSelected(cellId, e.shiftKey);
+      selectCell(cellId, selectHowOf(e));
     },
-    [toggleCellSelected],
+    [selectCell],
   );
 
   // Click on the notebook background (not on a bracket) clears selection
@@ -81,9 +52,9 @@ export function Notebook({ onViewDocs }: NotebookProps) {
   }, [selectedCellIds.length, clearSelection]);
 
   return (
-    <div className="notebook" onClick={handleNotebookClick}>
+    <div className={`notebook${cells.length === 0 ? " empty" : ""}`} onClick={handleNotebookClick}>
       <TrustBanner />
-      <InsertBar beforeId={cells[0]?.id} />
+      <CellGap after={null} />
       {cells.map((cell) => {
         const isSelected = selectedCellIds.includes(cell.id);
         const selectBracket = (
@@ -93,12 +64,12 @@ export function Notebook({ onViewDocs }: NotebookProps) {
             title={
               isSelected
                 ? t({
-                    message: "Deselect cell",
-                    comment: "Tooltip of the bracket right of a selected cell: clicking it removes the cell from the selection",
+                    message: "Selected (Cmd+click to deselect)",
+                    comment: "Tooltip of the place that selects a cell, on a selected cell: the bracket right of it in bracket style, the margin with its In and Out labels in card style. Cmd+click removes it from the selection",
                   })
                 : t({
-                    message: "Select cell (Shift+click for range)",
-                    comment: "Tooltip of the bracket right of a cell: clicking it selects the cell. Shift+click selects every cell up to it",
+                    message: "Select cell (Shift+click for a range, Cmd+click to add)",
+                    comment: "Tooltip of the place that selects a cell: the bracket right of it in bracket style, the margin with its In and Out labels in card style. Shift+click selects every cell up to it; Cmd+click adds it to the selection",
                   })
             }
           />
@@ -112,10 +83,19 @@ export function Notebook({ onViewDocs }: NotebookProps) {
             ) : (
               <Cell cell={cell} onViewDocs={onViewDocs} selectBracket={selectBracket} />
             )}
-            <InsertBar afterId={cell.id} />
+            <CellGap after={cell.id} />
           </div>
         );
       })}
+      {/* The space below the last cell: a click there places the caret
+          after it, as in an empty notebook, where it fills the window */}
+      <div
+        className="notebook-tail"
+        onMouseDown={(e) => {
+          e.preventDefault();
+          setInsertionPoint({ after: cells[cells.length - 1]?.id ?? null });
+        }}
+      />
     </div>
   );
 }

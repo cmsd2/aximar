@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
+import { openNewNotebook } from "./lib/new-notebook";
 import { listen } from "@tauri-apps/api/event";
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
@@ -25,8 +26,6 @@ import {
   nbMoveCell,
   nbUndo,
   nbRedo,
-  nbCreate,
-  nbSetActive,
   nbGetState,
   nbLoadTemplate,
 } from "./lib/notebook-commands";
@@ -69,8 +68,6 @@ function App() {
   const [docsOpen, setDocsOpen] = useState(false);
   const [docsFunctionName, setDocsFunctionName] = useState<string | undefined>(undefined);
   const [docsRequestId, setDocsRequestId] = useState(0);
-  const addTab = useNotebookStore((s) => s.addTab);
-  const setActiveTab = useNotebookStore((s) => s.setActiveTab);
   const windowOpen = useLogStore((s) => s.windowOpen);
   const toggleWindow = useLogStore((s) => s.toggleWindow);
   const logUnreadCount = useLogStore((s) => s.unreadCount);
@@ -91,6 +88,7 @@ function App() {
           setTheme: store.setTheme,
           setCellStyle: store.setCellStyle,
           setAutocompleteMode: store.setAutocompleteMode,
+          setShowSuggestions: store.setShowSuggestions,
           setVariablesOpen,
         });
         void activateLanguage(cfg.language);
@@ -288,26 +286,8 @@ function App() {
   }, [addPlotTab]);
 
   const handleNew = useCallback(async () => {
-    const result = await nbCreate();
-    addTab(result.notebook_id);
-    setActiveTab(result.notebook_id);
-    await nbSetActive(result.notebook_id);
-    const state = await nbGetState(result.notebook_id);
-    useNotebookStore.getState().applyBackendState(
-      state.notebook_id,
-      state.cells.map((sc) => ({
-        id: sc.id,
-        cellType: sc.cell_type as "code" | "markdown",
-        input: sc.input,
-        output: null,
-        status: "idle" as const,
-      })),
-      state.effect,
-      state.cell_id ?? undefined,
-      state.can_undo,
-      state.can_redo,
-    );
-  }, [addTab, setActiveTab]);
+    await openNewNotebook();
+  }, []);
 
   // --- Listen for native menu events from Tauri ---
 

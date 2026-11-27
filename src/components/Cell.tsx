@@ -1,13 +1,14 @@
 import { useCallback, useState, useEffect } from "react";
 import { useLingui } from "@lingui/react/macro";
 import type { Cell as CellType } from "../types/notebook";
-import { useActiveTab, useNotebookStore } from "../store/notebookStore";
+import { getActiveTabState, useActiveTab, useNotebookStore } from "../store/notebookStore";
 import { useFindStore } from "../store/findStore";
 import { useMaxima } from "../hooks/useMaxima";
 import { useCodeMirrorEditor } from "../hooks/useCodeMirrorEditor";
 import { CellOutput } from "./CellOutput";
 import { CellSuggestions } from "./CellSuggestions";
-import { nbDeleteCell, nbMoveCell, nbAddCell } from "../lib/notebook-commands";
+import { nbDeleteCell, nbMoveCell } from "../lib/notebook-commands";
+import { afterRun, goTo } from "../lib/cell-caret";
 import { cancelEvaluation } from "../lib/maxima-client";
 
 interface CellProps {
@@ -21,42 +22,22 @@ export function Cell({ cell, onViewDocs, selectBracket }: CellProps) {
   const cells = useActiveTab().cells;
   const cellCount = cells.length;
   const setActiveCellId = useNotebookStore((s) => s.setActiveCellId);
+  const showSuggestions = useNotebookStore((s) => s.showSuggestions);
   const { executeCell } = useMaxima();
 
   const [outputCollapsed, setOutputCollapsed] = useState(false);
   const hasFindMatch = useFindStore((s) => s.matches.some((m) => m.cellId === cell.id));
 
+  // The next cell, or after the last one the caret below it
   const focusNextCell = useCallback(() => {
-    const allCells = Array.from(
-      document.querySelectorAll<HTMLElement>(".cell")
-    );
-    const thisCell = containerRef.current?.closest(".cell");
-    const idx = thisCell ? allCells.indexOf(thisCell as HTMLElement) : -1;
-    if (idx !== -1 && idx + 1 < allCells.length) {
-      const next = allCells[idx + 1];
-      // Try CodeMirror editor first (code cell), fall back to double-clicking (markdown cell)
-      const cmContent = next.querySelector<HTMLElement>(".cm-content");
-      if (cmContent) {
-        cmContent.focus();
-      } else {
-        const view = next.querySelector<HTMLElement>(".markdown-cell-view");
-        view?.dispatchEvent(new MouseEvent("dblclick", { bubbles: true }));
-      }
-    }
-  }, []);
+    goTo(afterRun(getActiveTabState().cells, cell.id));
+  }, [cell.id]);
 
   const onExecute = useCallback(() => {
-    const idx = cells.findIndex((c) => c.id === cell.id);
-    const isLastCell = idx === cells.length - 1;
-
     executeCell(cell.id, cell.input).then((success) => {
-      if (!success) return;
-      if (isLastCell) {
-        nbAddCell("code", undefined, cell.id);
-      }
-      requestAnimationFrame(focusNextCell);
+      if (success) requestAnimationFrame(focusNextCell);
     });
-  }, [cell.id, cell.input, cells, executeCell, focusNextCell]);
+  }, [cell.id, cell.input, executeCell, focusNextCell]);
 
   const onExecuteStay = useCallback(() => {
     executeCell(cell.id, cell.input);
@@ -213,7 +194,7 @@ export function Cell({ cell, onViewDocs, selectBracket }: CellProps) {
       )}
       {selectBracket}
     </div>
-    <CellSuggestions cell={cell} />
+    {showSuggestions && <CellSuggestions cell={cell} />}
     </>
   );
 }

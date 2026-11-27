@@ -12,5 +12,8 @@ export function seedNotebook(
   store.setActiveTab("nb-1");
   store.applyBackendState("nb-1", mapSyncCells(cells), "notebook_replaced", undefined, true, false, options.trusted ?? true);
   store.setPendingTrustFunctions("nb-1", options.pendingTrust ?? null);
+  // A story's caret or selection would otherwise stay for the next story
+  store.setInsertionPoint(null);
+  store.setSelectedCellIds([]);
   if (options.dirty) store.markNotebookDirty("nb-1");
 }

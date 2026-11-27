@@ -17,6 +17,7 @@ import {
   updateSignatureHint,
 } from "../lib/maxima-signature-hint";
 import { maximaHoverTooltip } from "../lib/maxima-hover-tooltip";
+import { gapBeside } from "../lib/cell-caret";
 import { findEnclosingCall } from "../lib/param-tracker";
 import { useNotebookStore, getActiveTabState } from "../store/notebookStore";
 import { useFindStore } from "../store/findStore";
@@ -115,6 +116,10 @@ export function useCodeMirrorEditor({
           return true;
         },
       },
+      // From the first or last line, the arrow keys go to the caret in the
+      // gap above or below the cell (see CellGap)
+      { key: "ArrowUp", run: (view) => toGap(view, cellId, "up") },
+      { key: "ArrowDown", run: (view) => toGap(view, cellId, "down") },
       // Escape to dismiss signature hint or blur
       {
         key: "Escape",
@@ -307,6 +312,19 @@ export function useCodeMirrorEditor({
     });
   }, [cellId]);
 
+  // A cursor move asked for after this editor mounted (a new cell taking
+  // typed text, an arrow key from a gap)
+  useEffect(() => {
+    return useNotebookStore.subscribe(() => {
+      const move = getActiveTabState().pendingCursorMove;
+      const view = viewRef.current;
+      if (!move || move.cellId !== cellId || !view) return;
+      view.focus();
+      view.dispatch({ selection: { anchor: Math.min(move.pos, view.state.doc.length) }, scrollIntoView: true });
+      useNotebookStore.getState().clearPendingCursorMove();
+    });
+  }, [cellId]);
+
   // Reconfigure autocomplete when mode changes
   useEffect(() => {
     return useNotebookStore.subscribe((state, prev) => {
@@ -334,4 +352,30 @@ export function useCodeMirrorEditor({
     view: viewRef,
     syncExternalInput,
   };
+}
+
+/**
+ * Move to the gap above or below the cell when the cursor is on the
+ * editor's first or last visual line with nothing selected.  Returns false
+ * to let CodeMirror move the cursor otherwise.
+ */
+function toGap(view: EditorView, cellId: string, dir: "up" | "down"): boolean {
+  const sel = view.state.selection.main;
+  if (!sel.empty) return false;
+  const moved = view.moveVertically(sel, dir === "down");
+  const here = view.coordsAtPos(sel.head);
+  const there = view.coordsAtPos(moved.head);
+  const line = view.state.doc.lineAt(sel.head).number;
+  const atEdge =
+    here && there
+      ? Math.abs(here.top - there.top) < 1
+      : dir === "up"
+        ? line === 1
+        : line === view.state.doc.lines;
+  if (!atEdge) return false;
+  const point = gapBeside(getActiveTabState().cells, cellId, dir);
+  if (!point) return false;
+  view.contentDOM.blur();
+  useNotebookStore.getState().setInsertionPoint(point);
+  return true;
 }

@@ -63,7 +63,7 @@ Covers: "defint: integral is divergent." screen: errors--all-explanations
 
 ## `error.division_by_zero`
 
-Covers: "expt: undefined: 0 to a negative exponent." or "Division by 0" screen: cells--notebook screen: errors--all-explanations screen: errors--translated-maxima-error
+Covers: "expt: undefined: 0 to a negative exponent." or "Division by 0" screen: cells--bracket-selection screen: cells--notebook screen: cells--selection screen: errors--all-explanations screen: errors--translated-maxima-error screen: screens--whole-window
 
 | Field | English |
 |---|---|
@@ -321,7 +321,7 @@ Parameters: `expr`, `function`, `point`
 
 ## `note.rat_replaced`
 
-Covers: "rat: replaced 0.5 by 1/2 = 0.5", one line per number. replacements lists them, such as "0.25 → 1/4, 0.5 → 1/2" screen: cells--notebook screen: notes--all-notes
+Covers: "rat: replaced 0.5 by 1/2 = 0.5", one line per number. replacements lists them, such as "0.25 → 1/4, 0.5 → 1/2" screen: cells--bracket-selection screen: cells--notebook screen: cells--selection screen: notes--all-notes screen: screens--whole-window
 
 Parameters: `count`, `examples`, `replacements`
 

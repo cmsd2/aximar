@@ -8,6 +8,7 @@ export interface ConfigTargets {
   setTheme: (theme: Theme) => void;
   setCellStyle: (style: CellStyle) => void;
   setAutocompleteMode: (mode: AutocompleteMode) => void;
+  setShowSuggestions: (show: boolean) => void;
   setVariablesOpen: (open: boolean) => void;
 }
 
@@ -24,6 +25,7 @@ export function applyConfig(updates: Partial<AppConfig>, next: AppConfig, target
     document.documentElement.dataset.cellStyle = updates.cell_style;
   }
   if (updates.autocomplete_mode) targets.setAutocompleteMode(updates.autocomplete_mode as AutocompleteMode);
+  if (updates.show_suggestions !== undefined) targets.setShowSuggestions(updates.show_suggestions);
   if (updates.markdown_font) style.setProperty("--font-family-markdown", markdownFontStack(updates.markdown_font));
   if (updates.markdown_indent) {
     style.setProperty("--markdown-indent", updates.markdown_indent === "aligned" ? "var(--gutter-width)" : "16px");

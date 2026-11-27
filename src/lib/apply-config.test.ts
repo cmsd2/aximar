@@ -10,7 +10,7 @@ import { baseConfig } from "../components/settings/settings-test-kit";
 const config = baseConfig as unknown as AppConfig;
 
 function targets(): ConfigTargets {
-  return { setTheme: vi.fn(), setCellStyle: vi.fn(), setAutocompleteMode: vi.fn(), setVariablesOpen: vi.fn() };
+  return { setTheme: vi.fn(), setCellStyle: vi.fn(), setAutocompleteMode: vi.fn(), setShowSuggestions: vi.fn(), setVariablesOpen: vi.fn() };
 }
 
 describe("applying config to the window", () => {
@@ -41,6 +41,12 @@ describe("applying config to the window", () => {
     expect(document.documentElement.dataset.cellStyle).toBe("card");
     expect(t.setAutocompleteMode).toHaveBeenCalledWith("hint");
     expect(t.setVariablesOpen).toHaveBeenCalledWith(true);
+  });
+
+  it("passes the suggestions setting on, off as well as on", () => {
+    const t = targets();
+    applyConfig({ show_suggestions: false }, config, t);
+    expect(t.setShowSuggestions).toHaveBeenCalledWith(false);
   });
 
   it("leaves alone what didn't change", () => {

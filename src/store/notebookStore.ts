@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import type { Cell } from "../types/notebook";
 import type { SessionStatus } from "../types/maxima";
-import { computeRange } from "../lib/selection-utils";
+import { nextSelection, type SelectHow } from "../lib/selection-utils";
 import { hasPendingSync } from "../lib/dirty-inputs";
 
 export type Theme = "auto" | "light" | "dark";
@@ -22,10 +22,17 @@ export interface NotebookTab {
   canRedo: boolean;
   closePending: boolean;
   pendingCursorMove: { cellId: string; pos: number } | null;
+  /** The caret between two cells, where typing starts a new cell (see CellGap) */
+  insertionPoint: InsertionPoint | null;
   /** Whether the notebook is trusted for dangerous function execution. */
   trusted: boolean;
   /** Dangerous functions detected when the notebook needs trust. Drives the trust banner. */
   pendingTrustFunctions: string[] | null;
+}
+
+/** A place between cells: after the cell `after`, or above the first cell when null */
+export interface InsertionPoint {
+  after: string | null;
 }
 
 export interface PlotTab {
@@ -56,6 +63,7 @@ function createDefaultTab(id: string): NotebookTab {
     canRedo: false,
     closePending: false,
     pendingCursorMove: null,
+    insertionPoint: null,
     trusted: true,
     pendingTrustFunctions: null,
   };
@@ -69,6 +77,8 @@ interface NotebookState {
   theme: Theme;
   cellStyle: CellStyle;
   autocompleteMode: AutocompleteMode;
+  /** Suggestion chips under results; Settings can turn them off */
+  showSuggestions: boolean;
 
   // --- Tab lifecycle ---
   addTab: (id: string, title?: string) => void;
@@ -89,10 +99,12 @@ interface NotebookState {
   setTheme: (theme: Theme) => void;
   setCellStyle: (style: CellStyle) => void;
   setAutocompleteMode: (mode: AutocompleteMode) => void;
+  setShowSuggestions: (show: boolean) => void;
   setActiveCellId: (id: string | null) => void;
   setSelectedCellIds: (ids: string[]) => void;
   clearSelection: () => void;
-  toggleCellSelected: (cellId: string, range?: boolean) => void;
+  /** Change the selection as a click on `cellId` does (see nextSelection) */
+  selectCell: (cellId: string, how: SelectHow) => void;
   /** Set a notebook's file path and the tab title that follows from it. */
   setNotebookPath: (notebookId: string, path: string | null) => void;
   setClosePending: (notebookId: string, pending: boolean) => void;
@@ -102,6 +114,8 @@ interface NotebookState {
   markNotebookDirty: (notebookId: string) => void;
   setPendingCursorMove: (move: { cellId: string; pos: number }) => void;
   clearPendingCursorMove: () => void;
+  /** Place the caret between two cells, or remove it with null */
+  setInsertionPoint: (point: InsertionPoint | null) => void;
 
   // Apply full state from backend events
   applyBackendState: (
@@ -144,6 +158,7 @@ export const useNotebookStore = create<NotebookState>((set) => ({
   theme: "auto",
   cellStyle: "card",
   autocompleteMode: "active-hint",
+  showSuggestions: true,
 
   // --- Tab lifecycle ---
 
@@ -243,6 +258,7 @@ export const useNotebookStore = create<NotebookState>((set) => ({
   setCellStyle: (cellStyle: CellStyle) => set({ cellStyle }),
   setAutocompleteMode: (autocompleteMode: AutocompleteMode) =>
     set({ autocompleteMode }),
+  setShowSuggestions: (showSuggestions: boolean) => set({ showSuggestions }),
 
   setActiveCellId: (id: string | null) =>
     set((state) => {
@@ -277,31 +293,15 @@ export const useNotebookStore = create<NotebookState>((set) => ({
       };
     }),
 
-  toggleCellSelected: (cellId: string, range?: boolean) =>
+  selectCell: (cellId: string, how: SelectHow) =>
     set((state) => {
       const nbId = state.activeNotebookId;
       if (!nbId) return state;
       const tab = state.notebooks[nbId];
       if (!tab || tab.type !== "notebook") return state;
-
-      let newSelected: string[];
-      if (range && tab.selectedCellIds.length > 0) {
-        // Shift-click: select range from last selected to target
-        const anchor = tab.selectedCellIds[tab.selectedCellIds.length - 1];
-        newSelected = computeRange(tab.cells, anchor, cellId);
-      } else {
-        // Toggle single cell
-        if (tab.selectedCellIds.includes(cellId)) {
-          newSelected = tab.selectedCellIds.filter((id) => id !== cellId);
-        } else {
-          newSelected = [...tab.selectedCellIds, cellId];
-        }
-      }
-
+      const selectedCellIds = nextSelection(tab.cells, tab.selectedCellIds, cellId, how);
       return {
-        notebooks: updateNotebookTab(state.notebooks, nbId, () => ({
-          selectedCellIds: newSelected,
-        })),
+        notebooks: updateNotebookTab(state.notebooks, nbId, () => ({ selectedCellIds })),
       };
     }),
 
@@ -351,6 +351,15 @@ export const useNotebookStore = create<NotebookState>((set) => ({
         isDirty: true,
       })),
     })),
+
+  setInsertionPoint: (point: InsertionPoint | null) =>
+    set((state) => {
+      const nbId = state.activeNotebookId;
+      if (!nbId) return state;
+      return {
+        notebooks: updateNotebookTab(state.notebooks, nbId, () => ({ insertionPoint: point })),
+      };
+    }),
 
   setPendingCursorMove: (move: { cellId: string; pos: number }) =>
     set((state) => {

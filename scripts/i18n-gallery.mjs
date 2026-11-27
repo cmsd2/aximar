@@ -78,6 +78,8 @@ function decodeIds(text) {
 async function open(page, base, id, globals) {
   await page.goto(`${base}/iframe.html?id=${id}&viewMode=story&globals=${globals}`);
   await page.waitForSelector("[data-story-ready]", { timeout: 15000 });
+  // Stories whose content arrives late mark themselves pending (src/stories/wait.tsx)
+  await page.waitForFunction(() => !document.querySelector("[data-story-pending]"), null, { timeout: 15000 });
   await page.evaluate(() => document.fonts.ready);
   await page.waitForTimeout(150);
 }

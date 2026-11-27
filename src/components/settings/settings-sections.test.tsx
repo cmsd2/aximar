@@ -25,7 +25,7 @@ const noop = () => {};
 /** Each section's settings, by label */
 const LABELS: Record<SectionId, string[]> = {
   general: ["Language", "Theme", "Variable panel open by default", "Licences"],
-  notebook: ["Font size", "Cell style", "Argument help", "Markdown font", "Markdown indent"],
+  notebook: ["Font size", "Cell style", "Argument help", "Suggestions under results", "Markdown font", "Markdown indent"],
   maxima: ["Backend", "Maxima path", "Evaluation timeout"],
   printing: ["Print font size", "Print margins (mm)"],
   "ai-assistants": ["MCP server", "Claude Code", "Codex", "Gemini CLI", "MCP listen address", "MCP token"],
@@ -90,8 +90,8 @@ describe("the Settings sections", () => {
       shown.push(...labels(container));
       unmount();
     }
-    // Rows added since, which are links rather than settings
-    const added = ["Licences"];
+    // Rows added since: a link, and the suggestions switch (issue #44)
+    const added = ["Licences", "Suggestions under results"];
     expect([...shown].sort()).toEqual([...OLD_WINDOW, ...added].sort());
   });
 

@@ -487,10 +487,20 @@ pub struct NbCreateResult {
     pub notebook_id: String,
 }
 
+/// Create a notebook.  With `empty`, as the window's New asks, it has no
+/// cells and the window starts the first at the caret; otherwise it has
+/// one empty code cell.
 #[tauri::command]
-pub async fn nb_create(state: State<'_, AppState>) -> Result<NbCreateResult, AppError> {
+pub async fn nb_create(
+    state: State<'_, AppState>,
+    empty: Option<bool>,
+) -> Result<NbCreateResult, AppError> {
     let mut reg = state.registry.lock().await;
-    let id = reg.create();
+    let id = if empty.unwrap_or(false) {
+        reg.create_empty()
+    } else {
+        reg.create()
+    };
     Ok(NbCreateResult { notebook_id: id })
 }
 

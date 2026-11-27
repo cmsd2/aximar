@@ -331,6 +331,195 @@
   border-color: var(--accent);
 }
 
+/* The gap between two cells in card style (CellGap): 8px, with a hit
+   area a little taller that reaches over the cards' edges.  Hovering
+   shows a grey line and a + in the left margin.  Clicking places a
+   caret: the stretch of line under the In and Out labels turns the
+   accent colour and blinks.  Bracket
+   style draws the gap as the insert bar above. */
+.cell-gap:not(.insert-bar) {
+  position: relative;
+  height: var(--space-2);
+}
+
+.cell-gap:not(.insert-bar)::before {
+  content: "";
+  position: absolute;
+  inset: calc(-1 * var(--space-1)) 0;
+  z-index: 3;
+  cursor: vertical-text;
+}
+
+/* Where a click places the caret, the pointer is a horizontal I-beam
+   (the system's vertical-text cursor) */
+.cell-gap {
+  cursor: vertical-text;
+}
+
+/* In bracket style the bar's line stops short of the selection bracket */
+[data-cell-style="bracket"] .insert-bar {
+  margin-right: var(--space-1);
+}
+
+.cell-gap-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 1px;
+  background: var(--border-color);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.1s ease;
+}
+
+.cell-gap:hover .cell-gap-line,
+.cell-gap.menu-open .cell-gap-line,
+.cell-gap.has-caret .cell-gap-line {
+  opacity: 1;
+}
+
+/* The caret: the stretch of the line under the In and Out labels, in the
+   accent colour, blinking on CodeMirror's 1.2s cycle.  It's the line's
+   own 1px and sits exactly on it.  Its right end is flush with the
+   labels: the gutter's 4px padding in from the code, past the card's 1px
+   border in card style. */
+.cell-gap-caret {
+  --caret-length: calc(var(--font-size-mono) * 2.4);
+  position: absolute;
+  left: calc(var(--gutter-width) + 1px - var(--space-1) - var(--caret-length));
+  top: 50%;
+  z-index: 4;
+  width: var(--caret-length);
+  height: 1px;
+  background: var(--accent);
+  pointer-events: none;
+  animation: cell-gap-blink 1.2s steps(1) infinite;
+}
+
+/* Bracket style's bar centres its 1px line by flexbox, half a pixel
+   above 50% */
+.insert-bar .cell-gap-caret {
+  left: calc(var(--gutter-width) - var(--space-1) - var(--caret-length));
+  top: calc(50% - 0.5px);
+}
+
+@keyframes cell-gap-blink {
+  50% { opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cell-gap-caret { animation: none; }
+}
+
+.insert-bar.has-caret {
+  opacity: 1;
+}
+
+/* Below the last cell, room to scroll the last cell up the window, where
+   a click places the caret after it.  In an empty notebook it fills the
+   window, and the top gap shows its line and +. */
+.notebook-tail {
+  min-height: 30vh;
+  cursor: vertical-text;
+}
+
+.notebook.empty {
+  display: flex;
+  flex-direction: column;
+}
+
+.notebook.empty .notebook-tail {
+  flex: 1;
+}
+
+.notebook.empty .cell-gap-line,
+.notebook.empty .cell-gap-plus {
+  opacity: 1;
+}
+
+/* Visually hidden, but focused: it takes the keyboard at the caret */
+.cell-gap-input {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  border: 0;
+  opacity: 0;
+  resize: none;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.cell-gap-plus {
+  position: absolute;
+  left: calc(-1 * var(--space-6));
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 4;
+  width: var(--space-5);
+  height: var(--space-5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 1px solid var(--border-color);
+  border-radius: 50%;
+  background: var(--bg-primary);
+  color: var(--text-secondary);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.1s ease, color 0.1s ease, border-color 0.1s ease;
+}
+
+.cell-gap:hover .cell-gap-plus,
+.cell-gap.has-caret .cell-gap-plus,
+.cell-gap.menu-open .cell-gap-plus,
+.cell-gap-plus:focus-visible {
+  opacity: 1;
+}
+
+.cell-gap-plus:hover,
+.cell-gap.menu-open .cell-gap-plus {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.cell-gap-menu {
+  position: absolute;
+  left: calc(-1 * var(--space-6));
+  top: calc(50% + var(--space-4));
+  z-index: 20;
+  min-width: 140px;
+  padding: var(--space-1);
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-popover);
+}
+
+.cell-gap-menu button {
+  display: block;
+  width: 100%;
+  padding: var(--space-1) var(--space-3);
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-primary);
+  font: inherit;
+  font-size: var(--text-md);
+  text-align: left;
+  cursor: pointer;
+}
+
+.cell-gap-menu button:hover,
+.cell-gap-menu button:focus-visible {
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  outline: none;
+}
+
 /* Cell */
 .cell {
   position: relative;
@@ -2046,15 +2235,18 @@
   display: none;
 }
 
+/* 26px, so its 10px bracket keeps clear of the insert bar's line.  These
+   are the values bracket style showed until the card-style rules, which
+   overrode these by mistake, were scoped to card style. */
 [data-cell-style="bracket"] .cell-select-bracket {
   display: block;
   position: absolute;
   top: 0;
   right: -18px;
   bottom: 0;
-  width: 32px;
+  width: 26px;
   cursor: pointer;
-  z-index: 4;
+  z-index: 2;
 }
 
 [data-cell-style="bracket"] .cell-select-bracket::after {
@@ -2081,50 +2273,71 @@
   border-right-color: var(--accent);
   border-top-color: var(--accent);
   border-bottom-color: var(--accent);
-  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
 }
 
-/* Card-mode selection bracket */
+/* Card style selects from the cell's left margin: the column with its
+   In and Out labels, or a Markdown cell's indent.  The selected card gets
+   an accent ring outside its border, so a running or error border still
+   shows.  Card is the default when no style is set; :root keeps the
+   :not() to the root element, where the attribute lives. */
 [data-cell-style="card"] .cell-select-bracket,
-:not([data-cell-style]) .cell-select-bracket {
+:root:not([data-cell-style]) .cell-select-bracket {
   display: block;
   position: absolute;
   top: 0;
-  right: -18px;
   bottom: 0;
-  width: 26px;
+  left: 0;
+  width: var(--gutter-width);
+  border-radius: var(--radius-md) 0 0 var(--radius-md);
   cursor: pointer;
   z-index: 2;
+  transition: background 0.1s ease;
 }
 
-[data-cell-style="card"] .cell-select-bracket::after,
-:not([data-cell-style]) .cell-select-bracket::after {
-  content: "";
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 8px;
-  right: 8px;
-  border-right: 1px solid var(--border-color);
-  border-top: 1px solid var(--border-color);
-  border-bottom: 1px solid var(--border-color);
-  transition: border-color 0.1s ease, background 0.1s ease;
-  pointer-events: none;
+[data-cell-style="card"] .markdown-cell > .cell-select-bracket,
+:root:not([data-cell-style]) .markdown-cell > .cell-select-bracket {
+  width: var(--markdown-indent);
 }
 
-[data-cell-style="card"] .cell-select-bracket:hover::after,
-:not([data-cell-style]) .cell-select-bracket:hover::after {
-  border-right-color: var(--accent);
-  border-top-color: var(--accent);
-  border-bottom-color: var(--accent);
+[data-cell-style="card"] .cell-select-bracket:hover,
+:root:not([data-cell-style]) .cell-select-bracket:hover {
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
 }
 
-[data-cell-style="card"] .cell-select-bracket.selected::after,
-:not([data-cell-style]) .cell-select-bracket.selected::after {
-  border-right-color: var(--accent);
-  border-top-color: var(--accent);
-  border-bottom-color: var(--accent);
-  background: color-mix(in srgb, var(--accent) 10%, transparent);
+[data-cell-style="card"] .cell:has(> .cell-select-bracket:hover),
+:root:not([data-cell-style]) .cell:has(> .cell-select-bracket:hover) {
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 50%, transparent);
+}
+
+[data-cell-style="card"] .cell-select-bracket.selected,
+:root:not([data-cell-style]) .cell-select-bracket.selected {
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+}
+
+[data-cell-style="card"] .cell:has(> .cell-select-bracket.selected),
+:root:not([data-cell-style]) .cell:has(> .cell-select-bracket.selected) {
+  box-shadow: 0 0 0 2px var(--accent);
+}
+
+/* In card style the gaps between cells space the cards */
+[data-cell-style="card"] .cell,
+:root:not([data-cell-style]) .cell {
+  margin-bottom: 0;
+}
+
+/* The suggestion chips keep the 8px under their card the margin gave */
+[data-cell-style="card"] .cell + .cell-suggestions,
+:root:not([data-cell-style]) .cell + .cell-suggestions {
+  margin-top: var(--space-2);
+}
+
+/* Without the bracket, card style needs no wide right margin; the left
+   one holds the gaps' + */
+[data-cell-style="card"] .notebook,
+:root:not([data-cell-style]) .notebook {
+  padding-right: var(--space-4);
+  padding-left: var(--space-8);
 }
 
 /* Log Panel */
@@ -3026,6 +3239,11 @@
   .template-modal,
   .cell-actions,
   .insert-bar,
+  .cell-gap-line,
+  .cell-gap-plus,
+  .cell-gap-caret,
+  .cell-gap-menu,
+  .notebook-tail,
   .bracket-toggle,
   .cell-suggestions,
   .cm-tooltip,

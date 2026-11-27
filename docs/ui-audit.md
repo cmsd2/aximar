@@ -83,7 +83,9 @@ trust banner, syntax colours and warning colours are theme variables now.
     `quad_qags` and `solve` appear as plain words, and a note that starts
     with a function name starts with a lowercase letter.  On a note that
     wraps, "Show Maxima's text" moves to the far right edge.
-12. **The markdown cell's editor shows an "In" label** like a code cell.
+12. *Withdrawn:* the "In" label on a Markdown cell came from the stories,
+    which drew every cell as a code cell.  They now render the
+    `Notebook` component, which gives Markdown cells their own view.
 
 ## The window
 
@@ -112,27 +114,184 @@ trust banner, syntax colours and warning colours are theme variables now.
     Modern") onto two lines.  The settings-window change replaces this
     dialog, so it needs nothing more here.
 
-## Screens with no story
+## Screens that now have stories
 
-The audit couldn't see these.  Each needs a story before it can be
-judged or kept in shape:
+The docs panel, the log window and status bar, Find and Replace,
+completion, argument help, SVG and Plotly plots, reactive controls, the
+plot viewer, rendered Markdown, running and queued cells, the whole
+window, first run and Maxima not found all have stories now (`Panels`,
+`Editor`, `Outputs` and `Screens` in Storybook).  They show these
+problems:
 
-- the docs panel and the log panel
-- the find bar and the completion and argument-help popups
-- plots, both SVG and Plotly, and the plot viewer
-- rendered markdown cells
-- reactive controls (sliders and number fields)
-- cells running and queued, and the whole window together
-- first run, and Maxima not found
+18. **A missing Maxima squeezes the toolbar.**  The status pill holds the
+    whole error ("Error: Failed to start Maxima: maxima: No such file or
+    directory (os error 2)"), so "+ Cell", "+ Markdown" and "Run All"
+    wrap onto two lines and the notebook title shrinks to "U…".  The
+    window gives no way forward apart from a native dialog that shows
+    once.  The pill should say "Maxima not found" and link to the Maxima
+    settings, as the log's entries already can.
+19. **Times break on a 12-hour clock.**  The log's time column wraps "AM"
+    onto a second line, and in the Events tab the time runs into the
+    event's name.  The status bar's unread badge covers the "M" of "PM".
+20. **Markdown display maths renders inline.**  `$$…$$` on one line comes
+    out as inline maths in a Markdown cell.  The docs panel already
+    converts that form (`preprocessDocsMath`); cells don't.  Links in
+    Markdown cells keep the browser's default blue and underline, which
+    measures 1.75:1 in dark.
+21. **Find marks only the current match.**  "2 of 8" highlights one `x`,
+    and the other seven don't show.
+22. **A queued cell looks idle.**  A queued cell has the same plain "In"
+    label and border as a cell that will never run.  The running cell
+    has only a small dot.
+23. **gnuplot plots stay white in dark.**  A plot2d SVG is a white
+    rectangle inside the dark output well.
+24. **More contrast below 4.5:1:** accent text on the secondary
+    background (docs signatures and links, the log's settings link and
+    event names) at 4.31:1 in light; Markdown table cells at 4.26:1; the
+    variables panel's × at 2.21:1 in light and 3.49:1 in dark; the status
+    bar badge at 2.32:1 in dark.
+
+## Changed since
+
+- **Selecting cells in card style.**  The bracket right of each card is
+  gone.  The column with a cell's In and Out labels selects it (a
+  Markdown cell's indent does the same), and a selected card gets an
+  accent ring outside its border, so a running or error border still
+  shows.  A plain click selects one cell, Cmd or Ctrl adds or removes
+  one, and Shift selects a range; bracket style uses the same clicks on
+  its bracket.  The 48px right margin the bracket needed is gone too.
+- **Inserting cells in card style.**  The + Code and + Markdown bar
+  needed more room than the 8px between two cards.  Now hovering a gap
+  shows a line and a + in the left margin, whose menu inserts a code or
+  Markdown cell.  Clicking a gap places a caret there: the stretch of
+  line under the In and Out labels turns blue and blinks.  Typing
+  starts a code cell with that text, # starts a Markdown cell,
+  Enter starts an empty code cell, and Escape removes the caret.  Bracket
+  style keeps its bar, and the caret shows in it too.
+- **The arrow keys cross cells.**  From a cell's first or last line, Up
+  or Down goes to the caret in the gap beside it, and from there into
+  the next cell (a raw cell is skipped).  Shift+Enter on the last cell
+  puts the caret below it instead of adding an empty cell, so a new cell
+  appears only once you type.  New cells take the cursor, from the gap
+  or the toolbar; before, the toolbar's new cell didn't.
+- **New notebooks start empty, with the caret.**  The tab bar's + and
+  File > New open a notebook with no cells and the caret ready, so
+  typing starts the first cell.  A click in the space below the last
+  cell (30% of the window's height, and all of an empty notebook) places
+  the caret after it.  Notebooks from MCP, templates and files still
+  have at least one cell.
+
+- **Suggestion chips can be turned off**, in Settings > Notebook, for
+  a class where students should write each step themselves
+  (cmsd2/aximar#44).  The chips also keep their 8px under a card, which
+  the card spacing change above had taken away.
+
+## Menus and toolbars
+
+Aximar's commands live in six places, each built on its own: the native
+menu bar, the toolbar, the tab bar, buttons that appear on a hovered cell,
+keyboard shortcuts, and the command palette.  No one place lists them all,
+and many commands exist in only one.
+
+| Command | Menu bar | Toolbar | Elsewhere |
+| --- | --- | --- | --- |
+| New, Open, Save, Save As, Export, Print | yes | | tab bar + (New) |
+| Undo, Redo | Edit (the text field's own) | yes | Cmd+Z, Cmd+Shift+Z, Cmd+Y |
+| Find, Find and Replace | | | Cmd+F, Cmd+Shift+F only |
+| New code or Markdown cell | | yes | the gap's + and caret |
+| Run cell, run and stay | | | Shift+Enter, Cmd+Enter, hover ▶ |
+| Run All, Restart | | yes | |
+| Interrupt | | | hover stop button on a running cell |
+| Delete, move a cell | | | Cmd+D, Cmd+Shift+Up/Down, hover ▲ ▼ × |
+| Variables, Log, Docs panels | | yes | |
+| Templates | | yes | |
+| Settings | Aximar (macOS), Edit (elsewhere) | yes | Cmd+, |
+| Palette | | | Cmd+K |
+| Close tab, move tab to a window | | | Cmd+W, the tab's context menu |
+
+25. **The menu bar holds only the file commands.**  It has Aximar, File,
+    Edit and Window, and Window has only Minimize.  There is no View,
+    Cell, Session or Help menu.  On macOS the menu bar is where people
+    look for a command and learn its shortcut, so Run All, Restart,
+    Interrupt, Find and the panels can't be found there.  The shortcut
+    hints shown while Cmd is held make up for some of this.
+26. **Edit's Undo and Redo are the text field's, not the notebook's.**
+    They are the predefined items, which act on the focused text.  The
+    notebook's undo (cells added, deleted, moved) runs only from the
+    toolbar and from Cmd+Z caught in the window, so the menu item and the
+    shortcut beside it can do different things.
+27. **Shortcuts collide or repeat.**  Cmd+W is both the tab bar's Close
+    Tab and the menu's Close Window; which wins depends on the platform
+    and needs checking in the app.  Cmd+N (New Notebook) and Cmd+T (new
+    tab) do the same thing.  Cmd+P prints, where many editors open a
+    finder.  Cmd+D deletes a cell with no confirmation, one key from Cmd+S
+    and Cmd+F.  Every label says Cmd, on Windows and Linux too.
+28. **The toolbar puts five kinds of control in one row at one weight:**
+    inserting (+ Cell, + Markdown), running (Run All, Restart), editing
+    (Undo, Redo), opening things (Templates, Settings) and panel toggles
+    (Variables, Log, Docs), then the notebook's name and the session
+    status.  Undo, Redo and Settings repeat the menu bar; the name
+    repeats the tab; Templates is a kind of New.  Two panels open make
+    two solid accent buttons, the strongest things in the window, for
+    state that the open panels already show.  Restart sits far from the
+    status it changes.
+29. **Three icon styles.**  The tab bar's + is a character, the gap's +
+    is a Tabler icon, the hovered cell's ▲ ▼ ▶ × are characters in boxes,
+    the find bar has Aa ▲ ▼ ↔ ×, the docs panel ← →, and the log, docs and
+    variables each draw their own ×.
+30. **The palette searches functions and symbols, not commands.**  Cmd+K
+    opens a function and symbol finder called "Palette"; it can't run
+    Run All or open a panel, which is what a command palette does
+    elsewhere.
+31. **Panels have different headers.**  Variables has an upper-case title
+    and Kill All and no close button; Log has tabs, Clear and a ×; Docs
+    has back and forward, a search field and a ×; the find bar has its own
+    rows of buttons.  Heights, close buttons and button styles differ.
+32. **Only tabs have a context menu.**  A right-click on a cell, a result
+    or a panel does nothing of Aximar's own.
+33. **The session's state shows in three places:** the tab's dot, the
+    toolbar's pill and the status bar's last log line.
+
+### Proposal
+
+- **The menu bar lists every command, with its shortcut.**
+  - File: New Notebook (Cmd+N), New from Template..., Open..., Save,
+    Save As..., Export as LaTeX..., Print..., Close Tab (Cmd+W), Close
+    Window (Cmd+Shift+W).
+  - Edit: Undo and Redo wired to the notebook's undo, Cut, Copy, Paste,
+    Select All, Find (Cmd+F), Find and Replace (Cmd+Option+F).
+  - Cell: New Code Cell, New Markdown Cell, Run (Shift+Enter), Run and
+    Stay (Cmd+Enter), Run All, Move Up, Move Down, Delete Cell.
+  - Session: Interrupt, Restart.
+  - View: Variables, Log and Docs with check marks, Command Palette,
+    Shortcut Hints.
+  - Window: Minimize, Zoom, Next and Previous Tab, Move Tab to New
+    Window.
+  - Help: Aximar Help (the docs panel), Keyboard Shortcuts, What's New,
+    Report an Issue.
+- **A smaller toolbar in three groups:** the session (Run All,
+  Interrupt, Restart and the status beside them), then space, then the
+  panel toggles as one row of icons with tooltips (Variables, Docs,
+  Log with its count) and Settings.  Insert moves to the gaps, undo to
+  the menu and Cmd+Z, Templates to File and the empty notebook, the
+  name to the tab.
+- **Tabler icons for every icon button**, through `ui/icons.ts`, with
+  one close button and one header component for the panels.
+- **Commands in the palette,** from the same list the menu bar is built
+  from, so the two can't drift apart.
+- **A context menu on cells** with the Cell menu's commands.
+- **Shortcut labels that follow the platform:** Cmd on macOS, Ctrl
+  elsewhere.
 
 ## Suggested order
 
 1. Quick fixes 1 to 4.
 2. Stories for the screens above, so every later change shows in the
-   gallery.
+   gallery.  *Done;* see items 18 to 24 for what they turned up.
 3. Tokens: bundled fonts, the type and spacing scales, one palette with
    a light and a dark value for each colour.  Then move the rules onto
    them.
 4. The notebook: one output style, quieter errors, notes with code
    formatting.
-5. The toolbar, an icon set and the capitalisation rule.
+5. The toolbar, an icon set and the capitalisation rule: see "Menus and
+   toolbars" above.

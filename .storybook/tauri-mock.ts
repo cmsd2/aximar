@@ -1,9 +1,11 @@
 // Tauri's commands, mocked for stories: the window runs in a plain browser
 import { mockIPC, mockWindows } from "@tauri-apps/api/mocks";
+import { completions, docs, functions, packages } from "./catalog-fixture";
+import { useNotebookStore } from "../src/store/notebookStore";
 
 export const config = {
   theme: "light", maxima_path: null, font_size: 14, print_font_size: 11, eval_timeout: 30,
-  variables_open: true, cell_style: "bracket", autocomplete_mode: "active-hint",
+  variables_open: true, cell_style: "bracket", autocomplete_mode: "active-hint", show_suggestions: true,
   markdown_font: "sans-serif", markdown_indent: "aligned", print_margin_top: 15,
   print_margin_bottom: 15, print_margin_left: 15, print_margin_right: 15, backend: "local",
   docker_image: "aximar/maxima", wsl_distro: "Ubuntu", container_engine: "docker",
@@ -30,21 +32,46 @@ export function setStoryAnswers(answers: Record<string, unknown>): void {
 export function installTauriMock(): void {
   mockWindows("main");
   mockIPC(
-    (cmd) => {
+    (cmd, payload) => {
       if (cmd in storyAnswers) return storyAnswers[cmd];
+      const args = (payload ?? {}) as Record<string, string>;
       switch (cmd) {
         case "get_config":
           return { config, warnings: [] };
         case "list_templates":
           return templates;
         case "list_variables":
+          // The names of the user's variables, as Maxima's values list gives them
+          return ["F", "a", "f"];
+        case "nb_run_cell":
+          // A run that succeeds; the cell's output stays as it was
+          return { is_error: false, error: null, duration_ms: 5 };
+        case "nb_add_cell":
+          return addCell(payload as unknown as AddCell);
+        case "get_function":
+          return functions[args.name] ?? null;
+        case "get_function_docs":
+          return docs[args.name] ?? null;
+        case "complete_function":
+          return completions(args.prefix);
+        case "get_package":
+          return packages[args.name] ?? null;
+        case "package_for_function":
+          return Object.values(packages).find((p) => p.functions.includes(args.name))?.name ?? null;
+        case "search_functions":
+          return Object.values(functions)
+            .filter((f) => f.name.includes(args.query) || f.description.includes(args.query))
+            .map((f) => ({ function: f, score: 1 }));
+        case "get_suggestions":
+          // What the core offers after a result
           return [
-            { name: "x", value: "42" },
-            { name: "f", value: "f(t):=t^2" },
+            { label: "Simplify", template: "ratsimp(%)", description: "Simplify the result" },
+            { label: "Integrate", template: "integrate(%, x)", description: "Integrate with respect to x" },
+            { label: "Plot", template: "plot2d(%, [x, -5, 5])", description: "Plot the result" },
           ];
         case "list_wsl_distros":
-        case "get_suggestions":
-        case "search_functions":
+        case "get_buffered_logs":
+        case "search_package_functions":
         case "search_packages":
         case "list_categories":
           return [];
@@ -68,4 +95,32 @@ export function installTauriMock(): void {
     },
     { shouldMockEvents: true },
   );
+}
+
+interface AddCell {
+  cellType: string | null;
+  input: string | null;
+  afterCellId: string | null;
+  beforeCellId: string | null;
+}
+
+let added = 0;
+
+/** Add a cell to the story's notebook, as the backend's cell_added event would */
+function addCell({ cellType, input, afterCellId, beforeCellId }: AddCell): { cell_id: string } {
+  const store = useNotebookStore.getState();
+  const id = store.activeNotebookId;
+  const tab = id ? store.notebooks[id] : undefined;
+  if (!id || tab?.type !== "notebook") return { cell_id: "" };
+  const cellId = `new-${++added}`;
+  const cell = { id: cellId, cellType: (cellType ?? "code") as "code", input: input ?? "", output: null, status: "idle" as const };
+  const cells = [...tab.cells];
+  const at = afterCellId
+    ? cells.findIndex((c) => c.id === afterCellId) + 1
+    : beforeCellId
+      ? cells.findIndex((c) => c.id === beforeCellId)
+      : cells.length;
+  cells.splice(at < 0 ? cells.length : at, 0, cell);
+  store.applyBackendState(id, cells, "cell_added", cellId);
+  return { cell_id: cellId };
 }

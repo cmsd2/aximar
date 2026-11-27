@@ -2,6 +2,7 @@ import { useLingui } from "@lingui/react/macro";
 import { useActiveTab } from "../store/notebookStore";
 import { useMaxima } from "../hooks/useMaxima";
 import { displayTitle } from "../lib/tab-title";
+import { focusCell } from "../lib/cell-caret";
 import { nbAddCell, nbUndo, nbRedo } from "../lib/notebook-commands";
 
 interface ToolbarProps {
@@ -28,9 +29,8 @@ export function Toolbar({ onOpenTemplates, onOpenSettings, variablesOpen, onTogg
   const { runAll: runAllCells, restartSession } = useMaxima();
 
   const handleAddCell = async (cellType?: string) => {
-    await nbAddCell(cellType ?? "code", undefined, activeCellId ?? undefined);
-    // Focus is handled automatically: applyBackendState sets activeCellId,
-    // and the CodeMirror hook auto-focuses when the cell becomes active.
+    const { cell_id } = await nbAddCell(cellType ?? "code", undefined, activeCellId ?? undefined);
+    focusCell(cell_id, 0);
   };
 
   // The backend runs the cells and decides where to stop

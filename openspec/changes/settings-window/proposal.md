@@ -6,7 +6,7 @@ The Settings window is one flat list of about twenty rows in no order: language 
 
 - The Settings window gets a sidebar of sections, each with its own page:
   - **General**: language, theme, variables panel open at start.
-  - **Notebook**: font size, cell style, argument help, Markdown font, Markdown indent.
+  - **Notebook**: font size, cell style, argument help, suggestions under results (added for cmsd2/aximar#44), Markdown font, Markdown indent.
   - **Maxima**: backend, then only the fields for the chosen backend (Maxima path for Local; container engine and image for Docker; distro for WSL), a status line saying which Maxima Aximar found or why it found none, and the eval timeout.
   - **Printing**: print font size and the four margins.
   - **AI assistants**: the MCP server switch, a status line for the server, one row per client (Claude Code, Codex, Gemini CLI), and the listen address and token under an Advanced disclosure.

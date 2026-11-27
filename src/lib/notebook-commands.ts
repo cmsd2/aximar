@@ -169,8 +169,9 @@ interface NbCreateResult {
   notebook_id: string;
 }
 
-export async function nbCreate(): Promise<NbCreateResult> {
-  return invoke<NbCreateResult>("nb_create");
+/** Create a notebook: with one empty code cell, or with `empty` none, as New gives */
+export async function nbCreate(options: { empty?: boolean } = {}): Promise<NbCreateResult> {
+  return invoke<NbCreateResult>("nb_create", { empty: options.empty ?? null });
 }
 
 export async function nbClose(notebookId: string): Promise<void> {

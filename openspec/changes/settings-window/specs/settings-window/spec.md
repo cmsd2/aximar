@@ -9,7 +9,7 @@ The Settings window groups Aximar's settings into sections a user can find, expl
 The Settings window SHALL show a sidebar, headed by the window's title, listing its sections with an icon each, and SHALL show one section's settings at a time, under the section's name. The Translation section SHALL appear greyed in the sidebar. The sections and their settings, in this order, SHALL be:
 
 - General: language, theme, variables panel open at start.
-- Notebook: font size, cell style, argument help, Markdown font, Markdown indent.
+- Notebook: font size, cell style, argument help, suggestions under results, Markdown font, Markdown indent.
 - Maxima: backend, the fields for the chosen backend, a Maxima status line, eval timeout.
 - Printing: print font size, print margins.
 - AI assistants: MCP server switch, MCP server status line, one row per AI client, and an Advanced disclosure holding the listen address and the token.
@@ -78,6 +78,20 @@ Each setting SHALL show a hint of one line under its label saying what the setti
 
 - **WHEN** the Notebook section is shown
 - **THEN** the argument help setting shows a hint saying how each choice shows a function's arguments while typing
+
+### Requirement: Suggestion chips can be turned off
+
+The Notebook section SHALL offer a checkbox, on by default, that shows the suggestion chips under a cell's result. Turned off, no cell SHALL show chips or ask the backend for them, so a teacher can have students write each step themselves (cmsd2/aximar#44).
+
+#### Scenario: A teacher turns the chips off
+
+- **WHEN** the user clears "Suggestions under results"
+- **THEN** results show no suggestion chips, at once and after a restart
+
+#### Scenario: A config without the setting shows chips
+
+- **WHEN** Aximar reads a config file written before the setting existed
+- **THEN** suggestion chips show under results
 
 ### Requirement: Settings apply at once
 
