@@ -112,6 +112,7 @@ msgid "+ Cell"
 msgstr ""
 
 #. Button in the bar between cells: inserts a code cell there. max-length:12
+#. screen: cells--bracket-selection
 #. screen: editor--caret-bracket-style
 #: src/components/CellGap.tsx
 msgid "+ Code"
@@ -119,6 +120,7 @@ msgstr ""
 
 #. Button in the bar between cells: inserts a markdown cell there. max-length:14
 #. Toolbar button: adds a Markdown text cell below the active cell. max-length:12
+#. screen: cells--bracket-selection
 #. screen: editor--caret-bracket-style
 #. screen: screens--first-run
 #. screen: screens--maxima-not-found
@@ -443,6 +445,7 @@ msgid "Code"
 msgstr ""
 
 #. Tooltip of the bracket beside a code cell: hides the cell's output
+#. screen: cells--bracket-selection
 #. screen: cells--notebook
 #. screen: cells--print-and-tex
 #. screen: cells--selection
@@ -512,6 +515,7 @@ msgstr ""
 
 #. Button above a result: copies it to the clipboard as Maxima code. max-length:8
 #. Settings button: copies the MCP token to the clipboard
+#. screen: cells--bracket-selection
 #. screen: cells--notebook
 #. screen: cells--print-and-tex
 #. screen: cells--selection
@@ -527,6 +531,7 @@ msgid "Copy"
 msgstr ""
 
 #. Tooltip of the TeX button above a result: copies the result's LaTeX to the clipboard
+#. screen: cells--bracket-selection
 #. screen: cells--notebook
 #. screen: cells--print-and-tex
 #. screen: cells--selection
@@ -541,6 +546,7 @@ msgid "Copy LaTeX source"
 msgstr ""
 
 #. Tooltip of the Copy button above a result: copies the result as Maxima code
+#. screen: cells--bracket-selection
 #. screen: cells--notebook
 #. screen: cells--print-and-tex
 #. screen: cells--selection
@@ -593,6 +599,7 @@ msgstr ""
 #. Tooltip of the cross button that deletes a cell
 #. Tooltip of the cross button that deletes a cell
 #. Tooltip of the cross button that deletes a cell
+#. screen: cells--bracket-selection
 #. screen: cells--notebook
 #. screen: cells--print-and-tex
 #. screen: cells--selection
@@ -679,6 +686,7 @@ msgid "e.g. {exampleImage}"
 msgstr ""
 
 #. Tooltip of the pencil button on a markdown cell: opens its text for editing
+#. screen: cells--bracket-selection
 #. screen: cells--notebook
 #. screen: cells--selection
 #. screen: editor--find-and-replace
@@ -695,6 +703,7 @@ msgid "Enter markdown..."
 msgstr ""
 
 #. Placeholder in an empty code cell. Shift+Enter is the keyboard shortcut; keep it as it is
+#. screen: cells--bracket-selection
 #. screen: cells--notebook
 #. screen: cells--selection
 #. screen: screens--maxima-not-found
@@ -922,6 +931,7 @@ msgid "Image output"
 msgstr ""
 
 #. Label left of the input of a code cell that has not run yet, as in Jupyter. max-length:6
+#. screen: cells--bracket-selection
 #. screen: cells--notebook
 #. screen: cells--selection
 #. screen: editor--argument-help
@@ -937,6 +947,7 @@ msgid "In"
 msgstr ""
 
 #. Label left of a code cell's input, as in Jupyter. execNum is how many cells the session had run when this one last ran. max-length:10
+#. screen: cells--bracket-selection
 #. screen: cells--notebook
 #. screen: cells--print-and-tex
 #. screen: cells--selection
@@ -1215,6 +1226,7 @@ msgid "Mono"
 msgstr ""
 
 #. Tooltip of a code cell's down-arrow button
+#. screen: cells--bracket-selection
 #. screen: cells--notebook
 #. screen: cells--print-and-tex
 #. screen: cells--selection
@@ -1230,6 +1242,7 @@ msgid "Move cell down"
 msgstr ""
 
 #. Tooltip of a code cell's up-arrow button
+#. screen: cells--bracket-selection
 #. screen: cells--notebook
 #. screen: cells--print-and-tex
 #. screen: cells--selection
@@ -1369,6 +1382,7 @@ msgid "Out"
 msgstr ""
 
 #. Label left of a code cell's output, as in Jupyter. execNum is how many cells the session had run when this one last ran. max-length:10
+#. screen: cells--bracket-selection
 #. screen: cells--notebook
 #. screen: cells--print-and-tex
 #. screen: cells--selection
@@ -1572,6 +1586,7 @@ msgid "Run All"
 msgstr ""
 
 #. Tooltip of a code cell's run button. Shift+Enter is the keyboard shortcut; keep it as it is
+#. screen: cells--bracket-selection
 #. screen: cells--notebook
 #. screen: cells--print-and-tex
 #. screen: cells--selection
@@ -1639,6 +1654,7 @@ msgid "See Also"
 msgstr ""
 
 #. Tooltip of the place that selects a cell: the bracket right of it in bracket style, the margin with its In and Out labels in card style. Shift+click selects every cell up to it; Cmd+click adds it to the selection
+#. screen: cells--bracket-selection
 #. screen: cells--notebook
 #. screen: cells--print-and-tex
 #. screen: cells--selection
@@ -1661,6 +1677,7 @@ msgid "Select cell (Shift+click for a range, Cmd+click to add)"
 msgstr ""
 
 #. Tooltip of the place that selects a cell, on a selected cell: the bracket right of it in bracket style, the margin with its In and Out labels in card style. Cmd+click removes it from the selection
+#. screen: cells--bracket-selection
 #. screen: cells--selection
 #: src/components/Notebook.tsx
 msgid "Selected (Cmd+click to deselect)"
@@ -1697,6 +1714,7 @@ msgid "Show licences"
 msgstr ""
 
 #. Button on a note in a cell's output: shows the lines Maxima printed, which the note explains
+#. screen: cells--bracket-selection
 #. screen: cells--notebook
 #. screen: cells--selection
 #. screen: notes--all-notes
@@ -1714,6 +1732,7 @@ msgid "Show original"
 msgstr ""
 
 #. Button: shows the error exactly as Maxima printed it, below Aximar's explanation
+#. screen: cells--bracket-selection
 #. screen: cells--notebook
 #. screen: cells--selection
 #. screen: errors--all-explanations
@@ -1998,6 +2017,7 @@ msgid "Your changes will be lost if you don't save them."
 msgstr ""
 
 #. i18n: Maxima: "expt: undefined: 0 to a negative exponent." or "Division by 0"
+#. screen: cells--bracket-selection
 #. screen: cells--notebook
 #. screen: cells--selection
 #. screen: errors--all-explanations
@@ -2008,6 +2028,7 @@ msgctxt "error.division_by_zero.title"
 msgid "Division by Zero"
 msgstr ""
 
+#. screen: cells--bracket-selection
 #. screen: cells--notebook
 #. screen: cells--selection
 #. screen: errors--all-explanations
@@ -2018,6 +2039,7 @@ msgctxt "error.division_by_zero.explanation"
 msgid "The expression involves division by zero or raising zero to a negative power, which is undefined."
 msgstr ""
 
+#. screen: cells--bracket-selection
 #. screen: cells--notebook
 #. screen: cells--selection
 #. screen: errors--all-explanations
@@ -2753,6 +2775,7 @@ msgstr ""
 
 #. i18n: Maxima: "rat: replaced 0.5 by 1/2 = 0.5", one line per number.
 #. replacements lists them, such as "0.25 → 1/4, 0.5 → 1/2"
+#. screen: cells--bracket-selection
 #. screen: cells--notebook
 #. screen: cells--selection
 #. screen: notes--all-notes

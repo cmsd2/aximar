@@ -347,7 +347,18 @@
   position: absolute;
   inset: calc(-1 * var(--space-1)) 0;
   z-index: 3;
-  cursor: text;
+  cursor: vertical-text;
+}
+
+/* Where a click places the caret, the pointer is a horizontal I-beam
+   (the system's vertical-text cursor) */
+.cell-gap {
+  cursor: vertical-text;
+}
+
+/* In bracket style the bar's line stops short of the selection bracket */
+[data-cell-style="bracket"] .insert-bar {
+  margin-right: var(--space-1);
 }
 
 .cell-gap-line {
@@ -2202,15 +2213,18 @@
   display: none;
 }
 
+/* 26px, so its 10px bracket keeps clear of the insert bar's line.  These
+   are the values bracket style showed until the card-style rules, which
+   overrode these by mistake, were scoped to card style. */
 [data-cell-style="bracket"] .cell-select-bracket {
   display: block;
   position: absolute;
   top: 0;
   right: -18px;
   bottom: 0;
-  width: 32px;
+  width: 26px;
   cursor: pointer;
-  z-index: 4;
+  z-index: 2;
 }
 
 [data-cell-style="bracket"] .cell-select-bracket::after {
@@ -2237,7 +2251,7 @@
   border-right-color: var(--accent);
   border-top-color: var(--accent);
   border-bottom-color: var(--accent);
-  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
 }
 
 /* Card style selects from the cell's left margin: the column with its

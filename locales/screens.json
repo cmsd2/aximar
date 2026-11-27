@@ -1,5 +1,6 @@
 {
   "-90Aw8": [
+    "cells--bracket-selection",
     "cells--selection"
   ],
   "-L5ZyG": [
@@ -15,6 +16,7 @@
     "errors--all-explanations"
   ],
   "00pVqO": [
+    "cells--bracket-selection",
     "cells--notebook",
     "cells--selection",
     "notes--all-notes",
@@ -66,6 +68,7 @@
     "editor--find-and-replace"
   ],
   "36rXYG": [
+    "cells--bracket-selection",
     "cells--notebook",
     "cells--print-and-tex",
     "cells--selection",
@@ -169,6 +172,7 @@
     "dialogs--settings-maxima"
   ],
   "9s1Urw": [
+    "cells--bracket-selection",
     "cells--notebook",
     "cells--selection",
     "errors--all-explanations",
@@ -189,6 +193,7 @@
     "window--toolbar-and-tabs"
   ],
   "9wSsIz": [
+    "cells--bracket-selection",
     "cells--notebook",
     "cells--print-and-tex",
     "cells--selection",
@@ -208,6 +213,7 @@
     "errors--all-explanations"
   ],
   "AX-znr": [
+    "cells--bracket-selection",
     "cells--notebook",
     "cells--selection",
     "errors--all-explanations",
@@ -221,6 +227,7 @@
     "errors--all-explanations"
   ],
   "BEqAg8": [
+    "cells--bracket-selection",
     "cells--notebook",
     "cells--print-and-tex",
     "cells--selection",
@@ -356,6 +363,7 @@
     "errors--all-explanations"
   ],
   "Kluw6D": [
+    "cells--bracket-selection",
     "cells--notebook",
     "cells--selection",
     "editor--find-and-replace",
@@ -464,6 +472,7 @@
     "errors--all-explanations"
   ],
   "OkRgzN": [
+    "cells--bracket-selection",
     "cells--notebook",
     "cells--selection",
     "errors--all-explanations",
@@ -480,6 +489,7 @@
     "errors--all-explanations"
   ],
   "PmiBrO": [
+    "cells--bracket-selection",
     "cells--notebook",
     "cells--selection",
     "notes--all-notes",
@@ -489,6 +499,7 @@
     "errors--all-explanations"
   ],
   "Q65zPG": [
+    "cells--bracket-selection",
     "cells--notebook",
     "cells--print-and-tex",
     "cells--selection",
@@ -504,6 +515,7 @@
     "panels--docs-package-function"
   ],
   "QHqTyt": [
+    "cells--bracket-selection",
     "cells--notebook",
     "cells--print-and-tex",
     "cells--selection",
@@ -550,6 +562,7 @@
     "errors--all-explanations"
   ],
   "TEVR-M": [
+    "cells--bracket-selection",
     "cells--notebook",
     "cells--print-and-tex",
     "cells--selection",
@@ -593,6 +606,7 @@
     "window--toolbar-and-tabs"
   ],
   "U09AZZ": [
+    "cells--bracket-selection",
     "cells--notebook",
     "cells--print-and-tex",
     "cells--selection",
@@ -625,6 +639,7 @@
     "dialogs--settings-printing"
   ],
   "V-9-F1": [
+    "cells--bracket-selection",
     "editor--caret-bracket-style"
   ],
   "V-xeVI": [
@@ -706,6 +721,7 @@
     "errors--all-explanations"
   ],
   "_fOYgv": [
+    "cells--bracket-selection",
     "cells--notebook",
     "cells--print-and-tex",
     "cells--selection",
@@ -741,6 +757,7 @@
     "dialogs--settings-notebook"
   ],
   "ay_e24": [
+    "cells--bracket-selection",
     "cells--notebook",
     "cells--print-and-tex",
     "cells--selection",
@@ -758,6 +775,7 @@
     "window--shortcuts"
   ],
   "bIaBmV": [
+    "cells--bracket-selection",
     "cells--notebook",
     "cells--selection",
     "screens--maxima-not-found"
@@ -877,6 +895,7 @@
     "errors--all-explanations"
   ],
   "he3ygx": [
+    "cells--bracket-selection",
     "cells--notebook",
     "cells--print-and-tex",
     "cells--selection",
@@ -913,6 +932,7 @@
     "dialogs--settings-notebook"
   ],
   "ip5Gnc": [
+    "cells--bracket-selection",
     "cells--notebook",
     "cells--selection",
     "errors--all-explanations",
@@ -971,6 +991,7 @@
     "ui-segmentedcontrol--options"
   ],
   "mkn0j1": [
+    "cells--bracket-selection",
     "editor--caret-bracket-style",
     "screens--first-run",
     "screens--maxima-not-found",
@@ -1012,6 +1033,7 @@
     "dialogs--settings-ai-assistants"
   ],
   "prKc8h": [
+    "cells--bracket-selection",
     "cells--notebook",
     "cells--print-and-tex",
     "cells--selection",
@@ -1144,6 +1166,7 @@
     "screens--maxima-not-found"
   ],
   "wibUUa": [
+    "cells--bracket-selection",
     "cells--notebook",
     "cells--selection",
     "editor--argument-help",

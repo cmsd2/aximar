@@ -88,3 +88,10 @@ export const Selection: StoryObj = {
   ],
   render: () => <StoryNotebook />,
 };
+
+/** The same selection in bracket style: the brackets right of the cells */
+export const BracketSelection: StoryObj = {
+  parameters: { cellStyle: "bracket" },
+  loaders: Selection.loaders,
+  render: () => <StoryNotebook />,
+};
