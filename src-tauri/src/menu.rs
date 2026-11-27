@@ -1,15 +1,21 @@
 use aximar_core::msg;
+use serde::Deserialize;
+use std::collections::HashMap;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Mutex;
 use tauri::{
-    menu::{AboutMetadata, MenuBuilder, MenuItemBuilder, SubmenuBuilder},
-    webview::WebviewWindowBuilder,
-    AppHandle, Emitter, Manager, WebviewUrl,
+    menu::{
+        AboutMetadata, CheckMenuItemBuilder, IsMenuItem, Menu, MenuBuilder, MenuItemBuilder,
+        MenuItemKind, PredefinedMenuItem, Submenu, SubmenuBuilder,
+    },
+    AppHandle, Emitter, Manager, Runtime,
 };
 
 use crate::i18n::Translations;
 
-use std::sync::atomic::{AtomicU32, Ordering};
-
-static WINDOW_COUNTER: AtomicU32 = AtomicU32::new(1);
+/// Set once a window has sent its menu: from then on the windows own the
+/// menu bar, and the built-in menu isn't rebuilt over it
+static WINDOW_MENU: AtomicBool = AtomicBool::new(false);
 
 /// The menu bar's text in one language
 struct MenuLabels {
@@ -107,50 +113,54 @@ pub fn set_menu_language(app: &AppHandle, language: &str) -> tauri::Result<()> {
     set_menu_translations(app, &Translations::for_language(language))
 }
 
-/// Build the menu bar from `translations` and use it, as for a translation
-/// preview
+/// Build the built-in menu bar from `translations` and use it, as for a
+/// translation preview.  It stands in until the first window sends its own
+/// menu; after that a language change reaches the menu through the windows.
 pub fn set_menu_translations(app: &AppHandle, translations: &Translations) -> tauri::Result<()> {
+    if WINDOW_MENU.load(Ordering::Acquire) {
+        return Ok(());
+    }
     let l = MenuLabels::new(translations);
 
     // --- Custom menu items ---
 
     let new_item = MenuItemBuilder::new(&l.new_notebook)
-        .id("new")
+        .id("file.new")
         .accelerator("CmdOrCtrl+N")
         .build(app)?;
 
     let new_window_item = MenuItemBuilder::new(&l.new_window)
-        .id("new_window")
+        .id("file.new_window")
         .accelerator("CmdOrCtrl+Shift+N")
         .build(app)?;
 
     let open_item = MenuItemBuilder::new(&l.open)
-        .id("open")
+        .id("file.open")
         .accelerator("CmdOrCtrl+O")
         .build(app)?;
 
     let save_item = MenuItemBuilder::new(&l.save)
-        .id("save")
+        .id("file.save")
         .accelerator("CmdOrCtrl+S")
         .build(app)?;
 
     let save_as_item = MenuItemBuilder::new(&l.save_as)
-        .id("save_as")
+        .id("file.save_as")
         .accelerator("CmdOrCtrl+Shift+S")
         .build(app)?;
 
     let export_latex_item = MenuItemBuilder::new(&l.export_latex)
-        .id("export_latex")
+        .id("file.export_latex")
         .accelerator("CmdOrCtrl+Shift+E")
         .build(app)?;
 
     let settings_item = MenuItemBuilder::new(&l.settings)
-        .id("settings")
+        .id("app.settings")
         .accelerator("CmdOrCtrl+,")
         .build(app)?;
 
     let print_item = MenuItemBuilder::new(&l.print)
-        .id("print")
+        .id("file.print")
         .accelerator("CmdOrCtrl+P")
         .build(app)?;
 
@@ -236,51 +246,245 @@ pub fn set_menu_translations(app: &AppHandle, translations: &Translations) -> ta
 pub fn setup_menu(app: &mut tauri::App, language: &str) -> Result<(), Box<dyn std::error::Error>> {
     set_menu_language(app.handle(), language)?;
 
-    // --- Handle menu events → emit to frontend ---
-
+    // Every item runs its command in the focused window, which owns the
+    // command list (src/commands/registry.ts).  With no window open, New
+    // Window makes one.
     app.on_menu_event(move |app_handle, event| {
-        let id = event.id().0.as_str();
-        match id {
-            "new_window" => {
+        let id = event.id().0.clone();
+        let focused = app_handle
+            .webview_windows()
+            .into_values()
+            .find(|w| w.is_focused().unwrap_or(false));
+        match focused {
+            Some(window) => {
+                let _ = window.emit("menu-command", MenuCommand { id });
+            }
+            None if id == "file.new_window" => {
                 let app_handle = app_handle.clone();
                 tauri::async_runtime::spawn(async move {
-                    let n = WINDOW_COUNTER.fetch_add(1, Ordering::Relaxed);
-                    let label = format!("window-{n}");
-                    let _ = WebviewWindowBuilder::new(
-                        &app_handle,
-                        &label,
-                        WebviewUrl::App("index.html".into()),
-                    )
-                    .title("Aximar")
-                    .inner_size(1200.0, 800.0)
-                    .min_inner_size(800.0, 600.0)
-                    .build();
+                    let _ = crate::commands::window::create_window(app_handle, None).await;
                 });
             }
-            "new" | "open" | "save" | "save_as" | "export_latex" | "settings" => {
-                // Emit only to the focused window so actions don't leak across windows
-                let focused = app_handle
-                    .webview_windows()
-                    .into_values()
-                    .find(|w| w.is_focused().unwrap_or(false));
-                if let Some(window) = focused {
-                    let _ = window.emit("menu-event", id);
-                }
-            }
-            "print" => {
-                let focused = app_handle
-                    .webview_windows()
-                    .into_values()
-                    .find(|w| w.is_focused().unwrap_or(false));
-                if let Some(window) = focused {
-                    let _ = window.print();
-                }
-            }
-            _ => {}
+            None => {}
         }
     });
 
     Ok(())
+}
+
+/// The `menu-command` event: the id of the item the user chose
+#[derive(Clone, serde::Serialize)]
+struct MenuCommand {
+    id: String,
+}
+
+/// A menu bar as a window describes it (src/commands/menu-model.ts)
+#[derive(Debug, Deserialize)]
+#[serde(tag = "kind", rename_all = "snake_case")]
+pub enum MenuNode {
+    Submenu {
+        label: String,
+        items: Vec<MenuNode>,
+    },
+    Item {
+        id: String,
+        label: String,
+        accelerator: Option<String>,
+        enabled: bool,
+        /// Present for a check item
+        checked: Option<bool>,
+    },
+    Predefined {
+        which: Predefined,
+        /// The item's text, where the system lets an app set it
+        label: Option<String>,
+    },
+}
+
+/// The system's own items: the clipboard, the app menu, and window sizing
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum Predefined {
+    Separator,
+    Cut,
+    Copy,
+    Paste,
+    SelectAll,
+    Services,
+    Hide,
+    HideOthers,
+    ShowAll,
+    Quit,
+    About,
+    Minimize,
+    Maximize,
+}
+
+/// One item's state, sent when the focused window's state changes
+#[derive(Debug, Deserialize)]
+pub struct ItemState {
+    pub id: String,
+    pub enabled: bool,
+    pub checked: Option<bool>,
+}
+
+/// A built menu's custom items by command id, as `Menu::get` finds only
+/// top-level items
+pub type ItemsById<R> = HashMap<String, MenuItemKind<R>>;
+
+/// The custom items of the window-built menu, kept for `set_menu_state`
+#[derive(Default)]
+pub struct MenuItems(Mutex<ItemsById<tauri::Wry>>);
+
+fn predefined<R: Runtime, M: Manager<R>>(
+    app: &M,
+    which: Predefined,
+    label: Option<&str>,
+) -> tauri::Result<PredefinedMenuItem<R>> {
+    use PredefinedMenuItem as P;
+    match which {
+        Predefined::Separator => P::separator(app),
+        Predefined::Cut => P::cut(app, label),
+        Predefined::Copy => P::copy(app, label),
+        Predefined::Paste => P::paste(app, label),
+        Predefined::SelectAll => P::select_all(app, label),
+        Predefined::Services => P::services(app, label),
+        Predefined::Hide => P::hide(app, label),
+        Predefined::HideOthers => P::hide_others(app, label),
+        Predefined::ShowAll => P::show_all(app, label),
+        Predefined::Quit => P::quit(app, label),
+        Predefined::About => P::about(
+            app,
+            label,
+            Some(AboutMetadata {
+                license: Some("GPL-3.0-or-later".into()),
+                ..Default::default()
+            }),
+        ),
+        Predefined::Minimize => P::minimize(app, label),
+        Predefined::Maximize => P::maximize(app, label),
+    }
+}
+
+/// Build one node; custom items are recorded in `items` by id
+fn build_node<R: Runtime, M: Manager<R>>(
+    app: &M,
+    node: &MenuNode,
+    items: &mut ItemsById<R>,
+) -> tauri::Result<Box<dyn IsMenuItem<R>>> {
+    Ok(match node {
+        MenuNode::Submenu {
+            label,
+            items: children,
+        } => {
+            let built = children
+                .iter()
+                .map(|c| build_node(app, c, items))
+                .collect::<tauri::Result<Vec<_>>>()?;
+            let refs: Vec<&dyn IsMenuItem<R>> = built.iter().map(|b| b.as_ref()).collect();
+            Box::new(Submenu::with_items(app, label, true, &refs)?)
+        }
+        MenuNode::Item {
+            id,
+            label,
+            accelerator,
+            enabled,
+            checked: Some(checked),
+        } => {
+            let mut b = CheckMenuItemBuilder::with_id(id.as_str(), label)
+                .enabled(*enabled)
+                .checked(*checked);
+            if let Some(a) = accelerator {
+                b = b.accelerator(a);
+            }
+            let item = b.build(app)?;
+            items.insert(id.clone(), MenuItemKind::Check(item.clone()));
+            Box::new(item)
+        }
+        MenuNode::Item {
+            id,
+            label,
+            accelerator,
+            enabled,
+            checked: None,
+        } => {
+            let mut b = MenuItemBuilder::with_id(id.as_str(), label).enabled(*enabled);
+            if let Some(a) = accelerator {
+                b = b.accelerator(a);
+            }
+            let item = b.build(app)?;
+            items.insert(id.clone(), MenuItemKind::MenuItem(item.clone()));
+            Box::new(item)
+        }
+        MenuNode::Predefined { which, label } => {
+            Box::new(predefined(app, *which, label.as_deref())?)
+        }
+    })
+}
+
+/// Build a menu bar from a window's model, with its custom items by id
+pub fn build_menu<R: Runtime, M: Manager<R>>(
+    app: &M,
+    model: &[MenuNode],
+) -> tauri::Result<(Menu<R>, ItemsById<R>)> {
+    let mut items = HashMap::new();
+    let built = model
+        .iter()
+        .map(|n| build_node(app, n, &mut items))
+        .collect::<tauri::Result<Vec<_>>>()?;
+    let refs: Vec<&dyn IsMenuItem<R>> = built.iter().map(|b| b.as_ref()).collect();
+    let menu = MenuBuilder::new(app).items(&refs).build()?;
+    Ok((menu, items))
+}
+
+/// Set one built item's state; false when it is a predefined item or unknown
+pub fn apply_state<R: Runtime>(item: &MenuItemKind<R>, state: &ItemState) -> tauri::Result<bool> {
+    match item {
+        MenuItemKind::MenuItem(i) => i.set_enabled(state.enabled)?,
+        MenuItemKind::Check(i) => {
+            i.set_enabled(state.enabled)?;
+            if let Some(c) = state.checked {
+                i.set_checked(c)?;
+            }
+        }
+        _ => return Ok(false),
+    }
+    Ok(true)
+}
+
+/// Replace the menu bar with one a window built from its command list
+#[tauri::command]
+pub fn set_menu(
+    app: AppHandle,
+    items: tauri::State<'_, MenuItems>,
+    model: Vec<MenuNode>,
+) -> Result<(), String> {
+    let (menu, by_id) = build_menu(&app, &model).map_err(|e| e.to_string())?;
+    app.set_menu(menu).map_err(|e| e.to_string())?;
+    WINDOW_MENU.store(true, Ordering::Release);
+    *items.0.lock().map_err(|e| e.to_string())? = by_id;
+    Ok(())
+}
+
+/// Update items' enabled and checked state in place, for the focused window
+#[tauri::command]
+pub fn set_menu_state(
+    items: tauri::State<'_, MenuItems>,
+    states: Vec<ItemState>,
+) -> Result<(), String> {
+    let items = items.0.lock().map_err(|e| e.to_string())?;
+    for state in &states {
+        if let Some(item) = items.get(&state.id) {
+            apply_state(item, state).map_err(|e| e.to_string())?;
+        }
+    }
+    Ok(())
+}
+
+/// Print the window, for File > Print and the palette
+#[tauri::command]
+pub fn print_window(window: tauri::WebviewWindow) -> Result<(), String> {
+    window.print().map_err(|e| e.to_string())
 }
 
 #[cfg(test)]
@@ -301,6 +505,16 @@ msgstr "Guardar como..."
 msgid "Quit Aximar"
 msgstr "Salir de Aximar"
 "#;
+
+    // Building menus needs the main thread on macOS: see tests/menu_build.rs
+
+    #[test]
+    fn an_unknown_predefined_kind_is_an_error() {
+        let parsed: Result<Vec<MenuNode>, _> = serde_json::from_str(
+            r#"[{"kind": "predefined", "which": "fly_to_the_moon", "label": null}]"#,
+        );
+        assert!(parsed.is_err());
+    }
 
     #[test]
     fn menu_labels_come_from_the_catalog() {

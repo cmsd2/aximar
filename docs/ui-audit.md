@@ -252,6 +252,22 @@ and many commands exist in only one.
 33. **The session's state shows in three places:** the tab's dot, the
     toolbar's pill and the status bar's last log line.
 
+*Done in the menus-and-commands change*
+(`openspec/changes/menus-and-commands`): one list of the window's
+commands (`src/commands/registry.ts`) builds the menu bar (File, Edit,
+Cell, Session, View, Window, Help, every command with its shortcut), the
+palette's Commands group, the cell context menu, the toolbar's tooltips,
+the shortcut hints and Help > Keyboard Shortcuts (items 25, 30, 32).
+Edit's Undo and Redo undo the notebook, or a text field's own typing
+(26). Each shortcut is bound once, as a menu accelerator: Cmd+W closes
+the tab, Cmd+Shift+W the window, Cmd+T is gone, and Delete Cell moved
+from Cmd+D to Cmd+Shift+Backspace; labels follow the platform (27). The
+toolbar holds Run All, Interrupt, Restart and the status, then the panel
+toggles, tinted when on, and Settings (28, 33's pill stays beside the
+session's buttons). Tabler icons replace the characters, and the
+variables, docs and log panels and the find bar share one header (29,
+31). Still to check by hand: the accelerators on Windows and Linux.
+
 ### Proposal
 
 - **The menu bar lists every command, with its shortcut.**

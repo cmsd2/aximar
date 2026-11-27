@@ -10,6 +10,7 @@ import { CellSuggestions } from "./CellSuggestions";
 import { nbDeleteCell, nbMoveCell } from "../lib/notebook-commands";
 import { afterRun, goTo } from "../lib/cell-caret";
 import { cancelEvaluation } from "../lib/maxima-client";
+import { IconChevronDown, IconChevronUp, IconPlayerPlay, IconPlayerStop, IconX } from "./ui/icons";
 
 interface CellProps {
   cell: CellType;
@@ -117,7 +118,7 @@ export function Cell({ cell, onViewDocs, selectBracket }: CellProps) {
                 title={t({ message: "Move cell up", comment: "Tooltip of a code cell's up-arrow button" })}
                 disabled={cells[0]?.id === cell.id}
               >
-                &#9650;
+                <IconChevronUp size={14} stroke={1.75} aria-hidden="true" />
               </button>
               <button
                 className="cell-btn move-btn"
@@ -125,7 +126,7 @@ export function Cell({ cell, onViewDocs, selectBracket }: CellProps) {
                 title={t({ message: "Move cell down", comment: "Tooltip of a code cell's down-arrow button" })}
                 disabled={cells[cells.length - 1]?.id === cell.id}
               >
-                &#9660;
+                <IconChevronDown size={14} stroke={1.75} aria-hidden="true" />
               </button>
             </>
           )}
@@ -138,7 +139,7 @@ export function Cell({ cell, onViewDocs, selectBracket }: CellProps) {
                 comment: "Tooltip of the stop button on a running code cell: interrupts Maxima",
               })}
             >
-              &#9632;
+              <IconPlayerStop size={14} stroke={1.75} aria-hidden="true" />
             </button>
           ) : (
             <button
@@ -149,7 +150,7 @@ export function Cell({ cell, onViewDocs, selectBracket }: CellProps) {
                 comment: "Tooltip of a code cell's run button. Shift+Enter is the keyboard shortcut; keep it as it is",
               })}
             >
-              &#9654;
+              <IconPlayerPlay size={14} stroke={1.75} aria-hidden="true" />
             </button>
           )}
           {cellCount > 1 && (
@@ -158,7 +159,7 @@ export function Cell({ cell, onViewDocs, selectBracket }: CellProps) {
               onClick={() => nbDeleteCell(cell.id)}
               title={t({ message: "Delete cell", comment: "Tooltip of the cross button that deletes a cell" })}
             >
-              &times;
+              <IconX size={14} stroke={1.75} aria-hidden="true" />
             </button>
           )}
         </div>

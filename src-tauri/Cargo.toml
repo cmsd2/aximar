@@ -41,5 +41,13 @@ which = "8"
 # builds; debug builds always have it.  See docs/i18n.md.
 translator-tools = []
 
+# Builds menus, which macOS allows only on the main thread, so it runs as a
+# plain program rather than under the test harness's threads
+[[test]]
+name = "menu_build"
+harness = false
+
 [dev-dependencies]
 tempfile = "3"
+# Menus built in tests, against the mock runtime
+tauri = { version = "2", features = ["test"] }

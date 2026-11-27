@@ -28,14 +28,14 @@
     "screens--drop-refused",
     "screens--whole-window"
   ],
-  "0735Pj": [
-    "dialogs--command-palette-open"
-  ],
   "0sTv6O": [
     "docs-panel--no-pack-yet",
     "docs-panel--not-in-the-help-language",
     "docs-panel--old-translation",
     "docs-panel--summary-above-english"
+  ],
+  "1LFw5a": [
+    "dialogs--keyboard-shortcuts"
   ],
   "1QfxQT": [
     "cells--trust-banner-shown"
@@ -90,6 +90,7 @@
     "editor--argument-help",
     "editor--caret-between-cells",
     "editor--caret-bracket-style",
+    "editor--cell-context-menu",
     "editor--completion",
     "editor--find-and-replace",
     "editor--insert-menu",
@@ -109,8 +110,18 @@
   "3JaK3G": [
     "outputs--running-and-queued"
   ],
+  "3JjdaA": [
+    "dialogs--command-palette-commands",
+    "editor--cell-context-menu"
+  ],
+  "3Qk4Zv": [
+    "dialogs--command-palette-commands"
+  ],
   "3mUZZb": [
     "errors--all-explanations"
+  ],
+  "45MZFs": [
+    "dialogs--command-palette-commands"
   ],
   "4Vwr9d": [
     "errors--all-explanations"
@@ -118,20 +129,18 @@
   "56XI0o": [
     "editor--find-and-replace"
   ],
-  "56fvpZ": [
-    "screens--drop-mixed",
-    "screens--drop-notebooks",
-    "screens--drop-refused",
-    "screens--first-run",
-    "screens--maxima-not-found",
-    "screens--whole-window",
-    "window--toolbar-and-tabs"
-  ],
   "59fwkx": [
     "outputs--plot-viewer-tab"
   ],
   "5E-Yo2": [
     "errors--all-explanations"
+  ],
+  "5m640k": [
+    "dialogs--keyboard-shortcuts"
+  ],
+  "5opdqI": [
+    "dialogs--keyboard-shortcuts",
+    "window--shortcuts"
   ],
   "5rCHh6": [
     "screens--drop-mixed",
@@ -156,7 +165,9 @@
     "screens--first-run",
     "screens--maxima-not-found",
     "screens--whole-window",
-    "window--toolbar-and-tabs"
+    "window--toolbar-and-tabs",
+    "window--toolbar-panels-open",
+    "window--toolbar-running"
   ],
   "73IRLA": [
     "errors--all-explanations"
@@ -190,6 +201,9 @@
     "dialogs--settings-translation",
     "ui-statusbox--all-tones"
   ],
+  "83VjWE": [
+    "dialogs--keyboard-shortcuts"
+  ],
   "88YXb4": [
     "dialogs--settings",
     "dialogs--settings-translation",
@@ -222,14 +236,8 @@
     "dialogs--settings-ai-assistants"
   ],
   "9uI_rE": [
-    "screens--drop-mixed",
-    "screens--drop-notebooks",
-    "screens--drop-refused",
-    "screens--first-run",
-    "screens--maxima-not-found",
-    "screens--whole-window",
-    "window--shortcuts",
-    "window--toolbar-and-tabs"
+    "dialogs--keyboard-shortcuts",
+    "window--shortcuts"
   ],
   "9wSsIz": [
     "cells--bracket-selection",
@@ -238,6 +246,7 @@
     "cells--selection",
     "editor--caret-between-cells",
     "editor--caret-bracket-style",
+    "editor--cell-context-menu",
     "editor--find-and-replace",
     "editor--insert-menu",
     "outputs--running-and-queued",
@@ -278,6 +287,7 @@
     "cells--selection",
     "editor--caret-between-cells",
     "editor--caret-bracket-style",
+    "editor--cell-context-menu",
     "editor--find-and-replace",
     "editor--insert-menu",
     "outputs--running-and-queued",
@@ -298,6 +308,9 @@
     "dialogs--settings-notebook",
     "ui-segmentedcontrol--options"
   ],
+  "BYWR3i": [
+    "editor--cell-context-menu"
+  ],
   "Bb0i4s": [
     "errors--all-explanations"
   ],
@@ -309,10 +322,15 @@
     "dialogs--settings-translation"
   ],
   "Bpglf1": [
+    "dialogs--keyboard-shortcuts",
+    "editor--cell-context-menu",
     "window--shortcuts"
   ],
   "BrW77_": [
     "errors--all-explanations"
+  ],
+  "BtVGnB": [
+    "editor--cell-context-menu"
   ],
   "C7zRQH": [
     "docs-panel--no-pack-yet",
@@ -333,8 +351,16 @@
   "CnuZG0": [
     "errors--all-explanations"
   ],
+  "CqO9qC": [
+    "dialogs--keyboard-shortcuts"
+  ],
   "DPc2P9": [
+    "dialogs--keyboard-shortcuts",
+    "editor--cell-context-menu",
     "window--shortcuts"
+  ],
+  "DPfwMq": [
+    "dialogs--keyboard-shortcuts"
   ],
   "ENfAMB": [
     "errors--all-explanations"
@@ -359,7 +385,9 @@
     "screens--first-run",
     "screens--maxima-not-found",
     "screens--whole-window",
-    "window--toolbar-and-tabs"
+    "window--toolbar-and-tabs",
+    "window--toolbar-panels-open",
+    "window--toolbar-running"
   ],
   "FadsqE": [
     "dialogs--settings-ai-assistants"
@@ -387,15 +415,12 @@
   "Ge7gv1": [
     "errors--all-explanations"
   ],
+  "GxQ-9R": [
+    "editor--cell-context-menu"
+  ],
   "H3oH0g": [
-    "screens--drop-mixed",
-    "screens--drop-notebooks",
-    "screens--drop-refused",
-    "screens--first-run",
-    "screens--maxima-not-found",
-    "screens--whole-window",
-    "window--shortcuts",
-    "window--toolbar-and-tabs"
+    "dialogs--keyboard-shortcuts",
+    "window--shortcuts"
   ],
   "HeKaRX": [
     "errors--all-explanations"
@@ -410,11 +435,20 @@
   "IzOaIb": [
     "dialogs--command-palette-open"
   ],
+  "J2eKUI": [
+    "dialogs--keyboard-shortcuts"
+  ],
   "J7RtOU": [
     "errors--all-explanations"
   ],
   "JL7uQa": [
     "errors--all-explanations"
+  ],
+  "JaGox2": [
+    "dialogs--keyboard-shortcuts"
+  ],
+  "JaLXyo": [
+    "dialogs--keyboard-shortcuts"
   ],
   "JiMTQi": [
     "errors--all-explanations"
@@ -422,6 +456,9 @@
   "Jx4ATq": [
     "docs-panel--no-pack-yet",
     "docs-panel--summary-above-english"
+  ],
+  "KEokZN": [
+    "dialogs--keyboard-shortcuts"
   ],
   "KdQ_-f": [
     "errors--all-explanations"
@@ -446,6 +483,7 @@
     "notes--all-notes"
   ],
   "KujtjC": [
+    "dialogs--keyboard-shortcuts",
     "window--shortcuts"
   ],
   "L-UTYm": [
@@ -459,6 +497,7 @@
     "ui-fields--rows"
   ],
   "LH79sl": [
+    "dialogs--command-palette-commands",
     "dialogs--command-palette-open"
   ],
   "LHsg4q": [
@@ -480,6 +519,10 @@
   "MCbDl6": [
     "docs-panel--no-pack-yet"
   ],
+  "MLirzB": [
+    "screens--whole-window",
+    "window--variables"
+  ],
   "MohnW9": [
     "notes--all-notes"
   ],
@@ -489,6 +532,7 @@
     "cells--selection",
     "editor--argument-help",
     "editor--caret-between-cells",
+    "editor--cell-context-menu",
     "editor--completion",
     "editor--find-and-replace",
     "editor--insert-menu",
@@ -519,9 +563,6 @@
   "NODndY": [
     "errors--all-explanations"
   ],
-  "NnvXp5": [
-    "window--toolbar-and-tabs"
-  ],
   "NqOqeL": [
     "errors--all-explanations"
   ],
@@ -533,6 +574,18 @@
   ],
   "OJDqEq": [
     "errors--all-explanations"
+  ],
+  "OKk1Jz": [
+    "dialogs--keyboard-shortcuts",
+    "screens--drop-mixed",
+    "screens--drop-notebooks",
+    "screens--drop-refused",
+    "screens--first-run",
+    "screens--maxima-not-found",
+    "screens--whole-window",
+    "window--toolbar-and-tabs",
+    "window--toolbar-panels-open",
+    "window--toolbar-running"
   ],
   "OS9mBV": [
     "errors--all-explanations"
@@ -585,6 +638,9 @@
     "screens--drop-refused",
     "screens--whole-window"
   ],
+  "PovCoO": [
+    "dialogs--keyboard-shortcuts"
+  ],
   "PyCiwA": [
     "errors--all-explanations"
   ],
@@ -595,6 +651,7 @@
     "cells--selection",
     "editor--caret-between-cells",
     "editor--caret-bracket-style",
+    "editor--cell-context-menu",
     "editor--find-and-replace",
     "editor--insert-menu",
     "outputs--running-and-queued",
@@ -614,6 +671,7 @@
     "cells--selection",
     "editor--caret-between-cells",
     "editor--caret-bracket-style",
+    "editor--cell-context-menu",
     "editor--find-and-replace",
     "editor--insert-menu",
     "outputs--running-and-queued",
@@ -654,6 +712,9 @@
   "SH-UEH": [
     "errors--all-explanations"
   ],
+  "T3Mld1": [
+    "dialogs--keyboard-shortcuts"
+  ],
   "T9NxpH": [
     "errors--all-explanations"
   ],
@@ -665,6 +726,7 @@
     "editor--argument-help",
     "editor--caret-between-cells",
     "editor--caret-bracket-style",
+    "editor--cell-context-menu",
     "editor--completion",
     "editor--find-and-replace",
     "editor--insert-menu",
@@ -695,7 +757,9 @@
     "screens--first-run",
     "screens--maxima-not-found",
     "screens--whole-window",
-    "window--toolbar-and-tabs"
+    "window--toolbar-and-tabs",
+    "window--toolbar-panels-open",
+    "window--toolbar-running"
   ],
   "Tz0i8g": [
     "dialogs--settings",
@@ -703,14 +767,7 @@
     "dialogs--settings-maxima",
     "dialogs--settings-notebook",
     "dialogs--settings-printing",
-    "dialogs--settings-translation",
-    "screens--drop-mixed",
-    "screens--drop-notebooks",
-    "screens--drop-refused",
-    "screens--first-run",
-    "screens--maxima-not-found",
-    "screens--whole-window",
-    "window--toolbar-and-tabs"
+    "dialogs--settings-translation"
   ],
   "U09AZZ": [
     "cells--bracket-selection",
@@ -719,6 +776,7 @@
     "cells--selection",
     "editor--caret-between-cells",
     "editor--caret-bracket-style",
+    "editor--cell-context-menu",
     "editor--find-and-replace",
     "editor--insert-menu",
     "outputs--plotly-plot",
@@ -788,6 +846,9 @@
     "dialogs--settings-printing",
     "dialogs--settings-translation"
   ],
+  "WqheKN": [
+    "dialogs--keyboard-shortcuts"
+  ],
   "Wziu1q": [
     "panels--docs-package-function"
   ],
@@ -825,14 +886,14 @@
   "ZBRZnU": [
     "errors--all-explanations"
   ],
+  "ZRseYj": [
+    "dialogs--keyboard-shortcuts"
+  ],
   "Z_QDAl": [
     "notes--all-notes"
   ],
   "Zw-Zv-": [
     "dialogs--settings-ai-assistants"
-  ],
-  "ZyMBtl": [
-    "window--shortcuts"
   ],
   "_4AfjN": [
     "errors--all-explanations"
@@ -847,6 +908,7 @@
     "cells--selection",
     "editor--caret-between-cells",
     "editor--caret-bracket-style",
+    "editor--cell-context-menu",
     "editor--find-and-replace",
     "editor--insert-menu",
     "outputs--plotly-plot",
@@ -870,6 +932,9 @@
   "aPaH_t": [
     "dialogs--settings-ai-assistants"
   ],
+  "aRI3Om": [
+    "dialogs--keyboard-shortcuts"
+  ],
   "aTrKfy": [
     "panels--log-app",
     "panels--log-events",
@@ -888,6 +953,7 @@
     "cells--selection",
     "editor--caret-between-cells",
     "editor--caret-bracket-style",
+    "editor--cell-context-menu",
     "editor--find-and-replace",
     "editor--insert-menu",
     "outputs--plotly-plot",
@@ -905,6 +971,8 @@
     "docs-panel--old-translation"
   ],
   "bAvovP": [
+    "dialogs--keyboard-shortcuts",
+    "editor--cell-context-menu",
     "window--shortcuts"
   ],
   "bIaBmV": [
@@ -914,7 +982,11 @@
     "screens--maxima-not-found"
   ],
   "bUObdg": [
+    "dialogs--command-palette-commands",
     "dialogs--command-palette-open"
+  ],
+  "bVOe6s": [
+    "dialogs--keyboard-shortcuts"
   ],
   "bXyAaS": [
     "errors--all-explanations"
@@ -924,6 +996,9 @@
   ],
   "bvy5S7": [
     "notes--all-notes"
+  ],
+  "c3XJ18": [
+    "dialogs--keyboard-shortcuts"
   ],
   "cNH5On": [
     "errors--all-explanations"
@@ -939,7 +1014,9 @@
     "screens--drop-mixed",
     "screens--drop-notebooks",
     "screens--drop-refused",
-    "screens--whole-window"
+    "screens--whole-window",
+    "window--toolbar-and-tabs",
+    "window--toolbar-panels-open"
   ],
   "clKErK": [
     "errors--all-explanations"
@@ -956,9 +1033,6 @@
   ],
   "d5zxa4": [
     "dialogs--settings-maxima"
-  ],
-  "d9E9pE": [
-    "window--shortcuts"
   ],
   "dE9Ihk": [
     "outputs--svg-plot"
@@ -981,6 +1055,9 @@
   "eLLVVx": [
     "errors--all-explanations"
   ],
+  "ePK91l": [
+    "dialogs--keyboard-shortcuts"
+  ],
   "eiRFO8": [
     "ui-statusbox--all-tones"
   ],
@@ -990,6 +1067,9 @@
   "f-BFfG": [
     "dialogs--settings-notebook",
     "ui-segmentedcontrol--options"
+  ],
+  "fSOU2Q": [
+    "dialogs--keyboard-shortcuts"
   ],
   "fWLk_q": [
     "dialogs--settings",
@@ -1025,7 +1105,12 @@
     "screens--maxima-not-found",
     "screens--whole-window",
     "window--toolbar-and-tabs",
+    "window--toolbar-panels-open",
+    "window--toolbar-running",
     "window--variables"
+  ],
+  "h7MgpO": [
+    "dialogs--keyboard-shortcuts"
   ],
   "h9XliQ": [
     "errors--all-explanations"
@@ -1044,6 +1129,7 @@
     "docs-panel--summary-above-english",
     "editor--caret-between-cells",
     "editor--caret-bracket-style",
+    "editor--cell-context-menu",
     "editor--find-and-replace",
     "editor--insert-menu",
     "outputs--running-and-queued",
@@ -1073,15 +1159,6 @@
     "panels--docs-function",
     "panels--docs-package-function",
     "screens--whole-window"
-  ],
-  "iTylMl": [
-    "screens--drop-mixed",
-    "screens--drop-notebooks",
-    "screens--drop-refused",
-    "screens--first-run",
-    "screens--maxima-not-found",
-    "screens--whole-window",
-    "window--toolbar-and-tabs"
   ],
   "igb8BH": [
     "dialogs--settings-notebook"
@@ -1116,17 +1193,14 @@
     "dialogs--settings-printing",
     "dialogs--settings-translation"
   ],
+  "jpctdh": [
+    "dialogs--keyboard-shortcuts"
+  ],
   "jyEv3f": [
     "panels--docs-package-function"
   ],
-  "k6BSBZ": [
-    "screens--drop-mixed",
-    "screens--drop-notebooks",
-    "screens--drop-refused",
-    "screens--first-run",
-    "screens--maxima-not-found",
-    "screens--whole-window",
-    "window--toolbar-and-tabs"
+  "kVHATU": [
+    "window--toolbar-running"
   ],
   "koMHPM": [
     "dialogs--settings",
@@ -1139,6 +1213,11 @@
     "editor--caret-between-cells",
     "editor--caret-bracket-style",
     "editor--new-notebook"
+  ],
+  "kpRsrQ": [
+    "panels--log-app",
+    "panels--log-events",
+    "panels--log-maxima-output"
   ],
   "kryGs-": [
     "dialogs--settings-notebook"
@@ -1155,6 +1234,10 @@
   "m5tP38": [
     "errors--all-explanations"
   ],
+  "mLr7aa": [
+    "dialogs--command-palette-commands",
+    "editor--cell-context-menu"
+  ],
   "mar8r-": [
     "dialogs--settings",
     "dialogs--settings-translation"
@@ -1165,14 +1248,7 @@
   ],
   "mkn0j1": [
     "cells--bracket-selection",
-    "editor--caret-bracket-style",
-    "screens--drop-mixed",
-    "screens--drop-notebooks",
-    "screens--drop-refused",
-    "screens--first-run",
-    "screens--maxima-not-found",
-    "screens--whole-window",
-    "window--toolbar-and-tabs"
+    "editor--caret-bracket-style"
   ],
   "nOPbWJ": [
     "dialogs--settings-printing"
@@ -1188,6 +1264,9 @@
   ],
   "nt-MSq": [
     "errors--all-explanations"
+  ],
+  "oFObGI": [
+    "dialogs--keyboard-shortcuts"
   ],
   "ohqUka": [
     "errors--all-explanations"
@@ -1215,6 +1294,7 @@
     "cells--selection",
     "editor--caret-between-cells",
     "editor--caret-bracket-style",
+    "editor--cell-context-menu",
     "editor--find-and-replace",
     "editor--insert-menu",
     "outputs--running-and-queued",
@@ -1266,26 +1346,47 @@
   "sNekt1": [
     "dialogs--export-latex"
   ],
-  "st2m3k": [
-    "errors--all-explanations"
-  ],
-  "sxkWRg": [
-    "dialogs--settings-ai-assistants"
-  ],
-  "t6m47v": [
+  "siNzwO": [
+    "dialogs--keyboard-shortcuts",
     "screens--drop-mixed",
     "screens--drop-notebooks",
     "screens--drop-refused",
     "screens--first-run",
     "screens--maxima-not-found",
     "screens--whole-window",
-    "window--toolbar-and-tabs"
+    "window--toolbar-and-tabs",
+    "window--toolbar-panels-open",
+    "window--toolbar-running"
+  ],
+  "st2m3k": [
+    "errors--all-explanations"
+  ],
+  "sxkWRg": [
+    "dialogs--settings-ai-assistants"
+  ],
+  "t2TMzs": [
+    "dialogs--keyboard-shortcuts"
+  ],
+  "t6m47v": [
+    "dialogs--command-palette-commands",
+    "screens--drop-mixed",
+    "screens--drop-notebooks",
+    "screens--drop-refused",
+    "screens--first-run",
+    "screens--maxima-not-found",
+    "screens--whole-window",
+    "window--toolbar-and-tabs",
+    "window--toolbar-panels-open",
+    "window--toolbar-running"
   ],
   "tEomDN": [
     "cells--trust-banner-shown"
   ],
   "tQpcB9": [
     "dialogs--settings-ai-assistants"
+  ],
+  "tfDRzk": [
+    "dialogs--keyboard-shortcuts"
   ],
   "tst44n": [
     "panels--log-app",
@@ -1314,7 +1415,9 @@
     "screens--first-run",
     "screens--maxima-not-found",
     "screens--whole-window",
-    "window--toolbar-and-tabs"
+    "window--toolbar-and-tabs",
+    "window--toolbar-panels-open",
+    "window--toolbar-running"
   ],
   "vB68nd": [
     "errors--all-explanations"
@@ -1353,6 +1456,10 @@
   "wCssdg": [
     "errors--all-explanations"
   ],
+  "wJiiZ0": [
+    "dialogs--keyboard-shortcuts",
+    "window--shortcuts"
+  ],
   "wKJJ_t": [
     "screens--maxima-not-found"
   ],
@@ -1363,6 +1470,7 @@
     "editor--argument-help",
     "editor--caret-between-cells",
     "editor--caret-bracket-style",
+    "editor--cell-context-menu",
     "editor--completion",
     "editor--insert-menu",
     "outputs--running-and-queued",
@@ -1376,7 +1484,9 @@
     "screens--first-run",
     "screens--maxima-not-found",
     "screens--whole-window",
-    "window--toolbar-and-tabs"
+    "window--toolbar-and-tabs",
+    "window--toolbar-panels-open",
+    "window--toolbar-running"
   ],
   "xCJdfg": [
     "panels--log-app",
@@ -1394,6 +1504,16 @@
   ],
   "xn5H58": [
     "errors--all-explanations"
+  ],
+  "yOaVFK": [
+    "dialogs--keyboard-shortcuts"
+  ],
+  "yZnKtn": [
+    "dialogs--command-palette-commands",
+    "dialogs--command-palette-open"
+  ],
+  "ykoijS": [
+    "dialogs--keyboard-shortcuts"
   ],
   "yz7wBu": [
     "dialogs--settings",
@@ -1417,20 +1537,14 @@
   "zImjmf": [
     "errors--all-explanations"
   ],
+  "zUng18": [
+    "dialogs--keyboard-shortcuts"
+  ],
   "zdwlHC": [
     "errors--all-explanations"
   ],
   "zjdtIu": [
     "dialogs--settings-ai-assistants"
-  ],
-  "znFg6V": [
-    "screens--drop-mixed",
-    "screens--drop-notebooks",
-    "screens--drop-refused",
-    "screens--first-run",
-    "screens--maxima-not-found",
-    "screens--whole-window",
-    "window--toolbar-and-tabs"
   ],
   "zsiX7I": [
     "dialogs--settings-printing"

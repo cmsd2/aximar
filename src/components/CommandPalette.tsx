@@ -7,6 +7,13 @@ import { useActiveTab, useNotebookStore, getActiveTabState } from "../store/note
 import { useLogStore } from "../store/logStore";
 import { nbAddCell } from "../lib/notebook-commands";
 import type { SearchResult, CategoryGroup, PackageSearchResult, PackageFunctionSearchResult } from "../types/catalog";
+import type { Command } from "../commands/registry";
+import { matchCommands } from "../commands/palette-commands";
+import { formatShortcut } from "../commands/shortcut";
+import { useCommandState, useRunCommand } from "../commands/useCommands";
+
+/** How many commands the palette lists above the functions */
+const COMMANDS_SHOWN = 5;
 
 interface CommandPaletteProps {
   onClose: () => void;
@@ -15,7 +22,9 @@ interface CommandPaletteProps {
 }
 
 export function CommandPalette({ onClose, onViewDocs, initialQuery }: CommandPaletteProps) {
-  const { t } = useLingui();
+  const { t, i18n } = useLingui();
+  const commandState = useCommandState();
+  const runCommand = useRunCommand();
   const [query, setQuery] = useState(initialQuery ?? "");
   const [results, setResults] = useState<SearchResult[]>([]);
   const [categories, setCategories] = useState<CategoryGroup[]>([]);
@@ -41,14 +50,16 @@ export function CommandPalette({ onClose, onViewDocs, initialQuery }: CommandPal
 
   // Display mode flags (computed early so search effect can reference them)
   const isSymbolMode = query.startsWith("\\");
-  const isSearchMode = !isSymbolMode && query.trim().length > 0;
+  // ">" first: commands only
+  const isCommandMode = query.startsWith(">");
+  const isSearchMode = !isSymbolMode && !isCommandMode && query.trim().length > 0;
   const isPackagesMode = !isSearchMode && !isSymbolMode && selectedCategory === "__packages__";
   const isCategorySelected = !isSearchMode && !isSymbolMode && !isPackagesMode && selectedCategory !== null;
-  const isCategoryList = !isSearchMode && !isSymbolMode && selectedCategory === null;
+  const isCategoryList = !isSearchMode && !isSymbolMode && !isCommandMode && selectedCategory === null;
 
   // Search on query change
   useEffect(() => {
-    if (query.trim() && !isSymbolMode) {
+    if (query.trim() && !isSymbolMode && !isCommandMode) {
       const timer = setTimeout(() => {
         const q = query.trim();
         Promise.all([
@@ -69,7 +80,24 @@ export function CommandPalette({ onClose, onViewDocs, initialQuery }: CommandPal
       setPkgFuncResults([]);
       setSelectedIndex(0);
     }
-  }, [query, isSymbolMode]);
+  }, [query, isSymbolMode, isCommandMode]);
+
+  // The commands matching the query: above the functions, or alone after ">"
+  const commandItems: Command[] = useMemo(() => {
+    const label = (c: Command) => i18n._(c.label);
+    if (isCommandMode) return matchCommands(query.slice(1), commandState, label);
+    if (isSearchMode) return matchCommands(query, commandState, label, COMMANDS_SHOWN);
+    return [];
+  }, [isCommandMode, isSearchMode, query, commandState, i18n]);
+  const commandCount = commandItems.length;
+
+  const chooseCommand = useCallback(
+    (c: Command) => {
+      onClose();
+      void runCommand(c.id);
+    },
+    [onClose, runCommand],
+  );
 
   const activeCellId = useActiveTab().activeCellId;
 
@@ -221,8 +249,10 @@ export function CommandPalette({ onClose, onViewDocs, initialQuery }: CommandPal
 
   const navigableCount = isSymbolMode
     ? filteredSymbols.length
-    : isSearchMode
-      ? searchItems.length
+    : isCommandMode
+      ? commandCount
+      : isSearchMode
+      ? commandCount + searchItems.length
       : isPackagesMode
         ? allPackages.length
         : isCategoryList
@@ -241,11 +271,12 @@ export function CommandPalette({ onClose, onViewDocs, initialQuery }: CommandPal
         e.key === "Enter" &&
         (e.metaKey || e.ctrlKey) &&
         isSearchMode &&
+        selectedIndex >= commandCount &&
         searchItems.length > 0 &&
         onViewDocs
       ) {
         e.preventDefault();
-        const item = searchItems[selectedIndex];
+        const item = searchItems[selectedIndex - commandCount];
         if (item.kind === "package") {
           viewDocs(`pkg:${item.name}`);
         } else {
@@ -275,8 +306,10 @@ export function CommandPalette({ onClose, onViewDocs, initialQuery }: CommandPal
         e.preventDefault();
         if (isSymbolMode) {
           insertSymbol(filteredSymbols[selectedIndex].unicode);
+        } else if ((isCommandMode || isSearchMode) && selectedIndex < commandCount) {
+          chooseCommand(commandItems[selectedIndex]);
         } else if (isSearchMode) {
-          const item = searchItems[selectedIndex];
+          const item = searchItems[selectedIndex - commandCount];
           if (item.kind === "package") {
             if (item.builtin) {
               onClose(); // built-in packages don't need load()
@@ -338,6 +371,10 @@ export function CommandPalette({ onClose, onViewDocs, initialQuery }: CommandPal
       selectCategory,
       query,
       onClose,
+      isCommandMode,
+      commandCount,
+      commandItems,
+      chooseCommand,
     ]
   );
 
@@ -357,7 +394,8 @@ export function CommandPalette({ onClose, onViewDocs, initialQuery }: CommandPal
   useEffect(() => {
     const list = listRef.current;
     if (!list) return;
-    const item = list.children[selectedIndex] as HTMLElement;
+    // Headings sit between the items, so count the items only
+    const item = list.querySelectorAll<HTMLElement>(".palette-item, .palette-category-item")[selectedIndex];
     if (item) {
       item.scrollIntoView({ block: "nearest" });
     }
@@ -387,11 +425,16 @@ export function CommandPalette({ onClose, onViewDocs, initialQuery }: CommandPal
             comment:
               "Command palette: placeholder of the search box while it lists one category of functions; categoryLabel is the category name, such as Calculus; Backspace is the key",
           })
-        : t({
-            message: "Search functions (or type \\ for symbols)...",
-            comment:
-              "Command palette: placeholder of the search box; typing a backslash switches to the list of math symbols",
-          });
+        : isCommandMode
+          ? t({
+              message: "Search commands...",
+              comment: "Command palette: placeholder while it lists only commands, after the user typed >",
+            })
+          : t({
+              message: "Search commands and functions (> for commands, \\ for symbols)...",
+              comment:
+                "Command palette: placeholder of the search box; typing > lists only commands, and a backslash switches to the list of math symbols",
+            });
 
   const viewDocsTitle = t({
     message: "View docs",
@@ -527,16 +570,44 @@ export function CommandPalette({ onClose, onViewDocs, initialQuery }: CommandPal
               </div>
             </div>
           ))}
+          {commandCount > 0 && (
+            <div className="palette-section-header palette-commands-header">
+              {t({ message: "Commands", comment: "Command palette: heading of the commands that match what the user typed, above the functions" })}
+            </div>
+          )}
+          {commandItems.map((c, i) => (
+            <div
+              key={`command-${c.id}`}
+              className={`palette-item palette-command ${i === selectedIndex ? "selected" : ""}`}
+              onClick={() => chooseCommand(c)}
+              onMouseEnter={() => setSelectedIndex(i)}
+            >
+              <span className="palette-command-label">{i18n._(c.label)}</span>
+              {(c.shortcut ?? c.editorShortcut) && (
+                <kbd className="palette-command-key">{formatShortcut((c.shortcut ?? c.editorShortcut)!)}</kbd>
+              )}
+            </div>
+          ))}
+          {isCommandMode && commandCount === 0 && (
+            <div className="palette-empty">
+              {t({ message: "No matching commands", comment: "Command palette: shown when no command matches what the user typed after >" })}
+            </div>
+          )}
+          {isSearchMode && commandCount > 0 && searchItems.length > 0 && (
+            <div className="palette-section-header">
+              {t({ message: "Functions", comment: "Command palette: heading of the Maxima functions and packages that match, below the commands" })}
+            </div>
+          )}
           {isSearchMode && searchItems.map((item, i) => (
             <div key={`${item.kind}-${item.name}-${i}`}>
               <div
-                className={`palette-item ${i === selectedIndex ? "selected" : ""}`}
+                className={`palette-item ${i + commandCount === selectedIndex ? "selected" : ""}`}
                 onClick={() =>
                   item.kind === "package"
                     ? insertPackageLoad(item.name)
                     : insertFunction(item.name)
                 }
-                onMouseEnter={() => setSelectedIndex(i)}
+                onMouseEnter={() => setSelectedIndex(i + commandCount)}
               >
                 <div className="palette-item-main">
                   <div className="palette-item-name">
@@ -587,7 +658,7 @@ export function CommandPalette({ onClose, onViewDocs, initialQuery }: CommandPal
               </div>
             </div>
           ))}
-          {isSearchMode && searchItems.length === 0 && query.trim() && (
+          {isSearchMode && searchItems.length === 0 && commandCount === 0 && query.trim() && (
             <div className="palette-empty">
               {t({
                 message: "No functions or packages found",

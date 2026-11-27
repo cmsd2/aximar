@@ -100,28 +100,40 @@ Aximar looks for the `maxima` binary in these locations (local backend):
 ### Cells
 
 - **Type a Maxima expression** in a cell (e.g. `integrate(x^2, x);`)
-- **Shift+Enter** — evaluate the cell and create a new cell below
-- **Ctrl/Cmd+Enter** — evaluate in place
-- **+ Cell / + Markdown** — add code or markdown cells
-- **Run All** — evaluate all cells in order
-- **Restart** — restart the Maxima session (clears Maxima state, not your cells)
+- **Shift+Enter** runs the cell and moves to the next one; on the last cell it puts the caret below, where typing starts a new cell
+- **Ctrl/Cmd+Enter** runs the cell and stays in it
+- **Insert a cell** by clicking the gap between two cells and typing (`#` starts a Markdown cell), or with the + in the left margin, or from the Cell menu
+- **Run All**, **Interrupt** and **Restart** are on the toolbar and in the Cell and Session menus; Restart clears Maxima's state, not your cells
+- **Right-click a cell** for its commands: run, insert, move and delete
 
 ### Keyboard shortcuts
 
-Hold Ctrl (or Cmd on Mac) to see all shortcuts. Key bindings include:
+Every command is in the menu bar with its shortcut, and Help > Keyboard
+Shortcuts lists them all. Hold Ctrl (or Cmd on Mac) to see the common ones.
 
-| Shortcut | Action |
-|----------|--------|
-| Shift+Enter | Evaluate and advance |
-| Ctrl/Cmd+Enter | Evaluate in place |
-| Ctrl/Cmd+K | Command palette |
-| Ctrl/Cmd+Z | Undo |
-| Ctrl/Cmd+Shift+Z | Redo |
-| Ctrl/Cmd+F | Find |
-| Ctrl/Cmd+Shift+F | Find & replace |
-| Ctrl/Cmd+D | Delete cell |
-| Ctrl/Cmd+Shift+Up/Down | Move cell |
-| \\ | Symbol entry — type a LaTeX name (e.g. `\alpha`, `\leq`, `\nabla`) to insert Unicode |
+| macOS | Windows and Linux | Command |
+|-------|-------------------|---------|
+| ⌘N | Ctrl+N | New notebook (in a new tab) |
+| ⇧⌘N | Ctrl+Shift+N | New window |
+| ⌘O | Ctrl+O | Open |
+| ⌘S / ⇧⌘S | Ctrl+S / Ctrl+Shift+S | Save / Save as |
+| ⇧⌘E | Ctrl+Shift+E | Export as LaTeX |
+| ⌘P | Ctrl+P | Print |
+| ⌘W | Ctrl+W | Close tab (the window, on its last tab) |
+| ⇧⌘W | Ctrl+Shift+W | Close window |
+| ⌘Z / ⇧⌘Z | Ctrl+Z / Ctrl+Shift+Z | Undo / redo the notebook's last change |
+| ⌘F / ⇧⌘F | Ctrl+F / Ctrl+Shift+F | Find / find and replace |
+| ⇧↩ | Shift+Enter | Run the cell and move on |
+| ⌘↩ | Ctrl+Enter | Run the cell and stay |
+| ⇧⌘↑ / ⇧⌘↓ | Ctrl+Shift+Up / Down | Move the cell |
+| ⇧⌘⌫ | Ctrl+Shift+Backspace | Delete the cell |
+| ⌘. | Ctrl+. | Interrupt |
+| ⌘K | Ctrl+K | Command palette: commands, functions and symbols |
+| ⇧⌘] / ⇧⌘[ | Ctrl+Shift+] / [ | Next / previous tab (also Ctrl+Tab, Ctrl+Shift+Tab) |
+| ⌘/ | Ctrl+/ | Keyboard shortcuts |
+| ⌘, | Ctrl+, | Settings |
+| ↑ / ↓ | Up / Down | From a cell's first or last line, to the gap beside it, then the next cell |
+| \\ | \\ | Symbol entry in the palette: type a LaTeX name (e.g. `\alpha`, `\leq`, `\nabla`) to insert Unicode |
 
 ### Settings
 

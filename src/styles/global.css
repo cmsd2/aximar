@@ -177,6 +177,7 @@
 
 .toolbar-left {
   display: flex;
+  align-items: center;
   gap: 8px;
 }
 
@@ -215,6 +216,28 @@
 
 [data-theme="dark"] .toolbar-btn:hover:not(:disabled) {
   background: rgba(255, 255, 255, 0.08);
+}
+
+/* The toolbar's icon buttons; a panel's toggle is tinted while it is open */
+.toolbar-icon {
+  width: var(--space-8);
+  height: var(--space-8);
+}
+
+/* Toolbar icons are 20px, as the guide's sizes say */
+.toolbar-icon svg {
+  width: var(--space-5);
+  height: var(--space-5);
+}
+
+.toolbar-toggle.is-on {
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  color: var(--accent);
+}
+
+.toolbar-toggle.is-on:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
+  color: var(--accent);
 }
 
 .toolbar-separator {
@@ -512,6 +535,39 @@
   font-size: var(--text-md);
   text-align: left;
   cursor: pointer;
+}
+
+/* The cell context menu: the + menu's look, with shortcuts and groups */
+.context-menu {
+  z-index: 1000;
+  min-width: 220px;
+}
+
+.context-menu button {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.context-menu button:disabled {
+  color: var(--text-placeholder);
+  cursor: default;
+}
+
+.context-menu button:disabled:hover {
+  background: transparent;
+}
+
+.context-menu-key {
+  font-family: var(--font-ui);
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+}
+
+.context-menu-separator {
+  height: 1px;
+  margin: var(--space-1) 0;
+  background: var(--border-color);
 }
 
 .cell-gap-menu button:hover,
@@ -1110,6 +1166,30 @@
   font-size: 13px;
 }
 
+/* A command in the palette: its label, and its shortcut on the right */
+.palette-command {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.palette-command-key {
+  font-family: var(--font-ui);
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+}
+
+/* On the selected row's highlight, the row's own colour */
+.palette-item.selected .palette-command-key {
+  color: inherit;
+}
+
+.palette-results > .palette-commands-header:first-child {
+  border-top: none;
+  margin-top: 0;
+}
+
 .palette-section-header {
   padding: 8px 16px 4px;
   font-size: 11px;
@@ -1651,9 +1731,11 @@
 }
 
 .variable-kill-btn {
+  display: inline-flex;
   background: none;
   border: none;
-  color: var(--text-placeholder);
+  /* The secondary text colour: an icon needs 3:1, which the placeholder grey misses */
+  color: var(--text-secondary);
   font-size: 14px;
   line-height: 1;
   cursor: pointer;
@@ -3143,6 +3225,18 @@
   flex-shrink: 0;
 }
 
+/* The find bar's first row is a PanelHeader on the bar's own background */
+.find-bar .ui-panel-header {
+  min-height: 0;
+  padding: 0;
+  border-bottom: none;
+  background: transparent;
+}
+
+.find-bar-btn svg {
+  display: block;
+}
+
 .find-bar-row {
   display: flex;
   align-items: center;
@@ -3482,4 +3576,47 @@
 
 .sources-file {
   font-family: var(--font-mono);
+}
+
+/* Help > Keyboard Shortcuts */
+.shortcuts-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: var(--space-4) var(--space-6);
+}
+
+.shortcuts-group h3 {
+  margin: 0 0 var(--space-1);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.shortcuts-group dl {
+  margin: 0;
+}
+
+.shortcuts-row {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-half) 0;
+  font-size: var(--text-md);
+}
+
+.shortcuts-row dt {
+  color: var(--text-primary);
+}
+
+.shortcuts-row dd {
+  display: flex;
+  gap: var(--space-1);
+  margin: 0;
+  flex-shrink: 0;
+}
+
+.shortcuts-row kbd {
+  font-family: var(--font-ui);
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
 }

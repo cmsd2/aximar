@@ -3,6 +3,7 @@ import type { Cell as CellType } from "../types/notebook";
 import { useActiveTab } from "../store/notebookStore";
 import { useFindStore } from "../store/findStore";
 import { nbDeleteCell, nbToggleCellType } from "../lib/notebook-commands";
+import { IconPencil, IconX } from "./ui/icons";
 
 interface RawCellProps {
   cell: CellType;
@@ -45,7 +46,7 @@ export function RawCell({ cell, selectBracket }: RawCellProps) {
               comment: "Tooltip of the pencil button on a raw cell: turns it into a code cell that can be edited and run",
             })}
           >
-            &#9998;
+            <IconPencil size={14} stroke={1.75} aria-hidden="true" />
           </button>
           {cellCount > 1 && (
             <button
@@ -53,7 +54,7 @@ export function RawCell({ cell, selectBracket }: RawCellProps) {
               onClick={() => nbDeleteCell(cell.id)}
               title={t({ message: "Delete cell", comment: "Tooltip of the cross button that deletes a cell" })}
             >
-              &times;
+              <IconX size={14} stroke={1.75} aria-hidden="true" />
             </button>
           )}
         </div>

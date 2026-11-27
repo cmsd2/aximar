@@ -1,11 +1,8 @@
-import { useEffect, useState, useCallback } from "react";
-import { openNewNotebook } from "./lib/new-notebook";
+import { useEffect } from "react";
 import { listen } from "@tauri-apps/api/event";
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import { message } from "@tauri-apps/plugin-dialog";
-import { t } from "@lingui/core/macro";
-import { confirmClose, saveNotebookTab } from "./lib/unsaved-changes";
+import { confirmClose } from "./lib/unsaved-changes";
 import { TabBar } from "./components/TabBar";
 import { Toolbar } from "./components/Toolbar";
 import { VariablePanel } from "./components/VariablePanel";
@@ -18,63 +15,62 @@ import { StatusBar, LogWindow } from "./components/LogPanel";
 import { DocsPanel } from "./components/DocsPanel";
 import { FindBar } from "./components/FindBar";
 import { ShortcutHints } from "./components/ShortcutHints";
+import { ShortcutsDialog } from "./components/ShortcutsDialog";
 import { useMaxima } from "./hooks/useMaxima";
 import { useNotebookEvents } from "./hooks/useNotebookEvents";
 import { useTheme } from "./hooks/useTheme";
 import {
-  nbDeleteCell,
-  nbMoveCell,
-  nbUndo,
-  nbRedo,
   nbGetState,
   nbLoadTemplate,
 } from "./lib/notebook-commands";
 import {
   getHasSeenWelcome,
   setHasSeenWelcome,
-  saveNotebookAs,
-  openFile,
-  savePlotFile,
 } from "./lib/notebooks-client";
 import { getConfig } from "./lib/config-client";
 import { applyConfig } from "./lib/apply-config";
 import { activateLanguage } from "./lib/i18n";
 import { TRANSLATOR_TOOLS, applyPreview, type PreviewCatalog } from "./lib/translation-preview";
-import { useNotebookStore, useActiveAnyTab, getActiveTabState } from "./store/notebookStore";
-import { mapSyncCells, openNotebookTab } from "./hooks/useNotebookEvents";
+import { useNotebookStore, useActiveAnyTab } from "./store/notebookStore";
+import { mapSyncCells } from "./hooks/useNotebookEvents";
 import { PlotViewer } from "./components/PlotViewer";
 import { DropOverlay } from "./components/DropOverlay";
 import { useFileDrop } from "./hooks/useFileDrop";
 import { useLogStore } from "./store/logStore";
 import { useSettingsStore } from "./store/settingsStore";
 import type { LogLink } from "./types/log";
-import { useFindStore } from "./store/findStore";
+import { useUiStore } from "./store/uiStore";
+import { useMenuBar } from "./commands/useMenuBar";
 import "./styles/global.css";
 
 function App() {
   // Notebook files dragged onto the window open in tabs
   const drag = useFileDrop();
   const { initSession } = useMaxima();
+  // The menu bar, built from the command list, and its commands
+  useMenuBar();
   useTheme();
   useNotebookEvents();
-  const [paletteOpen, setPaletteOpen] = useState(false);
-  const [paletteQuery, setPaletteQuery] = useState<string | undefined>(
-    undefined
-  );
-  const [templateChooserOpen, setTemplateChooserOpen] = useState(false);
+  const paletteOpen = useUiStore((s) => s.paletteOpen);
+  const paletteQuery = useUiStore((s) => s.paletteQuery);
+  const setPaletteOpen = useUiStore((s) => s.setPaletteOpen);
+  const templateChooserOpen = useUiStore((s) => s.templateChooserOpen);
+  const setTemplateChooserOpen = useUiStore((s) => s.setTemplateChooserOpen);
   const settingsOpen = useSettingsStore((s) => s.open);
   const settingsSection = useSettingsStore((s) => s.section);
   const settingsRequest = useSettingsStore((s) => s.request);
-  const openSettings = useSettingsStore((s) => s.openSettings);
   const closeSettings = useSettingsStore((s) => s.closeSettings);
-  const [variablesOpen, setVariablesOpen] = useState(false);
-  const [exportLatexOpen, setExportLatexOpen] = useState(false);
-  const [docsOpen, setDocsOpen] = useState(false);
-  const [docsFunctionName, setDocsFunctionName] = useState<string | undefined>(undefined);
-  const [docsRequestId, setDocsRequestId] = useState(0);
-  const windowOpen = useLogStore((s) => s.windowOpen);
-  const toggleWindow = useLogStore((s) => s.toggleWindow);
-  const logUnreadCount = useLogStore((s) => s.unreadCount);
+  const variablesOpen = useUiStore((s) => s.variablesOpen);
+  const setVariablesOpen = useUiStore((s) => s.setVariablesOpen);
+  const exportLatexOpen = useUiStore((s) => s.exportLatexOpen);
+  const setExportLatexOpen = useUiStore((s) => s.setExportLatexOpen);
+  const docsOpen = useUiStore((s) => s.docsOpen);
+  const setDocsOpen = useUiStore((s) => s.setDocsOpen);
+  const docsFunctionName = useUiStore((s) => s.docsFunctionName);
+  const docsRequestId = useUiStore((s) => s.docsRequestId);
+  const openDocsFor = useUiStore((s) => s.openDocsFor);
+  const shortcutsOpen = useUiStore((s) => s.shortcutsOpen);
+  const setShortcutsOpen = useUiStore((s) => s.setShortcutsOpen);
   const addLogEntry = useLogStore((s) => s.addEntry);
   const addRawOutput = useLogStore((s) => s.addRawOutput);
   const addEnvelope = useLogStore((s) => s.addEnvelope);
@@ -221,107 +217,6 @@ function App() {
       .catch((e) => addLogEntry("error", `Failed to load welcome notebook: ${e}`, "init"));
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const openDocsFor = useCallback((name: string) => {
-    setDocsFunctionName(name);
-    setDocsRequestId((n) => n + 1);
-    setDocsOpen(true);
-  }, []);
-
-  // --- File operations ---
-
-  const handleSave = useCallback(async () => {
-    const state = useNotebookStore.getState();
-    const id = state.activeNotebookId;
-    if (!id) return;
-    const activeTab = state.notebooks[id];
-    if (!activeTab) return;
-
-    if (activeTab.type === "plot") {
-      await savePlotFile(activeTab.plotData, activeTab.filePath);
-    } else {
-      await saveNotebookTab(id);
-    }
-  }, []);
-
-  const handleSaveAs = useCallback(async () => {
-    const state = useNotebookStore.getState();
-    const id = state.activeNotebookId;
-    if (!id) return;
-    const activeTab = state.notebooks[id];
-    if (!activeTab) return;
-
-    if (activeTab.type === "plot") {
-      await savePlotFile(activeTab.plotData, null);
-    } else {
-      // The path_changed event sets the tab's title and save path
-      const savedPath = await saveNotebookAs(id, activeTab.filePath);
-      if (savedPath) {
-        useNotebookStore.getState().markNotebookClean(id);
-      }
-    }
-  }, []);
-
-  const addPlotTab = useNotebookStore((s) => s.addPlotTab);
-
-  const handleOpen = useCallback(async () => {
-    const result = await openFile();
-    if (!result) return;
-
-    if (result.type === "plot") {
-      // Open Plotly JSON as a plot viewer tab
-      const title =
-        result.path.split("/").pop()?.split("\\").pop() ??
-        t({ message: "Plot", comment: "Tab title for an opened plot file whose file name could not be read" });
-      const id = `plot-${crypto.randomUUID()}`;
-      addPlotTab(id, title, result.plotData, result.path);
-    } else {
-      try {
-        await openNotebookTab(result.path);
-      } catch (e) {
-        await message(String(e), {
-          title: t({
-            message: "Couldn't Open Notebook",
-            comment: "Title of the error dialog when a notebook file fails to open; the dialog shows the reason below",
-          }),
-          kind: "error",
-        });
-      }
-    }
-  }, [addPlotTab]);
-
-  const handleNew = useCallback(async () => {
-    await openNewNotebook();
-  }, []);
-
-  // --- Listen for native menu events from Tauri ---
-
-  useEffect(() => {
-    const unlisten = listen<string>("menu-event", (event) => {
-      switch (event.payload) {
-        case "new":
-          handleNew();
-          break;
-        case "open":
-          handleOpen();
-          break;
-        case "save":
-          handleSave();
-          break;
-        case "save_as":
-          handleSaveAs();
-          break;
-        case "export_latex":
-          setExportLatexOpen(true);
-          break;
-        case "settings":
-          openSettings();
-          break;
-      }
-    });
-    return () => {
-      unlisten.then((fn) => fn());
-    };
-  }, [handleNew, handleOpen, handleSave, handleSaveAs]);
 
   // --- Warn on close with unsaved changes ---
 
@@ -343,71 +238,7 @@ function App() {
     };
   }, []);
 
-  // --- Keyboard shortcut: Cmd+K for command palette ---
-
-  const handleKeyDown = useCallback((e: KeyboardEvent) => {
-    if ((e.metaKey || e.ctrlKey) && e.key === "k") {
-      e.preventDefault();
-      setPaletteQuery(undefined);
-      setPaletteOpen((open) => !open);
-    }
-  }, []);
-
-  useEffect(() => {
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [handleKeyDown]);
-
-  // --- Notebook keyboard shortcuts ---
-
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      const mod = e.metaKey || e.ctrlKey;
-      if (!mod) return;
-
-      // Skip when focus is inside a modal
-      const target = e.target as Element | null;
-      if (target?.closest(".palette-overlay, .ui-overlay, .template-modal")) {
-        return;
-      }
-
-      const key = e.key.toLowerCase();
-
-      if (key === "z" && !e.shiftKey) {
-        e.preventDefault();
-        nbUndo();
-      } else if (key === "z" && e.shiftKey) {
-        e.preventDefault();
-        nbRedo();
-      } else if (key === "y") {
-        e.preventDefault();
-        nbRedo();
-      } else if (key === "f" && !e.shiftKey) {
-        e.preventDefault();
-        useFindStore.getState().open(false);
-      } else if (key === "f" && e.shiftKey) {
-        e.preventDefault();
-        useFindStore.getState().open(true);
-      } else if (key === "d") {
-        e.preventDefault();
-        const tab = getActiveTabState();
-        if (tab.activeCellId && tab.cells.length > 1) {
-          nbDeleteCell(tab.activeCellId);
-        }
-      } else if (e.shiftKey && key === "arrowup") {
-        e.preventDefault();
-        const tab = getActiveTabState();
-        if (tab.activeCellId) nbMoveCell(tab.activeCellId, "up");
-      } else if (e.shiftKey && key === "arrowdown") {
-        e.preventDefault();
-        const tab = getActiveTabState();
-        if (tab.activeCellId) nbMoveCell(tab.activeCellId, "down");
-      }
-    };
-
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, []);
+  // Keyboard shortcuts are the menu bar's accelerators (src/commands/registry.ts)
 
   const activeAnyTab = useActiveAnyTab();
   const isNotebookTab = !activeAnyTab || activeAnyTab.type === "notebook";
@@ -416,17 +247,7 @@ function App() {
     <div className="app">
       <TabBar />
       {isNotebookTab && (
-        <Toolbar
-          onOpenTemplates={() => setTemplateChooserOpen(true)}
-          onOpenSettings={() => openSettings()}
-          variablesOpen={variablesOpen}
-          onToggleVariables={() => setVariablesOpen((o) => !o)}
-          logOpen={windowOpen}
-          onToggleLog={toggleWindow}
-          logUnreadCount={logUnreadCount}
-          docsOpen={docsOpen}
-          onToggleDocs={() => setDocsOpen((o) => !o)}
-        />
+        <Toolbar />
       )}
       {isNotebookTab && <FindBar />}
       {isNotebookTab && <VariablePanel open={variablesOpen} />}
@@ -450,10 +271,7 @@ function App() {
       <DropOverlay drag={drag} />
       {paletteOpen && (
         <CommandPalette
-          onClose={() => {
-            setPaletteOpen(false);
-            setPaletteQuery(undefined);
-          }}
+          onClose={() => setPaletteOpen(false)}
           onViewDocs={openDocsFor}
           initialQuery={paletteQuery}
         />
@@ -472,6 +290,7 @@ function App() {
       {exportLatexOpen && (
         <ExportLatexModal onClose={() => setExportLatexOpen(false)} />
       )}
+      {shortcutsOpen && <ShortcutsDialog onClose={() => setShortcutsOpen(false)} />}
     </div>
   );
 }

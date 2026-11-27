@@ -165,3 +165,21 @@ export const NewNotebook: StoryObj = {
     </div>
   ),
 };
+
+/** The cell commands on a right-click in a cell's output */
+export const CellContextMenu: StoryObj = {
+  loaders: [async () => seedNotebook(gapCells)],
+  render: () => (
+    <div style={{ height: 420, display: "flex", flexDirection: "column" }}>
+      <StoryNotebook />
+      <WaitFor
+        selector=".context-menu"
+        run={async () => {
+          const output = await until(() => document.querySelector<HTMLElement>("#storybook-root .cell-output"));
+          const box = output.getBoundingClientRect();
+          output.dispatchEvent(new MouseEvent("contextmenu", { bubbles: true, cancelable: true, clientX: box.left + 120, clientY: box.top + 10 }));
+        }}
+      />
+    </div>
+  ),
+};

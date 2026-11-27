@@ -85,20 +85,10 @@ export function useCodeMirrorEditor({
     );
 
     const cellKeymap = keymap.of([
-      // Swallow undo/redo so notebook-level backend undo works
-      // (the keyboard shortcut handler in App.tsx sends these to the backend)
-      {
-        key: "Mod-z",
-        run: () => true,
-      },
-      {
-        key: "Mod-Shift-z",
-        run: () => true,
-      },
-      {
-        key: "Mod-y",
-        run: () => true,
-      },
+      // Undo and redo are the notebook's, run by Edit > Undo and Redo and
+      // their menu shortcuts (src/commands/registry.ts).  The editor keeps
+      // no history of its own (the filtered keymap above drops it) and
+      // lets the keys through to the menu.
       // Cell execution — dismiss signature hint before executing
       {
         key: "Shift-Enter",
