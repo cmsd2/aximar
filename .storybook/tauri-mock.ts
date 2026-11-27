@@ -31,6 +31,9 @@ export function installTauriMock(): void {
         case "list_variables":
           // The names of the user's variables, as Maxima's values list gives them
           return ["F", "a", "f"];
+        case "nb_run_cell":
+          // A run that succeeds; the cell's output stays as it was
+          return { is_error: false, error: null, duration_ms: 5 };
         case "nb_add_cell":
           return addCell(payload as AddCell);
         case "get_function":

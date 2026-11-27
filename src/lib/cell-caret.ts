@@ -35,6 +35,15 @@ export function fromGap(cells: Cell[], point: InsertionPoint, dir: "up" | "down"
   return { kind: "cell", cellId: cell.id, at: dir === "up" ? "end" : "start" };
 }
 
+/**
+ * Where Shift+Enter goes after running a cell, or after finishing a
+ * Markdown cell: into the next cell at its start, or, after the last
+ * cell, to the caret in the gap below it, ready to start a new one.
+ */
+export function afterRun(cells: Cell[], cellId: string): CaretTarget {
+  return fromGap(cells, { after: cellId }, "down") ?? { kind: "gap", point: { after: cellId } };
+}
+
 /** Whether new text at a gap starts a Markdown cell: a heading, as Maxima code never starts with # */
 export function typeFor(text: string): "code" | "markdown" {
   return text.startsWith("#") ? "markdown" : "code";

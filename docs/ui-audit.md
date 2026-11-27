@@ -170,9 +170,10 @@ problems:
   style keeps its bar, and the caret shows in it too.
 - **The arrow keys cross cells.**  From a cell's first or last line, Up
   or Down goes to the caret in the gap beside it, and from there into
-  the next cell (a raw cell is skipped).  New cells now take the cursor,
-  from the gap, the toolbar or Shift+Enter on the last cell; before, the
-  toolbar's new cell didn't.
+  the next cell (a raw cell is skipped).  Shift+Enter on the last cell
+  puts the caret below it instead of adding an empty cell, so a new cell
+  appears only once you type.  New cells take the cursor, from the gap
+  or the toolbar; before, the toolbar's new cell didn't.
 
 ## Suggested order
 

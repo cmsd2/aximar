@@ -6,7 +6,7 @@ import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
 import type { Cell as CellType } from "../types/notebook";
 import { getActiveTabState, useActiveTab, useNotebookStore } from "../store/notebookStore";
-import { gapBeside } from "../lib/cell-caret";
+import { afterRun, gapBeside, goTo } from "../lib/cell-caret";
 import { useFindStore } from "../store/findStore";
 import { nbDeleteCell } from "../lib/notebook-commands";
 
@@ -64,24 +64,10 @@ export function MarkdownCell({ cell, selectBracket }: MarkdownCellProps) {
     [cell.id, updateCellInput]
   );
 
+  // The next cell, or after the last one the caret below it
   const focusNextCell = useCallback(() => {
-    const allCells = Array.from(
-      document.querySelectorAll<HTMLElement>(".cell")
-    );
-    const thisCell = cellRef.current;
-    const idx = thisCell ? allCells.indexOf(thisCell) : -1;
-    if (idx !== -1 && idx + 1 < allCells.length) {
-      const next = allCells[idx + 1];
-      // Try CodeMirror editor first (code cell), fall back to double-clicking (markdown cell)
-      const cmContent = next.querySelector<HTMLElement>(".cm-content");
-      if (cmContent) {
-        cmContent.focus();
-      } else {
-        const view = next.querySelector<HTMLElement>(".markdown-cell-view");
-        view?.dispatchEvent(new MouseEvent("dblclick", { bubbles: true }));
-      }
-    }
-  }, []);
+    goTo(afterRun(getActiveTabState().cells, cell.id));
+  }, [cell.id]);
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLTextAreaElement>) => {

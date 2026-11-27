@@ -13,7 +13,7 @@ vi.mock("../lib/notebook-commands", () => ({ nbAddCell: (...args: unknown[]) => 
 
 import { i18n } from "../lib/i18n";
 import { useNotebookStore } from "../store/notebookStore";
-import { fromGap, gapBeside, typeFor } from "../lib/cell-caret";
+import { afterRun, fromGap, gapBeside, typeFor } from "../lib/cell-caret";
 import type { Cell } from "../types/notebook";
 import { CellGap } from "./CellGap";
 
@@ -41,6 +41,12 @@ describe("where the arrow keys go", () => {
   it("skips over a raw cell, which can't take the cursor", () => {
     expect(fromGap(cells, { after: "b" }, "down")).toEqual({ kind: "gap", point: { after: "r" } });
     expect(fromGap(cells, { after: "r" }, "up")).toEqual({ kind: "gap", point: { after: "b" } });
+  });
+
+  it("goes on from a run to the next cell, or to the caret below the last", () => {
+    expect(afterRun(cells, "a")).toEqual({ kind: "cell", cellId: "b", at: "start" });
+    expect(afterRun(cells, "b")).toEqual({ kind: "gap", point: { after: "r" } });
+    expect(afterRun(cells, "c")).toEqual({ kind: "gap", point: { after: "c" } });
   });
 
   it("starts a Markdown cell for text starting with #, a code cell otherwise", () => {
