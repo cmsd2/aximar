@@ -37,7 +37,8 @@ async fn run(
 }
 
 /// Questions stop their cell with an error that says how to answer them,
-/// leave nothing behind for the next cell, and errcatch catches them.
+/// leave nothing behind for the next cell, and get past errcatch and the
+/// errset inside library functions.
 pub async fn check_questions() {
     let mut registry = NotebookRegistry::new();
     let id = registry.create();
@@ -109,14 +110,33 @@ pub async fn check_questions() {
     assert!(!error.contains("positive"), "{error}");
     assert!(!out.text_output.contains("positive"), "{out:?}");
 
-    // errcatch catches a question like any error
+    // A question isn't an error errcatch can swallow: the statement stops
     let out = run(
         &ctx,
         &catalog,
         &packages,
-        "errcatch(integrate(exp(-a*x), x, 0, inf));",
+        "r: errcatch(integrate(exp(-a*x), x, 0, inf))$ r;",
     )
     .await;
+    assert!(out.is_error, "{out:?}");
+    assert_eq!(out.error_info.as_ref().unwrap().id, "question.sign");
+    let out = run(&ctx, &catalog, &packages, "r;").await;
+    assert_eq!(
+        out.text_plain.as_deref(),
+        Some("r"),
+        "r was never assigned: {out:?}"
+    );
+
+    // Nor can a library function's errset: laplace runs defint inside one
+    let out = run(&ctx, &catalog, &packages, "laplace(sin(a*t)/t, t, s);").await;
+    assert!(out.is_error, "{out:?}");
+    assert_eq!(out.error_info.as_ref().unwrap().id, "question.sign_pn");
+    // and its assumptions are gone again
+    let out = run(&ctx, &catalog, &packages, "facts();").await;
+    assert_eq!(out.text_plain.as_deref(), Some("[]"), "{out:?}");
+
+    // errcatch still catches errors
+    let out = run(&ctx, &catalog, &packages, "errcatch(1/0);").await;
     assert!(!out.is_error, "{out:?}");
     assert_eq!(out.text_plain.as_deref(), Some("[]"), "{out:?}");
 

@@ -646,14 +646,15 @@ impl MaximaProcess {
         let events_init = self.events_init_snippet();
 
         // Questions stop the cell with an error instead of waiting for an
-        // answer (ax_questions.lisp)
+        // answer (ax_questions.lisp).  Before kernel-events, so the
+        // question's error happens inside its wrapper and it reports it.
         let questions = messages::questions_lisp_stdin();
 
         let init_commands = format!(
             "{}{}{}display2d:false$\nset_plot_option([run_viewer, false])$\nset_plot_option([gnuplot_term, svg])$\nset_plot_option([gnuplot_preamble, \"set encoding utf8\"])$\nprint(\"{}\")$\n",
             tempdir_cmd,
-            events_init,
             questions,
+            events_init,
             READY_SENTINEL
         );
 

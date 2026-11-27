@@ -114,15 +114,11 @@ Tested with `xgettext` 1.0: it needs the `!` in the keyword, reads notes only fr
 
 ### 5. Questions raise an error inside Maxima
 
-Session start defines, through the existing `:lisp` init line:
+Each Maxima process loads `ax_questions.lisp` as a `:lisp` line when it starts, before kernel-events. It replaces `retrieve`, through which Maxima asks every question, and wraps `toplevel-macsyma-eval` with a catch. `retrieve` throws the question to that catch, which raises "Maxima needs to know: <question>" as an ordinary Maxima error at the top of the statement.
 
-```lisp
-(defun maxima::retrieve (msg flag)
-  (declare (ignore flag))
-  (maxima::merror "Maxima needs to know: ~M" msg))
-```
+The throw matters. A question isn't an error in Maxima: `errcatch` doesn't stop it reaching the user, and library code relies on that. `laplace` runs `defint` inside `errset` and falls back to another method on an error, so a question raised as an error inside it would be swallowed and the result would change silently. A throw to Aximar's own tag passes every `errcatch` and `errset` (their cleanup still runs, so `laplace`'s assumptions go), and is caught only around the whole statement. The whole question goes in the error's pattern, with no arguments, because kernel-events reports an error's pattern without them. In the debugger, `break-dbm-loop` turns the catch off, so a question there is an error where it's asked.
 
-`merror` unwinds to the top level like any Maxima error, so the cell's housekeeping lines run as usual, the end sentinel arrives, and the cell reports an error. Nothing is written to stdin after the cell, so nothing leaks. `errcatch` catches it like any other error. The override applies to every session `MaximaProcess` starts: the window, MCP, batch runs and the DAP server.
+The cell's housekeeping lines run as usual, the end sentinel arrives, and the cell reports an error. Nothing is written to stdin after the cell, so nothing leaks. The override applies to every Maxima `MaximaProcess` starts: the window, MCP, batch runs and the DAP server.
 
 `ASSUMPTION_QUESTION_RE`, `assumption_answer`, `drain_answering_questions`, the question branches of both readers, and `AppError::AssumptionRequired` go.
 
@@ -192,7 +188,8 @@ CI installs GNU gettext from the distribution's packages (0.24 or later).
 - [Two extractors, two toolchains] → one script runs both, and CI fails when the template is stale; GNU gettext becomes a developer dependency only for those who change text.
 - [Lingui's run-time lookup by message and context must match the template exactly] → the `Message` carries the exact template string from the `msg_ctx!` call, and a test renders every Rust message through the window's lookup.
 - [Maxima renames `retrieve`] → the init line skips the override when the function is missing, and the Maxima-backed tests fail on that version.
-- [A question inside `errcatch` now returns `[]` where it used to get an automatic `positive`] → that answer was a guess the user never saw; an error they can see is better. The changelog says so.
+- [A question inside `errcatch` now stops the statement, where it used to get an automatic `positive`] → that answer was a guess the user never saw. Stopping matches Maxima, where `errcatch` doesn't stop a question reaching the user; letting `errcatch` swallow it would send user code and library functions such as `laplace` down their error paths without a word. The changelog says so.
+- [Maxima renames `toplevel-macsyma-eval` or `break-dbm-loop`] → the override skips what's missing, and the Maxima-backed tests fail on that version.
 - [Notes misread print output that looks like a note] → recognisers anchor on Maxima's exact prefixes and line starts; Maxima's lines stay one click away.
 - [Window text moved into the catalog by hand misses strings] → the pseudo-locale run shows any text that didn't go through the catalog, and the screenshot gallery covers each screen.
 - [Rewording English invalidates translations] → `msgmerge` keeps the old translation as fuzzy with the old English, so translators review instead of starting again.

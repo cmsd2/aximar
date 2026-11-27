@@ -25,9 +25,12 @@ see the `v*` releases on GitHub.
   Maxima error, "Maxima needs to know: Is a positive, negative or zero?",
   and `error_info` suggests the line that answers it, such as
   `assume(a > 0)$`. `run_cell` returns it as a failed cell (`is_error`)
-  rather than a tool error, and `errcatch` catches it like any error:
-  `errcatch(integrate(exp(-a*x), x, 0, inf))` gives `[]` where it used to
-  get the result for a guessed `positive`.
+  rather than a tool error. As in Maxima, `errcatch` doesn't stop a
+  question: `r: errcatch(integrate(exp(-a*x), x, 0, inf))` stops with the
+  question, where it used to get the result for a guessed `positive`. Nor
+  do library functions that catch errors internally, so
+  `laplace(sin(a*t)/t, t, s)` asks for the sign of `a` instead of falling
+  back to another method.
 
 ### aximar-mcp
 
