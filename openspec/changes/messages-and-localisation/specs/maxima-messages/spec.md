@@ -138,7 +138,7 @@ Recognised notes in a cell's text output SHALL be reported as notes, each with a
 
 #### Scenario: A passing division by zero is a note (needs Maxima)
 
-- **WHEN** a cell runs `quad_qags(1/sqrt(abs(x)), x, -1, 1);`
+- **WHEN** a cell runs `romberg(1/x, x, 0, 1);`, which prints `expt: undefined: 0 to a negative exponent.` and still returns a result
 - **THEN** the `expt: undefined` line SHALL be a `note.zero_power` note and the cell SHALL not be an error
 
 #### Scenario: The window shows Maxima's lines on request

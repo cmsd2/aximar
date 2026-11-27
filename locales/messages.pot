@@ -554,6 +554,11 @@ msgstr ""
 msgid "Generate new token (restarts MCP server)"
 msgstr ""
 
+#. Button on a note in a cell's output: hides the lines Maxima printed, which the note explains
+#: src/components/TextWithNotes.tsx
+msgid "Hide Maxima's text"
+msgstr ""
+
 #. Button: hides Maxima's English error message, shown below its translation
 #. Button: hides Maxima's English error message, shown below its translation
 #: src/components/EnhancedErrorOutput.tsx
@@ -1037,6 +1042,11 @@ msgstr ""
 msgid "Settings"
 msgstr ""
 
+#. Button on a note in a cell's output: shows the lines Maxima printed, which the note explains
+#: src/components/TextWithNotes.tsx
+msgid "Show Maxima's text"
+msgstr ""
+
 #. Button: shows Maxima's English error message below its translation
 #. Button: shows Maxima's English error message below its translation
 #: src/components/EnhancedErrorOutput.tsx
@@ -1426,6 +1436,128 @@ msgctxt "error.lisp.suggestion"
 msgid "Try restarting the Maxima session. If the error persists, the expression may be too complex or trigger a bug in Maxima."
 msgstr ""
 
+#. i18n: Maxima: "log: encountered log(0)."
+#: crates/aximar-core/src/maxima/errors.rs
+msgctxt "error.log_zero.title"
+msgid "Logarithm of Zero"
+msgstr ""
+
+#: crates/aximar-core/src/maxima/errors.rs
+msgctxt "error.log_zero.explanation"
+msgid "The expression takes the logarithm of 0, which is undefined."
+msgstr ""
+
+#: crates/aximar-core/src/maxima/errors.rs
+msgctxt "error.log_zero.suggestion"
+msgid "Check the argument of log for values that make it 0, or take a limit instead."
+msgstr ""
+
+#. i18n: Maxima: "part: fell off the end.", or the same from inpart or rest
+#: crates/aximar-core/src/maxima/errors.rs
+msgctxt "error.part_index.title"
+msgid "Index Out of Range"
+msgstr ""
+
+#. i18n: func is the Maxima function, such as part or inpart
+#: crates/aximar-core/src/maxima/errors.rs
+#, rust-format
+msgctxt "error.part_index.explanation"
+msgid "{func} asked for a part beyond the end of the expression or list."
+msgstr ""
+
+#: crates/aximar-core/src/maxima/errors.rs
+msgctxt "error.part_index.suggestion"
+msgid "Check the index against length() of the expression or list."
+msgstr ""
+
+#. i18n: Maxima: "part: argument must be a non-atomic expression; found x"
+#: crates/aximar-core/src/maxima/errors.rs
+msgctxt "error.part_atom.title"
+msgid "No Parts to Take"
+msgstr ""
+
+#. i18n: func is the Maxima function, such as part; found is what it was given, such as x
+#: crates/aximar-core/src/maxima/errors.rs
+#, rust-format
+msgctxt "error.part_atom.explanation"
+msgid "{func} needs an expression with parts, such as a list or a sum, but got {found}."
+msgstr ""
+
+#: crates/aximar-core/src/maxima/errors.rs
+msgctxt "error.part_atom.suggestion"
+msgid "Check that the variable holds the list or expression you meant."
+msgstr ""
+
+#. i18n: Maxima: "assignment: cannot assign to 2"
+#: crates/aximar-core/src/maxima/errors.rs
+msgctxt "error.assign_target.title"
+msgid "Can't Assign"
+msgstr ""
+
+#. i18n: target is what the cell tried to assign to, such as 2 or %pi
+#: crates/aximar-core/src/maxima/errors.rs
+#, rust-format
+msgctxt "error.assign_target.explanation"
+msgid "The left side of : must be a variable name, but it is {target}."
+msgstr ""
+
+#: crates/aximar-core/src/maxima/errors.rs
+msgctxt "error.assign_target.suggestion"
+msgid "To write an equation, use = instead of :, as in x^2 = 4."
+msgstr ""
+
+#. i18n: Maxima: "first: empty argument.", or the same from last and others
+#: crates/aximar-core/src/maxima/errors.rs
+msgctxt "error.empty_list.title"
+msgid "Empty List"
+msgstr ""
+
+#. i18n: func is the Maxima function, such as first or last
+#: crates/aximar-core/src/maxima/errors.rs
+#, rust-format
+msgctxt "error.empty_list.explanation"
+msgid "{func} was given an empty list, which has no elements to take."
+msgstr ""
+
+#: crates/aximar-core/src/maxima/errors.rs
+msgctxt "error.empty_list.suggestion"
+msgid "Check where the list comes from, for example a solve() that found no solutions."
+msgstr ""
+
+#. i18n: Maxima: "allroots: expected a polynomial; found sin(x)"
+#: crates/aximar-core/src/maxima/errors.rs
+msgctxt "error.not_polynomial.title"
+msgid "Not a Polynomial"
+msgstr ""
+
+#. i18n: func is the Maxima function, such as allroots; found is the expression given
+#: crates/aximar-core/src/maxima/errors.rs
+#, rust-format
+msgctxt "error.not_polynomial.explanation"
+msgid "{func} works only on polynomials, but got {found}."
+msgstr ""
+
+#: crates/aximar-core/src/maxima/errors.rs
+msgctxt "error.not_polynomial.suggestion"
+msgid "For other equations, try find_root() over an interval, or solve()."
+msgstr ""
+
+#. i18n: Maxima: "algsys: Couldn't reduce system to a polynomial in one variable."
+#: crates/aximar-core/src/maxima/errors.rs
+msgctxt "error.algsys_failed.title"
+msgid "Can't Solve the System"
+msgstr ""
+
+#: crates/aximar-core/src/maxima/errors.rs
+msgctxt "error.algsys_failed.explanation"
+msgid "algsys, which solve uses for systems, couldn't turn the equations into a polynomial in one variable."
+msgstr ""
+
+#: crates/aximar-core/src/maxima/errors.rs
+msgctxt "error.algsys_failed.suggestion"
+msgid "For a numerical answer, try mnewton() from load(mnewton) with a starting point."
+msgstr ""
+
 #. i18n: Maxima: "defint: integral is divergent."
 #: crates/aximar-core/src/maxima/errors.rs
 msgctxt "error.divergent_integral.title"
@@ -1682,6 +1814,63 @@ msgstr ""
 #: crates/aximar-core/src/maxima/errors.rs
 msgctxt "error.package_not_found.suggestion"
 msgid "Check the package name. Common packages: draw, simplex, lsquares, descriptive, distrib."
+msgstr ""
+
+#. i18n: Maxima: "rat: replaced 0.5 by 1/2 = 0.5", one line per number.
+#. replacements lists them, such as "0.25 → 1/4, 0.5 → 1/2"
+#: crates/aximar-core/src/maxima/notes.rs
+#, rust-format
+msgctxt "note.rat_replaced.text"
+msgid "Maxima replaced decimals with exact fractions: {replacements}."
+msgstr ""
+
+#. i18n: Maxima: "solve: using arc-trig functions to get a solution. Some solutions will be lost."
+#: crates/aximar-core/src/maxima/notes.rs
+msgctxt "note.solve_arc_trig.text"
+msgid "solve used inverse trigonometric functions, so it gives only some of the solutions."
+msgstr ""
+
+#. i18n: Maxima: "solve: dependent equations eliminated: (2)".
+#. equations lists their positions, such as (2)
+#: crates/aximar-core/src/maxima/notes.rs
+#, rust-format
+msgctxt "note.solve_dependent.text"
+msgid "solve dropped equations that follow from the others: {equations}."
+msgstr ""
+
+#. i18n: Maxima: "Principal Value", from integrate
+#: crates/aximar-core/src/maxima/notes.rs
+msgctxt "note.principal_value.text"
+msgid "The integral diverges inside the range, so the result is its Cauchy principal value."
+msgstr ""
+
+#. i18n: Maxima: "plot2d: expression evaluates to non-numeric value somewhere in plotting range."
+#. function is plot2d or plot3d
+#: crates/aximar-core/src/maxima/notes.rs
+#, rust-format
+msgctxt "note.plot_non_numeric.text"
+msgid "{function} left out points where the expression has no real value."
+msgstr ""
+
+#. i18n: Maxima: "quad_qags: Numerical evaluation of f at 0.0 is not a float or is not defined".
+#. function is a quadrature function; expr a Maxima expression; point a number
+#: crates/aximar-core/src/maxima/notes.rs
+#, rust-format
+msgctxt "note.quadrature_undefined.text"
+msgid "{function} couldn't evaluate {expr} at {point}, so the result may be inaccurate."
+msgstr ""
+
+#. i18n: Maxima: "expt: undefined: 0 to a negative exponent.", in a cell
+#. that still has a result
+#: crates/aximar-core/src/maxima/notes.rs
+msgctxt "note.zero_power.text"
+msgid "Maxima met 0 to a negative power on the way, and carried on without that part."
+msgstr ""
+
+#. i18n: Maxima: "tellsimp: warning: rule will treat '+' as noncommutative and nonassociative."
+#: crates/aximar-core/src/maxima/notes.rs
+msgctxt "note.tellsimp_noncommutative.text"
+msgid "tellsimp will treat the rule's main operator as noncommutative and nonassociative, so the rule matches only terms in the order it was written."
 msgstr ""
 
 #. i18n: App menu (macOS). max-length:30

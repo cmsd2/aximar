@@ -50,6 +50,27 @@ static PROPERTY_RE: LazyLock<Regex> =
 static LOAD_FAILED_RE: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"(?:failed to load|Cannot find file)\s+(\S+)").unwrap());
 
+static LOG_ZERO_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"(?m)^log: encountered log\(0\)\.").unwrap());
+
+/// "part: fell off the end.", and the same from inpart, rest and others
+static PART_INDEX_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"(?m)^(\w+): fell off the end\.").unwrap());
+
+static PART_ATOM_RE: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"(?m)^(\w+): argument must be a non-atomic expression; found (.+?)\s*$").unwrap()
+});
+
+static ASSIGN_TARGET_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"(?m)^assignment: cannot assign to (.+?)\s*$").unwrap());
+
+/// "first: empty argument.", and the same from last and others
+static EMPTY_LIST_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"(?m)^(\w+): empty argument\.").unwrap());
+
+static NOT_POLYNOMIAL_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"(?m)^(\w+): expected a polynomial; found (.+?)\s*$").unwrap());
+
 /// A Lisp error, with its condition on one line after the colon
 static LISP_ERROR_RE: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"(?m)Maxima encountered a Lisp error:?(.*)$").unwrap());
@@ -86,6 +107,7 @@ pub fn enhance_error_with_packages(
         .or_else(|| check_arg_count(raw_error, catalog))
         .or_else(|| check_undefined_variable(raw_error))
         .or_else(|| check_undefined_function(raw_error, catalog, packages))
+        .or_else(|| check_survey_errors(raw_error))
         .or_else(|| check_divergent_integral(raw_error))
         .or_else(|| check_inconsistent_equations(raw_error))
         .or_else(|| check_matrix_dimension(raw_error))
@@ -446,6 +468,155 @@ fn check_lisp_error(raw: &str) -> Option<ErrorInfo> {
             "Try restarting the Maxima session. If the error persists, the expression may be too complex or trigger a bug in Maxima."
         )),
     )
+}
+
+/// Errors common in coursework: the survey in the messages-and-localisation
+/// design
+fn check_survey_errors(raw: &str) -> Option<ErrorInfo> {
+    if LOG_ZERO_RE.is_match(raw) {
+        return Some(
+            ErrorInfo::new(
+                "error.log_zero",
+                // i18n: Maxima: "log: encountered log(0)."
+                msg_ctx!("error.log_zero.title", "Logarithm of Zero"),
+                msg_ctx!(
+                    "error.log_zero.explanation",
+                    "The expression takes the logarithm of 0, which is undefined."
+                ),
+            )
+            .with_suggestion(msg_ctx!(
+                "error.log_zero.suggestion",
+                "Check the argument of log for values that make it 0, or take a limit instead."
+            )),
+        );
+    }
+
+    if let Some(caps) = PART_INDEX_RE.captures(raw) {
+        let func = &caps[1];
+        return Some(
+            ErrorInfo::new(
+                "error.part_index",
+                // i18n: Maxima: "part: fell off the end.", or the same from inpart or rest
+                msg_ctx!("error.part_index.title", "Index Out of Range"),
+                msg_ctx!(
+                    "error.part_index.explanation",
+                    // i18n: func is the Maxima function, such as part or inpart
+                    "{func} asked for a part beyond the end of the expression or list.",
+                    func = func
+                ),
+            )
+            .with_suggestion(msg_ctx!(
+                "error.part_index.suggestion",
+                "Check the index against length() of the expression or list."
+            )),
+        );
+    }
+
+    if let Some(caps) = PART_ATOM_RE.captures(raw) {
+        let (func, found) = (&caps[1], &caps[2]);
+        return Some(
+            ErrorInfo::new(
+                "error.part_atom",
+                // i18n: Maxima: "part: argument must be a non-atomic expression; found x"
+                msg_ctx!("error.part_atom.title", "No Parts to Take"),
+                msg_ctx!(
+                    "error.part_atom.explanation",
+                    // i18n: func is the Maxima function, such as part; found is what it was given, such as x
+                    "{func} needs an expression with parts, such as a list or a sum, but got {found}.",
+                    func = func,
+                    found = found
+                ),
+            )
+            .with_suggestion(msg_ctx!(
+                "error.part_atom.suggestion",
+                "Check that the variable holds the list or expression you meant."
+            )),
+        );
+    }
+
+    if let Some(caps) = ASSIGN_TARGET_RE.captures(raw) {
+        let target = &caps[1];
+        return Some(
+            ErrorInfo::new(
+                "error.assign_target",
+                // i18n: Maxima: "assignment: cannot assign to 2"
+                msg_ctx!("error.assign_target.title", "Can't Assign"),
+                msg_ctx!(
+                    "error.assign_target.explanation",
+                    // i18n: target is what the cell tried to assign to, such as 2 or %pi
+                    "The left side of : must be a variable name, but it is {target}.",
+                    target = target
+                ),
+            )
+            .with_suggestion(msg_ctx!(
+                "error.assign_target.suggestion",
+                "To write an equation, use = instead of :, as in x^2 = 4."
+            )),
+        );
+    }
+
+    if let Some(caps) = EMPTY_LIST_RE.captures(raw) {
+        let func = &caps[1];
+        return Some(
+            ErrorInfo::new(
+                "error.empty_list",
+                // i18n: Maxima: "first: empty argument.", or the same from last and others
+                msg_ctx!("error.empty_list.title", "Empty List"),
+                msg_ctx!(
+                    "error.empty_list.explanation",
+                    // i18n: func is the Maxima function, such as first or last
+                    "{func} was given an empty list, which has no elements to take.",
+                    func = func
+                ),
+            )
+            .with_suggestion(msg_ctx!(
+                "error.empty_list.suggestion",
+                "Check where the list comes from, for example a solve() that found no solutions."
+            )),
+        );
+    }
+
+    if let Some(caps) = NOT_POLYNOMIAL_RE.captures(raw) {
+        let (func, found) = (&caps[1], &caps[2]);
+        return Some(
+            ErrorInfo::new(
+                "error.not_polynomial",
+                // i18n: Maxima: "allroots: expected a polynomial; found sin(x)"
+                msg_ctx!("error.not_polynomial.title", "Not a Polynomial"),
+                msg_ctx!(
+                    "error.not_polynomial.explanation",
+                    // i18n: func is the Maxima function, such as allroots; found is the expression given
+                    "{func} works only on polynomials, but got {found}.",
+                    func = func,
+                    found = found
+                ),
+            )
+            .with_suggestion(msg_ctx!(
+                "error.not_polynomial.suggestion",
+                "For other equations, try find_root() over an interval, or solve()."
+            )),
+        );
+    }
+
+    if raw.contains("algsys: Couldn't reduce system to a polynomial in one variable") {
+        return Some(
+            ErrorInfo::new(
+                "error.algsys_failed",
+                // i18n: Maxima: "algsys: Couldn't reduce system to a polynomial in one variable."
+                msg_ctx!("error.algsys_failed.title", "Can't Solve the System"),
+                msg_ctx!(
+                    "error.algsys_failed.explanation",
+                    "algsys, which solve uses for systems, couldn't turn the equations into a polynomial in one variable."
+                ),
+            )
+            .with_suggestion(msg_ctx!(
+                "error.algsys_failed.suggestion",
+                "For a numerical answer, try mnewton() from load(mnewton) with a starting point."
+            )),
+        );
+    }
+
+    None
 }
 
 fn check_divergent_integral(raw: &str) -> Option<ErrorInfo> {
@@ -1168,5 +1339,45 @@ mod tests {
         assert_eq!(info.id, "");
         assert_eq!(info.title.text, "Division by Zero");
         assert_eq!(info.title.template, "Division by Zero");
+    }
+
+    #[test]
+    fn survey_errors_have_their_ids() {
+        let hint = "\n -- an error. To debug this try: debugmode(true);";
+        let cases = [
+            ("log: encountered log(0).", "error.log_zero"),
+            ("part: fell off the end.", "error.part_index"),
+            ("inpart: fell off the end.", "error.part_index"),
+            ("rest: fell off the end.", "error.part_index"),
+            (
+                "part: argument must be a non-atomic expression; found x",
+                "error.part_atom",
+            ),
+            ("assignment: cannot assign to 2", "error.assign_target"),
+            ("first: empty argument.", "error.empty_list"),
+            ("last: empty argument.", "error.empty_list"),
+            (
+                "allroots: expected a polynomial; found sin(x)",
+                "error.not_polynomial",
+            ),
+            (
+                "algsys: Couldn't reduce system to a polynomial in one variable.",
+                "error.algsys_failed",
+            ),
+        ];
+        for (text, id) in cases {
+            let info = enhance_error(&format!("{text}{hint}"), &catalog())
+                .unwrap_or_else(|| panic!("no explanation for {text}"));
+            assert_eq!(info.id, id, "{text}");
+        }
+        let info =
+            enhance_error("allroots: expected a polynomial; found sin(x)", &catalog()).unwrap();
+        assert_eq!(info.explanation.params["found"], "sin(x)");
+        assert_eq!(
+            info.explanation.text,
+            "allroots works only on polynomials, but got sin(x)."
+        );
+        let info = enhance_error("inpart: fell off the end.", &catalog()).unwrap();
+        assert_eq!(info.explanation.params["func"], "inpart");
     }
 }

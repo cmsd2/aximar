@@ -53,6 +53,17 @@ see the `v*` releases on GitHub.
 - **Timeouts and cancellations leave an output**: a cell that timed out
   or was cancelled now has an error output saying so (`error.timeout`,
   `error.cancelled`), which `get_cell` returns, as well as the tool error.
+- **Notes on Maxima's output**: a cell's output gains `notes`, each with
+  an ID, English text and the range of text output lines it explains,
+  for lines such as "rat: replaced 0.5 by 1/2 = 0.5" (one note for a run
+  of them), "solve: using arc-trig functions to get a solution.",
+  "Principal Value" and "expt: undefined: 0 to a negative exponent." in a
+  cell that still has a result. Notes aren't written to files; opening a
+  notebook finds them again.
+- **More errors explained**: `log(0)`, an index past the end of a list or
+  expression, taking parts of an atom, assigning to something that isn't
+  a variable, `first` or `last` of an empty list, a non-polynomial given
+  to `allroots`, and a system `algsys` can't reduce.
 - **Syntax errors are explained by kind**: a missing `)` or `]`, input that
   ends too early, and two values with no operator between them each get
   their own explanation, naming the delimiter or the value. Input that ends

@@ -15,6 +15,7 @@ use aximar_core::catalog::packages::PackageCatalog;
 use aximar_core::catalog::search::Catalog;
 use aximar_core::error::AppError;
 use aximar_core::maxima::errors::{enhance_error_with_packages, explain_failure};
+use aximar_core::maxima::notes::notes;
 use regex::Regex;
 use rspolib::{pofile, POEntry};
 
@@ -51,6 +52,25 @@ const SAMPLES: &[&str] = &[
     "all rows must be the same length",
     "loadfile: failed to load mypackage",
     "loadfile: failed to load",
+    "log: encountered log(0).",
+    "part: fell off the end.",
+    "part: argument must be a non-atomic expression; found x",
+    "assignment: cannot assign to 2",
+    "first: empty argument.",
+    "allroots: expected a polynomial; found sin(x)",
+    "algsys: Couldn't reduce system to a polynomial in one variable.",
+];
+
+/// Text output that reaches every note
+const NOTE_SAMPLES: &[&str] = &[
+    "rat: replaced 0.5 by 1/2 = 0.5",
+    "solve: using arc-trig functions to get a solution.\nSome solutions will be lost.",
+    "solve: dependent equations eliminated: (2)",
+    "Principal Value",
+    "plot2d: expression evaluates to non-numeric value somewhere in plotting range.",
+    "quad_qags: Numerical evaluation of f at 0.0\nis not a float or is not defined",
+    "expt: undefined: 0 to a negative exponent.",
+    "tellsimp: warning: rule will treat '+' as noncommutative and nonassociative.",
 ];
 
 /// Contexts of explanations' messages, as opposed to window text
@@ -106,23 +126,39 @@ fn the_catalog_and_the_code_agree() {
         explanations.push((failure.to_string(), explain_failure(&failure).unwrap()));
     }
 
-    let mut produced = BTreeSet::new();
+    // Every message, with what produced it, its explanation's ID and field
+    let mut messages = Vec::new();
     for (raw, info) in explanations {
         for (field, m) in info.messages() {
-            assert!(
-                m.id.starts_with(&format!("{}.{field}", info.id)),
-                "{raw:?}: {field}'s ID {} isn't under {}",
-                m.id,
-                info.id
-            );
-            let entry = template.get(&m.id).unwrap_or_else(|| {
-                panic!("{} isn't in the template: run scripts/i18n-extract", m.id)
-            });
-            assert_eq!(entry.msgid, m.template, "{}'s English", m.id);
-            let params: BTreeSet<String> = m.params.keys().cloned().collect();
-            assert_eq!(placeholders(&m.template), params, "{}'s parameters", m.id);
-            produced.insert(m.id.clone());
+            messages.push((raw.clone(), info.id.clone(), field, m.clone()));
         }
+    }
+    for text in NOTE_SAMPLES {
+        let found = notes(text, true);
+        assert_eq!(found.len(), 1, "one note for {text:?}");
+        let note = &found[0];
+        messages.push((
+            text.to_string(),
+            note.id.clone(),
+            "text",
+            note.message.clone(),
+        ));
+    }
+
+    let mut produced = BTreeSet::new();
+    for (raw, id, field, m) in &messages {
+        assert!(
+            m.id.starts_with(&format!("{id}.{field}")),
+            "{raw:?}: {field}'s ID {} isn't under {id}",
+            m.id
+        );
+        let entry = template
+            .get(&m.id)
+            .unwrap_or_else(|| panic!("{} isn't in the template: run scripts/i18n-extract", m.id));
+        assert_eq!(entry.msgid, m.template, "{}'s English", m.id);
+        let params: BTreeSet<String> = m.params.keys().cloned().collect();
+        assert_eq!(placeholders(&m.template), params, "{}'s parameters", m.id);
+        produced.insert(m.id.clone());
     }
 
     let unused: Vec<_> = template.keys().filter(|k| !produced.contains(*k)).collect();
@@ -135,7 +171,8 @@ fn the_catalog_and_the_code_agree() {
 #[test]
 fn each_explanation_says_what_maxima_text_it_covers() {
     for (ctx, entry) in template() {
-        if ctx.ends_with(".title") {
+        // An explanation's title, or a note's one message
+        if ctx.ends_with(".title") || (ctx.starts_with("note.") && ctx.ends_with(".text")) {
             assert!(
                 entry.comment.as_deref().is_some_and(|c| !c.is_empty()),
                 "{ctx} has no `// i18n:` note saying what Maxima prints"
@@ -180,7 +217,9 @@ fn generate() -> String {
         let order = |field: &str| {
             ["title", "explanation", "suggestion"]
                 .iter()
-                .position(|f| field.split('.').next() == Some(*f))
+                .position(|f| {
+                    field.split('.').next() == Some(*f) || (*f == "title" && field == "text")
+                })
                 .unwrap_or(3)
         };
         entries.sort_by(|(a, _), (b, _)| order(a).cmp(&order(b)).then(a.cmp(b)));
@@ -189,7 +228,11 @@ fn generate() -> String {
             .flat_map(|(_, e)| placeholders(&e.msgid))
             .collect();
         writeln!(out, "\n## `{id}`\n").unwrap();
-        if let Some((_, title)) = entries.iter().find(|(f, _)| f == "title") {
+        if let Some((_, title)) = entries
+            .iter()
+            .find(|(f, _)| f == "title")
+            .or_else(|| entries.iter().find(|(f, _)| f == "text"))
+        {
             let covers = note(title);
             let covers = covers.strip_prefix("Maxima: ").unwrap_or(&covers);
             writeln!(out, "Covers: {covers}\n").unwrap();

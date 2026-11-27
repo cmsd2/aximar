@@ -44,9 +44,9 @@ Each numbered group is one pull request, landing in order unless a group says ot
 
 ## 7. Notes
 
-- [ ] 7.1 Add `messages::notes` with the `note.*` IDs from the survey, `CellOutput.notes` filled after evaluation and on load, never written to files; verify with unit tests per note (including consecutive `rat` lines, print text that looks like a note, and `note.zero_power` only with a result) and the reopened-note scenario
-- [ ] 7.2 Show notes in the window as note lines in the user's language with a toggle for Maxima's lines, and text output before plots; verify with vitest tests of the note line and toggle, and by hand with the survey's cells
-- [ ] 7.3 Add the survey's other errors (`error.log_zero`, `error.part_index`, `error.part_atom`, `error.assign_target`, `error.empty_list`, `error.not_polynomial`, `error.algsys_failed`) to the catalog and docs; verify with unit tests from the survey's text
+- [x] 7.1 Add `messages::notes` with the `note.*` IDs from the survey, `CellOutput.notes` filled after evaluation and on load, never written to files; verify with unit tests per note (including consecutive `rat` lines, print text that looks like a note, and `note.zero_power` only with a result) and the reopened-note scenario
+- [x] 7.2 Show notes in the window as note lines in the user's language with a toggle for Maxima's lines, and text output before plots; verify with vitest tests of the note line and toggle, and by hand with the survey's cells
+- [x] 7.3 Add the survey's other errors (`error.log_zero`, `error.part_index`, `error.part_atom`, `error.assign_target`, `error.empty_list`, `error.not_polynomial`, `error.algsys_failed`) to the catalog and docs; verify with unit tests from the survey's text
 
 ## 8. Translator tools and the Spanish catalog
 

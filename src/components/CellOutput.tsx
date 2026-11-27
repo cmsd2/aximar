@@ -2,7 +2,7 @@ import { useState, useCallback, useRef, useMemo, useEffect } from "react";
 import { useLingui } from "@lingui/react/macro";
 import type { CellOutput as CellOutputType } from "../types/notebook";
 import { KatexOutput } from "./KatexOutput";
-import { RichTextOutput } from "./RichTextOutput";
+import { TextWithNotes } from "./TextWithNotes";
 import { EnhancedErrorOutput } from "./EnhancedErrorOutput";
 import { ErrorBoundary } from "./ErrorBoundary";
 import { sanitizeSvg } from "../lib/sanitize-svg";
@@ -110,6 +110,8 @@ export function CellOutput({ output, cellId }: CellOutputProps) {
           )}
         </div>
       )}
+      {/* Print text and notes first, in the order Maxima printed them */}
+      {hasText && <TextWithNotes text={output.textOutput} notes={output.notes ?? []} />}
       {hasPlotData && (
         <ErrorBoundary
           label="PlotlyChart"
@@ -138,7 +140,6 @@ export function CellOutput({ output, cellId }: CellOutputProps) {
           <img src={`data:image/png;base64,${output.imagePng}`} alt={t({ message: "Image output", comment: "Alt text of an image in a cell's output" })} style={{ maxWidth: "100%" }} />
         </div>
       )}
-      {hasText && <RichTextOutput text={output.textOutput} />}
       {hasLatex && <KatexOutput latex={output.latex!} />}
       {hasPlain && <div className="text-output">{output.textPlain}</div>}
       {!hasLatex && !hasText && !hasPlot && !hasPlotData && !hasImage && !hasPlain && (

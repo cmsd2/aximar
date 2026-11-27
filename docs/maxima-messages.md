@@ -4,6 +4,16 @@
 
 Each explanation Aximar gives for something Maxima printed, by its ID. The ID is stable: MCP results carry it as `error_info.id`, and each field's text is a catalog entry whose context is the ID and the field. Parameters fill the placeholders in braces. See [i18n.md](i18n.md).
 
+## `error.algsys_failed`
+
+Covers: "algsys: Couldn't reduce system to a polynomial in one variable."
+
+| Field | English |
+|---|---|
+| title | Can't Solve the System |
+| explanation | algsys, which solve uses for systems, couldn't turn the equations into a polynomial in one variable. |
+| suggestion | For a numerical answer, try mnewton() from load(mnewton) with a starting point. |
+
 ## `error.arg_count`
 
 Covers: "Too many arguments supplied to f(x); found: [1, 2]" or "Too few ..."
@@ -19,6 +29,18 @@ Parameters: `definition`, `found`, `func`, `signatures`
 | suggestion | Call {func} with the arguments {definition} names, or change its definition. |
 | suggestion.describe | Check the documentation for {func} with describe({func}). |
 | suggestion.signatures | Correct usage: {signatures} |
+
+## `error.assign_target`
+
+Covers: "assignment: cannot assign to 2"
+
+Parameters: `target`
+
+| Field | English |
+|---|---|
+| title | Can't Assign |
+| explanation | The left side of : must be a variable name, but it is {target}. |
+| suggestion | To write an equation, use = instead of :, as in x^2 = 4. |
 
 ## `error.cancelled`
 
@@ -48,6 +70,18 @@ Covers: "expt: undefined: 0 to a negative exponent." or "Division by 0"
 | title | Division by Zero |
 | explanation | The expression involves division by zero or raising zero to a negative power, which is undefined. |
 | suggestion | Check your denominator or exponent for cases where the value might be zero. |
+
+## `error.empty_list`
+
+Covers: "first: empty argument.", or the same from last and others
+
+Parameters: `func`
+
+| Field | English |
+|---|---|
+| title | Empty List |
+| explanation | {func} was given an empty list, which has no elements to take. |
+| suggestion | Check where the list comes from, for example a solve() that found no solutions. |
 
 ## `error.float_overflow`
 
@@ -103,6 +137,16 @@ Parameters: `lisp_type`, `value`
 | explanation | A function inside Maxima expected a value of type {lisp_type} but got {value}. |
 | suggestion | Check the arguments of the functions in this cell, especially Lisp functions called with ?, which don't check their arguments. |
 
+## `error.log_zero`
+
+Covers: "log: encountered log(0)."
+
+| Field | English |
+|---|---|
+| title | Logarithm of Zero |
+| explanation | The expression takes the logarithm of 0, which is undefined. |
+| suggestion | Check the argument of log for values that make it 0, or take a limit instead. |
+
 ## `error.matrix_dimension`
 
 Covers: "matrix: all rows must be the same length." or "incompatible dimensions"
@@ -112,6 +156,18 @@ Covers: "matrix: all rows must be the same length." or "incompatible dimensions"
 | title | Matrix Dimension Error |
 | explanation | Matrix rows have different lengths, or the matrices have incompatible dimensions for the operation. |
 | suggestion | Ensure all rows have the same number of elements and matrices have compatible dimensions. |
+
+## `error.not_polynomial`
+
+Covers: "allroots: expected a polynomial; found sin(x)"
+
+Parameters: `found`, `func`
+
+| Field | English |
+|---|---|
+| title | Not a Polynomial |
+| explanation | {func} works only on polynomials, but got {found}. |
+| suggestion | For other equations, try find_root() over an interval, or solve(). |
 
 ## `error.package_not_found`
 
@@ -125,6 +181,30 @@ Parameters: `package`
 | explanation | The package "{package}" could not be found or loaded. |
 | explanation.unnamed | The package could not be found or loaded. |
 | suggestion | Check the package name. Common packages: draw, simplex, lsquares, descriptive, distrib. |
+
+## `error.part_atom`
+
+Covers: "part: argument must be a non-atomic expression; found x"
+
+Parameters: `found`, `func`
+
+| Field | English |
+|---|---|
+| title | No Parts to Take |
+| explanation | {func} needs an expression with parts, such as a list or a sum, but got {found}. |
+| suggestion | Check that the variable holds the list or expression you meant. |
+
+## `error.part_index`
+
+Covers: "part: fell off the end.", or the same from inpart or rest
+
+Parameters: `func`
+
+| Field | English |
+|---|---|
+| title | Index Out of Range |
+| explanation | {func} asked for a part beyond the end of the expression or list. |
+| suggestion | Check the index against length() of the expression or list. |
 
 ## `error.recursion`
 
@@ -210,6 +290,78 @@ Parameters: `func`, `package`
 | explanation.in_package | "{func}" is provided by the "{package}" package, which needs to be loaded first. |
 | suggestion | Check the spelling or use describe("{func}") to search. |
 | suggestion.in_package | Add load("{package}")$ before using this function. |
+
+## `note.plot_non_numeric`
+
+Covers: "plot2d: expression evaluates to non-numeric value somewhere in plotting range." function is plot2d or plot3d
+
+Parameters: `function`
+
+| Field | English |
+|---|---|
+| text | {function} left out points where the expression has no real value. |
+
+## `note.principal_value`
+
+Covers: "Principal Value", from integrate
+
+| Field | English |
+|---|---|
+| text | The integral diverges inside the range, so the result is its Cauchy principal value. |
+
+## `note.quadrature_undefined`
+
+Covers: "quad_qags: Numerical evaluation of f at 0.0 is not a float or is not defined". function is a quadrature function; expr a Maxima expression; point a number
+
+Parameters: `expr`, `function`, `point`
+
+| Field | English |
+|---|---|
+| text | {function} couldn't evaluate {expr} at {point}, so the result may be inaccurate. |
+
+## `note.rat_replaced`
+
+Covers: "rat: replaced 0.5 by 1/2 = 0.5", one line per number. replacements lists them, such as "0.25 → 1/4, 0.5 → 1/2"
+
+Parameters: `replacements`
+
+| Field | English |
+|---|---|
+| text | Maxima replaced decimals with exact fractions: {replacements}. |
+
+## `note.solve_arc_trig`
+
+Covers: "solve: using arc-trig functions to get a solution. Some solutions will be lost."
+
+| Field | English |
+|---|---|
+| text | solve used inverse trigonometric functions, so it gives only some of the solutions. |
+
+## `note.solve_dependent`
+
+Covers: "solve: dependent equations eliminated: (2)". equations lists their positions, such as (2)
+
+Parameters: `equations`
+
+| Field | English |
+|---|---|
+| text | solve dropped equations that follow from the others: {equations}. |
+
+## `note.tellsimp_noncommutative`
+
+Covers: "tellsimp: warning: rule will treat '+' as noncommutative and nonassociative."
+
+| Field | English |
+|---|---|
+| text | tellsimp will treat the rule's main operator as noncommutative and nonassociative, so the rule matches only terms in the order it was written. |
+
+## `note.zero_power`
+
+Covers: "expt: undefined: 0 to a negative exponent.", in a cell that still has a result
+
+| Field | English |
+|---|---|
+| text | Maxima met 0 to a negative power on the way, and carried on without that part. |
 
 ## `question.equal`
 

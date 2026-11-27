@@ -19,7 +19,7 @@ pub fn open(
         fs::read_to_string(path).map_err(|e| format!("Failed to read {}: {e}", path.display()))?;
     let mut file =
         format::read(&json).map_err(|e| format!("Failed to open {}: {e}", path.display()))?;
-    format::explain_errors(&mut file, catalog, packages);
+    format::explain(&mut file, catalog, packages);
     Ok(file)
 }
 
