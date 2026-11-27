@@ -163,8 +163,8 @@ problems:
 - **Inserting cells in card style.**  The + Code and + Markdown bar
   needed more room than the 8px between two cards.  Now hovering a gap
   shows a line and a + in the left margin, whose menu inserts a code or
-  Markdown cell.  Clicking a gap places a caret there: a short accent bar
-  on the line, lined up with the In and Out labels.  Typing
+  Markdown cell.  Clicking a gap places a caret there: the stretch of
+  line under the In and Out labels turns blue and blinks.  Typing
   starts a code cell with that text, # starts a Markdown cell,
   Enter starts an empty code cell, and Escape removes the caret.  Bracket
   style keeps its bar, and the caret shows in it too.

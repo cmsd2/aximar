@@ -334,8 +334,8 @@
 /* The gap between two cells in card style (CellGap): 8px, with a hit
    area a little taller that reaches over the cards' edges.  Hovering
    shows a grey line and a + in the left margin.  Clicking places a
-   caret: the line, with a short accent bar on it in the label column,
-   under the In and Out labels.  Bracket
+   caret: the stretch of line under the In and Out labels turns the
+   accent colour and blinks.  Bracket
    style draws the gap as the insert bar above. */
 .cell-gap:not(.insert-bar) {
   position: relative;
@@ -368,22 +368,19 @@
   opacity: 1;
 }
 
-/* The caret: a flat bar in the accent colour, 1.5 times as long as the
-   editor's caret is tall, blinking on CodeMirror's 1.2s cycle.  It lies
-   on the line in the label column, its right end lined up with the In
-   and Out labels (the gutter's 4px padding in from the code, and past
-   the card's 1px border in card style). */
+/* The caret: the stretch of the line under the In and Out labels, in the
+   accent colour, blinking on CodeMirror's 1.2s cycle.  It's the line's
+   own 1px and sits exactly on it.  Its right end is flush with the
+   labels: the gutter's 4px padding in from the code, past the card's 1px
+   border in card style. */
 .cell-gap-caret {
-  --caret-length: calc(var(--font-size-mono) * 1.8);
+  --caret-length: calc(var(--font-size-mono) * 2.4);
   position: absolute;
   left: calc(var(--gutter-width) + 1px - var(--space-1) - var(--caret-length));
   top: 50%;
   z-index: 4;
   width: var(--caret-length);
-  /* 3px, so it centres on the 1px line in whole pixels: one above, one
-     below.  The line starts at 50%. */
-  height: 3px;
-  transform: translateY(-1px);
+  height: 1px;
   background: var(--accent);
   pointer-events: none;
   animation: cell-gap-blink 1.2s steps(1) infinite;
