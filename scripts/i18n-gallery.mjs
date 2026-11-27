@@ -4,6 +4,10 @@
 //
 //   npm run build-storybook && node scripts/i18n-gallery.mjs
 //
+// Stories tagged `themes` are shot in the light and the dark theme, the
+// rest in light; stories tagged `english-only` (the Foundations, whose
+// text is token names) only in English.
+//
 // Writes storybook-static/gallery/ (screenshots and an index page), and
 // locales/screens.json, which scripts/i18n-extract turns into
 // `#. screen: <story>` comments in the catalog.  Needs Playwright's
@@ -18,6 +22,20 @@ const root = fileURLToPath(new URL("..", import.meta.url));
 const site = join(root, "storybook-static");
 const gallery = join(site, "gallery");
 const LANGUAGES = ["en", "es", "pseudo"];
+const THEMES = ["light", "dark"];
+
+/** The languages and themes to shoot a story in */
+function shotsOf(story) {
+  const tags = story.tags ?? [];
+  const languages = tags.includes("english-only") ? ["en"] : LANGUAGES;
+  const themes = tags.includes("themes") ? THEMES : ["light"];
+  return languages.flatMap((lang) => themes.map((theme) => ({ lang, theme })));
+}
+
+/** A screenshot's file, under its language's folder */
+function shotFile(story, theme) {
+  return theme === "light" ? `${story.id}.png` : `${story.id}--${theme}.png`;
+}
 
 const TYPES = {
   ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".json": "application/json",
@@ -71,12 +89,14 @@ try {
   const index = JSON.parse(await readFile(join(site, "index.json"), "utf8"));
   const stories = Object.values(index.entries).filter((e) => e.type === "story");
 
-  // Screenshots, per language
-  for (const lang of LANGUAGES) {
-    await mkdir(join(gallery, lang), { recursive: true });
-    for (const story of stories) {
-      await open(page, base, story.id, `locale:${lang}`);
-      await page.screenshot({ path: join(gallery, lang, `${story.id}.png`), fullPage: true });
+  // Screenshots, per language and theme
+  for (const lang of LANGUAGES) await mkdir(join(gallery, lang), { recursive: true });
+  let shots = 0;
+  for (const story of stories) {
+    for (const { lang, theme } of shotsOf(story)) {
+      await open(page, base, story.id, `locale:${lang};theme:${theme}`);
+      await page.screenshot({ path: join(gallery, lang, shotFile(story, theme)), fullPage: true });
+      shots++;
     }
   }
 
@@ -101,7 +121,13 @@ try {
   // An index page of the screenshots
   const rows = stories
     .map((s) => {
-      const shots = LANGUAGES.map((l) => `<figure><figcaption>${l}</figcaption><a href="${l}/${s.id}.png"><img src="${l}/${s.id}.png" loading="lazy"></a></figure>`).join("");
+      const shots = shotsOf(s)
+        .map(({ lang, theme }) => {
+          const file = `${lang}/${shotFile(s, theme)}`;
+          const caption = theme === "light" ? lang : `${lang}, ${theme}`;
+          return `<figure><figcaption>${caption}</figcaption><a href="${file}"><img src="${file}" loading="lazy"></a></figure>`;
+        })
+        .join("");
       return `<section id="${s.id}"><h2>${s.title} / ${s.name} <a href="../?path=/story/${s.id}">open</a></h2><div class="shots">${shots}</div></section>`;
     })
     .join("\n");
@@ -109,14 +135,13 @@ try {
     join(gallery, "index.html"),
     `<!doctype html><meta charset="utf-8"><title>Aximar translation gallery</title>
 <style>body{font-family:system-ui,sans-serif;margin:16px}.shots{display:flex;gap:12px;flex-wrap:wrap}figure{margin:0}img{max-width:420px;border:1px solid #ccc}</style>
-<h1>Aximar translation gallery</h1><p>Each screen in English, Spanish and the pseudo-locale. <a href="../">Browse the stories</a>, with a language switcher.</p>
+<h1>Aximar translation gallery</h1><p>Each screen in English, Spanish and the pseudo-locale; the Foundations and components in both themes. <a href="../">Browse the stories</a>, with language and theme switches.</p>
 ${rows}\n`,
   );
 
-  const shots = stories.length * LANGUAGES.length;
-  // Every story, in every language
-  for (const lang of LANGUAGES) {
-    for (const story of stories) await readFile(join(gallery, lang, `${story.id}.png`));
+  // Every story, in every language and theme it should have
+  for (const story of stories) {
+    for (const { lang, theme } of shotsOf(story)) await readFile(join(gallery, lang, shotFile(story, theme)));
   }
   console.log(`${shots} screenshots of ${stories.length} stories; ${Object.keys(sorted).length} strings placed on screens`);
 } finally {

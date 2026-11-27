@@ -1,11 +1,11 @@
 ## 1. Tokens and Foundations (first PR)
 
-- [ ] 1.1 Move the token blocks and the print palette from `src/styles/global.css` to `src/styles/tokens.css` unchanged, and import it at the top of `global.css`; verify the gallery's screenshots match the ones before the move, pixel for pixel
-- [ ] 1.2 Add the type, line-height, spacing, radius and shadow scales and `--font-ui` to `tokens.css`, used by nothing yet; verify `npm run build` and the stories still render
-- [ ] 1.3 Add `src/styles/contrast-pairs.ts` and `src/styles/tokens.test.ts`: a block parser for `tokens.css`, the WCAG ratio, and the 4.5:1 assertion per pair and theme; verify with the tests `every_colour_has_a_dark_value`, `the_two_dark_blocks_agree`, `text_pairs_reach_4_5_to_1`, and a fixture test `a_low_contrast_pair_fails` using `#2d8a4e` on `#edf7f0`
-- [ ] 1.4 Add the `theme` global to `.storybook/preview.tsx`, setting `data-theme` on the root; verify by hand that Dark turns a story dark, and with a vitest test of the decorator that checks `data-theme` follows the global
-- [ ] 1.5 Add the Foundations stories (`src/stories/foundations/`): colours with ratios, type, spacing, radii and shadows, reading `tokens.css` through `?raw`; tag them `themes` and `english-only`; verify each renders in both themes and that a token added to `tokens.css` shows without a story edit
-- [ ] 1.6 Teach `scripts/i18n-gallery.mjs` the `themes` and `english-only` tags; verify the gallery has light and dark screenshots of each Foundations story and none in Spanish or the pseudo-locale
+- [x] 1.1 Move the token blocks and the print palette from `src/styles/global.css` to `src/styles/tokens.css` unchanged, and import it at the top of `global.css`; verify the gallery's screenshots match the ones before the move, pixel for pixel
+- [x] 1.2 Add the type, line-height, spacing, radius and shadow scales and `--font-ui` to `tokens.css`, used by nothing yet; verify `npm run build` and the stories still render
+- [x] 1.3 Add `src/styles/contrast-pairs.ts` and `src/styles/tokens.test.ts`: a block parser for `tokens.css`, the WCAG ratio, and the 4.5:1 assertion per pair and theme; verify with the tests `every_colour_has_a_dark_value`, `the_two_dark_blocks_agree`, `text_pairs_reach_4_5_to_1`, and a fixture test `a_low_contrast_pair_fails` using `#2d8a4e` on `#edf7f0`
+- [x] 1.4 Add the `theme` global to `.storybook/preview.tsx`, setting `data-theme` on the root; verify by hand that Dark turns a story dark, and with a vitest test of the decorator that checks `data-theme` follows the global
+- [x] 1.5 Add the Foundations stories (`src/stories/foundations/`): colours with ratios, type, spacing, radii and shadows, reading `tokens.css` through `?raw`; tag them `themes` and `english-only`; verify each renders in both themes and that a token added to `tokens.css` shows without a story edit
+- [x] 1.6 Teach `scripts/i18n-gallery.mjs` the `themes` and `english-only` tags; verify the gallery has light and dark screenshots of each Foundations story and none in Spanish or the pseudo-locale
 
 ## 2. The token check (one PR)
 

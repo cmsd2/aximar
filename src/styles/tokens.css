@@ -1,0 +1,138 @@
+/* Aximar's design tokens: every colour, size, space, radius, shadow and
+   font stack that rules draw from.  Only this file defines them; see
+   docs/design-library.md.  Variables the app sets while it runs, such as
+   --font-size-mono and --markdown-indent, live in global.css. */
+
+:root {
+  /* Colours: light theme (the default) */
+  --bg-primary: #ffffff;
+  --bg-secondary: #f5f5f7;
+  --bg-cell: #fafafa;
+  --bg-input: #ffffff;
+  --text-primary: #1d1d1f;
+  --text-secondary: #636366;
+  --text-placeholder: #aeaeb2;
+  --border-color: #d2d2d7;
+  --accent: #0071e3;
+  --accent-hover: #0077ed;
+  --error-color: #c62828;
+  --error-bg: #fef2f2;
+  --success-color: #237a42;
+  --success-bg: #edf7f0;
+  --success-text: #1e6b3a;
+  --running-color: #8a6508;
+  --warn-bg: #fdf6e3;
+  --selected-bg: #e8e8ed;
+  --warning-color: #e5a00d;
+  --warning-text: #7a4f00;
+  --syntax-builtin: #8a6508;
+  --syntax-string: #237a42;
+  --syntax-number: #8e44ad;
+
+  /* Fonts */
+  --font-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  --font-mono: "JetBrains Mono", "Fira Code", "SF Mono", Menlo, Consolas, monospace;
+
+  /* Type: sizes and line heights */
+  --text-xs: 11px;
+  --text-sm: 12px;
+  --text-md: 13px;
+  --text-lg: 14px;
+  --text-xl: 16px;
+  --text-2xl: 18px;
+  --leading-tight: 1.3;
+  --leading-normal: 1.5;
+
+  /* Spacing, on a 4px grid */
+  --space-half: 2px;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+
+  /* Corner radii */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 12px;
+
+  /* Shadows */
+  --shadow-popover: 0 4px 16px rgba(0, 0, 0, 0.18);
+  --shadow-dialog: 0 16px 48px rgba(0, 0, 0, 0.2);
+}
+
+/* Auto dark: applies when OS prefers dark AND user hasn't forced light */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg-primary: #1e1e2e;
+    --bg-secondary: #282840;
+    --bg-cell: #2a2a3e;
+    --bg-input: #1a1a2e;
+    --text-primary: #cdd6f4;
+    --text-secondary: #a6adc8;
+    --text-placeholder: #6c7086;
+    --border-color: #45475a;
+    --accent: #89b4fa;
+    --accent-hover: #74c7ec;
+    --error-color: #f38ba8;
+    --error-bg: #2e1a1e;
+    --success-color: #a6e3a1;
+    --success-bg: #1f2e26;
+    --success-text: #a6e3a1;
+    --running-color: #f9e2af;
+    --warn-bg: #2f2b1f;
+    --selected-bg: #35354f;
+    --warning-color: #e5a00d;
+    --warning-text: #f9e2af;
+    --syntax-builtin: #f9e2af;
+    --syntax-string: #a6e3a1;
+    --syntax-number: #cba6f7;
+  }
+}
+
+/* Manual dark override */
+[data-theme="dark"] {
+  --bg-primary: #1e1e2e;
+  --bg-secondary: #282840;
+  --bg-cell: #2a2a3e;
+  --bg-input: #1a1a2e;
+  --text-primary: #cdd6f4;
+  --text-secondary: #a6adc8;
+  --text-placeholder: #6c7086;
+  --border-color: #45475a;
+  --accent: #89b4fa;
+  --accent-hover: #74c7ec;
+  --error-color: #f38ba8;
+  --error-bg: #2e1a1e;
+  --success-color: #a6e3a1;
+  --success-bg: #1f2e26;
+  --success-text: #a6e3a1;
+  --running-color: #f9e2af;
+  --warn-bg: #2f2b1f;
+  --selected-bg: #35354f;
+  --warning-color: #e5a00d;
+  --warning-text: #f9e2af;
+  --syntax-builtin: #f9e2af;
+  --syntax-string: #a6e3a1;
+  --syntax-number: #cba6f7;
+}
+
+/* Print: always the light palette, whatever the theme */
+@media print {
+  :root {
+    --bg-primary: #ffffff !important;
+    --bg-secondary: #f5f5f7 !important;
+    --bg-cell: #ffffff !important;
+    --bg-input: #ffffff !important;
+    --text-primary: #1d1d1f !important;
+    --text-secondary: #636366 !important;
+    --text-placeholder: #aeaeb2 !important;
+    --border-color: #d2d2d7 !important;
+    --accent: #0071e3 !important;
+    --error-color: #c62828 !important;
+    --success-color: #237a42 !important;
+    --running-color: #8a6508 !important;
+  }
+}
