@@ -66,9 +66,10 @@
   --overlay-bg: rgba(0, 0, 0, 0.4);
 }
 
-/* Auto dark: applies when OS prefers dark AND user hasn't forced light */
+/* Auto dark: applies when the OS prefers dark and the user hasn't chosen
+   a theme (Auto removes the data-theme attribute) */
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
+  :root:not([data-theme]) {
     --bg-primary: #1e1e2e;
     --bg-secondary: #282840;
     --bg-cell: #2a2a3e;
@@ -120,6 +121,33 @@
   --syntax-builtin: #f9e2af;
   --syntax-string: #a6e3a1;
   --syntax-number: #cba6f7;
+}
+
+/* Paper: warm off-white, ink text, for long reading in daylight */
+[data-theme="paper"] {
+  --bg-primary: #fbf8f1;
+  --bg-secondary: #f2ede2;
+  --bg-cell: #f7f3ea;
+  --bg-input: #fffdf8;
+  --text-primary: #1f2440;
+  --text-secondary: #5f594f;
+  --text-placeholder: #a9a294;
+  --border-color: #dcd4c3;
+  --accent: #2f55a4;
+  --accent-hover: #3a62b5;
+  --error-color: #b3261e;
+  --error-bg: #fbece6;
+  --success-color: #2c6e3f;
+  --success-bg: #ebf2e3;
+  --success-text: #255f36;
+  --running-color: #7f5c08;
+  --warn-bg: #f7edd5;
+  --selected-bg: #ebe4d3;
+  --warning-color: #d9950b;
+  --warning-text: #6f4708;
+  --syntax-builtin: #7f5c08;
+  --syntax-string: #2c6e3f;
+  --syntax-number: #7d3c98;
 }
 
 /* Print: always the light palette, whatever the theme */

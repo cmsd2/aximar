@@ -7,11 +7,13 @@ const css = readFileSync(new URL("./tokens.css", import.meta.url), "utf8");
 const tokens = parseTokens(css);
 const colourNames = [...tokens.light].filter(([, v]) => isColour(v)).map(([k]) => k);
 
+type Themes = Record<"light" | "paper" | "dark", Map<string, string>>;
+
 /** The pairs below 4.5:1 in a theme, as readable lines */
-function failures(light: Map<string, string>, dark: Map<string, string>): string[] {
+function failures(themes: Themes): string[] {
   const out: string[] = [];
   for (const pair of CONTRAST_PAIRS.filter((p) => !p.exempt)) {
-    for (const [theme, map] of [["light", light], ["dark", dark]] as const) {
+    for (const [theme, map] of Object.entries(themes)) {
       const ratio = contrast(map.get(pair.text)!, map.get(pair.background)!);
       if (ratio < 4.5) out.push(`--${pair.text} on --${pair.background}, ${theme}: ${ratio.toFixed(2)}:1`);
     }
@@ -27,6 +29,12 @@ describe("the design tokens", () => {
     }
   });
 
+  it("give every colour a paper value", () => {
+    for (const name of colourNames) {
+      expect(tokens.paper.has(name), `--${name} has no paper value`).toBe(true);
+    }
+  });
+
   it("keep the two dark blocks the same", () => {
     expect([...tokens.darkAuto]).toEqual([...tokens.dark]);
   });
@@ -38,8 +46,8 @@ describe("the design tokens", () => {
     }
   });
 
-  it("give text at least 4.5:1 in both themes", () => {
-    expect(failures(tokens.light, tokens.dark)).toEqual([]);
+  it("give text at least 4.5:1 in every theme", () => {
+    expect(failures({ light: tokens.light, paper: tokens.paper, dark: tokens.dark })).toEqual([]);
   });
 
   it("print text at 4.5:1 on paper", () => {
@@ -54,7 +62,7 @@ describe("the design tokens", () => {
   it("fail a pair below 4.5:1", () => {
     // The light success text as it was before the settings-window change
     const light = new Map(tokens.light).set("success-text", "#2d8a4e");
-    expect(failures(light, tokens.dark)).toContain("--success-text on --success-bg, light: 3.95:1");
+    expect(failures({ light, paper: tokens.paper, dark: tokens.dark })).toContain("--success-text on --success-bg, light: 3.95:1");
   });
 
   it("measure contrast as WCAG does", () => {

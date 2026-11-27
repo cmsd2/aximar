@@ -19,6 +19,14 @@ All in `src/styles/tokens.css`, and nowhere else. Variables the app sets
 while it runs, such as `--font-size-mono` and `--markdown-indent`, live
 in `global.css` and aren't tokens.
 
+There are three colour palettes. Light sits in `:root`; Paper (warm
+off-white with ink text) under `[data-theme="paper"]`; Dark under
+`[data-theme="dark"]` and again under `prefers-color-scheme: dark` for
+Auto, which removes the `data-theme` attribute. Every colour token needs
+a value in each block, and a rule that changes in dark mode uses
+`:root:not([data-theme])` inside the media query, so it leaves Light and
+Paper alone.
+
 ### Colour
 
 | Job | Token |
@@ -42,7 +50,7 @@ Text in `--accent` goes on `--bg-primary` or `--bg-input` only: on
 `--bg-secondary` and `--bg-cell` the light accent falls below 4.5:1.
 `src/styles/contrast-pairs.ts` lists every text colour with the
 backgrounds it may sit on; add a pair there before putting a text colour
-on a new background, and the contrast test checks it in both themes.
+on a new background, and the contrast test checks it in every theme.
 [Foundations / Colours](?path=/story/foundations-colours--contrast) shows
 each ratio.
 
@@ -131,10 +139,10 @@ text, 16px in buttons and lists, 20px in the toolbar, all with a stroke of
   `npm run check:tokens -- --update`, which records them; the baseline
   never goes up.
 - **The contrast test**, `src/styles/tokens.test.ts`, holds each pair in
-  `contrast-pairs.ts` to 4.5:1 in both themes, and print text to 4.5:1 on
+  `contrast-pairs.ts` to 4.5:1 in every theme, and print text to 4.5:1 on
   white.
 - **The gallery**, `npm run i18n:gallery`, shoots every story, the
-  Foundations and UI stories in both themes, and fails if a
+  Foundations and UI stories in the light and dark themes, and fails if a
   `SegmentedControl` label wraps or overflows in any language.
 
 Moving an old screen onto the parts: give it a story first if it has

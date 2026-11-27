@@ -209,7 +209,7 @@
 }
 
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) .toolbar-btn:hover:not(:disabled) {
+  :root:not([data-theme]) .toolbar-btn:hover:not(:disabled) {
     background: rgba(255, 255, 255, 0.08);
   }
 }
@@ -792,7 +792,7 @@
 }
 
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) .cell-output-area {
+  :root:not([data-theme]) .cell-output-area {
     background: rgba(0, 0, 0, 0.15);
   }
 }
@@ -1086,7 +1086,7 @@
 }
 
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) .cell-suggestions {
+  :root:not([data-theme]) .cell-suggestions {
     background: rgba(0, 0, 0, 0.15);
   }
 }

@@ -1,5 +1,5 @@
 // Which text colours sit on which backgrounds.  Each pair must reach 4.5:1
-// in both themes (src/styles/tokens.test.ts), and the Foundations colours
+// in every theme (src/styles/tokens.test.ts), and the Foundations colours
 // story shows the ratios.  Add a pair when a rule puts a text colour on a
 // new background.
 
