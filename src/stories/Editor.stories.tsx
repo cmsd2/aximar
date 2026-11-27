@@ -150,3 +150,18 @@ async function until<T>(find: () => T | null | undefined): Promise<T> {
     await new Promise((r) => setTimeout(r, 20));
   }
 }
+
+/** A new notebook: no cells yet, and the caret ready for the first */
+export const NewNotebook: StoryObj = {
+  loaders: [
+    async () => {
+      seedNotebook([]);
+      useNotebookStore.getState().setInsertionPoint({ after: null });
+    },
+  ],
+  render: () => (
+    <div style={{ height: 300, display: "flex", flexDirection: "column" }}>
+      <StoryNotebook />
+    </div>
+  ),
+};

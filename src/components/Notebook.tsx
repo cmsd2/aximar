@@ -19,6 +19,7 @@ export function Notebook({ onViewDocs }: NotebookProps) {
   const selectedCellIds = tab.selectedCellIds;
   const selectCell = useNotebookStore((s) => s.selectCell);
   const clearSelection = useNotebookStore((s) => s.clearSelection);
+  const setInsertionPoint = useNotebookStore((s) => s.setInsertionPoint);
 
   const handleBracketClick = useCallback(
     (e: React.MouseEvent, cellId: string) => {
@@ -51,7 +52,7 @@ export function Notebook({ onViewDocs }: NotebookProps) {
   }, [selectedCellIds.length, clearSelection]);
 
   return (
-    <div className="notebook" onClick={handleNotebookClick}>
+    <div className={`notebook${cells.length === 0 ? " empty" : ""}`} onClick={handleNotebookClick}>
       <TrustBanner />
       <CellGap after={null} />
       {cells.map((cell) => {
@@ -86,6 +87,15 @@ export function Notebook({ onViewDocs }: NotebookProps) {
           </div>
         );
       })}
+      {/* The space below the last cell: a click there places the caret
+          after it, as in an empty notebook, where it fills the window */}
+      <div
+        className="notebook-tail"
+        onMouseDown={(e) => {
+          e.preventDefault();
+          setInsertionPoint({ after: cells[cells.length - 1]?.id ?? null });
+        }}
+      />
     </div>
   );
 }

@@ -37,10 +37,15 @@ impl Default for NotebookContext {
 
 impl NotebookContext {
     pub fn new() -> Self {
+        Self::with(Notebook::new())
+    }
+
+    /// A context around the given notebook
+    fn with(notebook: Notebook) -> Self {
         let server_log = Arc::new(ServerLog::new());
         let capture_sink = Arc::new(CaptureOutputSink::new(server_log.clone()));
         NotebookContext {
-            notebook: Arc::new(Mutex::new(Notebook::new())),
+            notebook: Arc::new(Mutex::new(notebook)),
             session: Arc::new(SessionManager::new()),
             capture_sink,
             server_log,
@@ -156,9 +161,18 @@ impl NotebookRegistry {
 
     /// Create a new notebook, returning its ID.
     pub fn create(&mut self) -> NotebookId {
+        self.insert(NotebookContext::new())
+    }
+
+    /// Create a notebook with no cells (see `Notebook::empty`)
+    pub fn create_empty(&mut self) -> NotebookId {
+        self.insert(NotebookContext::with(Notebook::empty()))
+    }
+
+    fn insert(&mut self, context: NotebookContext) -> NotebookId {
         let id = format!("nb-{}", self.next_counter);
         self.next_counter += 1;
-        self.notebooks.insert(id.clone(), NotebookContext::new());
+        self.notebooks.insert(id.clone(), context);
         id
     }
 
@@ -256,6 +270,17 @@ mod tests {
         let id = reg.create();
         assert_eq!(reg.list().len(), 2);
         assert!(reg.get(&id).is_ok());
+    }
+
+    #[test]
+    fn create_empty_notebook() {
+        let mut reg = NotebookRegistry::new();
+        let id = reg.create_empty();
+        let ctx = reg.get(&id).unwrap();
+        assert!(ctx.notebook.try_lock().unwrap().cells().is_empty());
+        let other = reg.create();
+        let ctx = reg.get(&other).unwrap();
+        assert_eq!(ctx.notebook.try_lock().unwrap().cells().len(), 1);
     }
 
     #[test]

@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useState, useRef } from "react";
+import { openNewNotebook } from "../lib/new-notebook";
 import { useLingui } from "@lingui/react/macro";
 import { confirmClose } from "../lib/unsaved-changes";
 import { useNotebookStore } from "../store/notebookStore";
 import type { NotebookTab } from "../store/notebookStore";
 import { displayTitle } from "../lib/tab-title";
-import { nbCreate, nbClose, nbSetActive, nbGetState, createWindow } from "../lib/notebook-commands";
+import { nbClose, nbSetActive, createWindow } from "../lib/notebook-commands";
 
 function statusDotClass(status: NotebookTab["sessionStatus"]): string {
   if (status === "Ready") return "tab-status-dot ready";
@@ -24,7 +25,6 @@ export function TabBar() {
   const newTabShortcut = "Cmd+T";
   const notebooks = useNotebookStore((s) => s.notebooks);
   const activeNotebookId = useNotebookStore((s) => s.activeNotebookId);
-  const addTab = useNotebookStore((s) => s.addTab);
   const removeTab = useNotebookStore((s) => s.removeTab);
   const setActiveTab = useNotebookStore((s) => s.setActiveTab);
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
@@ -33,27 +33,8 @@ export function TabBar() {
   const tabs = Object.values(notebooks);
 
   const handleNewTab = useCallback(async () => {
-    const result = await nbCreate();
-    addTab(result.notebook_id);
-    setActiveTab(result.notebook_id);
-    await nbSetActive(result.notebook_id);
-    // Fetch initial state for the new notebook
-    const state = await nbGetState(result.notebook_id);
-    useNotebookStore.getState().applyBackendState(
-      state.notebook_id,
-      state.cells.map((sc) => ({
-        id: sc.id,
-        cellType: (sc.cell_type as "code" | "markdown"),
-        input: sc.input,
-        output: null,
-        status: "idle" as const,
-      })),
-      state.effect,
-      state.cell_id ?? undefined,
-      state.can_undo,
-      state.can_redo
-    );
-  }, [addTab, setActiveTab]);
+    await openNewNotebook();
+  }, []);
 
   const handleCloseTab = useCallback(async (id: string) => {
     if (tabs.length <= 1) return;

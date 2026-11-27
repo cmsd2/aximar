@@ -144,7 +144,8 @@ impl Default for Notebook {
 
 impl Notebook {
     pub fn new() -> Self {
-        let initial_cell = Cell {
+        let mut nb = Self::empty();
+        nb.cells.push(Cell {
             id: new_cell_id(),
             cell_type: CellType::Code,
             input: String::new(),
@@ -153,9 +154,17 @@ impl Notebook {
             raw_output: Vec::new(),
             metadata: Map::new(),
             extra: Map::new(),
-        };
+        });
+        nb
+    }
+
+    /// A notebook with no cells, as the window's New gives, where the
+    /// first cell starts at the caret.  Elsewhere a notebook keeps at
+    /// least one cell: deleting the last cell is refused, and loading an
+    /// empty file adds one.
+    pub fn empty() -> Self {
         Notebook {
-            cells: vec![initial_cell],
+            cells: Vec::new(),
             metadata: Map::new(),
             execution_counter: 0,
             label_map: HashMap::new(),
@@ -703,6 +712,28 @@ mod tests {
 
     fn first_cell_id(nb: &Notebook) -> String {
         nb.cells()[0].id.clone()
+    }
+
+    #[test]
+    fn empty_notebook_takes_its_first_cell() {
+        let mut n = Notebook::empty();
+        assert!(n.cells().is_empty());
+        n.apply(NotebookCommand::AddCell {
+            cell_type: CellType::Markdown,
+            input: "# Notes".into(),
+            after_cell_id: None,
+            before_cell_id: None,
+        })
+        .unwrap();
+        assert_eq!(n.cells().len(), 1);
+        assert_eq!(n.cells()[0].input, "# Notes");
+        // The one cell then stays, as in any notebook
+        let id = first_cell_id(&n);
+        let effect = n
+            .apply(NotebookCommand::DeleteCell { cell_id: id })
+            .unwrap();
+        assert!(matches!(effect, CommandEffect::NoOp { .. }));
+        assert_eq!(n.cells().len(), 1);
     }
 
     #[test]

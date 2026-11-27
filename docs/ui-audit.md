@@ -174,6 +174,12 @@ problems:
   puts the caret below it instead of adding an empty cell, so a new cell
   appears only once you type.  New cells take the cursor, from the gap
   or the toolbar; before, the toolbar's new cell didn't.
+- **New notebooks start empty, with the caret.**  The tab bar's + and
+  File > New open a notebook with no cells and the caret ready, so
+  typing starts the first cell.  A click in the space below the last
+  cell (30% of the window's height, and all of an empty notebook) places
+  the caret after it.  Notebooks from MCP, templates and files still
+  have at least one cell.
 
 ## Suggested order
 

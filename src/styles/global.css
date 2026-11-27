@@ -416,6 +416,28 @@
   opacity: 1;
 }
 
+/* Below the last cell, room to scroll the last cell up the window, where
+   a click places the caret after it.  In an empty notebook it fills the
+   window, and the top gap shows its line and +. */
+.notebook-tail {
+  min-height: 30vh;
+  cursor: vertical-text;
+}
+
+.notebook.empty {
+  display: flex;
+  flex-direction: column;
+}
+
+.notebook.empty .notebook-tail {
+  flex: 1;
+}
+
+.notebook.empty .cell-gap-line,
+.notebook.empty .cell-gap-plus {
+  opacity: 1;
+}
+
 /* Visually hidden, but focused: it takes the keyboard at the caret */
 .cell-gap-input {
   position: absolute;
@@ -3175,6 +3197,11 @@
   .template-modal,
   .cell-actions,
   .insert-bar,
+  .cell-gap-line,
+  .cell-gap-plus,
+  .cell-gap-caret,
+  .cell-gap-menu,
+  .notebook-tail,
   .bracket-toggle,
   .cell-suggestions,
   .cm-tooltip,
