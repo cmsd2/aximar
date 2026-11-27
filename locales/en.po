@@ -12,7 +12,7 @@ msgstr ""
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
 #. Shown in a cell's output area when the cell ran and produced nothing to show
-#. screen: outputs--running-and-queued
+#. screen: outputs--silent-and-empty
 #: src/components/CellOutput.tsx
 msgid "(no output)"
 msgstr ""
@@ -535,6 +535,7 @@ msgstr ""
 #. screen: outputs--plotly-plot
 #. screen: outputs--reactive-controls
 #. screen: outputs--running-and-queued
+#. screen: outputs--silent-and-empty
 #. screen: outputs--suggestion-chips
 #. screen: outputs--suggestions-off
 #. screen: outputs--svg-plot
@@ -627,6 +628,7 @@ msgstr ""
 #. screen: editor--find-and-replace
 #. screen: editor--insert-menu
 #. screen: outputs--running-and-queued
+#. screen: outputs--silent-and-empty
 #. screen: outputs--suggestion-chips
 #. screen: outputs--suggestions-off
 #. screen: screens--drop-mixed
@@ -671,6 +673,7 @@ msgstr ""
 #. screen: editor--find-and-replace
 #. screen: editor--insert-menu
 #. screen: outputs--running-and-queued
+#. screen: outputs--silent-and-empty
 #. screen: outputs--suggestion-chips
 #. screen: outputs--suggestions-off
 #. screen: screens--drop-mixed
@@ -736,6 +739,7 @@ msgstr ""
 #. screen: editor--find-and-replace
 #. screen: editor--insert-menu
 #. screen: outputs--running-and-queued
+#. screen: outputs--silent-and-empty
 #. screen: screens--drop-mixed
 #. screen: screens--drop-notebooks
 #. screen: screens--drop-refused
@@ -1166,11 +1170,16 @@ msgstr ""
 #. screen: editor--cell-context-menu
 #. screen: editor--completion
 #. screen: editor--insert-menu
-#. screen: outputs--running-and-queued
 #. screen: screens--first-run
 #. screen: screens--maxima-not-found
 #: src/components/Cell.tsx
 msgid "In"
+msgstr ""
+
+#. Label left of a code cell's input while it waits in a Run All, as in Jupyter's In [*] for running. The · stays as it is. max-length:10
+#. screen: outputs--running-and-queued
+#: src/components/Cell.tsx
+msgid "In [·]"
 msgstr ""
 
 #. Label left of a code cell's input, as in Jupyter. execNum is how many cells the session had run when this one last ran. max-length:10
@@ -1186,6 +1195,7 @@ msgstr ""
 #. screen: outputs--plotly-plot
 #. screen: outputs--reactive-controls
 #. screen: outputs--running-and-queued
+#. screen: outputs--silent-and-empty
 #. screen: outputs--suggestion-chips
 #. screen: outputs--suggestions-off
 #. screen: outputs--svg-plot
@@ -1195,6 +1205,12 @@ msgstr ""
 #. screen: screens--whole-window
 #: src/components/Cell.tsx
 msgid "In [{execNum}]"
+msgstr ""
+
+#. Label left of a code cell's input while it runs, as in Jupyter. The * stays as it is. max-length:10
+#. screen: outputs--running-and-queued
+#: src/components/Cell.tsx
+msgid "In [*]"
 msgstr ""
 
 #. Settings, Maxima section: under the found Maxima, where Aximar found it
@@ -1239,6 +1255,7 @@ msgstr ""
 #. screen: outputs--plotly-plot
 #. screen: outputs--reactive-controls
 #. screen: outputs--running-and-queued
+#. screen: outputs--silent-and-empty
 #. screen: outputs--suggestion-chips
 #. screen: outputs--suggestions-off
 #. screen: outputs--svg-plot
@@ -1520,6 +1537,7 @@ msgstr ""
 #. screen: editor--find-and-replace
 #. screen: editor--insert-menu
 #. screen: outputs--running-and-queued
+#. screen: outputs--silent-and-empty
 #. screen: screens--drop-mixed
 #. screen: screens--drop-notebooks
 #. screen: screens--drop-refused
@@ -1540,6 +1558,7 @@ msgstr ""
 #. screen: editor--find-and-replace
 #. screen: editor--insert-menu
 #. screen: outputs--running-and-queued
+#. screen: outputs--silent-and-empty
 #. screen: screens--drop-mixed
 #. screen: screens--drop-notebooks
 #. screen: screens--drop-refused
@@ -1769,6 +1788,7 @@ msgstr ""
 #. screen: outputs--plotly-plot
 #. screen: outputs--reactive-controls
 #. screen: outputs--running-and-queued
+#. screen: outputs--silent-and-empty
 #. screen: outputs--suggestion-chips
 #. screen: outputs--suggestions-off
 #. screen: outputs--svg-plot
@@ -2019,6 +2039,7 @@ msgstr ""
 #. screen: outputs--plotly-plot
 #. screen: outputs--reactive-controls
 #. screen: outputs--running-and-queued
+#. screen: outputs--silent-and-empty
 #. screen: outputs--suggestion-chips
 #. screen: outputs--suggestions-off
 #. screen: outputs--svg-plot
@@ -2140,6 +2161,7 @@ msgstr ""
 #. screen: outputs--plotly-plot
 #. screen: outputs--reactive-controls
 #. screen: outputs--running-and-queued
+#. screen: outputs--silent-and-empty
 #. screen: outputs--suggestion-chips
 #. screen: outputs--suggestions-off
 #. screen: outputs--svg-plot

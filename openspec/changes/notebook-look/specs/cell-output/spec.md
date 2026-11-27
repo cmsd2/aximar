@@ -62,12 +62,12 @@ When suggestions are shown, they SHALL appear as one row of small text buttons, 
 
 ### Requirement: A cell shows whether it's running or queued
 
-A running cell's label SHALL read In [\*] and its bracket (or border) SHALL be in the accent colour. A cell waiting in a Run All queue SHALL read In [·] with a dashed bracket (or border). A cell that has run SHALL read In [n] as now.
+A running cell's label SHALL read In [\*] and its bracket (or border) SHALL be in the accent colour. A cell waiting in a Run All queue SHALL read In [·], with its bracket (or border) drawn as for an idle cell. A cell that has run SHALL read In [n] as now.
 
 #### Scenario: Run All part way
 
 - **WHEN** Run All is running the second of four cells
-- **THEN** the second reads In [\*] with an accent bracket, the third and fourth read In [·] with dashed brackets, and the first reads In [1]
+- **THEN** the second reads In [\*] with an accent bracket, the third and fourth read In [·] with plain brackets, and the first reads In [1]
 
 ### Requirement: Silent statements leave no placeholder
 
@@ -90,7 +90,7 @@ A cell whose last statement ends in `$` (ignoring trailing whitespace and commen
 
 ### Requirement: Both cell styles show the same output
 
-Every requirement above SHALL hold in bracket style and in card style, the only difference being whether the bracket or the card's border carries the red, accent or dashed state.
+Every requirement above SHALL hold in bracket style and in card style, the only difference being whether the bracket or the card's border carries the red or accent state.
 
 #### Scenario: The same error in both styles
 

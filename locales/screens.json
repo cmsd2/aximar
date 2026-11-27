@@ -64,7 +64,7 @@
     "docs-panel--summary-above-english"
   ],
   "28MY56": [
-    "outputs--running-and-queued"
+    "outputs--silent-and-empty"
   ],
   "2AUJEs": [
     "dialogs--command-palette-open"
@@ -97,6 +97,7 @@
     "outputs--plotly-plot",
     "outputs--reactive-controls",
     "outputs--running-and-queued",
+    "outputs--silent-and-empty",
     "outputs--suggestion-chips",
     "outputs--suggestions-off",
     "outputs--svg-plot",
@@ -215,6 +216,9 @@
   "8UVsi0": [
     "dialogs--settings-notebook"
   ],
+  "8tRBUF": [
+    "outputs--running-and-queued"
+  ],
   "97xWn6": [
     "dialogs--settings-maxima"
   ],
@@ -250,6 +254,7 @@
     "editor--find-and-replace",
     "editor--insert-menu",
     "outputs--running-and-queued",
+    "outputs--silent-and-empty",
     "screens--drop-mixed",
     "screens--drop-notebooks",
     "screens--drop-refused",
@@ -353,6 +358,9 @@
   ],
   "CqO9qC": [
     "dialogs--keyboard-shortcuts"
+  ],
+  "D9ZiGf": [
+    "outputs--running-and-queued"
   ],
   "DPc2P9": [
     "dialogs--keyboard-shortcuts",
@@ -541,6 +549,7 @@
     "outputs--plotly-plot",
     "outputs--reactive-controls",
     "outputs--running-and-queued",
+    "outputs--silent-and-empty",
     "outputs--suggestion-chips",
     "outputs--suggestions-off",
     "outputs--svg-plot",
@@ -655,6 +664,7 @@
     "editor--find-and-replace",
     "editor--insert-menu",
     "outputs--running-and-queued",
+    "outputs--silent-and-empty",
     "screens--drop-mixed",
     "screens--drop-notebooks",
     "screens--drop-refused",
@@ -675,6 +685,7 @@
     "editor--find-and-replace",
     "editor--insert-menu",
     "outputs--running-and-queued",
+    "outputs--silent-and-empty",
     "screens--drop-mixed",
     "screens--drop-notebooks",
     "screens--drop-refused",
@@ -734,6 +745,7 @@
     "outputs--plotly-plot",
     "outputs--reactive-controls",
     "outputs--running-and-queued",
+    "outputs--silent-and-empty",
     "outputs--suggestion-chips",
     "outputs--suggestions-off",
     "outputs--svg-plot",
@@ -782,6 +794,7 @@
     "outputs--plotly-plot",
     "outputs--reactive-controls",
     "outputs--running-and-queued",
+    "outputs--silent-and-empty",
     "outputs--suggestion-chips",
     "outputs--suggestions-off",
     "outputs--svg-plot",
@@ -914,6 +927,7 @@
     "outputs--plotly-plot",
     "outputs--reactive-controls",
     "outputs--running-and-queued",
+    "outputs--silent-and-empty",
     "outputs--suggestion-chips",
     "outputs--suggestions-off",
     "outputs--svg-plot",
@@ -959,6 +973,7 @@
     "outputs--plotly-plot",
     "outputs--reactive-controls",
     "outputs--running-and-queued",
+    "outputs--silent-and-empty",
     "outputs--suggestion-chips",
     "outputs--suggestions-off",
     "outputs--svg-plot",
@@ -1133,6 +1148,7 @@
     "editor--find-and-replace",
     "editor--insert-menu",
     "outputs--running-and-queued",
+    "outputs--silent-and-empty",
     "outputs--suggestion-chips",
     "outputs--suggestions-off",
     "screens--drop-mixed",
@@ -1298,6 +1314,7 @@
     "editor--find-and-replace",
     "editor--insert-menu",
     "outputs--running-and-queued",
+    "outputs--silent-and-empty",
     "outputs--suggestion-chips",
     "outputs--suggestions-off",
     "screens--drop-mixed",
@@ -1473,7 +1490,6 @@
     "editor--cell-context-menu",
     "editor--completion",
     "editor--insert-menu",
-    "outputs--running-and-queued",
     "screens--first-run",
     "screens--maxima-not-found"
   ],

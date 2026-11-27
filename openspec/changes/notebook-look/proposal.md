@@ -17,7 +17,7 @@ Bracket style is the layout to keep; these changes are to what sits inside a cel
 - **Quiet suggestions.** The chips become a row of small text buttons ("→ Simplify") lined up with the output, inside the cell's output area, with no band. The setting that hides them stays.
 - **Printed output at full contrast**, in the primary text colour.
 - **Notes** get an icon from the app's icon set, code in the code font, and a quiet link to Maxima's own text. Explanations' and notes' templates in the catalog mark code with backticks, which translators see and keep; the window shows those spans as code, and MCP results keep the backticks.
-- **Run states:** a running cell's label is In [\*] with the bracket or border in the accent colour; a queued cell's is In [·] with a dashed bracket or border.
+- **Run states:** a running cell's label is In [\*] with the bracket or border in the accent colour; a queued cell's label is In [·], with its bracket or border unchanged.
 - **No "(no output)" for silent statements.** A cell whose last statement ends in `$` shows nothing under it; a cell that ends in `;` and produced nothing still says "(no output)".
 - **Storybook** gets a toolbar switch between card and bracket style, so every cell story can be checked in both.
 
@@ -45,4 +45,4 @@ None. The message templates' code markup is a convention of the catalog's text, 
 - **Core:** the English templates of the explanations and notes that name code gain backticks (`crates/aximar-core`, `docs/maxima-messages.md`); IDs and parameters are unchanged. Catalogs are regenerated, so existing translations of those entries need updating.
 - **MCP:** `text` fields of notes and explanations now carry backticks around code; nothing else changes.
 - **Tauri, tools:** none.
-- **Related:** cmsd2/aximar#44 (the teaching pilot, which asked for the suggestions setting already shipped); cmsd2/aximar#124 also edits `Cell.tsx`'s actions and `ui/icons.ts`, so whichever lands second rebases.
+- **Related:** cmsd2/aximar#44 (the teaching pilot, which asked for the suggestions setting already shipped); cmsd2/aximar#124 (merged) rewrote `Cell.tsx`'s actions and `ui/icons.ts`; this change builds on it.

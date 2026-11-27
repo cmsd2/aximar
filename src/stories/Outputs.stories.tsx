@@ -153,7 +153,7 @@ export const Markdown: StoryObj = {
 
 const running: SyncCell[] = [
   {
-    id: "q1", cell_type: "code", status: "success", input: "f(x) := x^2 - 2$",
+    id: "q1", cell_type: "code", status: "success", silent: true, input: "f(x) := x^2 - 2$",
     output: { ...output, output_label: null, text_output: "" },
   },
   { id: "q2", cell_type: "code", status: "running", input: "find_root(f(x), x, 0, 5);", output: null },
@@ -192,5 +192,20 @@ export const SuggestionChips: StoryObj = {
 export const SuggestionsOff: StoryObj = {
   parameters: { showSuggestions: false },
   loaders: SuggestionChips.loaders,
+  render: () => <StoryNotebook />,
+};
+
+const silent: SyncCell[] = [
+  { id: "z1", cell_type: "code", status: "success", silent: true, input: "f(x) := x^2 - 2$", output: { ...output, output_label: null } },
+  { id: "z2", cell_type: "code", status: "success", input: "kill(x);", output: { ...output, output_label: null } },
+  {
+    id: "z3", cell_type: "code", status: "success", silent: true, input: 'print("checked")$',
+    output: { ...output, output_label: null, text_output: "checked" },
+  },
+];
+
+/** A definition ending in $ shows nothing under it; a statement ending in ; that gave nothing says so */
+export const SilentAndEmpty: StoryObj = {
+  loaders: [async () => seedNotebook(silent)],
   render: () => <StoryNotebook />,
 };

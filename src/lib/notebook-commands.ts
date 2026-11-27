@@ -37,6 +37,8 @@ export interface SyncCell {
   input: string;
   output?: SyncCellOutput | null;
   status?: string | null;
+  /** The input's last statement ends in `$` */
+  silent?: boolean;
 }
 
 interface NbStateResult {

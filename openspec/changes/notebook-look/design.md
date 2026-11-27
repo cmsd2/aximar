@@ -49,7 +49,7 @@ The English fallback `text` the core sends keeps the backticks, which reads as M
 
 ### Run states: labels and the bracket
 
-`Cell.tsx` shows In [\*] for `running` and In [·] for `queued`; the labels are translatable with a note that the symbols stay. The running bracket or border uses `--accent`; the queued one is dashed in `--border-color`. The selection bracket, which is also accent, sits apart from the cell's own bracket in bracket style and is a ring in card style, so the two don't look alike.
+`Cell.tsx` shows In [\*] for `running` and In [·] for `queued`; the labels are translatable with a note that the symbols stay. The running bracket or border uses `--accent`; a queued cell keeps an idle cell's bracket or border, as a dashed one looked busy down a long notebook. The selection bracket, which is also accent, sits apart from the cell's own bracket in bracket style and is a ring in card style, so the two don't look alike.
 
 ### Printed text
 
@@ -64,7 +64,6 @@ A `cellStyle` toolbar global (Card, Bracket) sets the style for stories that don
 - [Editing English templates changes catalog msgids, so existing translations of those entries go fuzzy] → Spanish has few translated core messages so far; the change lists the edited IDs and the translator guide says to keep the backticks.
 - [A translator drops or unbalances a backtick] → an unbalanced backtick renders the rest as prose (the split ignores a trailing odd span), and the catalog check warns when a translation's backtick count differs from the English.
 - [MCP clients that show `text` raw now show backticks] → they read as Markdown code in the clients Aximar targets; noted in the CHANGELOG.
-- [cmsd2/aximar#124 also edits `Cell.tsx` and `ui/icons.ts`] → small, separate hunks; whichever lands second rebases.
 - [The accent running bracket is close to the selection bracket's colour] → they sit in different places, and the running cell also changes its label.
 
 ## Migration Plan

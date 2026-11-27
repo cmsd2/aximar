@@ -5,7 +5,7 @@ import { getActiveTabState, useActiveTab, useNotebookStore } from "../store/note
 import { useFindStore } from "../store/findStore";
 import { useMaxima } from "../hooks/useMaxima";
 import { useCodeMirrorEditor } from "../hooks/useCodeMirrorEditor";
-import { CellOutput } from "./CellOutput";
+import { CellOutput, shownOutput } from "./CellOutput";
 import { CellSuggestions } from "./CellSuggestions";
 import { nbDeleteCell, nbMoveCell } from "../lib/notebook-commands";
 import { afterRun, goTo } from "../lib/cell-caret";
@@ -64,12 +64,13 @@ export function Cell({ cell, onViewDocs, selectBracket }: CellProps) {
   }, [cell.input, syncExternalInput]);
 
   const execNum = cell.output?.executionCount ?? null;
+  const output = shownOutput(cell);
 
   return (
     <>
     <div className={`cell ${cell.status}${outputCollapsed ? " output-collapsed" : ""}${hasFindMatch ? " has-find-match" : ""}`}>
       <div className="cell-input-area">
-        {cell.output && (
+        {output && (
           <button
             className="bracket-toggle"
             onClick={() => setOutputCollapsed((c) => !c)}
@@ -88,7 +89,19 @@ export function Cell({ cell, onViewDocs, selectBracket }: CellProps) {
         )}
         <div className="cell-gutter">
           {cell.status === "running" ? (
-            <span className="cell-indicator running">*</span>
+            <span className="cell-indicator running">
+              {t({
+                message: "In [*]",
+                comment: "Label left of a code cell's input while it runs, as in Jupyter. The * stays as it is. max-length:10",
+              })}
+            </span>
+          ) : cell.status === "queued" ? (
+            <span className="cell-indicator queued">
+              {t({
+                message: "In [·]",
+                comment: "Label left of a code cell's input while it waits in a Run All, as in Jupyter's In [*] for running. The · stays as it is. max-length:10",
+              })}
+            </span>
           ) : (
             <span className="cell-indicator">
               {execNum
@@ -164,11 +177,11 @@ export function Cell({ cell, onViewDocs, selectBracket }: CellProps) {
           )}
         </div>
       </div>
-      {cell.output && !outputCollapsed && (
+      {output && !outputCollapsed && (
         <div
-          className={`cell-output-area${cell.output.stale ? " stale" : ""}`}
+          className={`cell-output-area${output.stale ? " stale" : ""}`}
           title={
-            cell.output.stale
+            output.stale
               ? t({
                   message: "From an earlier session. Run the cell to update it.",
                   comment: "Tooltip of a dimmed cell output that was saved in the file and not produced by this session",
@@ -190,7 +203,7 @@ export function Cell({ cell, onViewDocs, selectBracket }: CellProps) {
                   })}
             </span>
           </div>
-          <CellOutput output={cell.output} cellId={cell.id} />
+          <CellOutput output={output} cellId={cell.id} />
         </div>
       )}
       {selectBracket}

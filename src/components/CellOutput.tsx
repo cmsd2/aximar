@@ -1,12 +1,40 @@
 import { useState, useCallback, useRef, useMemo, useEffect } from "react";
 import { useLingui } from "@lingui/react/macro";
-import type { CellOutput as CellOutputType } from "../types/notebook";
+import type { Cell, CellOutput as CellOutputType } from "../types/notebook";
 import { KatexOutput } from "./KatexOutput";
 import { TextWithNotes } from "./TextWithNotes";
 import { EnhancedErrorOutput } from "./EnhancedErrorOutput";
 import { ErrorBoundary } from "./ErrorBoundary";
 import { sanitizeSvg } from "../lib/sanitize-svg";
 import { PlotlyChart } from "./PlotlyChart";
+
+/** Which parts of an output there are to show */
+function outputParts(output: CellOutputType) {
+  const ok = !output.isError;
+  const hasLatex = ok && output.latex !== null && output.latex !== "";
+  const hasText = ok && output.textOutput !== "";
+  const hasPlot = ok && !!output.plotSvg;
+  const hasPlotData = ok && !!output.plotData;
+  const hasImage = ok && !!output.imagePng;
+  // A result with only its one-line form, as from a Jupyter file
+  const hasPlain = ok && !hasLatex && !hasPlot && !hasPlotData && !hasImage && !!output.textPlain;
+  return { hasLatex, hasText, hasPlot, hasPlotData, hasImage, hasPlain };
+}
+
+/**
+ * The output a cell shows, or null for none: a cell ending in `$` with
+ * nothing to show has none; one ending in `;` keeps its "(no output)"
+ */
+export function shownOutput(cell: Cell): CellOutputType | null {
+  if (!cell.output) return null;
+  return cell.silent && outputIsEmpty(cell.output) ? null : cell.output;
+}
+
+/** Whether an output has nothing to show: no result, text, plot or error */
+export function outputIsEmpty(output: CellOutputType): boolean {
+  if (output.isError && output.error) return false;
+  return !Object.values(outputParts(output)).some(Boolean);
+}
 
 interface CellOutputProps {
   output: CellOutputType;
@@ -29,13 +57,7 @@ export function CellOutput({ output, cellId }: CellOutputProps) {
     [],
   );
 
-  const hasLatex = !output.isError && output.latex !== null && output.latex !== "";
-  const hasText = !output.isError && output.textOutput !== "";
-  const hasPlot = !output.isError && output.plotSvg !== null && output.plotSvg !== undefined && output.plotSvg !== "";
-  const hasPlotData = !output.isError && output.plotData !== null && output.plotData !== undefined && output.plotData !== "";
-  const hasImage = !output.isError && output.imagePng !== null && output.imagePng !== undefined && output.imagePng !== "";
-  // A result with only its one-line form, as from a Jupyter file
-  const hasPlain = !output.isError && !hasLatex && !hasPlot && !hasPlotData && !hasImage && !!output.textPlain;
+  const { hasLatex, hasText, hasPlot, hasPlotData, hasImage, hasPlain } = outputParts(output);
   // The Copy button copies the result's Maxima expression when there is one
   const copyText = output.textPlain || output.textOutput;
 
