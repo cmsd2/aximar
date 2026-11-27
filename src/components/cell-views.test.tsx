@@ -76,7 +76,7 @@ describe("an error with Maxima's message in the user's language", () => {
     expect(html).not.toContain("wrong number of arguments");
   });
 
-  it("shows the translation above Aximar's explanation", () => {
+  it("shows the translation under Aximar's explanation", () => {
     const errorInfo = {
       title: "Wrong Argument Count",
       explanation: "diff was called with the wrong number of arguments.",
@@ -88,8 +88,8 @@ describe("an error with Maxima's message in the user's language", () => {
     const html = render(
       <CellOutput output={output({ isError: true, error: english, errorInfo, errorTranslated: spanish })} cellId="c1" />,
     );
-    expect(html.indexOf(spanish)).toBeGreaterThan(html.indexOf("Wrong Argument Count"));
-    expect(html.indexOf(spanish)).toBeLessThan(html.indexOf("diff was called"));
+    expect(html.indexOf(spanish)).toBeGreaterThan(html.indexOf("diff was called"));
+    expect(html).toContain("Show original");
   });
 
   it("shows the English alone when there's no translation", () => {

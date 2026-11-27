@@ -39,6 +39,20 @@ see the `v*` releases on GitHub.
   `messages` with each field's catalog context and English template.
   `title`, `explanation` and `suggestion` keep their English text.
   [docs/maxima-messages.md](docs/maxima-messages.md) lists every ID.
+- **Error text is Maxima's message alone**: the line " -- an error. To
+  debug this try: debugmode(true);" no longer follows every error in
+  `error`.
+- **Lisp errors keep their cause**: SBCL prints a Lisp error's condition
+  over several lines with blank lines between, and the tools kept only the
+  first line. `error` now holds the whole condition on one line, without
+  SBCL's "Automatically continuing." lines, and `error_info` explains a
+  value of the wrong type (`error.lisp_type`), runaway recursion
+  (`error.recursion`) and floating-point overflow (`error.float_overflow`).
+  Runaway recursion is also an error on the kernel-events path, where it
+  used to pass as print text.
+- **Timeouts and cancellations leave an output**: a cell that timed out
+  or was cancelled now has an error output saying so (`error.timeout`,
+  `error.cancelled`), which `get_cell` returns, as well as the tool error.
 - **Syntax errors are explained by kind**: a missing `)` or `]`, input that
   ends too early, and two values with no operator between them each get
   their own explanation, naming the delimiter or the value. Input that ends

@@ -13,7 +13,8 @@ use std::sync::LazyLock;
 
 use aximar_core::catalog::packages::PackageCatalog;
 use aximar_core::catalog::search::Catalog;
-use aximar_core::maxima::errors::enhance_error_with_packages;
+use aximar_core::error::AppError;
+use aximar_core::maxima::errors::{enhance_error_with_packages, explain_failure};
 use regex::Regex;
 use rspolib::{pofile, POEntry};
 
@@ -33,7 +34,10 @@ const SAMPLES: &[&str] = &[
     "funcall: no such function: pdf_normal",
     "funcall: no such function: intgrate",
     "funcall: no such function: zzqqxx",
-    "Maxima encountered a Lisp error",
+    "Maxima encountered a Lisp error: The value 1 is not of type LIST when binding LIST",
+    "Maxima encountered a Lisp error: Control stack exhausted (no more space for function call frames).",
+    "Maxima encountered a Lisp error: arithmetic error FLOATING-POINT-OVERFLOW signalled",
+    "Maxima encountered a Lisp error: Heap exhausted",
     "defint: integral is divergent.",
     "solve: inconsistent equations",
     "Maxima needs to know: Is x positive, negative or zero?",
@@ -86,10 +90,24 @@ fn the_catalog_and_the_code_agree() {
     assert!(!template.is_empty());
     let (catalog, packages) = (Catalog::load(), PackageCatalog::load());
 
+    // Raw errors, then evaluations that didn't finish
+    let mut explanations: Vec<(String, _)> = SAMPLES
+        .iter()
+        .map(|raw| {
+            let info = enhance_error_with_packages(raw, &catalog, Some(&packages))
+                .unwrap_or_else(|| panic!("no explanation for {raw:?}"));
+            (raw.to_string(), info)
+        })
+        .collect();
+    for failure in [
+        AppError::Timeout(30),
+        AppError::EvalCancelled(String::new()),
+    ] {
+        explanations.push((failure.to_string(), explain_failure(&failure).unwrap()));
+    }
+
     let mut produced = BTreeSet::new();
-    for raw in SAMPLES {
-        let info = enhance_error_with_packages(raw, &catalog, Some(&packages))
-            .unwrap_or_else(|| panic!("no explanation for {raw:?}"));
+    for (raw, info) in explanations {
         for (field, m) in info.messages() {
             assert!(
                 m.id.starts_with(&format!("{}.{field}", info.id)),

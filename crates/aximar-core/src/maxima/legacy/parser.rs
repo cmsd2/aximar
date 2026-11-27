@@ -9,6 +9,59 @@ use crate::maxima::errors;
 use crate::maxima::messages;
 use crate::maxima::types::EvalResult;
 
+/// The line Maxima prints after an error's message at the top level
+const DEBUGGER_HINT: &str = "-- an error. To debug this try: debugmode(true);";
+
+/// How Maxima starts reporting an error Lisp signalled
+const LISP_ERROR: &str = "Maxima encountered a Lisp error";
+
+/// A Lisp error's text: the header and the condition, on one line.  The
+/// kernel-events overlay uses it too, so both paths give the same text.
+pub(crate) fn lisp_error_text(condition: &[String]) -> String {
+    if condition.is_empty() {
+        format!("{LISP_ERROR}.")
+    } else {
+        format!("{LISP_ERROR}: {}", condition.join(" "))
+    }
+}
+
+/// Split a Lisp error out of text output, for the kernel-events path when
+/// no error envelope came: SBCL's stack exhaustion is a storage condition,
+/// not an error, so kernel-events doesn't see it.  Returns the text
+/// without the error (or SBCL's stack notices) and the error's one-line
+/// text, or `None` when the text holds no Lisp error.
+pub(crate) fn split_lisp_error(text: &str) -> Option<(String, String)> {
+    let mut kept = Vec::new();
+    let mut condition: Option<Vec<String>> = None;
+    let mut error = None;
+    for line in text.lines() {
+        let trimmed = line.trim();
+        if trimmed.starts_with("INFO: Control stack guard page")
+            || trimmed.starts_with("Control stack guard page")
+        {
+            continue;
+        }
+        if let Some(lines) = condition.as_mut() {
+            if trimmed.starts_with("To enable the Lisp debugger") {
+                error = Some(lisp_error_text(lines));
+                condition = None;
+            } else if !trimmed.is_empty() && trimmed != "Automatically continuing." {
+                lines.push(trimmed.to_string());
+            }
+            continue;
+        }
+        if error.is_none() && trimmed.starts_with(LISP_ERROR) {
+            condition = Some(Vec::new());
+            continue;
+        }
+        kept.push(line);
+    }
+    if let Some(lines) = condition {
+        error = Some(lisp_error_text(&lines));
+    }
+    error.map(|e| (kept.join("\n"), e))
+}
+
 static LABEL_RE: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"__AXIMAR_LABEL__\s+(\d+)").unwrap());
 
@@ -278,6 +331,10 @@ fn parse_output_inner(
     let mut plain: Option<String> = None;
     // Maxima's error message in the user's language, if it printed one
     let mut translated: Option<String> = None;
+    // The lines of a Lisp error's condition, while reading one
+    let mut lisp_error: Option<Vec<String>> = None;
+    // Set by any error line, even one (the debugger hint) left out of the text
+    let mut saw_error = false;
     // Accumulator for multi-line LaTeX (tex() wraps long output)
     let mut latex_buf: Option<String> = None;
     // Track \begin{verbatim}...\end{verbatim} blocks from tex() on function defs
@@ -375,6 +432,32 @@ fn parse_output_inner(
             continue;
         }
 
+        // SBCL's notices about its stack guard page, around a stack overflow
+        if trimmed.starts_with("INFO: Control stack guard page")
+            || trimmed.starts_with("Control stack guard page")
+        {
+            continue;
+        }
+
+        // A Lisp error: SBCL prints the condition over several lines, with
+        // blank lines in it, then two lines of its own.  One error, on one
+        // line, without SBCL's.
+        if let Some(condition) = lisp_error.as_mut() {
+            if trimmed.starts_with("To enable the Lisp debugger") {
+                error_lines.push(lisp_error_text(condition));
+                lisp_error = None;
+                in_error = false;
+            } else if !trimmed.is_empty() && trimmed != "Automatically continuing." {
+                condition.push(trimmed.to_string());
+            }
+            continue;
+        }
+        if trimmed.starts_with(LISP_ERROR) {
+            saw_error = true;
+            lisp_error = Some(Vec::new());
+            continue;
+        }
+
         // Skip "false" after LaTeX or verbatim block (return value of tex())
         // Empty lines don't consume the flag — the false may follow a blank line
         if skip_next_false {
@@ -422,7 +505,11 @@ fn parse_output_inner(
                 }
                 error_lines.insert(0, prev);
             }
-            error_lines.push(line.clone());
+            // The debugger hint marks the error but says nothing about it
+            if trimmed != DEBUGGER_HINT {
+                error_lines.push(line.clone());
+            }
+            saw_error = true;
             in_error = true;
             continue;
         }
@@ -444,11 +531,19 @@ fn parse_output_inner(
         }
     }
 
-    let has_error = !error_lines.is_empty();
-    let error = if has_error {
-        Some(error_lines.join("\n"))
-    } else {
+    // A Lisp error cut short before SBCL's last line
+    if let Some(condition) = lisp_error.take() {
+        error_lines.push(lisp_error_text(&condition));
+    }
+
+    let has_error = saw_error;
+    let error = if !has_error {
         None
+    } else if error_lines.is_empty() {
+        // An error with an empty message: only the hint said so
+        Some("-- an error.".to_string())
+    } else {
+        Some(error_lines.join("\n"))
     };
 
     // Save raw latex before junk filtering — needed for SVG path extraction
@@ -664,7 +759,7 @@ mod tests {
         assert!(result.is_error);
         assert_eq!(
             result.error.as_deref(),
-            Some("diff: wrong number of arguments.\n -- an error. To debug this try: debugmode(true);")
+            Some("diff: wrong number of arguments.")
         );
         assert_eq!(
             result.error_translated.as_deref(),
@@ -744,6 +839,121 @@ mod tests {
         let info = result.error_info.unwrap();
         assert_eq!(info.id, "error.syntax_operator");
         assert_eq!(info.explanation.params["token"], "!");
+    }
+
+    fn parse(lines: &[&str]) -> EvalResult {
+        let mut lines: Vec<String> = lines.iter().map(|l| l.to_string()).collect();
+        lines.push("__AXIMAR_EVAL_END__".to_string());
+        parse_output("cell-1", &lines, 100, &catalog(), &Backend::Local)
+    }
+
+    #[test]
+    fn errors_leave_out_the_debugger_hint() {
+        let result = parse(&[
+            "defint: integral is divergent.",
+            " -- an error. To debug this try: debugmode(true);",
+        ]);
+        assert!(result.is_error);
+        assert_eq!(
+            result.error.as_deref(),
+            Some("defint: integral is divergent.")
+        );
+        assert_eq!(result.error_info.unwrap().id, "error.divergent_integral");
+
+        // error("") prints nothing but the hint
+        let result = parse(&[" -- an error. To debug this try: debugmode(true);"]);
+        assert!(result.is_error);
+        assert_eq!(result.error.as_deref(), Some("-- an error."));
+    }
+
+    /// SBCL 2.5's output for `?car(1);`
+    const LISP_TYPE_ERROR: &[&str] = &[
+        "Maxima encountered a Lisp error:",
+        "",
+        " The value",
+        "   1",
+        " is not of type",
+        "   LIST",
+        " when binding LIST",
+        "",
+        "Automatically continuing.",
+        "To enable the Lisp debugger set *debugger-hook* to nil.",
+    ];
+
+    #[test]
+    fn a_lisp_error_keeps_its_condition_on_one_line() {
+        let result = parse(LISP_TYPE_ERROR);
+        assert!(result.is_error);
+        assert_eq!(
+            result.error.as_deref(),
+            Some("Maxima encountered a Lisp error: The value 1 is not of type LIST when binding LIST")
+        );
+        let info = result.error_info.unwrap();
+        assert_eq!(info.id, "error.lisp_type");
+        assert_eq!(info.explanation.params["value"], "1");
+        assert_eq!(info.explanation.params["lisp_type"], "list");
+    }
+
+    #[test]
+    fn runaway_recursion_reads_past_the_blank_lines() {
+        // SBCL 2.5's output for g(n) := g(n + 1)$ g(1);
+        let result = parse(&[
+            "INFO: Control stack guard page unprotected",
+            "Control stack guard page temporarily disabled: proceed with caution",
+            "Maxima encountered a Lisp error:",
+            "",
+            " Control stack exhausted (no more space for function call frames).",
+            "This is probably due to heavily nested or infinitely recursive function",
+            "calls, or a tail call that SBCL cannot or has not optimized away.",
+            "",
+            "PROCEED WITH CAUTION.",
+            "",
+            "Automatically continuing.",
+            "To enable the Lisp debugger set *debugger-hook* to nil.",
+            "INFO: Control stack guard page reprotected",
+        ]);
+        assert!(result.is_error);
+        let error = result.error.unwrap();
+        assert!(
+            error.starts_with("Maxima encountered a Lisp error: Control stack exhausted"),
+            "{error}"
+        );
+        assert!(error.ends_with("PROCEED WITH CAUTION."), "{error}");
+        assert!(
+            !error.contains("guard page") && !error.contains("Automatically"),
+            "{error}"
+        );
+        assert_eq!(result.text_output, "");
+        assert_eq!(result.error_info.unwrap().id, "error.recursion");
+    }
+
+    #[test]
+    fn a_lisp_error_splits_out_of_text() {
+        let text = "before\nINFO: Control stack guard page unprotected\nMaxima encountered a Lisp error:\n Control stack exhausted.\nPROCEED WITH CAUTION.\nAutomatically continuing.\nTo enable the Lisp debugger set *debugger-hook* to nil.\nafter";
+        let (rest, error) = split_lisp_error(text).unwrap();
+        assert_eq!(rest, "before\nafter");
+        assert_eq!(
+            error,
+            "Maxima encountered a Lisp error: Control stack exhausted. PROCEED WITH CAUTION."
+        );
+        assert_eq!(split_lisp_error("just text"), None);
+    }
+
+    #[test]
+    fn floating_point_overflow_is_explained() {
+        let result = parse(&[
+            "Maxima encountered a Lisp error:",
+            "",
+            " arithmetic error FLOATING-POINT-OVERFLOW signalled",
+            "",
+            "Automatically continuing.",
+            "To enable the Lisp debugger set *debugger-hook* to nil.",
+        ]);
+        assert_eq!(
+            result.error.as_deref(),
+            Some("Maxima encountered a Lisp error: arithmetic error FLOATING-POINT-OVERFLOW signalled")
+        );
+        assert_eq!(result.error_info.unwrap().id, "error.float_overflow");
     }
 
     #[test]

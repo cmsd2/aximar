@@ -555,6 +555,7 @@ msgid "Generate new token (restarts MCP server)"
 msgstr ""
 
 #. Button: hides Maxima's English error message, shown below its translation
+#. Button: hides Maxima's English error message, shown below its translation
 #: src/components/EnhancedErrorOutput.tsx
 msgid "Hide original"
 msgstr ""
@@ -1037,6 +1038,7 @@ msgid "Settings"
 msgstr ""
 
 #. Button: shows Maxima's English error message below its translation
+#. Button: shows Maxima's English error message below its translation
 #: src/components/EnhancedErrorOutput.tsx
 msgid "Show original"
 msgstr ""
@@ -1355,15 +1357,68 @@ msgctxt "error.unknown_function.suggestion"
 msgid "Check the spelling or use describe(\"{func}\") to search."
 msgstr ""
 
-#. i18n: Maxima: "Maxima encountered a Lisp error:" and the condition
+#. i18n: Maxima: "Maxima encountered a Lisp error: The value 1 is not of type LIST"
+#: crates/aximar-core/src/maxima/errors.rs
+msgctxt "error.lisp_type.title"
+msgid "Wrong Kind of Value"
+msgstr ""
+
+#. i18n: value is the value given, such as 1; lisp_type is a Lisp
+#. type name, such as list or number, which stays in English
+#: crates/aximar-core/src/maxima/errors.rs
+#, rust-format
+msgctxt "error.lisp_type.explanation"
+msgid "A function inside Maxima expected a value of type {lisp_type} but got {value}."
+msgstr ""
+
+#: crates/aximar-core/src/maxima/errors.rs
+msgctxt "error.lisp_type.suggestion"
+msgid "Check the arguments of the functions in this cell, especially Lisp functions called with ?, which don't check their arguments."
+msgstr ""
+
+#. i18n: Maxima: "Maxima encountered a Lisp error: Control stack exhausted ..."
+#: crates/aximar-core/src/maxima/errors.rs
+msgctxt "error.recursion.title"
+msgid "Runaway Recursion"
+msgstr ""
+
+#: crates/aximar-core/src/maxima/errors.rs
+msgctxt "error.recursion.explanation"
+msgid "A function called itself, directly or through others, until Maxima ran out of room for the calls."
+msgstr ""
+
+#: crates/aximar-core/src/maxima/errors.rs
+msgctxt "error.recursion.suggestion"
+msgid "Check that each recursive function has a case that stops it, such as f(0) := 1."
+msgstr ""
+
+#. i18n: Maxima: "Maxima encountered a Lisp error: arithmetic error FLOATING-POINT-OVERFLOW signalled"
+#: crates/aximar-core/src/maxima/errors.rs
+msgctxt "error.float_overflow.title"
+msgid "Number Too Large"
+msgstr ""
+
+#: crates/aximar-core/src/maxima/errors.rs
+msgctxt "error.float_overflow.explanation"
+msgid "A floating-point result was too large to represent."
+msgstr ""
+
+#: crates/aximar-core/src/maxima/errors.rs
+msgctxt "error.float_overflow.suggestion"
+msgid "Keep the computation exact, or use bfloat() for very large numbers."
+msgstr ""
+
+#. i18n: Maxima: "Maxima encountered a Lisp error:" and any other condition
 #: crates/aximar-core/src/maxima/errors.rs
 msgctxt "error.lisp.title"
 msgid "Internal Error"
 msgstr ""
 
+#. i18n: condition is the Lisp system's description of the error, in English
 #: crates/aximar-core/src/maxima/errors.rs
+#, rust-format
 msgctxt "error.lisp.explanation"
-msgid "Maxima encountered an internal error in the underlying Lisp system."
+msgid "Maxima encountered an internal error in the underlying Lisp system: {condition}"
 msgstr ""
 
 #: crates/aximar-core/src/maxima/errors.rs
@@ -1401,6 +1456,35 @@ msgstr ""
 #: crates/aximar-core/src/maxima/errors.rs
 msgctxt "error.inconsistent_equations.suggestion"
 msgid "Check that the equations are correct and compatible."
+msgstr ""
+
+#. i18n: Aximar stopped a cell that ran longer than the evaluation timeout
+#: crates/aximar-core/src/maxima/errors.rs
+msgctxt "error.timeout.title"
+msgid "Timed Out"
+msgstr ""
+
+#. i18n: seconds is the timeout from Settings, such as 30
+#: crates/aximar-core/src/maxima/errors.rs
+#, rust-format
+msgctxt "error.timeout.explanation"
+msgid "The cell ran for longer than {seconds} seconds, so Aximar stopped it."
+msgstr ""
+
+#: crates/aximar-core/src/maxima/errors.rs
+msgctxt "error.timeout.suggestion"
+msgid "Raise the evaluation timeout in Settings, or try a smaller or numeric version of the computation."
+msgstr ""
+
+#. i18n: the user stopped a running cell
+#: crates/aximar-core/src/maxima/errors.rs
+msgctxt "error.cancelled.title"
+msgid "Cancelled"
+msgstr ""
+
+#: crates/aximar-core/src/maxima/errors.rs
+msgctxt "error.cancelled.explanation"
+msgid "The cell was stopped before it finished."
 msgstr ""
 
 #. i18n: Maxima: "Maxima needs to know: Is a positive or zero?"

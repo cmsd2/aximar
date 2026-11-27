@@ -12,6 +12,7 @@ use std::sync::LazyLock;
 
 use crate::catalog::packages::PackageCatalog;
 use crate::catalog::search::Catalog;
+use crate::error::AppError;
 use crate::maxima::types::ErrorInfo;
 use crate::msg_ctx;
 
@@ -49,6 +50,14 @@ static PROPERTY_RE: LazyLock<Regex> =
 static LOAD_FAILED_RE: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"(?:failed to load|Cannot find file)\s+(\S+)").unwrap());
 
+/// A Lisp error, with its condition on one line after the colon
+static LISP_ERROR_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"(?m)Maxima encountered a Lisp error:?(.*)$").unwrap());
+
+/// SBCL's type error: "The value 1 is not of type LIST"
+static LISP_TYPE_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"The value (.+?) is not of type (\S+)").unwrap());
+
 /// The parser's message, after Maxima's "incorrect syntax: "
 static SYNTAX_RE: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"(?m)incorrect syntax: (.+?)\s*$").unwrap());
@@ -69,6 +78,7 @@ pub fn enhance_error_with_packages(
     packages: Option<&PackageCatalog>,
 ) -> Option<ErrorInfo> {
     check_question(raw_error)
+        .or_else(|| check_lisp_error(raw_error))
         .or_else(|| check_division_by_zero(raw_error))
         // Before the other syntax errors: it's one of them
         .or_else(|| check_premature_termination(raw_error))
@@ -76,7 +86,6 @@ pub fn enhance_error_with_packages(
         .or_else(|| check_arg_count(raw_error, catalog))
         .or_else(|| check_undefined_variable(raw_error))
         .or_else(|| check_undefined_function(raw_error, catalog, packages))
-        .or_else(|| check_lisp_error(raw_error))
         .or_else(|| check_divergent_integral(raw_error))
         .or_else(|| check_inconsistent_equations(raw_error))
         .or_else(|| check_matrix_dimension(raw_error))
@@ -352,17 +361,84 @@ fn check_undefined_function(
 }
 
 fn check_lisp_error(raw: &str) -> Option<ErrorInfo> {
-    if !(raw.contains("Maxima encountered a Lisp error") || raw.contains("MACSYMA restart")) {
+    let condition = if let Some(caps) = LISP_ERROR_RE.captures(raw) {
+        caps.get(1).map_or("", |m| m.as_str()).trim()
+    } else if raw.contains("MACSYMA restart") {
+        raw.trim()
+    } else {
         return None;
+    };
+
+    if let Some(caps) = LISP_TYPE_RE.captures(condition) {
+        let value = caps[1].trim();
+        let lisp_type = caps[2].trim().to_lowercase();
+        return Some(
+            ErrorInfo::new(
+                "error.lisp_type",
+                // i18n: Maxima: "Maxima encountered a Lisp error: The value 1 is not of type LIST"
+                msg_ctx!("error.lisp_type.title", "Wrong Kind of Value"),
+                msg_ctx!(
+                    "error.lisp_type.explanation",
+                    // i18n: value is the value given, such as 1; lisp_type is a Lisp
+                    // type name, such as list or number, which stays in English
+                    "A function inside Maxima expected a value of type {lisp_type} but got {value}.",
+                    value = value,
+                    lisp_type = lisp_type
+                ),
+            )
+            .with_suggestion(msg_ctx!(
+                "error.lisp_type.suggestion",
+                "Check the arguments of the functions in this cell, especially Lisp functions called with ?, which don't check their arguments."
+            )),
+        );
     }
+
+    if condition.contains("Control stack exhausted") {
+        return Some(
+            ErrorInfo::new(
+                "error.recursion",
+                // i18n: Maxima: "Maxima encountered a Lisp error: Control stack exhausted ..."
+                msg_ctx!("error.recursion.title", "Runaway Recursion"),
+                msg_ctx!(
+                    "error.recursion.explanation",
+                    "A function called itself, directly or through others, until Maxima ran out of room for the calls."
+                ),
+            )
+            .with_suggestion(msg_ctx!(
+                "error.recursion.suggestion",
+                "Check that each recursive function has a case that stops it, such as f(0) := 1."
+            )),
+        );
+    }
+
+    if condition.contains("FLOATING-POINT-OVERFLOW") {
+        return Some(
+            ErrorInfo::new(
+                "error.float_overflow",
+                // i18n: Maxima: "Maxima encountered a Lisp error: arithmetic error FLOATING-POINT-OVERFLOW signalled"
+                msg_ctx!("error.float_overflow.title", "Number Too Large"),
+                msg_ctx!(
+                    "error.float_overflow.explanation",
+                    "A floating-point result was too large to represent."
+                ),
+            )
+            .with_suggestion(msg_ctx!(
+                "error.float_overflow.suggestion",
+                "Keep the computation exact, or use bfloat() for very large numbers."
+            )),
+        );
+    }
+
     Some(
         ErrorInfo::new(
             "error.lisp",
-            // i18n: Maxima: "Maxima encountered a Lisp error:" and the condition
+            // i18n: Maxima: "Maxima encountered a Lisp error:" and any other condition
             msg_ctx!("error.lisp.title", "Internal Error"),
             msg_ctx!(
                 "error.lisp.explanation",
-                "Maxima encountered an internal error in the underlying Lisp system."
+                // i18n: condition is the Lisp system's description of the error, in English
+                "Maxima encountered an internal error in the underlying Lisp system: {condition}",
+                condition = condition
             ),
         )
         .with_suggestion(msg_ctx!(
@@ -415,6 +491,40 @@ fn check_inconsistent_equations(raw: &str) -> Option<ErrorInfo> {
             "Check that the equations are correct and compatible."
         )),
     )
+}
+
+/// The explanation for an evaluation that didn't finish: it timed out, or
+/// the user cancelled it.  `None` for other failures, which leave no output.
+pub fn explain_failure(error: &AppError) -> Option<ErrorInfo> {
+    match error {
+        AppError::Timeout(seconds) => Some(
+            ErrorInfo::new(
+                "error.timeout",
+                // i18n: Aximar stopped a cell that ran longer than the evaluation timeout
+                msg_ctx!("error.timeout.title", "Timed Out"),
+                msg_ctx!(
+                    "error.timeout.explanation",
+                    // i18n: seconds is the timeout from Settings, such as 30
+                    "The cell ran for longer than {seconds} seconds, so Aximar stopped it.",
+                    seconds = seconds
+                ),
+            )
+            .with_suggestion(msg_ctx!(
+                "error.timeout.suggestion",
+                "Raise the evaluation timeout in Settings, or try a smaller or numeric version of the computation."
+            )),
+        ),
+        AppError::EvalCancelled(_) => Some(ErrorInfo::new(
+            "error.cancelled",
+            // i18n: the user stopped a running cell
+            msg_ctx!("error.cancelled.title", "Cancelled"),
+            msg_ctx!(
+                "error.cancelled.explanation",
+                "The cell was stopped before it finished."
+            ),
+        )),
+        _ => None,
+    }
 }
 
 fn check_question(raw: &str) -> Option<ErrorInfo> {

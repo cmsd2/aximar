@@ -20,6 +20,15 @@ Parameters: `definition`, `found`, `func`, `signatures`
 | suggestion.describe | Check the documentation for {func} with describe({func}). |
 | suggestion.signatures | Correct usage: {signatures} |
 
+## `error.cancelled`
+
+Covers: the user stopped a running cell
+
+| Field | English |
+|---|---|
+| title | Cancelled |
+| explanation | The cell was stopped before it finished. |
+
 ## `error.divergent_integral`
 
 Covers: "defint: integral is divergent."
@@ -39,6 +48,16 @@ Covers: "expt: undefined: 0 to a negative exponent." or "Division by 0"
 | title | Division by Zero |
 | explanation | The expression involves division by zero or raising zero to a negative power, which is undefined. |
 | suggestion | Check your denominator or exponent for cases where the value might be zero. |
+
+## `error.float_overflow`
+
+Covers: "Maxima encountered a Lisp error: arithmetic error FLOATING-POINT-OVERFLOW signalled"
+
+| Field | English |
+|---|---|
+| title | Number Too Large |
+| explanation | A floating-point result was too large to represent. |
+| suggestion | Keep the computation exact, or use bfloat() for very large numbers. |
 
 ## `error.incomplete_input`
 
@@ -62,13 +81,27 @@ Covers: "solve: inconsistent equations" and similar
 
 ## `error.lisp`
 
-Covers: "Maxima encountered a Lisp error:" and the condition
+Covers: "Maxima encountered a Lisp error:" and any other condition
+
+Parameters: `condition`
 
 | Field | English |
 |---|---|
 | title | Internal Error |
-| explanation | Maxima encountered an internal error in the underlying Lisp system. |
+| explanation | Maxima encountered an internal error in the underlying Lisp system: {condition} |
 | suggestion | Try restarting the Maxima session. If the error persists, the expression may be too complex or trigger a bug in Maxima. |
+
+## `error.lisp_type`
+
+Covers: "Maxima encountered a Lisp error: The value 1 is not of type LIST"
+
+Parameters: `lisp_type`, `value`
+
+| Field | English |
+|---|---|
+| title | Wrong Kind of Value |
+| explanation | A function inside Maxima expected a value of type {lisp_type} but got {value}. |
+| suggestion | Check the arguments of the functions in this cell, especially Lisp functions called with ?, which don't check their arguments. |
 
 ## `error.matrix_dimension`
 
@@ -92,6 +125,16 @@ Parameters: `package`
 | explanation | The package "{package}" could not be found or loaded. |
 | explanation.unnamed | The package could not be found or loaded. |
 | suggestion | Check the package name. Common packages: draw, simplex, lsquares, descriptive, distrib. |
+
+## `error.recursion`
+
+Covers: "Maxima encountered a Lisp error: Control stack exhausted ..."
+
+| Field | English |
+|---|---|
+| title | Runaway Recursion |
+| explanation | A function called itself, directly or through others, until Maxima ran out of room for the calls. |
+| suggestion | Check that each recursive function has a case that stops it, such as f(0) := 1. |
 
 ## `error.syntax`
 
@@ -129,6 +172,18 @@ Parameters: `token`
 | explanation.infix | Two values appear next to each other without an operator between them, before "{token}". |
 | explanation.prefix | "{token}" can't start an expression here. Check for a missing operand or a misplaced operator. |
 | suggestion | Check for missing *, +, or other operators. Ensure all parentheses are matched. |
+
+## `error.timeout`
+
+Covers: Aximar stopped a cell that ran longer than the evaluation timeout
+
+Parameters: `seconds`
+
+| Field | English |
+|---|---|
+| title | Timed Out |
+| explanation | The cell ran for longer than {seconds} seconds, so Aximar stopped it. |
+| suggestion | Raise the evaluation timeout in Settings, or try a smaller or numeric version of the computation. |
 
 ## `error.undefined_variable`
 

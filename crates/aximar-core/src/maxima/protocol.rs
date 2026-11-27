@@ -243,8 +243,25 @@ pub async fn evaluate_with_packages(
         )
     };
     apply_error_envelopes(&mut result, &envelopes, catalog, Some(packages))?;
+    // A Lisp error kernel-events didn't report reaches only the text
+    let lisp_error = if wired && !result.is_error {
+        parser::split_lisp_error(&result.text_output)
+    } else {
+        None
+    };
     apply_display_envelopes(&mut result, &envelopes);
     apply_eval_result_envelopes(&mut result, &envelopes, emit_latex, process.backend());
+    if let Some((text, error)) = lisp_error {
+        result.text_output = text;
+        result.error_info =
+            crate::maxima::errors::enhance_error_with_packages(&error, catalog, Some(packages));
+        result.error = Some(error);
+        result.is_error = true;
+        // The value shown would be an earlier statement's
+        result.latex = None;
+        result.text_plain = None;
+        result.output_label = None;
+    }
     if !emit_latex {
         result.latex = None;
         result.text_plain = None;

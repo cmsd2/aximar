@@ -53,12 +53,13 @@ export function EnhancedErrorOutput({
   return (
     <div className="enhanced-error">
       <div className="enhanced-error-title">{errorText(i18n, errorInfo, "title")}</div>
-      {errorTranslated && (
-        <pre className="enhanced-error-translated">{errorTranslated}</pre>
-      )}
       <div className="enhanced-error-explanation">
         {errorText(i18n, errorInfo, "explanation")}
       </div>
+      {/* Maxima's own message in the user's language, under Aximar's explanation */}
+      {errorTranslated && (
+        <pre className="enhanced-error-translated">{errorTranslated}</pre>
+      )}
 
       {errorInfo.suggestion && (
         <div className="enhanced-error-suggestion">
@@ -98,15 +99,25 @@ export function EnhancedErrorOutput({
         className="enhanced-error-toggle"
         onClick={() => setShowRaw(!showRaw)}
       >
-        {showRaw
-          ? t({
-              message: "Hide raw error",
-              comment: "Button: hides the error exactly as Maxima printed it",
-            })
-          : t({
-              message: "Show raw error",
-              comment: "Button: shows the error exactly as Maxima printed it, below Aximar's explanation",
-            })}
+        {errorTranslated
+          ? showRaw
+            ? t({
+                message: "Hide original",
+                comment: "Button: hides Maxima's English error message, shown below its translation",
+              })
+            : t({
+                message: "Show original",
+                comment: "Button: shows Maxima's English error message below its translation",
+              })
+          : showRaw
+            ? t({
+                message: "Hide raw error",
+                comment: "Button: hides the error exactly as Maxima printed it",
+              })
+            : t({
+                message: "Show raw error",
+                comment: "Button: shows the error exactly as Maxima printed it, below Aximar's explanation",
+              })}
       </button>
       {showRaw && <pre className="enhanced-error-raw">{error}</pre>}
     </div>

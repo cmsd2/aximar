@@ -37,10 +37,10 @@ Each numbered group is one pull request, landing in order unless a group says ot
 
 ## 6. Every failure leaves an output, and Lisp errors keep their message
 
-- [ ] 6.1 `evaluate_cell` sets an error output for timeouts and cancellations (`error.timeout`, `error.cancelled`); verify with Maxima-backed tests for both scenarios, and a vitest test that the window shows the cell's error output
-- [ ] 6.2 Keep the whole Lisp condition on both paths, without SBCL's two lines; add `error.lisp_type`, `error.recursion`, `error.float_overflow` and `error.lisp`; verify with parser tests from captured SBCL output and Maxima-backed tests for both Lisp scenarios
-- [ ] 6.3 Drop the debugger hint from error text on both paths; verify with parser tests and the divergent-integral scenario
-- [ ] 6.4 Show the explanation, Maxima's translation and "Show original" in `EnhancedErrorOutput` in the user's language; verify with vitest tests for a translated error, an untranslated one and English ("Maxima's errors show in the user's language")
+- [x] 6.1 `evaluate_cell` sets an error output for timeouts and cancellations (`error.timeout`, `error.cancelled`); verify with Maxima-backed tests for both scenarios, and a vitest test that the window shows the cell's error output
+- [x] 6.2 Keep the whole Lisp condition on both paths, without SBCL's two lines; add `error.lisp_type`, `error.recursion`, `error.float_overflow` and `error.lisp`; verify with parser tests from captured SBCL output and Maxima-backed tests for both Lisp scenarios
+- [x] 6.3 Drop the debugger hint from error text on both paths; verify with parser tests and the divergent-integral scenario
+- [x] 6.4 Show the explanation, Maxima's translation and "Show original" in `EnhancedErrorOutput` in the user's language; verify with vitest tests for a translated error, an untranslated one and English ("Maxima's errors show in the user's language")
 
 ## 7. Notes
 
