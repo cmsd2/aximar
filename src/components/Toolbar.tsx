@@ -1,4 +1,5 @@
 import { useLingui } from "@lingui/react/macro";
+import { formatShortcut } from "../commands/shortcut";
 import { useActiveTab } from "../store/notebookStore";
 import { useMaxima } from "../hooks/useMaxima";
 import { displayTitle } from "../lib/tab-title";
@@ -61,8 +62,8 @@ export function Toolbar({ onOpenTemplates, onOpenSettings, variablesOpen, onTogg
         : "status-error";
 
   const fileName = displayTitle(filePath ? (filePath.split("/").pop()?.split("\\").pop() ?? "") : "");
-  const undoShortcut = "Cmd+Z";
-  const redoShortcut = "Cmd+Shift+Z";
+  const undoShortcut = formatShortcut("Mod+Z");
+  const redoShortcut = formatShortcut("Mod+Shift+Z");
 
   return (
     <div className="toolbar">

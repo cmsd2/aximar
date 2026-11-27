@@ -5,7 +5,8 @@ mod gui_events;
 mod i18n;
 pub use aximar_core::maxima;
 mod mcp;
-mod menu;
+/// Public for tests/menu_build.rs, which builds menus on the main thread
+pub mod menu;
 pub use aximar_core::notebooks;
 pub use aximar_core::session;
 mod state;
@@ -40,6 +41,7 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .manage(AppState::new())
         .manage(commands::translation_preview::TranslationPreview::default())
+        .manage(menu::MenuItems::default())
         .setup(|app| {
             let language = commands::config::read_language(app.handle());
             menu::setup_menu(app, &language)?;
@@ -104,6 +106,9 @@ pub fn run() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
+            menu::set_menu,
+            menu::set_menu_state,
+            menu::print_window,
             commands::evaluate::evaluate_expression,
             commands::evaluate::cancel_evaluation,
             commands::session::start_session,

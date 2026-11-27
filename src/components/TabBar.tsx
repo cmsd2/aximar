@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState, useRef } from "react";
 import { openNewNotebook } from "../lib/new-notebook";
+import { command } from "../commands/registry";
+import { formatShortcut } from "../commands/shortcut";
 import { useLingui } from "@lingui/react/macro";
 import { confirmClose } from "../lib/unsaved-changes";
 import { useNotebookStore } from "../store/notebookStore";
@@ -22,7 +24,7 @@ interface ContextMenuState {
 
 export function TabBar() {
   const { t } = useLingui();
-  const newTabShortcut = "Cmd+T";
+  const newTabShortcut = formatShortcut(command("file.new")!.shortcut!);
   const notebooks = useNotebookStore((s) => s.notebooks);
   const activeNotebookId = useNotebookStore((s) => s.activeNotebookId);
   const removeTab = useNotebookStore((s) => s.removeTab);
@@ -175,7 +177,7 @@ export function TabBar() {
         onClick={handleNewTab}
         title={t({
           message: `New notebook (${newTabShortcut})`,
-          comment: "Tab bar: tooltip of the + button that opens a new notebook tab. newTabShortcut is its keyboard shortcut, such as Cmd+T",
+          comment: "Tab bar: tooltip of the + button that opens a new notebook tab. newTabShortcut is its keyboard shortcut in the platform's names, such as ⌘N or Ctrl+N",
         })}
       >
         +
