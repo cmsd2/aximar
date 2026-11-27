@@ -5,6 +5,7 @@ pub mod envelope;
 pub mod errors;
 pub mod labels;
 pub mod legacy;
+pub mod locate;
 pub mod messages;
 pub mod noconsole;
 pub mod notes;

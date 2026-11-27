@@ -63,6 +63,12 @@ pub fn run() {
                 }
             });
 
+            // The MCP server's state, for the Settings window
+            let status_handle = app.handle().clone();
+            state.mcp_controller.on_change(move |s| {
+                let _ = status_handle.emit("mcp-server-status", s);
+            });
+
             // Read MCP config in a single pass (persists generated defaults
             // like mcp_token so the server and frontend always agree).
             let mcp_config = commands::config::read_mcp_config(app.handle());
@@ -80,12 +86,15 @@ pub fn run() {
                 let ct = tokio_util::sync::CancellationToken::new();
                 let controller = state.mcp_controller.clone();
                 tauri::async_runtime::spawn(async move {
-                    controller.set_running(ct.clone()).await;
+                    let generation = controller
+                        .set_running(ct.clone(), &mcp_config.listen_address)
+                        .await;
                     mcp::start_mcp_server(
                         mcp_state,
                         mcp_config.listen_address,
                         mcp_config.token,
                         ct,
+                        generation,
                     )
                     .await;
                 });
@@ -130,7 +139,9 @@ pub fn run() {
             commands::config::list_wsl_distros,
             commands::config::check_wsl_maxima,
             commands::config::get_buffered_logs,
+            commands::config::maxima_status,
             commands::mcp_clients::mcp_clients_status,
+            commands::mcp_clients::mcp_server_status,
             commands::mcp_clients::claude_mcp_check,
             commands::mcp_clients::claude_mcp_configure,
             commands::mcp_clients::codex_mcp_configure,

@@ -2496,6 +2496,22 @@
   word-break: break-word;
 }
 
+.log-entry-link {
+  margin-left: 8px;
+  padding: 0 6px;
+  background: transparent;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  color: var(--accent);
+  font-size: 11px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.log-entry-link:hover {
+  background: var(--bg-cell);
+}
+
 .log-entry-warning .log-entry-level { color: var(--running-color); }
 .log-entry-error .log-entry-level { color: var(--error-color); }
 .log-entry-info .log-entry-level { color: var(--text-secondary); }

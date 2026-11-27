@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { msg } from "@lingui/core/macro";
 import { useLingui } from "@lingui/react/macro";
-import { checkWslMaxima, listWslDistros } from "../../lib/config-client";
+import { checkWslMaxima, listWslDistros, maximaStatus, type MaximaLocation } from "../../lib/config-client";
 import { useLogStore } from "../../store/logStore";
 import { ChoiceButtons, SettingRow, TextSetting, type Label, type SectionProps } from "./SettingRow";
 
@@ -56,6 +56,7 @@ export function MaximaSection({ config, update }: SectionProps) {
           )}
         </SettingRow>
       )}
+      {config.backend === "local" && <MaximaStatusLine maximaPath={config.maxima_path} />}
 
       {config.backend === "docker" && (
         <>
@@ -206,5 +207,81 @@ function WslDistroRow({ config, update }: SectionProps) {
         </>
       )}
     </SettingRow>
+  );
+}
+
+/**
+ * Which Maxima the Local backend would run, and where its path came from.
+ * Asks again when the Maxima path changes.
+ */
+function MaximaStatusLine({ maximaPath }: { maximaPath: string | null }) {
+  const { t } = useLingui();
+  const [location, setLocation] = useState<MaximaLocation | null>(null);
+
+  useEffect(() => {
+    let current = true;
+    maximaStatus(maximaPath)
+      .then((l) => current && setLocation(l))
+      .catch(() => current && setLocation(null));
+    return () => {
+      current = false;
+    };
+  }, [maximaPath]);
+
+  if (!location) return null;
+  const path = location.path ?? "";
+  const envVar = "AXIMAR_MAXIMA_PATH";
+  let text: string;
+  let tone: "ok" | "err";
+  if (location.problem === "not-found" && location.path) {
+    tone = "err";
+    text = t({
+      message: `${path} doesn't exist.`,
+      comment: "Settings, Maxima section: status line when the Maxima path names no file. path is the path",
+    });
+  } else if (location.problem === "not-executable") {
+    tone = "err";
+    text = t({
+      message: `${path} isn't a program Aximar can run.`,
+      comment: "Settings, Maxima section: status line when the Maxima path names a file that can't be run. path is the path",
+    });
+  } else if (!location.path) {
+    tone = "err";
+    text = t({
+      message: "Aximar found no Maxima. Install it, or set the Maxima path above.",
+      comment: "Settings, Maxima section: status line when Aximar can't find Maxima anywhere",
+    });
+  } else {
+    tone = "ok";
+    switch (location.source) {
+      case "setting":
+        text = t({
+          message: `Aximar runs ${path}, from the Maxima path setting.`,
+          comment: "Settings, Maxima section: status line. path is the Maxima program Aximar starts",
+        });
+        break;
+      case "environment":
+        text = t({
+          message: `Aximar runs ${path}, from the ${envVar} environment variable.`,
+          comment: "Settings, Maxima section: status line. path is the Maxima program; envVar is an environment variable's name",
+        });
+        break;
+      case "standard-location":
+        text = t({
+          message: `Aximar runs ${path}, found in a standard install location.`,
+          comment: "Settings, Maxima section: status line. path is the Maxima program Aximar found",
+        });
+        break;
+      default:
+        text = t({
+          message: `Aximar runs ${path}, found on PATH.`,
+          comment: "Settings, Maxima section: status line. path is the Maxima program; PATH is the list of folders the system searches for programs",
+        });
+    }
+  }
+  return (
+    <p className={`settings-status-line ${tone}`} role="status" data-status="maxima">
+      {text}
+    </p>
   );
 }

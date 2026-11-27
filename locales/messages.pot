@@ -80,6 +80,16 @@ msgstr ""
 msgid "{kind} Image"
 msgstr ""
 
+#. Settings, Maxima section: status line when the Maxima path names no file. path is the path
+#: src/components/settings/MaximaSection.tsx
+msgid "{path} doesn't exist."
+msgstr ""
+
+#. Settings, Maxima section: status line when the Maxima path names a file that can't be run. path is the path
+#: src/components/settings/MaximaSection.tsx
+msgid "{path} isn't a program Aximar can run."
+msgstr ""
+
 #. Toolbar button: adds a code cell below the active cell. max-length:12
 #. screen: window--toolbar-and-tabs
 #: src/components/Toolbar.tsx
@@ -211,6 +221,31 @@ msgstr ""
 msgid "Aximar could not find Maxima on your system."
 msgstr ""
 
+#. Settings, Maxima section: status line when Aximar can't find Maxima anywhere
+#: src/components/settings/MaximaSection.tsx
+msgid "Aximar found no Maxima. Install it, or set the Maxima path above."
+msgstr ""
+
+#. Settings, Maxima section: status line. path is the Maxima program Aximar found
+#: src/components/settings/MaximaSection.tsx
+msgid "Aximar runs {path}, found in a standard install location."
+msgstr ""
+
+#. Settings, Maxima section: status line. path is the Maxima program; PATH is the list of folders the system searches for programs
+#: src/components/settings/MaximaSection.tsx
+msgid "Aximar runs {path}, found on PATH."
+msgstr ""
+
+#. Settings, Maxima section: status line. path is the Maxima program; envVar is an environment variable's name
+#: src/components/settings/MaximaSection.tsx
+msgid "Aximar runs {path}, from the {envVar} environment variable."
+msgstr ""
+
+#. Settings, Maxima section: status line. path is the Maxima program Aximar starts
+#: src/components/settings/MaximaSection.tsx
+msgid "Aximar runs {path}, from the Maxima path setting."
+msgstr ""
+
 #. Docs panel: tooltip of the arrow button that goes back to the previous page
 #: src/components/DocsPanel.tsx
 msgid "Back"
@@ -312,9 +347,10 @@ msgstr ""
 msgid "Click to use this example"
 msgstr ""
 
+#. Maxima Not Found dialog: the button that closes the dialog
 #. Settings button: closes the settings window
 #. screen: dialogs--settings
-#: src/components/settings/SettingsShell.tsx
+#: src/components/settings/SettingsShell.tsx src/hooks/useMaxima.ts
 msgid "Close"
 msgstr ""
 
@@ -422,6 +458,11 @@ msgstr ""
 #. screen: errors--all-explanations
 #: src/components/EnhancedErrorOutput.tsx
 msgid "Correct usage:"
+msgstr ""
+
+#. Settings, AI assistants section: the MCP server's status when it failed to start. address is its address and port; reason is the system's message, such as Address already in use
+#: src/components/settings/AiAssistantsSection.tsx
+msgid "Couldn't listen on {address}: {reason}"
 msgstr ""
 
 #. Title of the error dialog when a notebook file fails to open; the dialog shows the reason below
@@ -701,9 +742,9 @@ msgstr ""
 msgid "How long a cell may run before Aximar stops it."
 msgstr ""
 
-#. Maxima Not Found dialog: the last paragraph. envVar is the name of an environment variable. Settings is the Settings window
+#. Maxima Not Found dialog: the last paragraph, above an Open Settings button. envVar is the name of an environment variable
 #: src/hooks/useMaxima.ts
-msgid "If Maxima is installed in a non-standard location, set the {envVar} environment variable or configure the path in Settings."
+msgid "If Maxima is installed somewhere else, give its path in Settings, or set the {envVar} environment variable."
 msgstr ""
 
 #. Alt text of an image in a cell's output
@@ -803,6 +844,11 @@ msgstr ""
 #. screen: dialogs--settings
 #: src/components/settings/GeneralSection.tsx
 msgid "Light"
+msgstr ""
+
+#. Settings, AI assistants section: the MCP server's status. address is its address and port, such as 127.0.0.1:19542
+#: src/components/settings/AiAssistantsSection.tsx
+msgid "Listening on {address}."
 msgstr ""
 
 #. Settings, pre-release builds: chooses a .po file to show in the window
@@ -1008,6 +1054,16 @@ msgstr ""
 #. Settings sidebar: font size, cell style, argument help and text cells. max-length:16
 #: src/components/settings/sections.ts
 msgid "Notebook"
+msgstr ""
+
+#. Log window: a button on an entry that opens the Settings section that helps with it. name is the section's name, such as AI assistants
+#: src/components/LogPanel.tsx
+msgid "Open {name} settings"
+msgstr ""
+
+#. Maxima Not Found dialog: the button that opens the Maxima section of Settings
+#: src/hooks/useMaxima.ts
+msgid "Open Settings"
 msgstr ""
 
 #. Label left of the output of a code cell with no run number, as in Jupyter. max-length:6
@@ -1303,6 +1359,11 @@ msgstr ""
 #. Toolbar: session status while Maxima starts up. max-length:12
 #: src/components/Toolbar.tsx
 msgid "Starting"
+msgstr ""
+
+#. Settings, AI assistants section: the MCP server's status while it starts
+#: src/components/settings/AiAssistantsSection.tsx
+msgid "Starting..."
 msgstr ""
 
 #. Settings: stops showing the translation file, going back to the language setting
@@ -2322,6 +2383,11 @@ msgstr ""
 #. i18n: App menu (macOS). max-length:30
 #: src-tauri/src/menu.rs
 msgid "About Aximar"
+msgstr ""
+
+#. i18n: App menu on macOS, Edit menu elsewhere: opens the Settings window. max-length:24
+#: src-tauri/src/menu.rs
+msgid "Settings..."
 msgstr ""
 
 #. i18n: App menu (macOS): the system's Services submenu. max-length:30

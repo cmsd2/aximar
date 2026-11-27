@@ -1,4 +1,6 @@
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { listen } from "@tauri-apps/api/event";
+import { mcpServerStatus, type McpServerState } from "../../lib/config-client";
 import { useLingui } from "@lingui/react/macro";
 import { AiClients } from "./AiClients";
 import { SettingRow, TextSetting, type SectionProps } from "./SettingRow";
@@ -28,6 +30,8 @@ export function AiAssistantsSection({ config, update }: SectionProps) {
           />
         )}
       </SettingRow>
+
+      {config.mcp_enabled && <McpServerStatusLine />}
 
       {config.mcp_enabled && (
         <>
@@ -127,5 +131,56 @@ function McpTokenRow({ token, onRegenerate }: { token: string; onRegenerate: (to
         </div>
       )}
     </SettingRow>
+  );
+}
+
+/** Whether the MCP server is listening, and why not if it failed */
+function McpServerStatusLine() {
+  const { t } = useLingui();
+  const [status, setStatus] = useState<McpServerState | null>(null);
+
+  useEffect(() => {
+    let current = true;
+    mcpServerStatus()
+      .then((s) => current && setStatus(s))
+      .catch(() => {});
+    const unlisten = listen<McpServerState>("mcp-server-status", (e) => current && setStatus(e.payload));
+    return () => {
+      current = false;
+      void unlisten.then((f) => f());
+    };
+  }, []);
+
+  if (!status) return null;
+  let text: string;
+  let tone: "ok" | "warn" | "err";
+  switch (status.state) {
+    case "listening": {
+      const address = status.address;
+      tone = "ok";
+      text = t({
+        message: `Listening on ${address}.`,
+        comment: "Settings, AI assistants section: the MCP server's status. address is its address and port, such as 127.0.0.1:19542",
+      });
+      break;
+    }
+    case "failed": {
+      const { address, reason } = status;
+      tone = "err";
+      text = t({
+        message: `Couldn't listen on ${address}: ${reason}`,
+        comment: "Settings, AI assistants section: the MCP server's status when it failed to start. address is its address and port; reason is the system's message, such as Address already in use",
+      });
+      break;
+    }
+    default: {
+      tone = "warn";
+      text = t({ message: "Starting...", comment: "Settings, AI assistants section: the MCP server's status while it starts" });
+    }
+  }
+  return (
+    <p className={`settings-status-line ${tone}`} role="status" data-status="mcp-server">
+      {text}
+    </p>
   );
 }

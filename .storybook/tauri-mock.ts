@@ -42,6 +42,10 @@ export function installTauriMock(): void {
             codex: { installed: "/usr/local/bin/codex", configured: { state: "yes" } },
             gemini: { installed: null, configured: { state: "no" } },
           };
+        case "mcp_server_status":
+          return { state: "listening", address: "127.0.0.1:19542" };
+        case "maxima_status":
+          return { path: "/opt/homebrew/bin/maxima", source: "standard-location", problem: null };
         case "plugin:event|listen":
           return 1;
         default:

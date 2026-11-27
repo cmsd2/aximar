@@ -66,6 +66,18 @@ export async function setConfig(updates: Partial<AppConfig>): Promise<void> {
   return invoke<void>("set_config", { updates });
 }
 
+/** The Maxima the Local backend would run, and where it came from */
+export interface MaximaLocation {
+  path: string | null;
+  source: "setting" | "environment" | "standard-location" | "path" | null;
+  problem: "not-found" | "not-executable" | null;
+}
+
+/** Which Maxima the Local backend would run with this Maxima path setting.  Starts nothing. */
+export async function maximaStatus(maximaPath: string | null): Promise<MaximaLocation> {
+  return invoke<MaximaLocation>("maxima_status", { maximaPath });
+}
+
 export async function listWslDistros(): Promise<string[]> {
   return invoke<string[]>("list_wsl_distros");
 }
@@ -99,6 +111,17 @@ export type McpClient = keyof McpClientsStatus;
 /** Every client's status.  Runs none of their programs. */
 export async function mcpClientsStatus(): Promise<McpClientsStatus> {
   return invoke<McpClientsStatus>("mcp_clients_status");
+}
+
+/** What Aximar's MCP server is doing */
+export type McpServerState =
+  | { state: "off" }
+  | { state: "starting"; address: string }
+  | { state: "listening"; address: string }
+  | { state: "failed"; address: string; reason: string };
+
+export async function mcpServerStatus(): Promise<McpServerState> {
+  return invoke<McpServerState>("mcp_server_status");
 }
 
 /** Ask Claude Code whether it lists Aximar: runs `claude mcp get aximar` */

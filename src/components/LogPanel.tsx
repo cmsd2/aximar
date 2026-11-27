@@ -2,6 +2,8 @@ import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { Virtuoso, type VirtuosoHandle } from "react-virtuoso";
 import { useLingui } from "@lingui/react/macro";
 import { useLogStore } from "../store/logStore";
+import { useSettingsStore } from "../store/settingsStore";
+import { SECTIONS } from "./settings/sections";
 import type {
   EnvelopeEntry,
   LogEntry,
@@ -26,7 +28,25 @@ function AppLogRow({ entry }: { entry: LogEntry }) {
       <span className="log-entry-level">{entry.level}</span>
       <span className="log-entry-source">{entry.source}</span>
       <span className="log-entry-message">{entry.message}</span>
+      {entry.link && <LogLinkButton section={entry.link.section} />}
     </div>
+  );
+}
+
+/** A log entry's link to the Settings section that helps with it */
+export function LogLinkButton({ section }: { section: string }) {
+  const { t, i18n } = useLingui();
+  const openSettings = useSettingsStore((s) => s.openSettings);
+  const target = SECTIONS.find((s) => s.id === section);
+  if (!target) return null;
+  const name = i18n._(target.label);
+  return (
+    <button type="button" className="log-entry-link" onClick={() => openSettings(target.id)}>
+      {t({
+        message: `Open ${name} settings`,
+        comment: "Log window: a button on an entry that opens the Settings section that helps with it. name is the section's name, such as AI assistants",
+      })}
+    </button>
   );
 }
 

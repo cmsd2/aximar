@@ -6,6 +6,14 @@ export interface LogEntry {
   level: LogLevel;
   message: string;
   source: string;
+  /** Somewhere in the window that helps with this entry */
+  link?: LogLink;
+}
+
+/** A link from a log entry into the window: a Settings section, such as ai-assistants */
+export interface LogLink {
+  kind: "settings";
+  section: string;
 }
 
 export interface RawOutputEntry {

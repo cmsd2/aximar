@@ -1,4 +1,4 @@
-mod controller;
+pub mod controller;
 mod startup;
 pub mod sync;
 

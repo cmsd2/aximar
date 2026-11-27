@@ -619,12 +619,15 @@ pub async fn set_config(app: tauri::AppHandle, updates: ConfigUpdate) -> Result<
                 initial_file_args: state.initial_file_args.clone(),
             };
             let ct = CancellationToken::new();
-            controller.set_running(ct.clone()).await;
+            let generation = controller
+                .set_running(ct.clone(), &config.mcp_listen_address)
+                .await;
             tokio::spawn(crate::mcp::start_mcp_server(
                 mcp_state,
                 config.mcp_listen_address,
                 config.mcp_token,
                 ct,
+                generation,
             ));
         }
     }
@@ -686,6 +689,17 @@ pub fn read_session_settings(app: &tauri::AppHandle) -> SessionSettings {
         .map(|(c, _)| c)
         .unwrap_or_default()
         .session_settings()
+}
+
+/// The Maxima the Local backend would run with this Maxima path setting,
+/// and where it came from.  Starts nothing.
+#[tauri::command]
+pub async fn maxima_status(
+    maxima_path: Option<String>,
+) -> Result<aximar_core::maxima::locate::MaximaLocation, AppError> {
+    Ok(aximar_core::maxima::locate::locate_maxima(
+        maxima_path.as_deref(),
+    ))
 }
 
 #[tauri::command]

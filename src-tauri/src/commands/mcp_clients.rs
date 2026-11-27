@@ -188,6 +188,14 @@ fn clients_status(home: Option<&Path>, find: impl Fn(&str) -> Option<PathBuf>) -
     }
 }
 
+/// What Aximar's MCP server is doing: off, listening, or failed to start
+#[tauri::command]
+pub async fn mcp_server_status(
+    state: tauri::State<'_, crate::state::AppState>,
+) -> Result<crate::mcp::controller::McpServerState, AppError> {
+    Ok(state.mcp_controller.state())
+}
+
 /// Every client's status, without running any of them
 #[tauri::command]
 pub async fn mcp_clients_status() -> Result<McpClientsStatus, AppError> {

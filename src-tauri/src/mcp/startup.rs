@@ -9,8 +9,9 @@ use aximar_mcp::server::{
     ProcessSinkFactory,
 };
 
+use crate::mcp::controller::McpServerState;
 use crate::state::AppState;
-use crate::tauri_output::{emit_app_log, TauriOutputSink};
+use crate::tauri_output::{emit_app_log, emit_app_log_with_link, AppLogLink, TauriOutputSink};
 
 use crate::commands::config::read_session_settings;
 use crate::commands::session::build_session_status_callback;
@@ -27,7 +28,9 @@ pub async fn start_mcp_server(
     listen_address: String,
     token: String,
     ct: CancellationToken,
+    generation: u64,
 ) {
+    let controller = state.mcp_controller.clone();
     // Build process sink factory: creates MultiOutputSink(TauriSink + CaptureSink)
     // for each notebook when spawning a Maxima session.
     let app_handle_for_factory = state.app_handle.clone();
@@ -95,6 +98,12 @@ pub async fn start_mcp_server(
     match tokio::net::TcpListener::bind(&addr).await {
         Ok(listener) => {
             tracing::info!("MCP HTTP server listening on http://{addr}/mcp");
+            controller.set_state(
+                generation,
+                McpServerState::Listening {
+                    address: addr.clone(),
+                },
+            );
             emit_app_log(
                 &app_handle_for_log,
                 &state.app_log,
@@ -121,15 +130,26 @@ pub async fn start_mcp_server(
                 "MCP server stopped",
                 "mcp",
             );
+            controller.set_state(generation, McpServerState::Off);
         }
         Err(e) => {
             tracing::error!("Failed to bind MCP HTTP server to {addr}: {e}");
-            emit_app_log(
+            controller.set_state(
+                generation,
+                McpServerState::Failed {
+                    address: addr.clone(),
+                    reason: e.to_string(),
+                },
+            );
+            emit_app_log_with_link(
                 &app_handle_for_log,
                 &state.app_log,
                 "error",
                 &format!("MCP server failed to bind to {addr}: {e}"),
                 "mcp",
+                AppLogLink::Settings {
+                    section: "ai-assistants".into(),
+                },
             );
         }
     }

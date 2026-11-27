@@ -5,6 +5,7 @@ import { act } from "react";
 const flags = vi.hoisted(() => ({ tools: true }));
 
 vi.mock("@tauri-apps/api/core", () => ({ invoke: vi.fn() }));
+vi.mock("@tauri-apps/api/event", () => ({ listen: vi.fn(async () => () => {}) }));
 vi.mock("@tauri-apps/plugin-dialog", () => ({ open: vi.fn(), ask: vi.fn(), message: vi.fn() }));
 vi.mock("../../lib/translation-preview", () => ({
   get TRANSLATOR_TOOLS() {

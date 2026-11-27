@@ -14,6 +14,7 @@ static WINDOW_COUNTER: AtomicU32 = AtomicU32::new(1);
 /// The menu bar's text in one language
 struct MenuLabels {
     about: String,
+    settings: String,
     services: String,
     hide: String,
     hide_others: String,
@@ -45,6 +46,8 @@ impl MenuLabels {
         MenuLabels {
             // i18n: App menu (macOS). max-length:30
             about: t(msg!("About Aximar")),
+            // i18n: App menu on macOS, Edit menu elsewhere: opens the Settings window. max-length:24
+            settings: t(msg!("Settings...")),
             // i18n: App menu (macOS): the system's Services submenu. max-length:30
             services: t(msg!("Services")),
             // i18n: App menu (macOS). max-length:30
@@ -138,6 +141,11 @@ pub fn set_menu_translations(app: &AppHandle, translations: &Translations) -> ta
         .accelerator("CmdOrCtrl+Shift+E")
         .build(app)?;
 
+    let settings_item = MenuItemBuilder::new(&l.settings)
+        .id("settings")
+        .accelerator("CmdOrCtrl+,")
+        .build(app)?;
+
     let print_item = MenuItemBuilder::new(&l.print)
         .id("print")
         .accelerator("CmdOrCtrl+P")
@@ -145,14 +153,22 @@ pub fn set_menu_translations(app: &AppHandle, translations: &Translations) -> ta
 
     // --- App submenu (macOS: appears under app name) ---
 
-    let app_submenu = SubmenuBuilder::new(app, "Aximar")
+    // Settings goes in the app menu on macOS, as Mac apps' do, and at the
+    // end of the Edit menu elsewhere
+    let mac = cfg!(target_os = "macos");
+
+    let mut app_submenu = SubmenuBuilder::new(app, "Aximar")
         .about_with_text(
             &l.about,
             Some(AboutMetadata {
                 ..Default::default()
             }),
         )
-        .separator()
+        .separator();
+    if mac {
+        app_submenu = app_submenu.item(&settings_item).separator();
+    }
+    let app_submenu = app_submenu
         .services_with_text(&l.services)
         .separator()
         .hide_with_text(&l.hide)
@@ -181,15 +197,18 @@ pub fn set_menu_translations(app: &AppHandle, translations: &Translations) -> ta
 
     // --- Edit submenu ---
 
-    let edit_submenu = SubmenuBuilder::new(app, &l.edit)
+    let mut edit_submenu = SubmenuBuilder::new(app, &l.edit)
         .undo_with_text(&l.undo)
         .redo_with_text(&l.redo)
         .separator()
         .cut_with_text(&l.cut)
         .copy_with_text(&l.copy)
         .paste_with_text(&l.paste)
-        .select_all_with_text(&l.select_all)
-        .build()?;
+        .select_all_with_text(&l.select_all);
+    if !mac {
+        edit_submenu = edit_submenu.separator().item(&settings_item);
+    }
+    let edit_submenu = edit_submenu.build()?;
 
     // --- Window submenu ---
 
@@ -231,7 +250,7 @@ pub fn setup_menu(app: &mut tauri::App, language: &str) -> Result<(), Box<dyn st
                     .build();
                 });
             }
-            "new" | "open" | "save" | "save_as" | "export_latex" => {
+            "new" | "open" | "save" | "save_as" | "export_latex" | "settings" => {
                 // Emit only to the focused window so actions don't leak across windows
                 let focused = app_handle
                     .webview_windows()
@@ -291,5 +310,6 @@ msgstr "Salir de Aximar"
         let l = MenuLabels::new(&Translations::for_language("en"));
         assert_eq!(l.file, "File");
         assert_eq!(l.export_latex, "Export as LaTeX...");
+        assert_eq!(l.settings, "Settings...");
     }
 }

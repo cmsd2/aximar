@@ -11,10 +11,12 @@ export interface SettingsProps {
   onSetVariablesOpen: (open: boolean) => void;
   /** The section to open at; the one shown last if not given */
   initialSection?: SectionId;
+  /** Changes with each request to open Settings, so a request while open moves to its section */
+  request?: number;
 }
 
 /** The Settings window: a sidebar of sections, and the chosen section's settings */
-export function SettingsShell({ onClose, onSetVariablesOpen, initialSection }: SettingsProps) {
+export function SettingsShell({ onClose, onSetVariablesOpen, initialSection, request }: SettingsProps) {
   const { t, i18n } = useLingui();
   const [config, setLocalConfig] = useState<AppConfig | null>(null);
   const [section, setSection] = useState<SectionId | null>(null);
@@ -49,6 +51,15 @@ export function SettingsShell({ onClose, onSetVariablesOpen, initialSection }: S
   );
 
   const sections = availableSections();
+  const loaded = config !== null;
+
+  // Asked to open at a section while already open
+  const firstRequest = useRef(request);
+  useEffect(() => {
+    if (!loaded || request === firstRequest.current) return;
+    firstRequest.current = request;
+    if (initialSection) choose(sectionFor(initialSection), true);
+  }, [request, loaded]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const choose = (id: SectionId, focus = false) => {
     setSection(id);

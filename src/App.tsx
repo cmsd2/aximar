@@ -45,6 +45,8 @@ import { useNotebookStore, useActiveAnyTab, getActiveTabState } from "./store/no
 import { mapSyncCells, openNotebookTab } from "./hooks/useNotebookEvents";
 import { PlotViewer } from "./components/PlotViewer";
 import { useLogStore } from "./store/logStore";
+import { useSettingsStore } from "./store/settingsStore";
+import type { LogLink } from "./types/log";
 import { useFindStore } from "./store/findStore";
 import "./styles/global.css";
 
@@ -57,7 +59,11 @@ function App() {
     undefined
   );
   const [templateChooserOpen, setTemplateChooserOpen] = useState(false);
-  const [settingsOpen, setSettingsOpen] = useState(false);
+  const settingsOpen = useSettingsStore((s) => s.open);
+  const settingsSection = useSettingsStore((s) => s.section);
+  const settingsRequest = useSettingsStore((s) => s.request);
+  const openSettings = useSettingsStore((s) => s.openSettings);
+  const closeSettings = useSettingsStore((s) => s.closeSettings);
   const [variablesOpen, setVariablesOpen] = useState(false);
   const [exportLatexOpen, setExportLatexOpen] = useState(false);
   const [docsOpen, setDocsOpen] = useState(false);
@@ -157,26 +163,19 @@ function App() {
   // Listen for structured app log events from the backend, and replay
   // any that were buffered before this listener was ready.
   useEffect(() => {
-    const unlisten = listen<{ level: string; message: string; source: string }>(
-      "app-log",
-      (event) => {
-        addLogEntry(
-          event.payload.level as "info" | "warning" | "error",
-          event.payload.message,
-          event.payload.source
-        );
-      }
-    );
+    type AppLog = { level: string; message: string; source: string; link?: LogLink };
+    const unlisten = listen<AppLog>("app-log", (event) => {
+      addLogEntry(
+        event.payload.level as "info" | "warning" | "error",
+        event.payload.message,
+        event.payload.source,
+        event.payload.link
+      );
+    });
     // Drain buffered logs that arrived before the listener was mounted
-    invoke<{ level: string; message: string; source: string }[]>(
-      "get_buffered_logs"
-    ).then((entries) => {
+    invoke<AppLog[]>("get_buffered_logs").then((entries) => {
       for (const e of entries) {
-        addLogEntry(
-          e.level as "info" | "warning" | "error",
-          e.message,
-          e.source
-        );
+        addLogEntry(e.level as "info" | "warning" | "error", e.message, e.source, e.link);
       }
     });
     return () => {
@@ -330,6 +329,9 @@ function App() {
         case "export_latex":
           setExportLatexOpen(true);
           break;
+        case "settings":
+          openSettings();
+          break;
       }
     });
     return () => {
@@ -432,7 +434,7 @@ function App() {
       {isNotebookTab && (
         <Toolbar
           onOpenTemplates={() => setTemplateChooserOpen(true)}
-          onOpenSettings={() => setSettingsOpen(true)}
+          onOpenSettings={() => openSettings()}
           variablesOpen={variablesOpen}
           onToggleVariables={() => setVariablesOpen((o) => !o)}
           logOpen={windowOpen}
@@ -475,7 +477,12 @@ function App() {
         <TemplateChooser onClose={() => setTemplateChooserOpen(false)} />
       )}
       {settingsOpen && (
-        <SettingsModal onClose={() => setSettingsOpen(false)} onSetVariablesOpen={setVariablesOpen} />
+        <SettingsModal
+          onClose={closeSettings}
+          onSetVariablesOpen={setVariablesOpen}
+          initialSection={settingsSection ?? undefined}
+          request={settingsRequest}
+        />
       )}
       {exportLatexOpen && (
         <ExportLatexModal onClose={() => setExportLatexOpen(false)} />
