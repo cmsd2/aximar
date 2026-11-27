@@ -204,11 +204,11 @@ export function Cell({ cell, onViewDocs, selectBracket }: CellProps) {
             </span>
           </div>
           <CellOutput output={output} cellId={cell.id} />
+          {showSuggestions && <CellSuggestions cell={cell} />}
         </div>
       )}
       {selectBracket}
     </div>
-    {showSuggestions && <CellSuggestions cell={cell} />}
     </>
   );
 }

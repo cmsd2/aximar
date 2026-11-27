@@ -316,10 +316,6 @@
   transition: opacity 0.15s;
 }
 
-.cell-suggestions + .insert-bar {
-  margin-top: 0;
-}
-
 .insert-bar:hover {
   opacity: 1;
 }
@@ -786,6 +782,8 @@
 /* Cell Output */
 .cell-output-area {
   display: flex;
+  /* The suggestions wrap onto a row of their own */
+  flex-wrap: wrap;
   align-items: flex-start;
   border-top: 1px solid var(--border-color);
   background: rgba(0, 0, 0, 0.05);
@@ -901,7 +899,7 @@
 
 .plot-viewer-toolbar {
   display: flex;
-  gap: 8px;
+  gap: var(--space-2);
   padding-bottom: 12px;
   flex-shrink: 0;
 }
@@ -1072,45 +1070,20 @@
 }
 
 /* Suggestion Chips */
+/* Suggestions: a row of quiet buttons under the output, inside the output
+   area, with the first arrow lined up with the output's left edge */
 .cell-suggestions {
+  flex-basis: 100%;
   display: flex;
-  gap: 6px;
-  padding: 6px 12px 8px calc(var(--gutter-width) + 4px);
   flex-wrap: wrap;
-  border-top: 1px solid var(--border-color);
-  background: rgba(0, 0, 0, 0.05);
-  margin-bottom: 8px;
-  margin-left: -16px;
-  margin-right: -16px;
-  padding-right: 16px;
+  gap: var(--space-1);
+  /* Less the button's padding and border */
+  padding: 0 var(--space-3) var(--space-1) calc(var(--gutter-width) - var(--space-2) - 1px);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme]) .cell-suggestions {
-    background: rgba(0, 0, 0, 0.15);
-  }
-}
-
-[data-theme="dark"] .cell-suggestions {
-  background: rgba(0, 0, 0, 0.15);
-}
-
-.suggestion-chip {
-  padding: 3px 10px;
-  background: var(--bg-input);
-  border: 1px solid var(--border-color);
-  border-radius: 12px;
-  color: var(--accent);
-  font-size: 12px;
-  cursor: pointer;
-  transition: background 0.15s, border-color 0.15s;
-  white-space: nowrap;
-}
-
-.suggestion-chip:hover {
-  background: var(--accent);
-  color: var(--bg-primary);
-  border-color: var(--accent);
+.cell-suggestion svg {
+  width: 14px;
+  height: 14px;
 }
 
 /* An error Aximar can't explain: the icon, then Maxima's text */
@@ -2390,9 +2363,6 @@
   background: var(--error-color);
 }
 
-[data-cell-style="bracket"] .cell-suggestions {
-  padding-right: 20px;
-}
 
 [data-cell-style="bracket"] .markdown-cell {
   background: transparent;
@@ -2501,12 +2471,6 @@
 [data-cell-style="card"] .cell,
 :root:not([data-cell-style]) .cell {
   margin-bottom: 0;
-}
-
-/* The suggestion chips keep the 8px under their card the margin gave */
-[data-cell-style="card"] .cell + .cell-suggestions,
-:root:not([data-cell-style]) .cell + .cell-suggestions {
-  margin-top: var(--space-2);
 }
 
 /* Without the bracket, card style needs no wide right margin; the left

@@ -5,6 +5,7 @@ import { msg } from "@lingui/core/macro";
 import { useLingui } from "@lingui/react/macro";
 import Plotly from "plotly.js-dist-min";
 import { PlotlyChart } from "./PlotlyChart";
+import { Button } from "./ui/Button";
 import { savePlotFile } from "../lib/notebooks-client";
 
 interface PlotViewerProps {
@@ -67,24 +68,24 @@ export function PlotViewer({ plotData }: PlotViewerProps) {
   return (
     <div className="plot-viewer">
       <div className="plot-viewer-toolbar">
-        <button className="suggestion-chip" onClick={() => handleExport("svg")}>
+        <Button size="sm" onClick={() => handleExport("svg")}>
           {t({
             message: "Export SVG",
             comment: "Button in the plot viewer window: saves the chart as an SVG image. max-length:14",
           })}
-        </button>
-        <button className="suggestion-chip" onClick={() => handleExport("png")}>
+        </Button>
+        <Button size="sm" onClick={() => handleExport("png")}>
           {t({
             message: "Export PNG",
             comment: "Button in the plot viewer window: saves the chart as a PNG image. max-length:14",
           })}
-        </button>
-        <button className="suggestion-chip" onClick={handleSaveJson}>
+        </Button>
+        <Button size="sm" onClick={handleSaveJson}>
           {t({
             message: "Save JSON",
             comment: "Button in the plot viewer window: saves the chart's Plotly data as a JSON file. max-length:14",
           })}
-        </button>
+        </Button>
       </div>
       <PlotlyChart plotData={plotData} />
     </div>

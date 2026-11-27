@@ -11,6 +11,8 @@ import { nbAddCell } from "../lib/notebook-commands";
 import type { Suggestion } from "../types/suggestions";
 import type { Cell } from "../types/notebook";
 import type { EvalResult } from "../types/maxima";
+import { Button } from "./ui/Button";
+import { IconArrowRight } from "./ui/icons";
 
 interface CellSuggestionsProps {
   cell: Cell;
@@ -154,19 +156,21 @@ export function CellSuggestions({ cell }: CellSuggestionsProps) {
     executeCell(result.cell_id, template);
   };
 
+  // A row of quiet buttons under the output, lined up with it
   return (
     <div className="cell-suggestions">
       {suggestions.map((s) => (
-        <button
+        <Button
           key={s.action ?? s.template}
-          className="suggestion-chip"
+          variant="quiet"
+          size="sm"
+          icon={IconArrowRight}
+          className="cell-suggestion"
           title={s.description}
-          onClick={() =>
-            s.action ? handleAction(s.action) : handleSuggestionClick(s)
-          }
+          onClick={() => (s.action ? handleAction(s.action) : handleSuggestionClick(s))}
         >
           {s.label}
-        </button>
+        </Button>
       ))}
     </div>
   );
