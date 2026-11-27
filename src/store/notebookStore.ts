@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import type { Cell } from "../types/notebook";
 import type { SessionStatus } from "../types/maxima";
-import { computeRange } from "../lib/selection-utils";
+import { nextSelection, type SelectHow } from "../lib/selection-utils";
 import { hasPendingSync } from "../lib/dirty-inputs";
 
 export type Theme = "auto" | "light" | "dark";
@@ -92,7 +92,8 @@ interface NotebookState {
   setActiveCellId: (id: string | null) => void;
   setSelectedCellIds: (ids: string[]) => void;
   clearSelection: () => void;
-  toggleCellSelected: (cellId: string, range?: boolean) => void;
+  /** Change the selection as a click on `cellId` does (see nextSelection) */
+  selectCell: (cellId: string, how: SelectHow) => void;
   /** Set a notebook's file path and the tab title that follows from it. */
   setNotebookPath: (notebookId: string, path: string | null) => void;
   setClosePending: (notebookId: string, pending: boolean) => void;
@@ -277,31 +278,15 @@ export const useNotebookStore = create<NotebookState>((set) => ({
       };
     }),
 
-  toggleCellSelected: (cellId: string, range?: boolean) =>
+  selectCell: (cellId: string, how: SelectHow) =>
     set((state) => {
       const nbId = state.activeNotebookId;
       if (!nbId) return state;
       const tab = state.notebooks[nbId];
       if (!tab || tab.type !== "notebook") return state;
-
-      let newSelected: string[];
-      if (range && tab.selectedCellIds.length > 0) {
-        // Shift-click: select range from last selected to target
-        const anchor = tab.selectedCellIds[tab.selectedCellIds.length - 1];
-        newSelected = computeRange(tab.cells, anchor, cellId);
-      } else {
-        // Toggle single cell
-        if (tab.selectedCellIds.includes(cellId)) {
-          newSelected = tab.selectedCellIds.filter((id) => id !== cellId);
-        } else {
-          newSelected = [...tab.selectedCellIds, cellId];
-        }
-      }
-
+      const selectedCellIds = nextSelection(tab.cells, tab.selectedCellIds, cellId, how);
       return {
-        notebooks: updateNotebookTab(state.notebooks, nbId, () => ({
-          selectedCellIds: newSelected,
-        })),
+        notebooks: updateNotebookTab(state.notebooks, nbId, () => ({ selectedCellIds })),
       };
     }),
 

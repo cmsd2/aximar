@@ -3,6 +3,7 @@ import { useLingui } from "@lingui/react/macro";
 import { useActiveTab, useNotebookStore } from "../store/notebookStore";
 import { Cell } from "./Cell";
 import { MarkdownCell } from "./MarkdownCell";
+import { selectHowOf } from "../lib/selection-utils";
 import { RawCell } from "./RawCell";
 import { TrustBanner } from "./TrustBanner";
 import { nbAddCell } from "../lib/notebook-commands";
@@ -47,15 +48,15 @@ export function Notebook({ onViewDocs }: NotebookProps) {
   const tab = useActiveTab();
   const cells = tab.cells;
   const selectedCellIds = tab.selectedCellIds;
-  const toggleCellSelected = useNotebookStore((s) => s.toggleCellSelected);
+  const selectCell = useNotebookStore((s) => s.selectCell);
   const clearSelection = useNotebookStore((s) => s.clearSelection);
 
   const handleBracketClick = useCallback(
     (e: React.MouseEvent, cellId: string) => {
       e.stopPropagation();
-      toggleCellSelected(cellId, e.shiftKey);
+      selectCell(cellId, selectHowOf(e));
     },
-    [toggleCellSelected],
+    [selectCell],
   );
 
   // Click on the notebook background (not on a bracket) clears selection
@@ -93,12 +94,12 @@ export function Notebook({ onViewDocs }: NotebookProps) {
             title={
               isSelected
                 ? t({
-                    message: "Deselect cell",
-                    comment: "Tooltip of the bracket right of a selected cell: clicking it removes the cell from the selection",
+                    message: "Selected (Cmd+click to deselect)",
+                    comment: "Tooltip of the place that selects a cell, on a selected cell: the bracket right of it in bracket style, the margin with its In and Out labels in card style. Cmd+click removes it from the selection",
                   })
                 : t({
-                    message: "Select cell (Shift+click for range)",
-                    comment: "Tooltip of the bracket right of a cell: clicking it selects the cell. Shift+click selects every cell up to it",
+                    message: "Select cell (Shift+click for a range, Cmd+click to add)",
+                    comment: "Tooltip of the place that selects a cell: the bracket right of it in bracket style, the margin with its In and Out labels in card style. Shift+click selects every cell up to it; Cmd+click adds it to the selection",
                   })
             }
           />

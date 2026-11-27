@@ -114,6 +114,7 @@ msgstr ""
 #. Button in the bar between cells: inserts a code cell there. max-length:12
 #. screen: cells--notebook
 #. screen: cells--print-and-tex
+#. screen: cells--selection
 #. screen: editor--argument-help
 #. screen: editor--completion
 #. screen: editor--find-and-replace
@@ -133,6 +134,7 @@ msgstr ""
 #. Toolbar button: adds a Markdown text cell below the active cell. max-length:12
 #. screen: cells--notebook
 #. screen: cells--print-and-tex
+#. screen: cells--selection
 #. screen: editor--argument-help
 #. screen: editor--completion
 #. screen: editor--find-and-replace
@@ -460,6 +462,7 @@ msgstr ""
 #. Tooltip of the bracket beside a code cell: hides the cell's output
 #. screen: cells--notebook
 #. screen: cells--print-and-tex
+#. screen: cells--selection
 #. screen: editor--find-and-replace
 #. screen: outputs--plotly-plot
 #. screen: outputs--reactive-controls
@@ -525,6 +528,7 @@ msgstr ""
 #. Settings button: copies the MCP token to the clipboard
 #. screen: cells--notebook
 #. screen: cells--print-and-tex
+#. screen: cells--selection
 #. screen: editor--find-and-replace
 #. screen: outputs--running-and-queued
 #. screen: screens--whole-window
@@ -536,6 +540,7 @@ msgstr ""
 #. Tooltip of the TeX button above a result: copies the result's LaTeX to the clipboard
 #. screen: cells--notebook
 #. screen: cells--print-and-tex
+#. screen: cells--selection
 #. screen: editor--find-and-replace
 #. screen: outputs--running-and-queued
 #. screen: screens--whole-window
@@ -546,6 +551,7 @@ msgstr ""
 #. Tooltip of the Copy button above a result: copies the result as Maxima code
 #. screen: cells--notebook
 #. screen: cells--print-and-tex
+#. screen: cells--selection
 #. screen: editor--find-and-replace
 #. screen: outputs--running-and-queued
 #. screen: screens--whole-window
@@ -594,6 +600,7 @@ msgstr ""
 #. Tooltip of the cross button that deletes a cell
 #. screen: cells--notebook
 #. screen: cells--print-and-tex
+#. screen: cells--selection
 #. screen: editor--find-and-replace
 #. screen: outputs--running-and-queued
 #. screen: screens--first-run
@@ -607,11 +614,6 @@ msgstr ""
 #. screen: window--shortcuts
 #: src/components/ShortcutHints.tsx
 msgid "Delete Cell"
-msgstr ""
-
-#. Tooltip of the bracket right of a selected cell: clicking it removes the cell from the selection
-#: src/components/Notebook.tsx
-msgid "Deselect cell"
 msgstr ""
 
 #. Under an error about an unknown function. names is a comma-separated list of Maxima function names, each a button that puts the name in the cell
@@ -680,6 +682,7 @@ msgstr ""
 
 #. Tooltip of the pencil button on a markdown cell: opens its text for editing
 #. screen: cells--notebook
+#. screen: cells--selection
 #. screen: editor--find-and-replace
 #. screen: outputs--markdown
 #. screen: screens--first-run
@@ -695,6 +698,7 @@ msgstr ""
 
 #. Placeholder in an empty code cell. Shift+Enter is the keyboard shortcut; keep it as it is
 #. screen: cells--notebook
+#. screen: cells--selection
 #. screen: screens--maxima-not-found
 #: src/hooks/useCodeMirrorEditor.ts
 msgid "Enter Maxima expression... (Shift+Enter to evaluate)"
@@ -921,6 +925,7 @@ msgstr ""
 
 #. Label left of the input of a code cell that has not run yet, as in Jupyter. max-length:6
 #. screen: cells--notebook
+#. screen: cells--selection
 #. screen: editor--argument-help
 #. screen: editor--completion
 #. screen: outputs--running-and-queued
@@ -933,6 +938,7 @@ msgstr ""
 #. Label left of a code cell's input, as in Jupyter. execNum is how many cells the session had run when this one last ran. max-length:10
 #. screen: cells--notebook
 #. screen: cells--print-and-tex
+#. screen: cells--selection
 #. screen: editor--find-and-replace
 #. screen: outputs--plotly-plot
 #. screen: outputs--reactive-controls
@@ -1180,6 +1186,7 @@ msgstr ""
 #. Tooltip of a code cell's down-arrow button
 #. screen: cells--notebook
 #. screen: cells--print-and-tex
+#. screen: cells--selection
 #. screen: editor--find-and-replace
 #. screen: outputs--running-and-queued
 #. screen: screens--first-run
@@ -1191,6 +1198,7 @@ msgstr ""
 #. Tooltip of a code cell's up-arrow button
 #. screen: cells--notebook
 #. screen: cells--print-and-tex
+#. screen: cells--selection
 #. screen: editor--find-and-replace
 #. screen: outputs--running-and-queued
 #. screen: screens--first-run
@@ -1319,6 +1327,7 @@ msgstr ""
 #. Label left of a code cell's output, as in Jupyter. execNum is how many cells the session had run when this one last ran. max-length:10
 #. screen: cells--notebook
 #. screen: cells--print-and-tex
+#. screen: cells--selection
 #. screen: editor--find-and-replace
 #. screen: outputs--plotly-plot
 #. screen: outputs--reactive-controls
@@ -1518,6 +1527,7 @@ msgstr ""
 #. Tooltip of a code cell's run button. Shift+Enter is the keyboard shortcut; keep it as it is
 #. screen: cells--notebook
 #. screen: cells--print-and-tex
+#. screen: cells--selection
 #. screen: editor--argument-help
 #. screen: editor--completion
 #. screen: editor--find-and-replace
@@ -1578,9 +1588,10 @@ msgstr ""
 msgid "See Also"
 msgstr ""
 
-#. Tooltip of the bracket right of a cell: clicking it selects the cell. Shift+click selects every cell up to it
+#. Tooltip of the place that selects a cell: the bracket right of it in bracket style, the margin with its In and Out labels in card style. Shift+click selects every cell up to it; Cmd+click adds it to the selection
 #. screen: cells--notebook
 #. screen: cells--print-and-tex
+#. screen: cells--selection
 #. screen: editor--argument-help
 #. screen: editor--completion
 #. screen: editor--find-and-replace
@@ -1593,7 +1604,13 @@ msgstr ""
 #. screen: screens--maxima-not-found
 #. screen: screens--whole-window
 #: src/components/Notebook.tsx
-msgid "Select cell (Shift+click for range)"
+msgid "Select cell (Shift+click for a range, Cmd+click to add)"
+msgstr ""
+
+#. Tooltip of the place that selects a cell, on a selected cell: the bracket right of it in bracket style, the margin with its In and Out labels in card style. Cmd+click removes it from the selection
+#. screen: cells--selection
+#: src/components/Notebook.tsx
+msgid "Selected (Cmd+click to deselect)"
 msgstr ""
 
 #. Settings: Markdown font button for the system serif font
@@ -1628,6 +1645,7 @@ msgstr ""
 
 #. Button on a note in a cell's output: shows the lines Maxima printed, which the note explains
 #. screen: cells--notebook
+#. screen: cells--selection
 #. screen: notes--all-notes
 #. screen: screens--whole-window
 #: src/components/TextWithNotes.tsx
@@ -1644,6 +1662,7 @@ msgstr ""
 
 #. Button: shows the error exactly as Maxima printed it, below Aximar's explanation
 #. screen: cells--notebook
+#. screen: cells--selection
 #. screen: errors--all-explanations
 #. screen: screens--whole-window
 #: src/components/EnhancedErrorOutput.tsx
@@ -1927,6 +1946,7 @@ msgstr ""
 
 #. i18n: Maxima: "expt: undefined: 0 to a negative exponent." or "Division by 0"
 #. screen: cells--notebook
+#. screen: cells--selection
 #. screen: errors--all-explanations
 #. screen: errors--translated-maxima-error
 #. screen: screens--whole-window
@@ -1936,6 +1956,7 @@ msgid "Division by Zero"
 msgstr ""
 
 #. screen: cells--notebook
+#. screen: cells--selection
 #. screen: errors--all-explanations
 #. screen: errors--translated-maxima-error
 #. screen: screens--whole-window
@@ -1945,6 +1966,7 @@ msgid "The expression involves division by zero or raising zero to a negative po
 msgstr ""
 
 #. screen: cells--notebook
+#. screen: cells--selection
 #. screen: errors--all-explanations
 #. screen: errors--translated-maxima-error
 #. screen: screens--whole-window
@@ -2679,6 +2701,7 @@ msgstr ""
 #. i18n: Maxima: "rat: replaced 0.5 by 1/2 = 0.5", one line per number.
 #. replacements lists them, such as "0.25 → 1/4, 0.5 → 1/2"
 #. screen: cells--notebook
+#. screen: cells--selection
 #. screen: notes--all-notes
 #. screen: screens--whole-window
 #: crates/aximar-core/src/maxima/notes.rs

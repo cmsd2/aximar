@@ -1,5 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 import { TrustBanner } from "../components/TrustBanner";
+import { useNotebookStore } from "../store/notebookStore";
 import type { SyncCell } from "../lib/notebook-commands";
 import { fixtures } from "./fixtures";
 import { StoryNotebook } from "./notebook";
@@ -74,5 +75,16 @@ const printed: SyncCell[] = [
  */
 export const PrintAndTex: StoryObj = {
   loaders: [async () => seedNotebook(printed)],
+  render: () => <StoryNotebook />,
+};
+
+/** Two cells selected: a result and an error, so the ring shows beside a red border */
+export const Selection: StoryObj = {
+  loaders: [
+    async () => {
+      seedNotebook(cells);
+      useNotebookStore.getState().setSelectedCellIds(["c1", "c2"]);
+    },
+  ],
   render: () => <StoryNotebook />,
 };

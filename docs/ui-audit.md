@@ -151,6 +151,18 @@ problems:
     variables panel's × at 2.21:1 in light and 3.49:1 in dark; the status
     bar badge at 2.32:1 in dark.
 
+## Changed since
+
+- **Selecting cells in card style.**  The bracket right of each card is
+  gone.  The column with a cell's In and Out labels selects it (a
+  Markdown cell's indent does the same), and a selected card gets an
+  accent ring outside its border, so a running or error border still
+  shows.  A plain click selects one cell, Cmd or Ctrl adds or removes
+  one, and Shift selects a range; bracket style uses the same clicks on
+  its bracket.  The 48px right margin the bracket needed is gone too.
+- **Insert bars in card style** take the gap between two cards instead
+  of overlapping them, which bracket style's borderless cells allow.
+
 ## Suggested order
 
 1. Quick fixes 1 to 4.

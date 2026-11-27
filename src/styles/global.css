@@ -331,6 +331,22 @@
   border-color: var(--accent);
 }
 
+/* Cards have borders, so the bar can't overlap them as it overlaps the
+   borderless cells of bracket style: it takes the gap between two cards
+   itself.  The buttons (18px) keep 5px from each card, 3px from a
+   selected card's ring */
+[data-cell-style="card"] .insert-bar,
+:root:not([data-cell-style]) .insert-bar {
+  height: 28px;
+  margin: 0;
+}
+
+[data-cell-style="card"] .insert-bar-btn,
+:root:not([data-cell-style]) .insert-bar-btn {
+  padding: 1px 10px;
+  line-height: 14px;
+}
+
 /* Cell */
 .cell {
   position: relative;
@@ -2084,47 +2100,60 @@
   background: color-mix(in srgb, var(--accent) 12%, transparent);
 }
 
-/* Card-mode selection bracket */
+/* Card style selects from the cell's left margin: the column with its
+   In and Out labels, or a Markdown cell's indent.  The selected card gets
+   an accent ring outside its border, so a running or error border still
+   shows.  Card is the default when no style is set; :root keeps the
+   :not() to the root element, where the attribute lives. */
 [data-cell-style="card"] .cell-select-bracket,
-:not([data-cell-style]) .cell-select-bracket {
+:root:not([data-cell-style]) .cell-select-bracket {
   display: block;
   position: absolute;
   top: 0;
-  right: -18px;
   bottom: 0;
-  width: 26px;
+  left: 0;
+  width: var(--gutter-width);
+  border-radius: var(--radius-md) 0 0 var(--radius-md);
   cursor: pointer;
   z-index: 2;
+  transition: background 0.1s ease;
 }
 
-[data-cell-style="card"] .cell-select-bracket::after,
-:not([data-cell-style]) .cell-select-bracket::after {
-  content: "";
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 8px;
-  right: 8px;
-  border-right: 1px solid var(--border-color);
-  border-top: 1px solid var(--border-color);
-  border-bottom: 1px solid var(--border-color);
-  transition: border-color 0.1s ease, background 0.1s ease;
-  pointer-events: none;
+[data-cell-style="card"] .markdown-cell > .cell-select-bracket,
+:root:not([data-cell-style]) .markdown-cell > .cell-select-bracket {
+  width: var(--markdown-indent);
 }
 
-[data-cell-style="card"] .cell-select-bracket:hover::after,
-:not([data-cell-style]) .cell-select-bracket:hover::after {
-  border-right-color: var(--accent);
-  border-top-color: var(--accent);
-  border-bottom-color: var(--accent);
+[data-cell-style="card"] .cell-select-bracket:hover,
+:root:not([data-cell-style]) .cell-select-bracket:hover {
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
 }
 
-[data-cell-style="card"] .cell-select-bracket.selected::after,
-:not([data-cell-style]) .cell-select-bracket.selected::after {
-  border-right-color: var(--accent);
-  border-top-color: var(--accent);
-  border-bottom-color: var(--accent);
-  background: color-mix(in srgb, var(--accent) 10%, transparent);
+[data-cell-style="card"] .cell:has(> .cell-select-bracket:hover),
+:root:not([data-cell-style]) .cell:has(> .cell-select-bracket:hover) {
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 50%, transparent);
+}
+
+[data-cell-style="card"] .cell-select-bracket.selected,
+:root:not([data-cell-style]) .cell-select-bracket.selected {
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+}
+
+[data-cell-style="card"] .cell:has(> .cell-select-bracket.selected),
+:root:not([data-cell-style]) .cell:has(> .cell-select-bracket.selected) {
+  box-shadow: 0 0 0 2px var(--accent);
+}
+
+/* In card style the insert bars space the cards */
+[data-cell-style="card"] .cell,
+:root:not([data-cell-style]) .cell {
+  margin-bottom: 0;
+}
+
+/* Without the bracket, card style needs no wide right margin */
+[data-cell-style="card"] .notebook,
+:root:not([data-cell-style]) .notebook {
+  padding-right: 16px;
 }
 
 /* Log Panel */
