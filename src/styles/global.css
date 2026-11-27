@@ -334,8 +334,8 @@
 /* The gap between two cells in card style (CellGap): 8px, with a hit
    area a little taller that reaches over the cards' edges.  Hovering
    shows a grey line and a + in the left margin.  Clicking places a
-   caret: the line, with a short horizontal caret on it where a new
-   cell's first character would go, blinking as the editor's does.  Bracket
+   caret: the line, with a short accent bar on it in the label column,
+   under the In and Out labels.  Bracket
    style draws the gap as the insert bar above. */
 .cell-gap:not(.insert-bar) {
   position: relative;
@@ -368,26 +368,32 @@
   opacity: 1;
 }
 
-/* The editor's caret laid flat: 2px thick, the text colour, as long as
-   the editor's caret is tall, blinking on CodeMirror's 1.2s cycle.  It
-   lies on the line from the In column's edge (past the card's 1px border
-   in card style), where the new cell's text would start. */
+/* The caret: a flat bar in the accent colour, 1.5 times as long as the
+   editor's caret is tall, blinking on CodeMirror's 1.2s cycle.  It lies
+   on the line in the label column, its right end lined up with the In
+   and Out labels (the gutter's 4px padding in from the code, and past
+   the card's 1px border in card style). */
 .cell-gap-caret {
+  --caret-length: calc(var(--font-size-mono) * 1.8);
   position: absolute;
-  left: calc(var(--gutter-width) + 1px);
+  left: calc(var(--gutter-width) + 1px - var(--space-1) - var(--caret-length));
   top: 50%;
   z-index: 4;
-  width: calc(var(--font-size-mono) * 1.2);
-  height: 2px;
-  /* Centred on the 1px line, which starts at 50% */
-  transform: translateY(-0.5px);
-  background: var(--text-primary);
+  width: var(--caret-length);
+  /* 3px, so it centres on the 1px line in whole pixels: one above, one
+     below.  The line starts at 50%. */
+  height: 3px;
+  transform: translateY(-1px);
+  background: var(--accent);
   pointer-events: none;
   animation: cell-gap-blink 1.2s steps(1) infinite;
 }
 
+/* Bracket style's bar centres its 1px line by flexbox, half a pixel
+   above 50% */
 .insert-bar .cell-gap-caret {
-  left: var(--gutter-width);
+  left: calc(var(--gutter-width) - var(--space-1) - var(--caret-length));
+  top: calc(50% - 0.5px);
 }
 
 @keyframes cell-gap-blink {
