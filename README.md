@@ -256,10 +256,14 @@ This starts both the Vite dev server (frontend hot-reload) and the Tauri Rust ba
 npm run tauri build
 ```
 
-Build artifacts are placed in `src-tauri/target/release/bundle/`:
+The bundles go to `target/release/bundle/` at the repository root, one
+folder per package type:
 - macOS: `.app` bundle and `.dmg`
-- Linux: `.AppImage` and `.deb`
-- Windows: `.msi` installer
+- Linux: `.deb`, `.rpm` and `.AppImage`
+- Windows: `.msi` installer and NSIS `-setup.exe` installer
+
+To build one type, name it with `--bundles`, for example
+`npm run tauri build -- --bundles app` for the macOS `.app` alone.
 
 ### Running tests
 
