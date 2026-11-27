@@ -116,42 +116,19 @@ msgid "+ Cell"
 msgstr ""
 
 #. Button in the bar between cells: inserts a code cell there. max-length:12
-#. screen: cells--notebook
-#. screen: cells--print-and-tex
-#. screen: cells--selection
-#. screen: editor--argument-help
-#. screen: editor--completion
-#. screen: editor--find-and-replace
-#. screen: outputs--markdown
-#. screen: outputs--plotly-plot
-#. screen: outputs--reactive-controls
-#. screen: outputs--running-and-queued
-#. screen: outputs--svg-plot
-#. screen: screens--first-run
-#. screen: screens--maxima-not-found
-#. screen: screens--whole-window
-#: src/components/Notebook.tsx
+#. screen: editor--caret-bracket-style
+#: src/components/CellGap.tsx
 msgid "+ Code"
 msgstr ""
 
 #. Button in the bar between cells: inserts a markdown cell there. max-length:14
 #. Toolbar button: adds a Markdown text cell below the active cell. max-length:12
-#. screen: cells--notebook
-#. screen: cells--print-and-tex
-#. screen: cells--selection
-#. screen: editor--argument-help
-#. screen: editor--completion
-#. screen: editor--find-and-replace
-#. screen: outputs--markdown
-#. screen: outputs--plotly-plot
-#. screen: outputs--reactive-controls
-#. screen: outputs--running-and-queued
-#. screen: outputs--svg-plot
+#. screen: editor--caret-bracket-style
 #. screen: screens--first-run
 #. screen: screens--maxima-not-found
 #. screen: screens--whole-window
 #. screen: window--toolbar-and-tabs
-#: src/components/Notebook.tsx src/components/Toolbar.tsx
+#: src/components/CellGap.tsx src/components/Toolbar.tsx
 msgid "+ Markdown"
 msgstr ""
 
@@ -463,11 +440,20 @@ msgstr ""
 msgid "Close Tab"
 msgstr ""
 
+#. Item in the menu of the + between cells: inserts a Maxima code cell. max-length:16
+#. screen: editor--insert-menu
+#: src/components/CellGap.tsx
+msgid "Code"
+msgstr ""
+
 #. Tooltip of the bracket beside a code cell: hides the cell's output
 #. screen: cells--notebook
 #. screen: cells--print-and-tex
 #. screen: cells--selection
+#. screen: editor--caret-between-cells
+#. screen: editor--caret-bracket-style
 #. screen: editor--find-and-replace
+#. screen: editor--insert-menu
 #. screen: outputs--plotly-plot
 #. screen: outputs--reactive-controls
 #. screen: outputs--running-and-queued
@@ -533,7 +519,10 @@ msgstr ""
 #. screen: cells--notebook
 #. screen: cells--print-and-tex
 #. screen: cells--selection
+#. screen: editor--caret-between-cells
+#. screen: editor--caret-bracket-style
 #. screen: editor--find-and-replace
+#. screen: editor--insert-menu
 #. screen: outputs--running-and-queued
 #. screen: screens--whole-window
 #: src/components/CellOutput.tsx
@@ -545,7 +534,10 @@ msgstr ""
 #. screen: cells--notebook
 #. screen: cells--print-and-tex
 #. screen: cells--selection
+#. screen: editor--caret-between-cells
+#. screen: editor--caret-bracket-style
 #. screen: editor--find-and-replace
+#. screen: editor--insert-menu
 #. screen: outputs--running-and-queued
 #. screen: screens--whole-window
 #: src/components/CellOutput.tsx
@@ -556,7 +548,10 @@ msgstr ""
 #. screen: cells--notebook
 #. screen: cells--print-and-tex
 #. screen: cells--selection
+#. screen: editor--caret-between-cells
+#. screen: editor--caret-bracket-style
 #. screen: editor--find-and-replace
+#. screen: editor--insert-menu
 #. screen: outputs--running-and-queued
 #. screen: screens--whole-window
 #: src/components/CellOutput.tsx
@@ -605,7 +600,10 @@ msgstr ""
 #. screen: cells--notebook
 #. screen: cells--print-and-tex
 #. screen: cells--selection
+#. screen: editor--caret-between-cells
+#. screen: editor--caret-bracket-style
 #. screen: editor--find-and-replace
+#. screen: editor--insert-menu
 #. screen: outputs--running-and-queued
 #. screen: screens--first-run
 #. screen: screens--whole-window
@@ -931,7 +929,10 @@ msgstr ""
 #. screen: cells--notebook
 #. screen: cells--selection
 #. screen: editor--argument-help
+#. screen: editor--caret-between-cells
+#. screen: editor--caret-bracket-style
 #. screen: editor--completion
+#. screen: editor--insert-menu
 #. screen: outputs--running-and-queued
 #. screen: screens--first-run
 #. screen: screens--maxima-not-found
@@ -943,7 +944,10 @@ msgstr ""
 #. screen: cells--notebook
 #. screen: cells--print-and-tex
 #. screen: cells--selection
+#. screen: editor--caret-between-cells
+#. screen: editor--caret-bracket-style
 #. screen: editor--find-and-replace
+#. screen: editor--insert-menu
 #. screen: outputs--plotly-plot
 #. screen: outputs--reactive-controls
 #. screen: outputs--running-and-queued
@@ -972,6 +976,27 @@ msgstr ""
 #. screen: ui-fields--rows
 #: src/components/ExportLatexModal.tsx
 msgid "Include plots"
+msgstr ""
+
+#. Tooltip of the + in the margin between two cells: opens a menu of cell types to insert there
+#. screen: cells--notebook
+#. screen: cells--print-and-tex
+#. screen: cells--selection
+#. screen: editor--argument-help
+#. screen: editor--caret-between-cells
+#. screen: editor--completion
+#. screen: editor--find-and-replace
+#. screen: editor--insert-menu
+#. screen: outputs--markdown
+#. screen: outputs--plotly-plot
+#. screen: outputs--reactive-controls
+#. screen: outputs--running-and-queued
+#. screen: outputs--svg-plot
+#. screen: screens--first-run
+#. screen: screens--maxima-not-found
+#. screen: screens--whole-window
+#: src/components/CellGap.tsx
+msgid "Insert a cell"
 msgstr ""
 
 #. Maxima Not Found dialog, on an unknown system. siteUrl is Maxima's web site
@@ -1094,6 +1119,12 @@ msgstr ""
 msgid "Make this a code cell"
 msgstr ""
 
+#. Item in the menu of the + between cells: inserts a Markdown text cell. max-length:16
+#. screen: editor--insert-menu
+#: src/components/CellGap.tsx
+msgid "Markdown"
+msgstr ""
+
 #. Settings: the label of the buttons that choose the font of text cells
 #. screen: dialogs--settings-notebook
 #: src/components/settings/NotebookSection.tsx
@@ -1191,7 +1222,10 @@ msgstr ""
 #. screen: cells--notebook
 #. screen: cells--print-and-tex
 #. screen: cells--selection
+#. screen: editor--caret-between-cells
+#. screen: editor--caret-bracket-style
 #. screen: editor--find-and-replace
+#. screen: editor--insert-menu
 #. screen: outputs--running-and-queued
 #. screen: screens--first-run
 #. screen: screens--whole-window
@@ -1203,7 +1237,10 @@ msgstr ""
 #. screen: cells--notebook
 #. screen: cells--print-and-tex
 #. screen: cells--selection
+#. screen: editor--caret-between-cells
+#. screen: editor--caret-bracket-style
 #. screen: editor--find-and-replace
+#. screen: editor--insert-menu
 #. screen: outputs--running-and-queued
 #. screen: screens--first-run
 #. screen: screens--whole-window
@@ -1226,6 +1263,13 @@ msgstr ""
 #. screen: window--shortcuts
 #: src/components/ShortcutHints.tsx
 msgid "Move Up"
+msgstr ""
+
+#. Screen reader label of the caret between two cells, where typing starts a new cell. # starts a Markdown heading and stays as it is
+#. screen: editor--caret-between-cells
+#. screen: editor--caret-bracket-style
+#: src/components/CellGap.tsx
+msgid "New cell: type to start a code cell, or # for a Markdown heading"
 msgstr ""
 
 #. Tab bar: tooltip of the + button that opens a new notebook tab. newTabShortcut is its keyboard shortcut, such as Cmd+T
@@ -1332,7 +1376,10 @@ msgstr ""
 #. screen: cells--notebook
 #. screen: cells--print-and-tex
 #. screen: cells--selection
+#. screen: editor--caret-between-cells
+#. screen: editor--caret-bracket-style
 #. screen: editor--find-and-replace
+#. screen: editor--insert-menu
 #. screen: outputs--plotly-plot
 #. screen: outputs--reactive-controls
 #. screen: outputs--running-and-queued
@@ -1533,8 +1580,11 @@ msgstr ""
 #. screen: cells--print-and-tex
 #. screen: cells--selection
 #. screen: editor--argument-help
+#. screen: editor--caret-between-cells
+#. screen: editor--caret-bracket-style
 #. screen: editor--completion
 #. screen: editor--find-and-replace
+#. screen: editor--insert-menu
 #. screen: outputs--plotly-plot
 #. screen: outputs--reactive-controls
 #. screen: outputs--running-and-queued
@@ -1597,8 +1647,11 @@ msgstr ""
 #. screen: cells--print-and-tex
 #. screen: cells--selection
 #. screen: editor--argument-help
+#. screen: editor--caret-between-cells
+#. screen: editor--caret-bracket-style
 #. screen: editor--completion
 #. screen: editor--find-and-replace
+#. screen: editor--insert-menu
 #. screen: outputs--markdown
 #. screen: outputs--plotly-plot
 #. screen: outputs--reactive-controls

@@ -70,8 +70,11 @@
     "cells--print-and-tex",
     "cells--selection",
     "editor--argument-help",
+    "editor--caret-between-cells",
+    "editor--caret-bracket-style",
     "editor--completion",
     "editor--find-and-replace",
+    "editor--insert-menu",
     "outputs--plotly-plot",
     "outputs--reactive-controls",
     "outputs--running-and-queued",
@@ -189,7 +192,10 @@
     "cells--notebook",
     "cells--print-and-tex",
     "cells--selection",
+    "editor--caret-between-cells",
+    "editor--caret-bracket-style",
     "editor--find-and-replace",
+    "editor--insert-menu",
     "outputs--running-and-queued",
     "screens--first-run",
     "screens--whole-window"
@@ -218,7 +224,10 @@
     "cells--notebook",
     "cells--print-and-tex",
     "cells--selection",
+    "editor--caret-between-cells",
+    "editor--caret-bracket-style",
     "editor--find-and-replace",
+    "editor--insert-menu",
     "outputs--running-and-queued",
     "screens--whole-window"
   ],
@@ -268,6 +277,9 @@
   ],
   "ENfAMB": [
     "errors--all-explanations"
+  ],
+  "EWPtMO": [
+    "editor--insert-menu"
   ],
   "Evq8yS": [
     "errors--all-explanations"
@@ -393,6 +405,24 @@
   "MohnW9": [
     "notes--all-notes"
   ],
+  "MzfBMa": [
+    "cells--notebook",
+    "cells--print-and-tex",
+    "cells--selection",
+    "editor--argument-help",
+    "editor--caret-between-cells",
+    "editor--completion",
+    "editor--find-and-replace",
+    "editor--insert-menu",
+    "outputs--markdown",
+    "outputs--plotly-plot",
+    "outputs--reactive-controls",
+    "outputs--running-and-queued",
+    "outputs--svg-plot",
+    "screens--first-run",
+    "screens--maxima-not-found",
+    "screens--whole-window"
+  ],
   "N2N1Oe": [
     "dialogs--settings-notebook"
   ],
@@ -462,7 +492,10 @@
     "cells--notebook",
     "cells--print-and-tex",
     "cells--selection",
+    "editor--caret-between-cells",
+    "editor--caret-bracket-style",
     "editor--find-and-replace",
+    "editor--insert-menu",
     "outputs--running-and-queued",
     "screens--first-run",
     "screens--whole-window"
@@ -474,7 +507,10 @@
     "cells--notebook",
     "cells--print-and-tex",
     "cells--selection",
+    "editor--caret-between-cells",
+    "editor--caret-bracket-style",
     "editor--find-and-replace",
+    "editor--insert-menu",
     "outputs--running-and-queued",
     "screens--first-run",
     "screens--whole-window"
@@ -518,8 +554,11 @@
     "cells--print-and-tex",
     "cells--selection",
     "editor--argument-help",
+    "editor--caret-between-cells",
+    "editor--caret-bracket-style",
     "editor--completion",
     "editor--find-and-replace",
+    "editor--insert-menu",
     "outputs--markdown",
     "outputs--plotly-plot",
     "outputs--reactive-controls",
@@ -557,7 +596,10 @@
     "cells--notebook",
     "cells--print-and-tex",
     "cells--selection",
+    "editor--caret-between-cells",
+    "editor--caret-bracket-style",
     "editor--find-and-replace",
+    "editor--insert-menu",
     "outputs--plotly-plot",
     "outputs--reactive-controls",
     "outputs--running-and-queued",
@@ -583,20 +625,7 @@
     "dialogs--settings-printing"
   ],
   "V-9-F1": [
-    "cells--notebook",
-    "cells--print-and-tex",
-    "cells--selection",
-    "editor--argument-help",
-    "editor--completion",
-    "editor--find-and-replace",
-    "outputs--markdown",
-    "outputs--plotly-plot",
-    "outputs--reactive-controls",
-    "outputs--running-and-queued",
-    "outputs--svg-plot",
-    "screens--first-run",
-    "screens--maxima-not-found",
-    "screens--whole-window"
+    "editor--caret-bracket-style"
   ],
   "V-xeVI": [
     "dialogs--settings",
@@ -680,7 +709,10 @@
     "cells--notebook",
     "cells--print-and-tex",
     "cells--selection",
+    "editor--caret-between-cells",
+    "editor--caret-bracket-style",
     "editor--find-and-replace",
+    "editor--insert-menu",
     "outputs--plotly-plot",
     "outputs--reactive-controls",
     "outputs--running-and-queued",
@@ -712,7 +744,10 @@
     "cells--notebook",
     "cells--print-and-tex",
     "cells--selection",
+    "editor--caret-between-cells",
+    "editor--caret-bracket-style",
     "editor--find-and-replace",
+    "editor--insert-menu",
     "outputs--plotly-plot",
     "outputs--reactive-controls",
     "outputs--running-and-queued",
@@ -845,7 +880,10 @@
     "cells--notebook",
     "cells--print-and-tex",
     "cells--selection",
+    "editor--caret-between-cells",
+    "editor--caret-bracket-style",
     "editor--find-and-replace",
+    "editor--insert-menu",
     "outputs--running-and-queued",
     "screens--whole-window"
   ],
@@ -909,6 +947,10 @@
     "screens--whole-window",
     "window--toolbar-and-tabs"
   ],
+  "kpH3_Q": [
+    "editor--caret-between-cells",
+    "editor--caret-bracket-style"
+  ],
   "kryGs-": [
     "dialogs--settings-notebook"
   ],
@@ -929,17 +971,7 @@
     "ui-segmentedcontrol--options"
   ],
   "mkn0j1": [
-    "cells--notebook",
-    "cells--print-and-tex",
-    "cells--selection",
-    "editor--argument-help",
-    "editor--completion",
-    "editor--find-and-replace",
-    "outputs--markdown",
-    "outputs--plotly-plot",
-    "outputs--reactive-controls",
-    "outputs--running-and-queued",
-    "outputs--svg-plot",
+    "editor--caret-bracket-style",
     "screens--first-run",
     "screens--maxima-not-found",
     "screens--whole-window",
@@ -983,7 +1015,10 @@
     "cells--notebook",
     "cells--print-and-tex",
     "cells--selection",
+    "editor--caret-between-cells",
+    "editor--caret-bracket-style",
     "editor--find-and-replace",
+    "editor--insert-menu",
     "outputs--running-and-queued",
     "screens--whole-window"
   ],
@@ -1047,6 +1082,9 @@
     "panels--log-events",
     "panels--log-maxima-output"
   ],
+  "u6Hp4N": [
+    "editor--insert-menu"
+  ],
   "uHwszI": [
     "errors--all-explanations"
   ],
@@ -1109,7 +1147,10 @@
     "cells--notebook",
     "cells--selection",
     "editor--argument-help",
+    "editor--caret-between-cells",
+    "editor--caret-bracket-style",
     "editor--completion",
+    "editor--insert-menu",
     "outputs--running-and-queued",
     "screens--first-run",
     "screens--maxima-not-found"

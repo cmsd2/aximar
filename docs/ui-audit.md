@@ -160,8 +160,19 @@ problems:
   shows.  A plain click selects one cell, Cmd or Ctrl adds or removes
   one, and Shift selects a range; bracket style uses the same clicks on
   its bracket.  The 48px right margin the bracket needed is gone too.
-- **Insert bars in card style** take the gap between two cards instead
-  of overlapping them, which bracket style's borderless cells allow.
+- **Inserting cells in card style.**  The + Code and + Markdown bar
+  needed more room than the 8px between two cards.  Now hovering a gap
+  shows a line and a + in the left margin, whose menu inserts a code or
+  Markdown cell.  Clicking a gap places a caret there: a text caret
+  standing on the line where the new cell's text would start.  Typing
+  starts a code cell with that text, # starts a Markdown cell,
+  Enter starts an empty code cell, and Escape removes the caret.  Bracket
+  style keeps its bar, and the caret shows in it too.
+- **The arrow keys cross cells.**  From a cell's first or last line, Up
+  or Down goes to the caret in the gap beside it, and from there into
+  the next cell (a raw cell is skipped).  New cells now take the cursor,
+  from the gap, the toolbar or Shift+Enter on the last cell; before, the
+  toolbar's new cell didn't.
 
 ## Suggested order
 

@@ -22,10 +22,17 @@ export interface NotebookTab {
   canRedo: boolean;
   closePending: boolean;
   pendingCursorMove: { cellId: string; pos: number } | null;
+  /** The caret between two cells, where typing starts a new cell (see CellGap) */
+  insertionPoint: InsertionPoint | null;
   /** Whether the notebook is trusted for dangerous function execution. */
   trusted: boolean;
   /** Dangerous functions detected when the notebook needs trust. Drives the trust banner. */
   pendingTrustFunctions: string[] | null;
+}
+
+/** A place between cells: after the cell `after`, or above the first cell when null */
+export interface InsertionPoint {
+  after: string | null;
 }
 
 export interface PlotTab {
@@ -56,6 +63,7 @@ function createDefaultTab(id: string): NotebookTab {
     canRedo: false,
     closePending: false,
     pendingCursorMove: null,
+    insertionPoint: null,
     trusted: true,
     pendingTrustFunctions: null,
   };
@@ -103,6 +111,8 @@ interface NotebookState {
   markNotebookDirty: (notebookId: string) => void;
   setPendingCursorMove: (move: { cellId: string; pos: number }) => void;
   clearPendingCursorMove: () => void;
+  /** Place the caret between two cells, or remove it with null */
+  setInsertionPoint: (point: InsertionPoint | null) => void;
 
   // Apply full state from backend events
   applyBackendState: (
@@ -336,6 +346,15 @@ export const useNotebookStore = create<NotebookState>((set) => ({
         isDirty: true,
       })),
     })),
+
+  setInsertionPoint: (point: InsertionPoint | null) =>
+    set((state) => {
+      const nbId = state.activeNotebookId;
+      if (!nbId) return state;
+      return {
+        notebooks: updateNotebookTab(state.notebooks, nbId, () => ({ insertionPoint: point })),
+      };
+    }),
 
   setPendingCursorMove: (move: { cellId: string; pos: number }) =>
     set((state) => {

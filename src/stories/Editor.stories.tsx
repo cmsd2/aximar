@@ -6,6 +6,7 @@ import { useFindStore } from "../store/findStore";
 import type { SyncCell } from "../lib/notebook-commands";
 import { StoryNotebook } from "./notebook";
 import { seedNotebook } from "./store";
+import { useNotebookStore } from "../store/notebookStore";
 import { WaitFor } from "./wait";
 
 const meta: Meta = { title: "Editor", tags: ["themes"] };
@@ -97,3 +98,55 @@ export const ArgumentHelp: StoryObj = {
     </div>
   ),
 };
+
+const gapCells: SyncCell[] = [
+  {
+    id: "g1", cell_type: "code", input: "F : integrate(1/(1+x^2), x);", status: "success",
+    output: { ...output, latex: "\\arctan x", text_plain: "atan(x)" },
+  },
+  { id: "g2", cell_type: "code", input: "diff(F, x);", output: null, status: "idle" },
+];
+
+/** The caret between two cells, after a click in the gap or an arrow key from a cell's edge */
+export const CaretBetweenCells: StoryObj = {
+  loaders: [
+    async () => {
+      seedNotebook(gapCells);
+      useNotebookStore.getState().setInsertionPoint({ after: "g1" });
+    },
+  ],
+  render: () => <StoryNotebook />,
+};
+
+/** The menu of the + in the left margin */
+export const InsertMenu: StoryObj = {
+  loaders: [async () => seedNotebook(gapCells)],
+  render: () => (
+    <div style={{ height: 280, display: "flex", flexDirection: "column" }}>
+      <StoryNotebook />
+      <WaitFor
+        selector=".cell-gap-menu"
+        run={async () => {
+          const plus = await until(() => document.querySelectorAll<HTMLButtonElement>("#storybook-root .cell-gap-plus")[1]);
+          plus.click();
+        }}
+      />
+    </div>
+  ),
+};
+
+/** Bracket style keeps its insert bar; the caret shows in it */
+export const CaretBracketStyle: StoryObj = {
+  parameters: { cellStyle: "bracket" },
+  loaders: CaretBetweenCells.loaders,
+  render: () => <StoryNotebook />,
+};
+
+/** An element once it exists */
+async function until<T>(find: () => T | null | undefined): Promise<T> {
+  for (;;) {
+    const found = find();
+    if (found) return found;
+    await new Promise((r) => setTimeout(r, 20));
+  }
+}

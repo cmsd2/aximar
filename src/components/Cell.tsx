@@ -8,6 +8,7 @@ import { useCodeMirrorEditor } from "../hooks/useCodeMirrorEditor";
 import { CellOutput } from "./CellOutput";
 import { CellSuggestions } from "./CellSuggestions";
 import { nbDeleteCell, nbMoveCell, nbAddCell } from "../lib/notebook-commands";
+import { focusCell } from "../lib/cell-caret";
 import { cancelEvaluation } from "../lib/maxima-client";
 
 interface CellProps {
@@ -49,10 +50,13 @@ export function Cell({ cell, onViewDocs, selectBracket }: CellProps) {
     const idx = cells.findIndex((c) => c.id === cell.id);
     const isLastCell = idx === cells.length - 1;
 
-    executeCell(cell.id, cell.input).then((success) => {
+    executeCell(cell.id, cell.input).then(async (success) => {
       if (!success) return;
       if (isLastCell) {
-        nbAddCell("code", undefined, cell.id);
+        // The new cell may mount after this, so focus it by its id
+        const { cell_id } = await nbAddCell("code", undefined, cell.id);
+        focusCell(cell_id, 0);
+        return;
       }
       requestAnimationFrame(focusNextCell);
     });

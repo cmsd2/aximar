@@ -29,3 +29,5 @@ export { IconAlertTriangle } from "@tabler/icons-react";
 export { IconInfoCircle } from "@tabler/icons-react";
 /** StatusBox: busy, spinning */
 export { IconLoader2 } from "@tabler/icons-react";
+/** The + in the margin between two cells, which opens a menu of cell types */
+export { IconPlus } from "@tabler/icons-react";

@@ -331,20 +331,155 @@
   border-color: var(--accent);
 }
 
-/* Cards have borders, so the bar can't overlap them as it overlaps the
-   borderless cells of bracket style: it takes the gap between two cards
-   itself.  The buttons (18px) keep 5px from each card, 3px from a
-   selected card's ring */
-[data-cell-style="card"] .insert-bar,
-:root:not([data-cell-style]) .insert-bar {
-  height: 28px;
-  margin: 0;
+/* The gap between two cells in card style (CellGap): 8px, with a hit
+   area a little taller that reaches over the cards' edges.  Hovering
+   shows a grey line and a + in the left margin.  Clicking places a
+   caret: the line, with a text caret standing on it where a new cell's
+   first character would go, blinking as the editor's does.  Bracket
+   style draws the gap as the insert bar above. */
+.cell-gap:not(.insert-bar) {
+  position: relative;
+  height: var(--space-2);
 }
 
-[data-cell-style="card"] .insert-bar-btn,
-:root:not([data-cell-style]) .insert-bar-btn {
-  padding: 1px 10px;
-  line-height: 14px;
+.cell-gap:not(.insert-bar)::before {
+  content: "";
+  position: absolute;
+  inset: calc(-1 * var(--space-1)) 0;
+  z-index: 3;
+  cursor: text;
+}
+
+.cell-gap-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 1px;
+  background: var(--border-color);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.1s ease;
+}
+
+.cell-gap:hover .cell-gap-line,
+.cell-gap.menu-open .cell-gap-line,
+.cell-gap.has-caret .cell-gap-line {
+  opacity: 1;
+}
+
+/* The editor's caret: 2px, the text colour, about a line of code tall,
+   blinking on CodeMirror's 1.2s cycle.  It sits at the In column's edge
+   (past the card's 1px border in card style), centred on the line. */
+.cell-gap-caret {
+  position: absolute;
+  left: calc(var(--gutter-width) + 1px);
+  top: 50%;
+  z-index: 4;
+  width: 2px;
+  height: calc(var(--font-size-mono) * 1.2);
+  transform: translateY(-50%);
+  background: var(--text-primary);
+  pointer-events: none;
+  animation: cell-gap-blink 1.2s steps(1) infinite;
+}
+
+.insert-bar .cell-gap-caret {
+  left: var(--gutter-width);
+}
+
+@keyframes cell-gap-blink {
+  50% { opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cell-gap-caret { animation: none; }
+}
+
+.insert-bar.has-caret {
+  opacity: 1;
+}
+
+/* Visually hidden, but focused: it takes the keyboard at the caret */
+.cell-gap-input {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  border: 0;
+  opacity: 0;
+  resize: none;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.cell-gap-plus {
+  position: absolute;
+  left: calc(-1 * var(--space-6));
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 4;
+  width: var(--space-5);
+  height: var(--space-5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 1px solid var(--border-color);
+  border-radius: 50%;
+  background: var(--bg-primary);
+  color: var(--text-secondary);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.1s ease, color 0.1s ease, border-color 0.1s ease;
+}
+
+.cell-gap:hover .cell-gap-plus,
+.cell-gap.has-caret .cell-gap-plus,
+.cell-gap.menu-open .cell-gap-plus,
+.cell-gap-plus:focus-visible {
+  opacity: 1;
+}
+
+.cell-gap-plus:hover,
+.cell-gap.menu-open .cell-gap-plus {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.cell-gap-menu {
+  position: absolute;
+  left: calc(-1 * var(--space-6));
+  top: calc(50% + var(--space-4));
+  z-index: 20;
+  min-width: 140px;
+  padding: var(--space-1);
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-popover);
+}
+
+.cell-gap-menu button {
+  display: block;
+  width: 100%;
+  padding: var(--space-1) var(--space-3);
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-primary);
+  font: inherit;
+  font-size: var(--text-md);
+  text-align: left;
+  cursor: pointer;
+}
+
+.cell-gap-menu button:hover,
+.cell-gap-menu button:focus-visible {
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  outline: none;
 }
 
 /* Cell */
@@ -2144,16 +2279,18 @@
   box-shadow: 0 0 0 2px var(--accent);
 }
 
-/* In card style the insert bars space the cards */
+/* In card style the gaps between cells space the cards */
 [data-cell-style="card"] .cell,
 :root:not([data-cell-style]) .cell {
   margin-bottom: 0;
 }
 
-/* Without the bracket, card style needs no wide right margin */
+/* Without the bracket, card style needs no wide right margin; the left
+   one holds the gaps' + */
 [data-cell-style="card"] .notebook,
 :root:not([data-cell-style]) .notebook {
-  padding-right: 16px;
+  padding-right: var(--space-4);
+  padding-left: var(--space-8);
 }
 
 /* Log Panel */

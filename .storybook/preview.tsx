@@ -6,6 +6,7 @@ import { activateLanguage, i18n } from "../src/lib/i18n";
 import { installSourceTags, setShowSources } from "../src/lib/show-sources";
 import { installTauriMock } from "./tauri-mock";
 import { applyStoryTheme } from "../src/stories/theme";
+import { useNotebookStore, type CellStyle } from "../src/store/notebookStore";
 import "@fontsource/jetbrains-mono/400.css";
 import "@fontsource/jetbrains-mono/700.css";
 import "../src/styles/global.css";
@@ -18,6 +19,10 @@ installSourceTags(i18n);
 /** Show the story in the toolbar's language and theme, tagging strings when asked */
 const withLanguage: Decorator = (Story, context) => {
   applyStoryTheme(context.globals.theme);
+  // Card style unless the story asks for bracket style
+  const cellStyle: CellStyle = context.parameters.cellStyle ?? "card";
+  document.documentElement.dataset.cellStyle = cellStyle;
+  useNotebookStore.getState().setCellStyle(cellStyle);
   const language = context.globals.locale ?? "en";
   const tag = context.globals.tagStrings === "on";
   const [ready, setReady] = useState(false);

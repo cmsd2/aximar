@@ -1,6 +1,7 @@
 // Tauri's commands, mocked for stories: the window runs in a plain browser
 import { mockIPC, mockWindows } from "@tauri-apps/api/mocks";
 import { completions, docs, functions, packages } from "./catalog-fixture";
+import { useNotebookStore } from "../src/store/notebookStore";
 
 export const config = {
   theme: "light", maxima_path: null, font_size: 14, print_font_size: 11, eval_timeout: 30,
@@ -30,6 +31,8 @@ export function installTauriMock(): void {
         case "list_variables":
           // The names of the user's variables, as Maxima's values list gives them
           return ["F", "a", "f"];
+        case "nb_add_cell":
+          return addCell(payload as AddCell);
         case "get_function":
           return functions[args.name] ?? null;
         case "get_function_docs":
@@ -71,4 +74,32 @@ export function installTauriMock(): void {
     },
     { shouldMockEvents: true },
   );
+}
+
+interface AddCell {
+  cellType: string | null;
+  input: string | null;
+  afterCellId: string | null;
+  beforeCellId: string | null;
+}
+
+let added = 0;
+
+/** Add a cell to the story's notebook, as the backend's cell_added event would */
+function addCell({ cellType, input, afterCellId, beforeCellId }: AddCell): { cell_id: string } {
+  const store = useNotebookStore.getState();
+  const id = store.activeNotebookId;
+  const tab = id ? store.notebooks[id] : undefined;
+  if (!id || tab?.type !== "notebook") return { cell_id: "" };
+  const cellId = `new-${++added}`;
+  const cell = { id: cellId, cellType: (cellType ?? "code") as "code", input: input ?? "", output: null, status: "idle" as const };
+  const cells = [...tab.cells];
+  const at = afterCellId
+    ? cells.findIndex((c) => c.id === afterCellId) + 1
+    : beforeCellId
+      ? cells.findIndex((c) => c.id === beforeCellId)
+      : cells.length;
+  cells.splice(at < 0 ? cells.length : at, 0, cell);
+  store.applyBackendState(id, cells, "cell_added", cellId);
+  return { cell_id: cellId };
 }
