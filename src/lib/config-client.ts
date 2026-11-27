@@ -78,6 +78,11 @@ export async function maximaStatus(maximaPath: string | null): Promise<MaximaLoc
   return invoke<MaximaLocation>("maxima_status", { maximaPath });
 }
 
+/** The version a Maxima program reports, such as 5.47.0: runs it once with --version */
+export async function maximaVersion(path: string): Promise<string | null> {
+  return invoke<string | null>("maxima_version", { path });
+}
+
 export async function listWslDistros(): Promise<string[]> {
   return invoke<string[]>("list_wsl_distros");
 }

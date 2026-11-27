@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { listen } from "@tauri-apps/api/event";
 import { mcpServerStatus, type McpServerState } from "../../lib/config-client";
+import { StatusBox } from "../ui/StatusBox";
 import { useLingui } from "@lingui/react/macro";
 import { AiClients } from "./AiClients";
 import { SettingRow, TextSetting, type SectionProps } from "./SettingRow";
@@ -152,35 +153,34 @@ function McpServerStatusLine() {
   }, []);
 
   if (!status) return null;
-  let text: string;
-  let tone: "ok" | "warn" | "err";
   switch (status.state) {
     case "listening": {
       const address = status.address;
-      tone = "ok";
-      text = t({
-        message: `Listening on ${address}.`,
-        comment: "Settings, AI assistants section: the MCP server's status. address is its address and port, such as 127.0.0.1:19542",
-      });
-      break;
+      return (
+        <StatusBox tone="ok" status="mcp-server">
+          {t({
+            message: `Listening on ${address}.`,
+            comment: "Settings, AI assistants section: the MCP server's status. address is its address and port, such as 127.0.0.1:19542",
+          })}
+        </StatusBox>
+      );
     }
     case "failed": {
       const { address, reason } = status;
-      tone = "err";
-      text = t({
-        message: `Couldn't listen on ${address}: ${reason}`,
-        comment: "Settings, AI assistants section: the MCP server's status when it failed to start. address is its address and port; reason is the system's message, such as Address already in use",
-      });
-      break;
+      return (
+        <StatusBox tone="err" status="mcp-server" detail={reason}>
+          {t({
+            message: `Couldn't listen on ${address}.`,
+            comment: "Settings, AI assistants section: the MCP server's status when it failed to start; the system's reason follows. address is its address and port",
+          })}
+        </StatusBox>
+      );
     }
-    default: {
-      tone = "warn";
-      text = t({ message: "Starting...", comment: "Settings, AI assistants section: the MCP server's status while it starts" });
-    }
+    default:
+      return (
+        <StatusBox tone="busy" status="mcp-server">
+          {t({ message: "Starting...", comment: "Settings, AI assistants section: the MCP server's status while it starts" })}
+        </StatusBox>
+      );
   }
-  return (
-    <p className={`settings-status-line ${tone}`} role="status" data-status="mcp-server">
-      {text}
-    </p>
-  );
 }

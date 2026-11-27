@@ -26,7 +26,7 @@ const noop = () => {};
 const LABELS: Record<SectionId, string[]> = {
   general: ["Language", "Theme", "Variable panel open by default"],
   notebook: ["Font size", "Cell style", "Argument help", "Markdown font", "Markdown indent"],
-  maxima: ["Backend", "Maxima path", "Eval timeout"],
+  maxima: ["Backend", "Maxima path", "Evaluation timeout"],
   printing: ["Print font size", "Print margins (mm)"],
   "ai-assistants": ["MCP server", "Claude Code", "Codex", "Gemini CLI", "MCP listen address", "MCP token"],
   translation: ["Translation preview", "Show sources"],
@@ -35,7 +35,7 @@ const LABELS: Record<SectionId, string[]> = {
 /** Every setting the flat window had, by label, with Local's backend fields */
 const OLD_WINDOW = [
   "Language", "Translation preview", "Show sources", "Theme", "Cell style", "Markdown font", "Markdown indent",
-  "Argument help", "Backend", "Maxima path", "Font size", "Print font size", "Print margins (mm)", "Eval timeout",
+  "Argument help", "Backend", "Maxima path", "Font size", "Print font size", "Print margins (mm)", "Evaluation timeout",
   "MCP server", "MCP listen address", "MCP token", "Claude Code", "Codex", "Gemini CLI", "Variable panel open by default",
 ];
 
@@ -117,7 +117,7 @@ describe("the Settings sections", () => {
 describe("the Maxima section", () => {
   it("shows Docker's fields for Docker", async () => {
     const { container } = await open({ backend: "docker" }, "maxima");
-    expect(labels(container)).toEqual(["Backend", "Container engine", "Docker image", "Eval timeout"]);
+    expect(labels(container)).toEqual(["Backend", "Container engine", "Docker image", "Evaluation timeout"]);
   });
 
   it("keeps the Maxima path when switching back to Local", async () => {
@@ -206,6 +206,14 @@ describe("the sidebar", () => {
     flags.tools = false;
     const { container } = await open({ settings_section: "translation" });
     expect(container.querySelector(".settings-page")?.getAttribute("data-section")).toBe("general");
+  });
+});
+
+describe("closing", () => {
+  it("happens with the close button", async () => {
+    const { container, onClose } = await open({}, "general");
+    await click(container.querySelector('button[aria-label="Close"]'));
+    expect(onClose).toHaveBeenCalledOnce();
   });
 });
 

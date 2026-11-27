@@ -140,6 +140,7 @@ pub fn run() {
             commands::config::check_wsl_maxima,
             commands::config::get_buffered_logs,
             commands::config::maxima_status,
+            commands::config::maxima_version,
             commands::mcp_clients::mcp_clients_status,
             commands::mcp_clients::mcp_server_status,
             commands::mcp_clients::claude_mcp_check,

@@ -6,7 +6,7 @@ The Settings window groups Aximar's settings into sections a user can find, expl
 
 ### Requirement: Settings are grouped into sections
 
-The Settings window SHALL show a sidebar listing its sections and SHALL show one section's settings at a time. The sections and their settings, in this order, SHALL be:
+The Settings window SHALL show a sidebar, headed by the window's title, listing its sections with an icon each, and SHALL show one section's settings at a time, under the section's name. The Translation section SHALL appear greyed in the sidebar. The sections and their settings, in this order, SHALL be:
 
 - General: language, theme, variables panel open at start.
 - Notebook: font size, cell style, argument help, Markdown font, Markdown indent.
@@ -53,22 +53,22 @@ The Maxima section SHALL show the Maxima path field only for the Local backend, 
 
 ### Requirement: The Maxima section says which Maxima Aximar uses
 
-For the Local backend the Maxima section SHALL show a status line naming the Maxima program Aximar would start and where its path came from (the Maxima path setting, the AXIMAR_MAXIMA_PATH environment variable, or the search of standard locations), or saying that Aximar found none. For WSL it SHALL say whether the chosen distro has a maxima program. The line SHALL update when the user changes the Maxima path, the backend or the distro. Finding the status SHALL NOT start Maxima.
+For the Local backend the Maxima section SHALL show a status box naming the Maxima program Aximar would start, its version, and where its path came from (the Maxima path setting, the AXIMAR_MAXIMA_PATH environment variable, a standard install location, or PATH), or saying that Aximar found none. For WSL it SHALL say whether the chosen distro has a maxima program. The status SHALL update when the user changes the Maxima path, the backend or the distro. Finding the program SHALL NOT start a Maxima session; to read the version Aximar SHALL run the program found once with `--version`, giving up after 5 seconds, and SHALL NOT run a path that names no file.
 
 #### Scenario: The setting names the program
 
-- **WHEN** the Maxima path setting holds the path of an executable file
-- **THEN** the status line shows that path and says it comes from the setting
+- **WHEN** the Maxima path setting holds the path of a Maxima 5.50.0 program
+- **THEN** the status box reads "Found Maxima 5.50.0 at" that path, and says it comes from the setting
 
 #### Scenario: Nothing found
 
 - **WHEN** the Maxima path is empty, AXIMAR_MAXIMA_PATH is unset and no standard location holds maxima
-- **THEN** the status line says Aximar found no Maxima and points to the Maxima path field
+- **THEN** the status box says Aximar found no Maxima and points to the Maxima path field
 
 #### Scenario: A path that doesn't exist
 
 - **WHEN** the user types a Maxima path that names no file
-- **THEN** the status line says the file doesn't exist
+- **THEN** the status box says the file doesn't exist, and Aximar runs nothing
 
 ### Requirement: Each setting has a one-line hint
 
@@ -81,7 +81,7 @@ Each setting SHALL show a hint of one line under its label saying what the setti
 
 ### Requirement: Settings apply at once
 
-A change to a setting SHALL take effect and SHALL be saved to the config file as soon as the user makes it, without a Save or OK button. Text fields SHALL save when they lose focus or the user presses Enter. The window's footer SHALL hold only a Close button.
+A change to a setting SHALL take effect and SHALL be saved to the config file as soon as the user makes it, without a Save or OK button. Text fields SHALL save when they lose focus or the user presses Enter. The page SHALL end with a note saying changes apply as they're made, and a close button SHALL sit beside the section's name.
 
 #### Scenario: A theme change shows at once
 
@@ -105,7 +105,7 @@ The app SHALL let any part of the window open Settings at a named section. The M
 #### Scenario: A bind failure links to AI assistants
 
 - **WHEN** the MCP server can't listen because another program holds the port, and the user follows the link in the log entry
-- **THEN** Settings opens at the AI assistants section, whose status line gives the reason
+- **THEN** Settings opens at the AI assistants section, whose status box gives the reason
 
 ### Requirement: Settings reopens where the user left it
 

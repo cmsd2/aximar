@@ -702,6 +702,13 @@ pub async fn maxima_status(
     ))
 }
 
+/// The version a Maxima program reports, such as `5.47.0`.  Runs it once
+/// with `--version`, for the Settings window.
+#[tauri::command]
+pub async fn maxima_version(path: String) -> Result<Option<String>, AppError> {
+    Ok(aximar_core::maxima::locate::maxima_version(std::path::Path::new(&path)).await)
+}
+
 #[tauri::command]
 pub async fn list_wsl_distros() -> Result<Vec<String>, AppError> {
     let mut cmd = tokio::process::Command::new("wsl");

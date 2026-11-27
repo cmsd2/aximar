@@ -16,7 +16,10 @@
   --error-color: #e3342f;
   --error-bg: #fef2f2;
   --success-color: #2d8a4e;
+  --success-bg: #edf7f0;
   --running-color: #b8860b;
+  --warn-bg: #fdf6e3;
+  --selected-bg: #e8e8ed;
   --gutter-width: 56px;
   --font-size-mono: 14px;
   --font-family-markdown: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
@@ -46,7 +49,10 @@
     --error-color: #f38ba8;
     --error-bg: #2e1a1e;
     --success-color: #a6e3a1;
+    --success-bg: #1f2e26;
     --running-color: #f9e2af;
+    --warn-bg: #2f2b1f;
+    --selected-bg: #35354f;
   }
 }
 
@@ -65,7 +71,10 @@
   --error-color: #f38ba8;
   --error-bg: #2e1a1e;
   --success-color: #a6e3a1;
+  --success-bg: #1f2e26;
   --running-color: #f9e2af;
+  --warn-bg: #2f2b1f;
+  --selected-bg: #35354f;
 }
 
 * {
@@ -1682,9 +1691,10 @@
 }
 
 /* Settings Modal */
+/* Shared by small dialogs, such as Export LaTeX: a header, a body of
+   rows and a footer */
 .settings-modal {
-  width: min(760px, calc(100vw - 48px));
-  height: min(600px, calc(100vh - 48px));
+  width: 480px;
   background: var(--bg-primary);
   border: 1px solid var(--border-color);
   border-radius: 12px;
@@ -1706,33 +1716,70 @@
   margin: 0;
 }
 
-.settings-main {
-  flex: 1;
-  display: flex;
-  min-height: 0;
-}
-
-.settings-sidebar {
-  width: 168px;
-  flex-shrink: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding: 12px 8px;
-  border-right: 1px solid var(--border-color);
-  background: var(--bg-secondary);
+.settings-body {
+  padding: 12px 20px;
   overflow-y: auto;
 }
 
+.settings-footer {
+  padding: 12px 20px;
+  border-top: 1px solid var(--border-color);
+  text-align: center;
+}
+
+/* The Settings window: a sidebar of sections and a page */
+.settings-window {
+  width: min(760px, calc(100vw - 48px));
+  height: min(560px, calc(100vh - 48px));
+  background: var(--bg-primary);
+  border: 0.5px solid var(--border-color);
+  border-radius: 12px;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.2);
+  display: grid;
+  grid-template-columns: 170px minmax(0, 1fr);
+  overflow: hidden;
+}
+
+.settings-sidebar-title {
+  margin: 2px 10px 10px;
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--text-secondary);
+}
+
+.settings-sidebar {
+  display: flex;
+  flex-direction: column;
+  padding: 14px 8px;
+  border-right: 0.5px solid var(--border-color);
+  overflow-y: auto;
+}
+
+.settings-tabs {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
 .settings-tab {
-  padding: 7px 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
   background: transparent;
   border: none;
   border-radius: 6px;
-  color: var(--text-primary);
-  font-size: 13px;
+  color: var(--text-secondary);
+  font-size: 14px;
   text-align: left;
   cursor: pointer;
+}
+
+.settings-tab-icon {
+  flex-shrink: 0;
+}
+
+.settings-tab-label {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1740,36 +1787,72 @@
 
 .settings-tab:hover {
   background: var(--bg-cell);
+  color: var(--text-primary);
+}
+
+.settings-tab.pre-release {
+  color: var(--text-placeholder);
 }
 
 .settings-tab.active {
-  background: var(--accent);
-  color: var(--bg-primary);
+  background: var(--selected-bg);
+  color: var(--text-primary);
 }
 
 .settings-tab:focus-visible {
   outline: 2px solid var(--accent);
-  outline-offset: 1px;
+  outline-offset: -2px;
 }
 
 .settings-page {
-  flex: 1;
+  display: flex;
+  flex-direction: column;
   min-width: 0;
-  padding: 16px 20px;
+  padding: 18px 22px;
   overflow-y: auto;
 }
 
+.settings-page-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
 .settings-page-title {
-  margin: 0 0 14px;
-  font-size: 15px;
-  font-weight: 600;
+  margin: 0;
+  font-size: 16px;
+  font-weight: 500;
   color: var(--text-primary);
+}
+
+.settings-close {
+  display: flex;
+  padding: 4px;
+  margin: -4px -6px 0 0;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.settings-close:hover {
+  background: var(--bg-cell);
+  color: var(--text-primary);
+}
+
+.settings-note {
+  margin: auto 0 0;
+  padding-top: 16px;
+  font-size: 12px;
+  color: var(--text-placeholder);
 }
 
 .settings-section {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 14px;
 }
 
 .settings-row {
@@ -1779,10 +1862,19 @@
   gap: 16px;
 }
 
+.settings-window .settings-section {
+  gap: 0;
+}
+
+.settings-window .settings-row {
+  padding: 10px 0;
+  border-bottom: 0.5px solid var(--border-color);
+}
+
 .settings-row-wide {
   flex-direction: column;
   align-items: stretch;
-  gap: 6px;
+  gap: 8px;
 }
 
 .settings-row-wide .settings-token-actions {
@@ -1800,9 +1892,14 @@
 }
 
 .settings-label {
-  display: block;
   font-size: 13px;
   color: var(--text-primary);
+  flex-shrink: 0;
+}
+
+.settings-window .settings-label {
+  display: block;
+  font-size: 14px;
 }
 
 .settings-hint {
@@ -1818,32 +1915,63 @@
   flex-shrink: 0;
 }
 
-.settings-status-line {
-  margin: -6px 0 0;
-  font-size: 12px;
+/* A tinted box with an icon: the state of something (StatusBox) */
+.status-box {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 12px 0;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 13px;
+  line-height: 1.4;
+  background: var(--bg-secondary);
   color: var(--text-secondary);
+}
+
+.status-box-icon {
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.status-box-text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
   overflow-wrap: anywhere;
 }
 
-.settings-status-line.ok {
+.status-box-detail {
+  font-size: 12px;
+  opacity: 0.85;
+}
+
+.status-box.ok {
+  background: var(--success-bg);
   color: var(--success-color);
 }
 
-.settings-status-line.warn {
+.status-box.warn {
+  background: var(--warn-bg);
   color: var(--running-color);
 }
 
-.settings-status-line.err {
+.status-box.err {
+  background: var(--error-bg);
   color: var(--error-color);
 }
 
+.status-box.busy .status-box-icon {
+  animation: settings-spin 0.8s linear infinite;
+}
+
 .settings-advanced {
-  border-top: 1px solid var(--border-color);
-  padding-top: 12px;
+  padding: 10px 0;
 }
 
 .settings-advanced > .settings-section {
-  margin-top: 14px;
+  margin-top: 4px;
 }
 
 .settings-advanced > summary {
@@ -1853,7 +1981,7 @@
 }
 
 .settings-input {
-  width: 200px;
+  width: 230px;
   padding: 6px 10px;
   background: var(--bg-input);
   border: 1px solid var(--border-color);
@@ -2038,11 +2166,6 @@
   color: var(--bg-primary);
 }
 
-.settings-footer {
-  padding: 12px 20px;
-  border-top: 1px solid var(--border-color);
-  text-align: center;
-}
 
 /* Export LaTeX modal */
 .export-latex-modal {
@@ -3165,6 +3288,7 @@
   .shortcut-hints,
   .palette-overlay,
   .settings-modal,
+  .settings-window,
   .template-modal,
   .cell-actions,
   .insert-bar,

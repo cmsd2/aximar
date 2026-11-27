@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { useLingui } from "@lingui/react/macro";
+import { IconX } from "@tabler/icons-react";
 import { getConfig, setConfig, type AppConfig } from "../../lib/config-client";
 import { applyConfig } from "../../lib/apply-config";
 import { useNotebookStore } from "../../store/notebookStore";
@@ -95,27 +96,27 @@ export function SettingsShell({ onClose, onSetVariablesOpen, initialSection, req
   return (
     <div className="palette-overlay" onClick={onClose}>
       <div
-        className="settings-modal"
+        className="settings-window"
         role="dialog"
         aria-modal="true"
         aria-labelledby="settings-title"
         onClick={(e) => e.stopPropagation()}
         onKeyDown={onKey}
       >
-        <div className="settings-header">
-          <h2 className="settings-title" id="settings-title">
+        <nav className="settings-sidebar">
+          <h2 className="settings-sidebar-title" id="settings-title">
             {t({ message: "Settings", comment: "Settings: the title of the settings window" })}
           </h2>
-        </div>
-        <div className="settings-main">
-          <nav
-            className="settings-sidebar"
+          <div
+            className="settings-tabs"
             role="tablist"
             aria-orientation="vertical"
-            aria-label={t({ message: "Settings sections", comment: "Settings: what a screen reader calls the sidebar of sections" })}
+            aria-labelledby="settings-title"
             onKeyDown={onSidebarKey}
           >
-            {sections.map((s) => (
+          {sections.map((s) => {
+            const Icon = s.icon;
+            return (
               <button
                 key={s.id}
                 type="button"
@@ -124,34 +125,48 @@ export function SettingsShell({ onClose, onSetVariablesOpen, initialSection, req
                 aria-selected={s.id === current.id}
                 aria-controls="settings-page"
                 tabIndex={s.id === current.id ? 0 : -1}
-                className={`settings-tab${s.id === current.id ? " active" : ""}`}
+                className={`settings-tab${s.id === current.id ? " active" : ""}${s.preRelease ? " pre-release" : ""}`}
                 ref={(el) => {
                   if (el) tabs.current.set(s.id, el);
                   else tabs.current.delete(s.id);
                 }}
                 onClick={() => choose(s.id)}
               >
-                {i18n._(s.label)}
+                <Icon className="settings-tab-icon" size={16} stroke={1.75} aria-hidden="true" />
+                <span className="settings-tab-label">{i18n._(s.label)}</span>
               </button>
-            ))}
-          </nav>
-          <div
-            className="settings-page"
-            id="settings-page"
-            role="tabpanel"
-            aria-labelledby={`settings-tab-${current.id}`}
-            data-section={current.id}
-          >
-            <h3 className="settings-page-title">{i18n._(current.label)}</h3>
-            <div className="settings-section">
-              <Page config={config} update={update} />
-            </div>
+            );
+          })}
           </div>
-        </div>
-        <div className="settings-footer">
-          <button type="button" className="template-skip" onClick={onClose}>
-            {t({ message: "Close", comment: "Settings button: closes the settings window" })}
-          </button>
+        </nav>
+        <div
+          className="settings-page"
+          id="settings-page"
+          role="tabpanel"
+          aria-labelledby={`settings-tab-${current.id}`}
+          data-section={current.id}
+        >
+          <div className="settings-page-head">
+            <h3 className="settings-page-title">{i18n._(current.label)}</h3>
+            <button
+              type="button"
+              className="settings-close"
+              onClick={onClose}
+              aria-label={t({ message: "Close", comment: "Settings button: closes the settings window" })}
+              title={t({ message: "Close", comment: "Settings button: closes the settings window" })}
+            >
+              <IconX size={16} stroke={1.75} aria-hidden="true" />
+            </button>
+          </div>
+          <div className="settings-section">
+            <Page config={config} update={update} />
+          </div>
+          <p className="settings-note">
+            {t({
+              message: "Changes apply as you make them.",
+              comment: "Settings: a note at the bottom of each section; there is no Save button",
+            })}
+          </p>
         </div>
       </div>
     </div>

@@ -51,16 +51,16 @@ Aximar SHALL run `claude mcp get aximar` only when the user presses the Claude C
 - **WHEN** the user presses Configure for Claude Code and `claude mcp add` succeeds
 - **THEN** Aximar runs `claude mcp get aximar` once and the row shows its result
 
-### Requirement: The server status line reports the MCP server's state
+### Requirement: The server status box reports the MCP server's state
 
-The AI assistants section SHALL show whether the MCP server is off, listening (with its address), or failed to start (with the reason, such as the address being in use).
+The AI assistants section SHALL show, in a status box, whether the MCP server is off, listening (with its address), or failed to start (with the reason, such as the address being in use).
 
 #### Scenario: Address in use
 
 - **WHEN** another program holds the configured port at startup
-- **THEN** the status line says the server couldn't listen on that address and gives the operating system's reason
+- **THEN** the status box says the server couldn't listen on that address and gives the operating system's reason
 
 #### Scenario: Listening
 
 - **WHEN** the MCP server is on and listening on 127.0.0.1:19542
-- **THEN** the status line says it is listening on 127.0.0.1:19542
+- **THEN** the status box says it is listening on 127.0.0.1:19542

@@ -39,3 +39,9 @@
 
 - [x] 5.1 Describe the sections, the deep links and the AI client checks in the user docs under `docs/`, and add the Settings sidebar's `max-length` limit to `docs/i18n.md`; verify the links in the new text resolve
 - [x] 5.2 Leave CHANGELOG.md alone, since it covers only the `tools-v*` releases and none of these changes reach the tools, and verify `openspec validate settings-window` passes before archiving
+
+## 6. Match the accepted mockup (with group 4's PR)
+
+- [x] 6.1 Restyle the window to the mockup: sidebar title and icons, a light highlight, greyed Translation, a close button beside the section name, rows divided by lines, the note at the bottom; give the window its own `.settings-window` class so Export LaTeX keeps `.settings-modal`; verify with the `closing` test and by comparing the stories with the mockup in light and dark
+- [x] 6.2 Add `StatusBox` and use it for the Maxima and MCP server status; verify with the status tests
+- [x] 6.3 Show Maxima's version, from `maxima_version` in `aximar-core`; verify with the core tests `the_version_comes_from_the_output`, `a_program_reports_its_version` and `a_slow_program_gives_no_version`, and the window test `doesn't run a program that isn't there`

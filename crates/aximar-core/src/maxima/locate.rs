@@ -2,7 +2,8 @@
 //! then the `AXIMAR_MAXIMA_PATH` environment variable, then the standard
 //! install locations, then a search of PATH.  The session starts the
 //! program this finds, and the Settings window shows it, so the two agree.
-//! Finding it starts nothing.
+//! Finding it starts nothing; `maxima_version` runs it once, with
+//! `--version`, for the Settings window to show.
 
 use std::ffi::OsString;
 use std::path::{Path, PathBuf};
@@ -175,6 +176,40 @@ pub fn locate_maxima(setting: Option<&str>) -> MaximaLocation {
     )
 }
 
+/// How long `maxima --version` may take
+const VERSION_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(5);
+
+/// The version a Maxima program reports, such as `5.47.0`: runs it once
+/// with `--version`.  `None` when it doesn't answer in time or says
+/// something else.
+pub async fn maxima_version(program: &Path) -> Option<String> {
+    maxima_version_within(program, VERSION_TIMEOUT).await
+}
+
+async fn maxima_version_within(program: &Path, limit: std::time::Duration) -> Option<String> {
+    let mut cmd = tokio::process::Command::new(program);
+    cmd.arg("--version")
+        .stdin(std::process::Stdio::null())
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::null())
+        .kill_on_drop(true);
+    crate::maxima::noconsole::hide_console_window(&mut cmd);
+    let output = tokio::time::timeout(limit, cmd.output()).await.ok()?.ok()?;
+    version_in(&String::from_utf8_lossy(&output.stdout))
+}
+
+/// The version in `maxima --version`'s output, such as "Maxima 5.47.0"
+fn version_in(text: &str) -> Option<String> {
+    let rest = text.split_once("Maxima ")?.1;
+    let version: String = rest
+        .chars()
+        .take_while(|c| c.is_ascii_alphanumeric() || matches!(c, '.' | '-' | '_'))
+        .collect();
+    version
+        .starts_with(|c: char| c.is_ascii_digit())
+        .then_some(version)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -279,6 +314,40 @@ mod tests {
         );
         assert_eq!(found.path, Some(installed));
         assert_eq!(found.source, Some(MaximaSource::Setting));
+    }
+
+    #[test]
+    fn the_version_comes_from_the_output() {
+        assert_eq!(version_in("Maxima 5.47.0\n").as_deref(), Some("5.47.0"));
+        assert_eq!(
+            version_in("Maxima 5.48.1_2_gabc0123\n").as_deref(),
+            Some("5.48.1_2_gabc0123")
+        );
+        assert_eq!(version_in("maxima: command not found"), None);
+        assert_eq!(version_in("Maxima rocks"), None);
+    }
+
+    #[cfg(unix)]
+    #[tokio::test]
+    async fn a_program_reports_its_version() {
+        let dir = tempfile::tempdir().unwrap();
+        let file = dir.path().join("maxima");
+        std::fs::write(&file, "#!/bin/sh\necho 'Maxima 5.47.0'\n").unwrap();
+        use std::os::unix::fs::PermissionsExt;
+        std::fs::set_permissions(&file, std::fs::Permissions::from_mode(0o755)).unwrap();
+        assert_eq!(maxima_version(&file).await.as_deref(), Some("5.47.0"));
+    }
+
+    #[cfg(unix)]
+    #[tokio::test]
+    async fn a_slow_program_gives_no_version() {
+        let dir = tempfile::tempdir().unwrap();
+        let file = dir.path().join("maxima");
+        std::fs::write(&file, "#!/bin/sh\nsleep 20\n").unwrap();
+        use std::os::unix::fs::PermissionsExt;
+        std::fs::set_permissions(&file, std::fs::Permissions::from_mode(0o755)).unwrap();
+        let limit = std::time::Duration::from_millis(300);
+        assert_eq!(maxima_version_within(&file, limit).await, None);
     }
 
     #[test]

@@ -43,6 +43,8 @@ A macOS app launched from Finder gets a short PATH (`/usr/bin:/bin:/usr/sbin:/sb
 
 `SettingsModal.tsx` keeps its export name and re-exports the shell, so `App.tsx` and the stories change only to pass the section.
 
+The look follows the mockup the user accepted: a 170px sidebar headed by a small "Settings" title, a Tabler icon beside each section (`@tabler/icons-react`, imported per icon so the bundle holds only those used), a light highlight on the chosen section, and Translation greyed. The page has the section's name with a close button beside it, rows divided by thin lines, and a note at the bottom that changes apply at once. The frame is its own class, `.settings-window`, because the Export LaTeX dialog shares `.settings-modal` and its header, body and footer. Status shows in a `StatusBox` (`src/components/ui/`): a tinted box with an icon, a main line and an optional quieter line, in ok, warn, err, busy and info tones, with tint colours as theme tokens (`--success-bg`, `--warn-bg`, `--selected-bg`).
+
 Alternative: keep one file and add headings. That keeps the 990-line file growing and gives no place for per-section state, such as the Maxima status or the AI client status. Rejected.
 
 ### 2. Section ids and the remembered section
@@ -97,7 +99,7 @@ pub enum MaximaProblem { NotFound, NotExecutable }
 pub fn locate_maxima(setting: Option<&str>) -> MaximaLocation
 ```
 
-It checks, in order, the setting, `AXIMAR_MAXIMA_PATH`, the standard locations, and then a PATH lookup for `maxima` (or `maxima.bat` on Windows). `find_maxima_binary()` becomes a wrapper that keeps its current return value, and the Local backend's start calls `locate_maxima`, so the status line and the session use the same order. A Tauri command `maxima_status()` reads the config and returns the location for Local. For WSL, the Maxima section keeps calling `check_wsl_maxima`, and the status line shows its result. Docker shows no status line in this change.
+It checks, in order, the setting, `AXIMAR_MAXIMA_PATH`, the standard locations, and then a PATH lookup for `maxima` (or `maxima.bat` on Windows). `maxima_version(path)` runs the program found once with `--version`, under a 5-second limit, and reads the version from "Maxima 5.50.0"; the window calls it only for a path with no problem. That takes about a quarter of a second, and starts no session. `find_maxima_binary()` becomes a wrapper that keeps its current return value, and the Local backend's start calls `locate_maxima`, so the status line and the session use the same order. A Tauri command `maxima_status()` reads the config and returns the location for Local. For WSL, the Maxima section keeps calling `check_wsl_maxima`, and the status line shows its result. Docker shows no status line in this change.
 
 This logic belongs in core because the MCP server's `get_session_status` may report it later. The Tauri command only translates the result.
 

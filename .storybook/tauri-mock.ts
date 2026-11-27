@@ -44,6 +44,8 @@ export function installTauriMock(): void {
           };
         case "mcp_server_status":
           return { state: "listening", address: "127.0.0.1:19542" };
+        case "maxima_version":
+          return "5.50.0";
         case "maxima_status":
           return { path: "/opt/homebrew/bin/maxima", source: "standard-location", problem: null };
         case "plugin:event|listen":
