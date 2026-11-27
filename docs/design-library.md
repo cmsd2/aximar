@@ -91,6 +91,8 @@ for dialogs. [Foundations / Space, radii and shadows](?path=/story/foundations-s
 | `Checkbox` | On or off. | [UI / Fields](?path=/story/ui-fields--rows) |
 | `StatusBox` | The state of something, with a tone (`ok`, `warn`, `err`, `busy`, `info`) and an optional second line. | [UI / StatusBox](?path=/story/ui-statusbox--all-tones) |
 | `Dialog` | A dialog with a title, a body and a footer of buttons. `DialogOverlay` and `DialogFrame` build one with its own layout, as Settings does. Esc and a click outside close it, and focus goes back to what opened it. | [UI / Dialog](?path=/story/ui-dialog--small) |
+| `PanelHeader` | The header of a panel or bar (variables, docs, log, find): a title or controls on the left, actions and the one close button on the right. `closeLabel`, already translated, names the close button. | [UI / PanelHeader](?path=/story/ui-panelheader--title-and-actions) |
+| `ContextMenu` | A menu at the pointer, such as the cell commands on a right-click. Up and Down move between enabled items; Escape, a click outside or a scroll close it. Items carry their shortcut in the platform's names. | [UI / ContextMenu](?path=/story/ui-contextmenu--groups) |
 
 The parts hold no text of their own: callers pass translated text, so
 every string goes through Lingui with a translator note at the call. Their
@@ -99,6 +101,17 @@ styles are in `src/styles/ui.css`, with `ui-` class names.
 To add a part: write it in `src/components/ui/` with its rules in
 `ui.css` (tokens only), give it a story in `src/stories/ui/` tagged
 `themes`, list it in the table above, and test what it does.
+
+## Icon buttons
+
+An icon alone is a `Button` with `icon` and `label`: the label names it
+for screen readers and is its tooltip. A button for a command passes
+`title` too, the label and the command's shortcut from
+`formatShortcut` (`src/commands/shortcut.ts`), so the tooltip shows the
+platform's names (⌘ on macOS, Ctrl elsewhere). The toolbar's buttons are
+built this way from the command list (`src/commands/registry.ts`); a
+toggle for a panel sets `aria-pressed` and is tinted while the panel is
+open, never filled.
 
 ## Icons
 

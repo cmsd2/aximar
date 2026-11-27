@@ -9,6 +9,7 @@ import { getActiveTabState, useActiveTab, useNotebookStore } from "../store/note
 import { afterRun, gapBeside, goTo } from "../lib/cell-caret";
 import { useFindStore } from "../store/findStore";
 import { nbDeleteCell } from "../lib/notebook-commands";
+import { IconCheck, IconPencil, IconX } from "./ui/icons";
 
 interface MarkdownCellProps {
   cell: CellType;
@@ -156,7 +157,7 @@ export function MarkdownCell({ cell, selectBracket }: MarkdownCellProps) {
                 })
           }
         >
-          {editing ? "\u2713" : "\u270E"}
+          {editing ? <IconCheck size={14} stroke={1.75} aria-hidden="true" /> : <IconPencil size={14} stroke={1.75} aria-hidden="true" />}
         </button>
         {cellCount > 1 && (
           <button
@@ -164,7 +165,7 @@ export function MarkdownCell({ cell, selectBracket }: MarkdownCellProps) {
             onClick={() => nbDeleteCell(cell.id)}
             title={t({ message: "Delete cell", comment: "Tooltip of the cross button that deletes a cell" })}
           >
-            &times;
+            <IconX size={14} stroke={1.75} aria-hidden="true" />
           </button>
         )}
       </div>

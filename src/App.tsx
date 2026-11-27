@@ -15,6 +15,7 @@ import { StatusBar, LogWindow } from "./components/LogPanel";
 import { DocsPanel } from "./components/DocsPanel";
 import { FindBar } from "./components/FindBar";
 import { ShortcutHints } from "./components/ShortcutHints";
+import { ShortcutsDialog } from "./components/ShortcutsDialog";
 import { useMaxima } from "./hooks/useMaxima";
 import { useNotebookEvents } from "./hooks/useNotebookEvents";
 import { useTheme } from "./hooks/useTheme";
@@ -58,7 +59,6 @@ function App() {
   const settingsOpen = useSettingsStore((s) => s.open);
   const settingsSection = useSettingsStore((s) => s.section);
   const settingsRequest = useSettingsStore((s) => s.request);
-  const openSettings = useSettingsStore((s) => s.openSettings);
   const closeSettings = useSettingsStore((s) => s.closeSettings);
   const variablesOpen = useUiStore((s) => s.variablesOpen);
   const setVariablesOpen = useUiStore((s) => s.setVariablesOpen);
@@ -69,9 +69,8 @@ function App() {
   const docsFunctionName = useUiStore((s) => s.docsFunctionName);
   const docsRequestId = useUiStore((s) => s.docsRequestId);
   const openDocsFor = useUiStore((s) => s.openDocsFor);
-  const windowOpen = useLogStore((s) => s.windowOpen);
-  const toggleWindow = useLogStore((s) => s.toggleWindow);
-  const logUnreadCount = useLogStore((s) => s.unreadCount);
+  const shortcutsOpen = useUiStore((s) => s.shortcutsOpen);
+  const setShortcutsOpen = useUiStore((s) => s.setShortcutsOpen);
   const addLogEntry = useLogStore((s) => s.addEntry);
   const addRawOutput = useLogStore((s) => s.addRawOutput);
   const addEnvelope = useLogStore((s) => s.addEnvelope);
@@ -248,17 +247,7 @@ function App() {
     <div className="app">
       <TabBar />
       {isNotebookTab && (
-        <Toolbar
-          onOpenTemplates={() => setTemplateChooserOpen(true)}
-          onOpenSettings={() => openSettings()}
-          variablesOpen={variablesOpen}
-          onToggleVariables={() => setVariablesOpen(!variablesOpen)}
-          logOpen={windowOpen}
-          onToggleLog={toggleWindow}
-          logUnreadCount={logUnreadCount}
-          docsOpen={docsOpen}
-          onToggleDocs={() => setDocsOpen(!docsOpen)}
-        />
+        <Toolbar />
       )}
       {isNotebookTab && <FindBar />}
       {isNotebookTab && <VariablePanel open={variablesOpen} />}
@@ -301,6 +290,7 @@ function App() {
       {exportLatexOpen && (
         <ExportLatexModal onClose={() => setExportLatexOpen(false)} />
       )}
+      {shortcutsOpen && <ShortcutsDialog onClose={() => setShortcutsOpen(false)} />}
     </div>
   );
 }

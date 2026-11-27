@@ -4,6 +4,7 @@ import { useLingui } from "@lingui/react/macro";
 import { useLogStore } from "../store/logStore";
 import { useSettingsStore } from "../store/settingsStore";
 import { SECTIONS } from "./settings/sections";
+import { PanelHeader } from "./ui/PanelHeader";
 import type {
   EnvelopeEntry,
   LogEntry,
@@ -303,7 +304,19 @@ export function LogWindow() {
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
       />
-      <div className="log-window-header">
+      <PanelHeader
+        className="log-window-header"
+        actions={
+          <button className="log-window-clear" onClick={clearForActiveTab}>
+            {t({
+              message: "Clear",
+              comment: "Log window: button that empties the open tab. max-length:10",
+            })}
+          </button>
+        }
+        onClose={closeWindow}
+        closeLabel={t({ message: "Close log", comment: "Log window: tooltip of the x button that closes the log" })}
+      >
         <div className="log-window-tabs">
           {tabs.map((tab) => (
             <button
@@ -315,18 +328,7 @@ export function LogWindow() {
             </button>
           ))}
         </div>
-        <div className="log-window-actions">
-          <button className="log-window-clear" onClick={clearForActiveTab}>
-            {t({
-              message: "Clear",
-              comment: "Log window: button that empties the open tab. max-length:10",
-            })}
-          </button>
-          <button className="log-window-close" onClick={closeWindow}>
-            &times;
-          </button>
-        </div>
-      </div>
+      </PanelHeader>
       <div className="log-window-body">
         {activeTab === "app" && (
           entries.length === 0 ? (

@@ -4,6 +4,7 @@ import { command } from "../commands/registry";
 import { formatShortcut, matches } from "../commands/shortcut";
 import { closeTab, moveTabToNewWindow, stepTab, switchTab } from "../lib/tab-commands";
 import { useLingui } from "@lingui/react/macro";
+import { IconPlus, IconX } from "./ui/icons";
 import { useNotebookStore } from "../store/notebookStore";
 import type { NotebookTab } from "../store/notebookStore";
 import { displayTitle } from "../lib/tab-title";
@@ -103,7 +104,7 @@ export function TabBar() {
               }}
               title={t({ message: "Close tab", comment: "Tab bar: tooltip of the x button that closes a notebook tab" })}
             >
-              &times;
+              <IconX size={12} stroke={1.75} aria-hidden="true" />
             </button>
           )}
         </div>
@@ -116,7 +117,7 @@ export function TabBar() {
           comment: "Tab bar: tooltip of the + button that opens a new notebook tab. newTabShortcut is its keyboard shortcut in the platform's names, such as ⌘N or Ctrl+N",
         })}
       >
-        +
+        <IconPlus size={14} stroke={1.75} aria-hidden="true" />
       </button>
       {contextMenu && (
         <div

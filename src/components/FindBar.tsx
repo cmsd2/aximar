@@ -4,6 +4,8 @@ import { useFindStore } from "../store/findStore";
 import { useActiveTab, useNotebookStore, getActiveTabState } from "../store/notebookStore";
 import type { FindMatch } from "../store/findStore";
 import { findMatches, replaceAllMatches } from "../lib/find-replace";
+import { PanelHeader } from "./ui/PanelHeader";
+import { IconChevronDown, IconChevronUp, IconLetterCase, IconReplace } from "./ui/icons";
 
 export function FindBar() {
   const { t } = useLingui();
@@ -136,7 +138,14 @@ export function FindBar() {
 
   return (
     <div className="find-bar">
-      <div className="find-bar-row">
+      <PanelHeader
+        className="find-bar-header"
+        onClose={close}
+        closeLabel={t({
+          message: "Close (Escape)",
+          comment: "Find bar: tooltip of the x button that closes the find bar; Escape is the key",
+        })}
+      >
         <input
           ref={findInputRef}
           className="find-bar-input"
@@ -158,7 +167,7 @@ export function FindBar() {
             comment: "Find bar: tooltip of the Aa button that makes the search case-sensitive",
           })}
         >
-          Aa
+          <IconLetterCase size={14} stroke={1.75} aria-hidden="true" />
         </button>
         <button
           className="find-bar-btn"
@@ -169,7 +178,7 @@ export function FindBar() {
             comment: "Find bar: tooltip of the up arrow button that selects the previous match; Shift+Enter is the shortcut",
           })}
         >
-          &#9650;
+          <IconChevronUp size={14} stroke={1.75} aria-hidden="true" />
         </button>
         <button
           className="find-bar-btn"
@@ -180,7 +189,7 @@ export function FindBar() {
             comment: "Find bar: tooltip of the down arrow button that selects the next match; Enter is the shortcut",
           })}
         >
-          &#9660;
+          <IconChevronDown size={14} stroke={1.75} aria-hidden="true" />
         </button>
         <button
           className={`find-bar-btn find-bar-replace-toggle${replaceVisible ? " active" : ""}`}
@@ -190,19 +199,9 @@ export function FindBar() {
             comment: "Find bar: tooltip of the button that shows or hides the replace row",
           })}
         >
-          &#8596;
+          <IconReplace size={14} stroke={1.75} aria-hidden="true" />
         </button>
-        <button
-          className="find-bar-btn find-bar-close"
-          onClick={close}
-          title={t({
-            message: "Close (Escape)",
-            comment: "Find bar: tooltip of the x button that closes the find bar; Escape is the key",
-          })}
-        >
-          &times;
-        </button>
-      </div>
+      </PanelHeader>
       {replaceVisible && (
         <div className="find-bar-row">
           <input

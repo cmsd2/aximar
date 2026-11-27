@@ -21,7 +21,8 @@ export interface ItemState {
   checked: boolean | null;
 }
 
-const TITLES: Record<MenuName, MessageDescriptor> = {
+/** The menus' titles */
+export const TITLES: Record<MenuName, MessageDescriptor> = {
   app: msg({ message: "Aximar", comment: "The application menu's title on macOS: the app's name, usually left as it is. max-length:12" }),
   file: msg({ message: "File", comment: "Menu bar: the File menu. max-length:12" }),
   edit: msg({ message: "Edit", comment: "Menu bar: the Edit menu. max-length:12" }),

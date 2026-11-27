@@ -10,6 +10,8 @@ import { listen } from "@tauri-apps/api/event";
 import { docsLanguages, getFunctionDocs, getFunction, searchFunctions, getPackage, packageForFunction, searchPackageFunctions, searchPackages } from "../lib/catalog-client";
 import type { DocsLanguages, MaximaFunction, SearchResult, PackageInfo, PackageFunctionSearchResult, PackageSearchResult } from "../types/catalog";
 import { DocsLanguageNotes } from "./docs/DocsLanguageNotes";
+import { PanelHeader } from "./ui/PanelHeader";
+import { IconArrowLeft, IconArrowRight } from "./ui/icons";
 
 /**
  * Convert single-line `$$...$$` to multi-line format required by remark-math v6.
@@ -206,7 +208,14 @@ export function DocsPanel({ open, functionName, requestId, onClose }: DocsPanelP
 
   return (
     <div className="docs-panel">
-      <div className="docs-panel-header">
+      <PanelHeader
+        className="docs-panel-header"
+        onClose={onClose}
+        closeLabel={t({
+          message: "Close docs",
+          comment: "Docs panel: tooltip of the x button that closes the panel",
+        })}
+      >
         <div className="docs-panel-nav">
           <button
             className="docs-nav-btn"
@@ -217,7 +226,7 @@ export function DocsPanel({ open, functionName, requestId, onClose }: DocsPanelP
               comment: "Docs panel: tooltip of the arrow button that goes back to the previous page",
             })}
           >
-            &larr;
+            <IconArrowLeft size={14} stroke={1.75} aria-hidden="true" />
           </button>
           <button
             className="docs-nav-btn"
@@ -228,7 +237,7 @@ export function DocsPanel({ open, functionName, requestId, onClose }: DocsPanelP
               comment: "Docs panel: tooltip of the arrow button that goes forward to the next page",
             })}
           >
-            &rarr;
+            <IconArrowRight size={14} stroke={1.75} aria-hidden="true" />
           </button>
         </div>
         <input
@@ -267,17 +276,7 @@ export function DocsPanel({ open, functionName, requestId, onClose }: DocsPanelP
             }
           }}
         />
-        <button
-          className="docs-close-btn"
-          onClick={onClose}
-          title={t({
-            message: "Close docs",
-            comment: "Docs panel: tooltip of the x button that closes the panel",
-          })}
-        >
-          &times;
-        </button>
-      </div>
+      </PanelHeader>
 
       {searchQuery && (searchResults.length > 0 || pkgFuncResults.length > 0 || pkgResults.length > 0) && (
         <div className="docs-search-results">

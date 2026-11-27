@@ -31,3 +31,35 @@ export { IconInfoCircle } from "@tabler/icons-react";
 export { IconLoader2 } from "@tabler/icons-react";
 /** The + in the margin between two cells, which opens a menu of cell types */
 export { IconPlus } from "@tabler/icons-react";
+/** Toolbar: Run All */
+export { IconPlayerTrackNext } from "@tabler/icons-react";
+/** Toolbar and running cells: Interrupt */
+export { IconPlayerStop } from "@tabler/icons-react";
+/** Toolbar: Restart */
+export { IconRefresh } from "@tabler/icons-react";
+/** Toolbar: the variables panel */
+export { IconVariable } from "@tabler/icons-react";
+/** Toolbar: the docs panel */
+export { IconBook } from "@tabler/icons-react";
+/** Toolbar: the log panel */
+export { IconListDetails } from "@tabler/icons-react";
+/** Toolbar: Settings */
+export { IconSettings } from "@tabler/icons-react";
+/** Cell actions and the find bar: move up, previous match */
+export { IconChevronUp } from "@tabler/icons-react";
+/** Cell actions and the find bar: move down, next match */
+export { IconChevronDown } from "@tabler/icons-react";
+/** Cell actions: run */
+export { IconPlayerPlay } from "@tabler/icons-react";
+/** Markdown and raw cells: edit */
+export { IconPencil } from "@tabler/icons-react";
+/** Markdown cells: done editing */
+export { IconCheck } from "@tabler/icons-react";
+/** Find bar: match case */
+export { IconLetterCase } from "@tabler/icons-react";
+/** Find bar: show or hide the replace row */
+export { IconReplace } from "@tabler/icons-react";
+/** Docs panel: back */
+export { IconArrowLeft } from "@tabler/icons-react";
+/** Docs panel: forward */
+export { IconArrowRight } from "@tabler/icons-react";

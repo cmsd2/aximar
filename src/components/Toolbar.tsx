@@ -1,41 +1,32 @@
 import { useLingui } from "@lingui/react/macro";
-import { formatShortcut } from "../commands/shortcut";
 import { useActiveTab } from "../store/notebookStore";
-import { useMaxima } from "../hooks/useMaxima";
-import { displayTitle } from "../lib/tab-title";
-import { focusCell } from "../lib/cell-caret";
-import { nbAddCell, nbUndo, nbRedo } from "../lib/notebook-commands";
+import { useLogStore } from "../store/logStore";
+import { command, isEnabled, type CommandState } from "../commands/registry";
+import { formatShortcut } from "../commands/shortcut";
+import { useCommandState, useRunCommand } from "../commands/useCommands";
+import { Button } from "./ui/Button";
+import {
+  IconBook,
+  IconListDetails,
+  IconPlayerStop,
+  IconPlayerTrackNext,
+  IconRefresh,
+  IconSettings,
+  IconVariable,
+  type Icon,
+} from "./ui/icons";
 
-interface ToolbarProps {
-  onOpenTemplates: () => void;
-  onOpenSettings: () => void;
-  variablesOpen: boolean;
-  onToggleVariables: () => void;
-  logOpen: boolean;
-  onToggleLog: () => void;
-  logUnreadCount: number;
-  docsOpen: boolean;
-  onToggleDocs: () => void;
-}
-
-export function Toolbar({ onOpenTemplates, onOpenSettings, variablesOpen, onToggleVariables, logOpen, onToggleLog, logUnreadCount, docsOpen, onToggleDocs }: ToolbarProps) {
+/**
+ * The toolbar: the session's commands beside its status on the left, the
+ * panels and Settings on the right.  Each button is a command from the
+ * command list, with its label and shortcut as the tooltip.
+ */
+export function Toolbar() {
   const { t } = useLingui();
-  const tab = useActiveTab();
-  const activeCellId = tab.activeCellId;
-  const sessionStatus = tab.sessionStatus;
-  const filePath = tab.filePath;
-  const isDirty = tab.isDirty;
-  const canUndo = tab.canUndo;
-  const canRedo = tab.canRedo;
-  const { runAll: runAllCells, restartSession } = useMaxima();
-
-  const handleAddCell = async (cellType?: string) => {
-    const { cell_id } = await nbAddCell(cellType ?? "code", undefined, activeCellId ?? undefined);
-    focusCell(cell_id, 0);
-  };
-
-  // The backend runs the cells and decides where to stop
-  const runAll = () => runAllCells(tab.id);
+  const state = useCommandState();
+  const sessionStatus = useActiveTab().sessionStatus;
+  const unread = useLogStore((s) => s.unreadCount);
+  const logOpen = useLogStore((s) => s.windowOpen);
 
   let statusText: string;
   if (sessionStatus === "Starting") {
@@ -61,87 +52,47 @@ export function Toolbar({ onOpenTemplates, onOpenSettings, variablesOpen, onTogg
         ? "status-starting"
         : "status-error";
 
-  const fileName = displayTitle(filePath ? (filePath.split("/").pop()?.split("\\").pop() ?? "") : "");
-  const undoShortcut = formatShortcut("Mod+Z");
-  const redoShortcut = formatShortcut("Mod+Shift+Z");
-
   return (
     <div className="toolbar">
       <div className="toolbar-left">
-        <button className="toolbar-btn" onClick={() => handleAddCell("code")}>
-          {t({ message: "+ Cell", comment: "Toolbar button: adds a code cell below the active cell. max-length:12" })}
-        </button>
-        <button className="toolbar-btn" onClick={() => handleAddCell("markdown")}>
-          {t({ message: "+ Markdown", comment: "Toolbar button: adds a Markdown text cell below the active cell. max-length:12" })}
-        </button>
-        <div className="toolbar-separator" />
-        <button className="toolbar-btn" onClick={runAll}>
-          {t({ message: "Run All", comment: "Toolbar button: runs every cell in order. max-length:12" })}
-        </button>
-        <button className="toolbar-btn" onClick={restartSession}>
-          {t({ message: "Restart", comment: "Toolbar button: restarts the Maxima session, clearing its state. max-length:12" })}
-        </button>
-        <div className="toolbar-separator" />
-        <button
-          className="toolbar-btn"
-          onClick={() => nbUndo()}
-          disabled={!canUndo}
-          title={t({
-            message: `Undo (${undoShortcut})`,
-            comment: "Toolbar: tooltip of the Undo button. undoShortcut is its keyboard shortcut, such as Cmd+Z",
-          })}
-        >
-          {t({ message: "Undo", comment: "Toolbar button: undoes the last change to the notebook. max-length:12" })}
-        </button>
-        <button
-          className="toolbar-btn"
-          onClick={() => nbRedo()}
-          disabled={!canRedo}
-          title={t({
-            message: `Redo (${redoShortcut})`,
-            comment: "Toolbar: tooltip of the Redo button. redoShortcut is its keyboard shortcut, such as Cmd+Shift+Z",
-          })}
-        >
-          {t({ message: "Redo", comment: "Toolbar button: redoes the last undone change. max-length:12" })}
-        </button>
-        <div className="toolbar-separator" />
-        <button className="toolbar-btn" onClick={onOpenTemplates}>
-          {t({ message: "Templates", comment: "Toolbar button: opens the starter notebook chooser. max-length:12" })}
-        </button>
-        <div className="toolbar-separator" />
-        <button
-          className={`toolbar-btn${variablesOpen ? " toolbar-btn-active" : ""}`}
-          onClick={onToggleVariables}
-        >
-          {t({ message: "Variables", comment: "Toolbar button: shows or hides the variable panel. max-length:12" })}
-        </button>
-        <div className="toolbar-btn-wrapper">
-          <button
-            className={`toolbar-btn${logOpen ? " toolbar-btn-active" : ""}`}
-            onClick={onToggleLog}
-          >
-            {t({ message: "Log", comment: "Toolbar button: shows or hides the log panel. max-length:12" })}
-          </button>
-          {logUnreadCount > 0 && (
-            <span className="log-badge">{logUnreadCount}</span>
-          )}
-        </div>
-        <button
-          className={`toolbar-btn${docsOpen ? " toolbar-btn-active" : ""}`}
-          onClick={onToggleDocs}
-        >
-          {t({ message: "Docs", comment: "Toolbar button: shows or hides the documentation panel. max-length:12" })}
-        </button>
-      </div>
-      <div className="toolbar-right">
-        <span className="toolbar-filename" title={filePath ?? undefined}>
-          {isDirty ? `${fileName} *` : fileName}
-        </span>
-        <button className="toolbar-btn" onClick={onOpenSettings}>
-          {t({ message: "Settings", comment: "Toolbar button: opens the settings window. max-length:12" })}
-        </button>
+        <CommandButton id="cell.run_all" icon={IconPlayerTrackNext} state={state} />
+        <CommandButton id="session.interrupt" icon={IconPlayerStop} state={state} />
+        <CommandButton id="session.restart" icon={IconRefresh} state={state} />
         <span className={`session-status ${statusClass}`}>{statusText}</span>
       </div>
+      <div className="toolbar-right">
+        <CommandButton id="view.variables" icon={IconVariable} state={state} />
+        <CommandButton id="view.docs" icon={IconBook} state={state} />
+        <span className="toolbar-btn-wrapper">
+          <CommandButton id="view.log" icon={IconListDetails} state={state} />
+          {!logOpen && unread > 0 && <span className="log-badge">{unread}</span>}
+        </span>
+        <div className="toolbar-separator" />
+        <CommandButton id="app.settings" icon={IconSettings} state={state} />
+      </div>
     </div>
+  );
+}
+
+/** An icon button that runs a command; a toggle, pressed while its panel is open, for a checked command */
+function CommandButton({ id, icon, state }: { id: string; icon: Icon; state: CommandState }) {
+  const { i18n } = useLingui();
+  const run = useRunCommand();
+  const c = command(id);
+  if (!c) return null;
+  const label = i18n._(c.label);
+  const tooltip = c.shortcut ? `${label} (${formatShortcut(c.shortcut)})` : label;
+  const pressed = c.checked ? c.checked(state) : undefined;
+  return (
+    <Button
+      variant="quiet"
+      icon={icon}
+      label={label}
+      title={tooltip}
+      className={pressed === undefined ? "toolbar-icon" : `toolbar-icon toolbar-toggle${pressed ? " is-on" : ""}`}
+      aria-pressed={pressed}
+      disabled={!isEnabled(c, state)}
+      onClick={() => void run(id)}
+    />
   );
 }

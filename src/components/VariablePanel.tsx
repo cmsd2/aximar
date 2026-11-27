@@ -1,6 +1,10 @@
 import { useEffect, useState, useCallback } from "react";
 import { useLingui } from "@lingui/react/macro";
 import { useActiveTab } from "../store/notebookStore";
+import { PanelHeader } from "./ui/PanelHeader";
+import { Button } from "./ui/Button";
+import { IconX } from "./ui/icons";
+import { useUiStore } from "../store/uiStore";
 import {
   listVariables,
   killVariable,
@@ -66,20 +70,25 @@ export function VariablePanel({ open }: VariablePanelProps) {
 
   return (
     <div className="variable-panel">
-      <div className="variable-panel-header">
-        <span className="variable-panel-title">
-          {t({ message: "Variables", comment: "Variable panel: the title of the panel that lists the variables bound in the Maxima session" })}
-        </span>
-        {variables.length > 0 && (
-          <button className="variable-kill-all-btn" onClick={handleKillAll}>
-            {t({
-              message: "Kill All",
-              comment: "Variable panel button: unbinds every variable, like Maxima's kill(all). max-length:12",
-            })}
-          </button>
-        )}
-        {loading && <span className="variable-loading">...</span>}
-      </div>
+      <PanelHeader
+        className="variable-panel-header"
+        title={t({ message: "Variables", comment: "Variable panel: the title of the panel that lists the variables bound in the Maxima session" })}
+        actions={
+          <>
+            {loading && <span className="variable-loading">...</span>}
+            {variables.length > 0 && (
+              <Button size="sm" variant="secondary" onClick={handleKillAll}>
+                {t({
+                  message: "Kill All",
+                  comment: "Variable panel button: unbinds every variable, like Maxima's kill(all). max-length:12",
+                })}
+              </Button>
+            )}
+          </>
+        }
+        onClose={() => useUiStore.getState().setVariablesOpen(false)}
+        closeLabel={t({ message: "Close variables", comment: "Variable panel: tooltip of the x button that closes the panel" })}
+      />
       <div className="variable-panel-body">
         {variables.length === 0 ? (
           <span className="variable-empty">
@@ -93,8 +102,9 @@ export function VariablePanel({ open }: VariablePanelProps) {
                 className="variable-kill-btn"
                 onClick={() => handleKill(name)}
                 title={`kill(${name})`}
+                aria-label={`kill(${name})`}
               >
-                &times;
+                <IconX size={14} stroke={1.75} aria-hidden="true" />
               </button>
             </span>
           ))

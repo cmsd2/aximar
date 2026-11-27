@@ -21,35 +21,35 @@
 
 ## 4. The toolbar (one PR, after 1)
 
-- [ ] 4.1 Add the toolbar icons to `src/components/ui/icons.ts` (`IconPlayerTrackNext`, `IconPlayerStop`, `IconRefresh`, `IconVariable`, `IconBook`, `IconListDetails`, `IconSettings`); verify the Foundations icons story lists them and `node scripts/check-css-tokens.mjs` passes
-- [ ] 4.2 Rewrite `Toolbar.tsx` from the registry: Run All, Interrupt (enabled only while a cell runs), Restart, status | Variables, Docs, Log (with its badge) as tinted toggles, Settings; remove + Cell, + Markdown, Undo, Redo, Templates and the file name; verify with vitest `toolbar.test.tsx`: `shows_only_the_session_and_panels`, `interrupt_is_disabled_when_idle`, `a_toggle_is_pressed_when_its_panel_is_open`
-- [ ] 4.3 Update the Window stories (toolbar idle, running, panels open; the whole window) in both themes; verify the contrast scan finds no text or icon under 4.5:1 and 3:1 respectively
+- [x] 4.1 Add the toolbar icons to `src/components/ui/icons.ts` (`IconPlayerTrackNext`, `IconPlayerStop`, `IconRefresh`, `IconVariable`, `IconBook`, `IconListDetails`, `IconSettings`); verify the Foundations icons story lists them and `node scripts/check-css-tokens.mjs` passes
+- [x] 4.2 Rewrite `Toolbar.tsx` from the registry: Run All, Interrupt (enabled only while a cell runs), Restart, status | Variables, Docs, Log (with its badge) as tinted toggles, Settings; remove + Cell, + Markdown, Undo, Redo, Templates and the file name; verify with vitest `toolbar.test.tsx`: `shows_only_the_session_and_panels`, `interrupt_is_disabled_when_idle`, `a_toggle_is_pressed_when_its_panel_is_open`
+- [x] 4.3 Update the Window stories (toolbar idle, running, panels open; the whole window) in both themes; verify the contrast scan finds no text or icon under 4.5:1 and 3:1 respectively (the docs panel's accent links at 4.31:1 are the audit's item 24, outside this change)
 - [ ] 4.4 Remove the toolbar's old strings and run the gallery and `scripts/i18n-extract`; verify `--check` passes
 
 ## 5. Commands in the palette (one PR, after 1)
 
-- [ ] 5.1 Add a Commands group to `CommandPalette.tsx` (up to five matches above Functions, with shortcuts; `>` for commands only; disabled ones left out); verify with vitest `palette-commands.test.tsx`: `rest_finds_restart`, `greater_than_lists_only_commands`, `choosing_a_command_runs_it_and_closes`, `disabled_commands_are_left_out`
-- [ ] 5.2 Add a palette story with commands; verify it in the gallery in English, Spanish and pseudo
+- [x] 5.1 Add a Commands group to `CommandPalette.tsx` (up to five matches above Functions, with shortcuts; `>` for commands only; disabled ones left out); verify with vitest `palette-commands.test.tsx`: `rest_finds_restart`, `greater_than_lists_only_commands`, `choosing_a_command_runs_it_and_closes`, `disabled_commands_are_left_out`
+- [x] 5.2 Add a palette story with commands; verify it in the gallery in English, Spanish and pseudo
 
 ## 6. The cell context menu (one PR, after 1)
 
-- [ ] 6.1 Add `ContextMenu` (`role="menu"`, arrow keys, Escape, outside click and scroll close it), reusing the + menu's styles; verify with vitest `context-menu.test.tsx`: `arrows_move_between_items`, `escape_closes`
-- [ ] 6.2 Open it from `Notebook.tsx` on a right-click outside `.cm-content` and the Markdown textarea, with the cell commands run for the clicked cell; verify with vitest `cell-context-menu.test.tsx`: `delete_acts_on_the_clicked_cell`, `a_right_click_in_the_editor_text_opens_no_menu`
-- [ ] 6.3 Add a context menu story; verify in both themes
+- [x] 6.1 Add `ContextMenu` (`role="menu"`, arrow keys, Escape, outside click and scroll close it), reusing the + menu's styles; verify with vitest `context-menu.test.tsx`: the arrows move between enabled items, Escape closes
+- [x] 6.2 Open it from `Notebook.tsx` on a right-click outside `.cm-content` and the Markdown textarea, with the cell commands run for the clicked cell; verify with vitest `context-menu.test.tsx`: Delete acts on the clicked cell, a right-click in the editor's text opens no menu
+- [x] 6.3 Add a context menu story; verify in both themes
 
 ## 7. One icon set and one panel header (one PR, after 4)
 
-- [ ] 7.1 Add `PanelHeader` to `src/components/ui/` and use it in the variables panel, docs panel, log window and find bar; verify the Panels and Editor stories in both themes and a `ui.test.tsx` case for its close button's accessible name
-- [ ] 7.2 Replace the character icons in the cell actions, find bar and docs navigation with Tabler icons; verify with vitest `no-character-icons.test.tsx`, which renders them and fails on a button whose only content is ▲ ▼ ▶ × ← → ↔ or that has no accessible name
-- [ ] 7.3 Document `IconButton` use and `PanelHeader` in `docs/design-library.md`; verify the Guide story renders the new section
+- [x] 7.1 Add `PanelHeader` to `src/components/ui/` and use it in the variables panel, docs panel, log window and find bar; verify the Panels and Editor stories in both themes, and `no-character-icons.test.tsx`, which checks every panel's buttons, its close button included, have a name
+- [x] 7.2 Replace the character icons in the cell actions, find bar and docs navigation with Tabler icons; verify with vitest `no-character-icons.test.tsx`, which renders them and fails on a button whose only content is ▲ ▼ ▶ × ← → ↔ or that has no accessible name
+- [x] 7.3 Document `IconButton` use and `PanelHeader` in `docs/design-library.md`; verify the Guide story renders the new section
 
 ## 8. Help and the Keyboard Shortcuts list (one PR, after 2)
 
-- [ ] 8.1 Add Help's commands: Aximar Help opens the docs panel; What's New and Report an Issue open their GitHub pages with the opener plugin; verify with vitest `help-commands.test.ts` that mocks the opener and checks the URLs
-- [ ] 8.2 Add the Keyboard Shortcuts dialog, built from the registry, grouped by menu, then the editor keys; verify with vitest `shortcuts-dialog.test.tsx` that every menu shortcut appears once, and a story in both themes
+- [x] 8.1 Add Help's commands: Aximar Help opens the docs panel; What's New and Report an Issue open their GitHub pages with the opener plugin; verify with vitest `help.test.tsx` that mocks the opener and checks the URLs
+- [x] 8.2 Add the Keyboard Shortcuts dialog, built from the registry, grouped by menu, then the editor keys; verify with vitest `help.test.tsx` that every menu shortcut appears once, and a story in both themes
 
 ## 9. Docs and wrap-up
 
-- [ ] 9.1 Mark items 25 to 33 of `docs/ui-audit.md` done or changed, with links to the PRs; verify the doc's table matches the menus as built
-- [ ] 9.2 Add a Keyboard Shortcuts section to the README listing the registry's shortcuts in macOS and Windows form; verify it against the dialog
+- [x] 9.1 Mark items 25 to 33 of `docs/ui-audit.md` done or changed, with links to the PRs; verify the doc's table matches the menus as built
+- [x] 9.2 Add a Keyboard Shortcuts section to the README listing the registry's shortcuts in macOS and Windows form; verify it against the dialog
 - [ ] 9.3 Run every check (`cargo fmt --all`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo test --workspace`, `npx tsc --noEmit`, `npx vitest run`, `node scripts/check-css-tokens.mjs`, `npm run i18n:gallery`, `scripts/i18n-extract --check`) and archive the change

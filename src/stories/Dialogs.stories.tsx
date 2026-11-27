@@ -3,6 +3,7 @@ import { SettingsModal, type SectionId } from "../components/SettingsModal";
 import { ExportLatexModal } from "../components/ExportLatexModal";
 import { TemplateChooser } from "../components/TemplateChooser";
 import { CommandPalette } from "../components/CommandPalette";
+import { ShortcutsDialog } from "../components/ShortcutsDialog";
 import { seedNotebook } from "./store";
 
 const meta: Meta = { title: "Dialogs", parameters: { layout: "fullscreen" } };
@@ -39,4 +40,15 @@ export const Templates: StoryObj = {
 
 export const CommandPaletteOpen: StoryObj = {
   render: () => <CommandPalette onClose={noop} />,
+};
+
+/** The palette with commands above the functions, for "run" */
+export const CommandPaletteCommands: StoryObj = {
+  loaders: [async () => seedNotebook([{ id: "c1", cell_type: "code", input: "x;", output: null, status: "idle" }])],
+  render: () => <CommandPalette onClose={noop} initialQuery="run" />,
+};
+
+/** Help > Keyboard Shortcuts */
+export const KeyboardShortcuts: StoryObj = {
+  render: () => <ShortcutsDialog onClose={noop} />,
 };

@@ -8,6 +8,7 @@ import { LogWindow, StatusBar } from "../components/LogPanel";
 import { useLogStore } from "../store/logStore";
 import { DropOverlay } from "../components/DropOverlay";
 import type { DragState } from "../hooks/useFileDrop";
+import { useUiStore } from "../store/uiStore";
 import { useNotebookStore } from "../store/notebookStore";
 import type { SessionStatus } from "../types/maxima";
 import type { SyncCell } from "../lib/notebook-commands";
@@ -29,22 +30,10 @@ interface WindowProps {
 
 /** The window's layout, as App.tsx builds it, without App's start-up effects */
 function Window({ variables = false, docs }: WindowProps) {
-  const logOpen = useLogStore((s) => s.windowOpen);
-  const unread = useLogStore((s) => s.unreadCount);
   return (
     <div className="app" style={{ height: 760 }}>
       <TabBar />
-      <Toolbar
-        onOpenTemplates={noop}
-        onOpenSettings={noop}
-        variablesOpen={variables}
-        onToggleVariables={noop}
-        logOpen={logOpen}
-        onToggleLog={noop}
-        logUnreadCount={unread}
-        docsOpen={docs !== undefined}
-        onToggleDocs={noop}
-      />
+      <Toolbar />
       <FindBar />
       <VariablePanel open={variables} />
       <div className="main-content">
@@ -61,6 +50,8 @@ function Window({ variables = false, docs }: WindowProps) {
 /** Seed the notebook, the session state and the log */
 function seed(cells: SyncCell[], status: SessionStatus, log: [string, "info" | "error", string][] = [], dirty = false) {
   seedNotebook(cells, { dirty });
+  // Panels closed; a story opens them with panels()
+  useUiStore.setState({ variablesOpen: false, docsOpen: false });
   useNotebookStore.getState().setSessionStatusForNotebook("nb-1", status);
   const store = useLogStore.getState();
   store.clearLog();
@@ -97,11 +88,14 @@ const working: SyncCell[] = [
 /** The whole window mid-session: results, a note, an error, the variables and docs panels */
 export const WholeWindow: StoryObj = {
   loaders: [
-    async () =>
+    async () => {
       seed(working, "Ready", [
         ["session", "info", "Session starting..."],
         ["session", "info", "Session ready"],
-      ], true),
+      ], true);
+      // The toolbar's toggles read the panels from the store
+      useUiStore.setState({ variablesOpen: true, docsOpen: true });
+    },
   ],
   render: () => <Window variables docs="integrate" />,
 };
