@@ -2,9 +2,18 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@tauri-apps/api/core", () => ({ invoke: vi.fn() }));
-vi.mock("@tauri-apps/api/event", () => ({ listen: vi.fn(async () => () => {}) }));
+const listeners: Record<string, () => void> = {};
+vi.mock("@tauri-apps/api/event", () => ({
+  listen: vi.fn(async (name: string, handler: () => void) => {
+    listeners[name] = handler;
+    return () => {};
+  }),
+}));
 
 import { DocsPanel } from "../DocsPanel";
+import { HelpLanguageRow } from "../settings/HelpLanguageRow";
+import { useSettingsStore } from "../../store/settingsStore";
+import type { AppConfig } from "../../lib/config-client";
 import { answer, calls, click, mount, settle, unmount } from "../settings/settings-test-kit";
 import { act } from "react";
 import type { DocsLanguages, MaximaFunction } from "../../types/catalog";
@@ -53,27 +62,59 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-describe("the docs panel's language", () => {
-  it("offers Same as Aximar and each language with documentation, by its own name", async () => {
-    const { container } = await open(integrate(undefined));
-    const options = [...container.querySelectorAll(".docs-language-menu option")].map((o) => o.textContent);
-    expect(options).toEqual(["Same as Aximar", "English", "Español"]);
-    expect(container.querySelector<HTMLSelectElement>(".docs-language-menu select")?.value).toBe("same");
+describe("the help language", () => {
+  async function row(docs_language: string | null) {
+    const saved: unknown[] = [];
+    answer({ docs_languages: SPANISH_SUMMARIES });
+    const container = await mount(
+      <HelpLanguageRow config={{ docs_language } as AppConfig} update={(u) => saved.push(u)} />,
+    );
+    await settle();
+    return { container, saved, select: container.querySelector<HTMLSelectElement>("select")! };
+  }
+
+  it("is in Settings, offering Aximar's language and each language with documentation, by its own name", async () => {
+    const { container, select } = await row(null);
+    expect(container.textContent).toContain("Help language");
+    expect([...select.options].map((o) => o.textContent)).toEqual(["Same as Aximar's language", "English", "Español"]);
+    expect(select.value).toBe("same");
   });
 
-  it("saves a choice, and Same as Aximar as null", async () => {
-    const { container, saved } = await open(integrate(undefined));
-    const select = container.querySelector<HTMLSelectElement>(".docs-language-menu select")!;
+  it("saves a choice, and Aximar's language as null", async () => {
+    const { select, saved } = await row("es");
+    expect(select.value).toBe("es");
     for (const value of ["en", "same"]) {
       await act(async () => {
         select.value = value;
         select.dispatchEvent(new Event("change", { bubbles: true }));
       });
-      await settle();
     }
     expect(saved).toEqual([{ docs_language: "en" }, { docs_language: null }]);
-    // The page shows again in the new language
-    expect(calls().filter((c) => c === "get_function").length).toBeGreaterThan(1);
+  });
+
+  it("isn't in the docs panel, which shows its page again when the setting changes", async () => {
+    const { container } = await open(integrate(undefined));
+    expect(container.querySelector(".docs-panel-header select")).toBeNull();
+    const before = calls().filter((c) => c === "get_function").length;
+    await act(async () => listeners["docs-language-changed"]());
+    await settle();
+    expect(calls().filter((c) => c === "get_function").length).toBeGreaterThan(before);
+  });
+
+  it("is a click away from a note about the help's language", async () => {
+    const { container } = await open(
+      integrate({ summary: "es", body: "en", stale: false, summary_text: "Calcula simbólicamente la integral." }),
+    );
+    const link = container.querySelector<HTMLButtonElement>(".docs-help-language-link")!;
+    expect(link.textContent).toBe("Help language settings");
+    await act(async () => link.click());
+    expect(useSettingsStore.getState().open).toBe(true);
+    expect(useSettingsStore.getState().section).toBe("general");
+  });
+
+  it("isn't linked when the help shows in its own language", async () => {
+    const { container } = await open(integrate(undefined), { ...SPANISH_SUMMARIES, effective: "en" });
+    expect(container.querySelector(".docs-help-language-link")).toBeNull();
   });
 });
 

@@ -628,6 +628,10 @@ pub async fn set_config(app: tauri::AppHandle, updates: ConfigUpdate) -> Result<
     if docs_changed || config.language() != language_before {
         i18n::set_docs_language(&config.docs_language());
     }
+    if docs_changed {
+        // Every window's docs panel shows its page again in the new language
+        let _ = app.emit("docs-language-changed", config.docs_language());
+    }
 
     // Handle MCP server lifecycle changes
     if mcp_changed {

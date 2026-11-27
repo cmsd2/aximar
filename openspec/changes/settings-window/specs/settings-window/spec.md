@@ -8,7 +8,7 @@ The Settings window groups Aximar's settings into sections a user can find, expl
 
 The Settings window SHALL show a sidebar, headed by the window's title, listing its sections with an icon each, and SHALL show one section's settings at a time, under the section's name. The Translation section SHALL appear greyed in the sidebar. The sections and their settings, in this order, SHALL be:
 
-- General: language, theme, variables panel open at start.
+- General: language, help language, theme, variables panel open at start.
 - Notebook: font size, cell style, argument help, suggestions under results, Markdown font, Markdown indent.
 - Maxima: backend, the fields for the chosen backend, a Maxima status line, eval timeout.
 - Printing: print font size, print margins.
