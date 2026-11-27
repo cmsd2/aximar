@@ -39,6 +39,7 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
         .manage(AppState::new())
+        .manage(commands::translation_preview::TranslationPreview::default())
         .setup(|app| {
             let language = commands::config::read_language(app.handle());
             menu::setup_menu(app, &language)?;
@@ -156,6 +157,8 @@ pub fn run() {
             commands::notebook::nb_set_active,
             commands::window::create_window,
             commands::window::get_initial_file_args,
+            commands::translation_preview::load_translation_preview,
+            commands::translation_preview::stop_translation_preview,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

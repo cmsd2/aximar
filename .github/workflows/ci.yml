@@ -60,6 +60,42 @@ jobs:
             msgfmt --check --output-file=/dev/null "$po"
           done
 
+  # The translators' gallery: Storybook, with a screenshot of every story
+  # in every language.  Uploaded as an artifact; see docs/i18n.md.
+  gallery:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install npm dependencies
+        run: npm ci
+
+      - name: Install Chromium for Playwright
+        run: npx playwright install --with-deps chromium
+
+      - name: Build Storybook and take the screenshots
+        run: npm run i18n:gallery
+
+      # The stories each string appears in become `#. screen:` comments
+      # in the catalog; say so when they've moved
+      - name: Check the screens are current
+        run: |
+          if ! git diff --quiet -- locales/screens.json; then
+            echo "::warning::locales/screens.json changed: run npm run i18n:gallery, then scripts/i18n-extract, and commit both"
+          fi
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: translator-gallery
+          path: storybook-static
+
   test:
     runs-on: ubuntu-latest
 

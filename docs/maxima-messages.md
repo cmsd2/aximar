@@ -6,7 +6,7 @@ Each explanation Aximar gives for something Maxima printed, by its ID. The ID is
 
 ## `error.algsys_failed`
 
-Covers: "algsys: Couldn't reduce system to a polynomial in one variable."
+Covers: "algsys: Couldn't reduce system to a polynomial in one variable." screen: errors--all-explanations
 
 | Field | English |
 |---|---|
@@ -16,7 +16,7 @@ Covers: "algsys: Couldn't reduce system to a polynomial in one variable."
 
 ## `error.arg_count`
 
-Covers: "Too many arguments supplied to f(x); found: [1, 2]" or "Too few ..."
+Covers: "Too many arguments supplied to f(x); found: [1, 2]" or "Too few ..." screen: errors--all-explanations
 
 Parameters: `definition`, `found`, `func`, `signatures`
 
@@ -32,7 +32,7 @@ Parameters: `definition`, `found`, `func`, `signatures`
 
 ## `error.assign_target`
 
-Covers: "assignment: cannot assign to 2"
+Covers: "assignment: cannot assign to 2" screen: errors--all-explanations
 
 Parameters: `target`
 
@@ -44,7 +44,7 @@ Parameters: `target`
 
 ## `error.cancelled`
 
-Covers: the user stopped a running cell
+Covers: the user stopped a running cell screen: errors--all-explanations
 
 | Field | English |
 |---|---|
@@ -53,7 +53,7 @@ Covers: the user stopped a running cell
 
 ## `error.divergent_integral`
 
-Covers: "defint: integral is divergent."
+Covers: "defint: integral is divergent." screen: errors--all-explanations
 
 | Field | English |
 |---|---|
@@ -63,7 +63,7 @@ Covers: "defint: integral is divergent."
 
 ## `error.division_by_zero`
 
-Covers: "expt: undefined: 0 to a negative exponent." or "Division by 0"
+Covers: "expt: undefined: 0 to a negative exponent." or "Division by 0" screen: cells--notebook screen: errors--all-explanations screen: errors--translated-maxima-error
 
 | Field | English |
 |---|---|
@@ -73,7 +73,7 @@ Covers: "expt: undefined: 0 to a negative exponent." or "Division by 0"
 
 ## `error.empty_list`
 
-Covers: "first: empty argument.", or the same from last and others
+Covers: "first: empty argument.", or the same from last and others screen: errors--all-explanations
 
 Parameters: `func`
 
@@ -85,7 +85,7 @@ Parameters: `func`
 
 ## `error.float_overflow`
 
-Covers: "Maxima encountered a Lisp error: arithmetic error FLOATING-POINT-OVERFLOW signalled"
+Covers: "Maxima encountered a Lisp error: arithmetic error FLOATING-POINT-OVERFLOW signalled" screen: errors--all-explanations
 
 | Field | English |
 |---|---|
@@ -95,7 +95,7 @@ Covers: "Maxima encountered a Lisp error: arithmetic error FLOATING-POINT-OVERFL
 
 ## `error.incomplete_input`
 
-Covers: "incorrect syntax: Premature termination of input at ;."
+Covers: "incorrect syntax: Premature termination of input at ;." screen: errors--all-explanations
 
 | Field | English |
 |---|---|
@@ -105,7 +105,7 @@ Covers: "incorrect syntax: Premature termination of input at ;."
 
 ## `error.inconsistent_equations`
 
-Covers: "solve: inconsistent equations" and similar
+Covers: "solve: inconsistent equations" and similar screen: errors--all-explanations
 
 | Field | English |
 |---|---|
@@ -115,7 +115,7 @@ Covers: "solve: inconsistent equations" and similar
 
 ## `error.lisp`
 
-Covers: "Maxima encountered a Lisp error:" and any other condition
+Covers: "Maxima encountered a Lisp error:" and any other condition screen: errors--all-explanations
 
 Parameters: `condition`
 
@@ -127,7 +127,7 @@ Parameters: `condition`
 
 ## `error.lisp_type`
 
-Covers: "Maxima encountered a Lisp error: The value 1 is not of type LIST"
+Covers: "Maxima encountered a Lisp error: The value 1 is not of type LIST" screen: errors--all-explanations
 
 Parameters: `lisp_type`, `value`
 
@@ -139,7 +139,7 @@ Parameters: `lisp_type`, `value`
 
 ## `error.log_zero`
 
-Covers: "log: encountered log(0)."
+Covers: "log: encountered log(0)." screen: errors--all-explanations
 
 | Field | English |
 |---|---|
@@ -149,7 +149,7 @@ Covers: "log: encountered log(0)."
 
 ## `error.matrix_dimension`
 
-Covers: "matrix: all rows must be the same length." or "incompatible dimensions"
+Covers: "matrix: all rows must be the same length." or "incompatible dimensions" screen: errors--all-explanations
 
 | Field | English |
 |---|---|
@@ -159,7 +159,7 @@ Covers: "matrix: all rows must be the same length." or "incompatible dimensions"
 
 ## `error.not_polynomial`
 
-Covers: "allroots: expected a polynomial; found sin(x)"
+Covers: "allroots: expected a polynomial; found sin(x)" screen: errors--all-explanations
 
 Parameters: `found`, `func`
 
@@ -171,7 +171,7 @@ Parameters: `found`, `func`
 
 ## `error.package_not_found`
 
-Covers: "loadfile: failed to load x" or "Cannot find file x"
+Covers: "loadfile: failed to load x" or "Cannot find file x" screen: errors--all-explanations
 
 Parameters: `package`
 
@@ -184,7 +184,7 @@ Parameters: `package`
 
 ## `error.part_atom`
 
-Covers: "part: argument must be a non-atomic expression; found x"
+Covers: "part: argument must be a non-atomic expression; found x" screen: errors--all-explanations
 
 Parameters: `found`, `func`
 
@@ -196,7 +196,7 @@ Parameters: `found`, `func`
 
 ## `error.part_index`
 
-Covers: "part: fell off the end.", or the same from inpart or rest
+Covers: "part: fell off the end.", or the same from inpart or rest screen: errors--all-explanations
 
 Parameters: `func`
 
@@ -208,7 +208,7 @@ Parameters: `func`
 
 ## `error.recursion`
 
-Covers: "Maxima encountered a Lisp error: Control stack exhausted ..."
+Covers: "Maxima encountered a Lisp error: Control stack exhausted ..." screen: errors--all-explanations
 
 | Field | English |
 |---|---|
@@ -218,7 +218,7 @@ Covers: "Maxima encountered a Lisp error: Control stack exhausted ..."
 
 ## `error.syntax`
 
-Covers: any other "incorrect syntax: ..." message
+Covers: any other "incorrect syntax: ..." message screen: errors--all-explanations
 
 Parameters: `message`
 
@@ -230,7 +230,7 @@ Parameters: `message`
 
 ## `error.syntax_missing`
 
-Covers: "incorrect syntax: Missing )", or another closing delimiter
+Covers: "incorrect syntax: Missing )", or another closing delimiter screen: errors--all-explanations
 
 Parameters: `delimiter`
 
@@ -242,7 +242,7 @@ Parameters: `delimiter`
 
 ## `error.syntax_operator`
 
-Covers: "incorrect syntax: y is not an infix operator" or "! is not a prefix operator"
+Covers: "incorrect syntax: y is not an infix operator" or "! is not a prefix operator" screen: errors--all-explanations
 
 Parameters: `token`
 
@@ -255,7 +255,7 @@ Parameters: `token`
 
 ## `error.timeout`
 
-Covers: Aximar stopped a cell that ran longer than the evaluation timeout
+Covers: Aximar stopped a cell that ran longer than the evaluation timeout screen: errors--all-explanations
 
 Parameters: `seconds`
 
@@ -267,7 +267,7 @@ Parameters: `seconds`
 
 ## `error.undefined_variable`
 
-Covers: "unbound variable x" or "undefined variable x"
+Covers: "unbound variable x" or "undefined variable x" screen: errors--all-explanations
 
 Parameters: `name`
 
@@ -279,7 +279,7 @@ Parameters: `name`
 
 ## `error.unknown_function`
 
-Covers: "funcall: no such function: f" or "The function f is not known to Maxima"
+Covers: "funcall: no such function: f" or "The function f is not known to Maxima" screen: errors--all-explanations
 
 Parameters: `func`, `package`
 
@@ -293,7 +293,7 @@ Parameters: `func`, `package`
 
 ## `note.plot_non_numeric`
 
-Covers: "plot2d: expression evaluates to non-numeric value somewhere in plotting range." function is plot2d or plot3d
+Covers: "plot2d: expression evaluates to non-numeric value somewhere in plotting range." function is plot2d or plot3d screen: notes--all-notes
 
 Parameters: `function`
 
@@ -303,7 +303,7 @@ Parameters: `function`
 
 ## `note.principal_value`
 
-Covers: "Principal Value", from integrate
+Covers: "Principal Value", from integrate screen: notes--all-notes
 
 | Field | English |
 |---|---|
@@ -311,7 +311,7 @@ Covers: "Principal Value", from integrate
 
 ## `note.quadrature_undefined`
 
-Covers: "quad_qags: Numerical evaluation of f at 0.0 is not a float or is not defined". function is a quadrature function; expr a Maxima expression; point a number
+Covers: "quad_qags: Numerical evaluation of f at 0.0 is not a float or is not defined". function is a quadrature function; expr a Maxima expression; point a number screen: notes--all-notes
 
 Parameters: `expr`, `function`, `point`
 
@@ -321,7 +321,7 @@ Parameters: `expr`, `function`, `point`
 
 ## `note.rat_replaced`
 
-Covers: "rat: replaced 0.5 by 1/2 = 0.5", one line per number. replacements lists them, such as "0.25 → 1/4, 0.5 → 1/2"
+Covers: "rat: replaced 0.5 by 1/2 = 0.5", one line per number. replacements lists them, such as "0.25 → 1/4, 0.5 → 1/2" screen: cells--notebook screen: notes--all-notes
 
 Parameters: `replacements`
 
@@ -331,7 +331,7 @@ Parameters: `replacements`
 
 ## `note.solve_arc_trig`
 
-Covers: "solve: using arc-trig functions to get a solution. Some solutions will be lost."
+Covers: "solve: using arc-trig functions to get a solution. Some solutions will be lost." screen: notes--all-notes
 
 | Field | English |
 |---|---|
@@ -339,7 +339,7 @@ Covers: "solve: using arc-trig functions to get a solution. Some solutions will 
 
 ## `note.solve_dependent`
 
-Covers: "solve: dependent equations eliminated: (2)". equations lists their positions, such as (2)
+Covers: "solve: dependent equations eliminated: (2)". equations lists their positions, such as (2) screen: notes--all-notes
 
 Parameters: `equations`
 
@@ -349,7 +349,7 @@ Parameters: `equations`
 
 ## `note.tellsimp_noncommutative`
 
-Covers: "tellsimp: warning: rule will treat '+' as noncommutative and nonassociative."
+Covers: "tellsimp: warning: rule will treat '+' as noncommutative and nonassociative." screen: notes--all-notes
 
 | Field | English |
 |---|---|
@@ -357,7 +357,7 @@ Covers: "tellsimp: warning: rule will treat '+' as noncommutative and nonassocia
 
 ## `note.zero_power`
 
-Covers: "expt: undefined: 0 to a negative exponent.", in a cell that still has a result
+Covers: "expt: undefined: 0 to a negative exponent.", in a cell that still has a result screen: notes--all-notes
 
 | Field | English |
 |---|---|
@@ -365,7 +365,7 @@ Covers: "expt: undefined: 0 to a negative exponent.", in a cell that still has a
 
 ## `question.equal`
 
-Covers: "Maxima needs to know: Is a equal to -1?"
+Covers: "Maxima needs to know: Is a equal to -1?" screen: errors--all-explanations
 
 Parameters: `a`, `b`, `line`
 
@@ -377,7 +377,7 @@ Parameters: `a`, `b`, `line`
 
 ## `question.other`
 
-Covers: "Maxima needs to know: ..." with any other question
+Covers: "Maxima needs to know: ..." with any other question screen: errors--all-explanations
 
 Parameters: `question`
 
@@ -389,7 +389,7 @@ Parameters: `question`
 
 ## `question.property`
 
-Covers: "Maxima needs to know: Is n an integer?", or another property
+Covers: "Maxima needs to know: Is n an integer?", or another property screen: errors--all-explanations
 
 Parameters: `expr`, `line`, `property`
 
@@ -401,7 +401,7 @@ Parameters: `expr`, `line`, `property`
 
 ## `question.sign`
 
-Covers: "Maxima needs to know: Is a positive, negative or zero?"
+Covers: "Maxima needs to know: Is a positive, negative or zero?" screen: errors--all-explanations
 
 Parameters: `expr`, `line`
 
@@ -413,7 +413,7 @@ Parameters: `expr`, `line`
 
 ## `question.sign_nz`
 
-Covers: "Maxima needs to know: Is a negative or zero?"
+Covers: "Maxima needs to know: Is a negative or zero?" screen: errors--all-explanations
 
 Parameters: `expr`, `line`
 
@@ -425,7 +425,7 @@ Parameters: `expr`, `line`
 
 ## `question.sign_pn`
 
-Covers: "Maxima needs to know: Is k positive or negative?"
+Covers: "Maxima needs to know: Is k positive or negative?" screen: errors--all-explanations
 
 Parameters: `expr`, `line`
 
@@ -437,7 +437,7 @@ Parameters: `expr`, `line`
 
 ## `question.sign_pz`
 
-Covers: "Maxima needs to know: Is a positive or zero?"
+Covers: "Maxima needs to know: Is a positive or zero?" screen: errors--all-explanations
 
 Parameters: `expr`, `line`
 
@@ -449,7 +449,7 @@ Parameters: `expr`, `line`
 
 ## `question.zero`
 
-Covers: "Maxima needs to know: Is x zero or nonzero?"
+Covers: "Maxima needs to know: Is x zero or nonzero?" screen: errors--all-explanations
 
 Parameters: `expr`, `line`
 

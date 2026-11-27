@@ -39,6 +39,7 @@ import {
 } from "./lib/notebooks-client";
 import { getConfig, markdownFontStack, applyPrintMargins } from "./lib/config-client";
 import { activateLanguage } from "./lib/i18n";
+import { TRANSLATOR_TOOLS, applyPreview, type PreviewCatalog } from "./lib/translation-preview";
 import { useNotebookStore, useActiveAnyTab, getActiveTabState } from "./store/notebookStore";
 import { mapSyncCells, openNotebookTab } from "./hooks/useNotebookEvents";
 import { PlotViewer } from "./components/PlotViewer";
@@ -116,6 +117,17 @@ function App() {
       })
       .catch((e) => addLogEntry("error", `Failed to load config: ${e}`, "config"));
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // A translation file being previewed was loaded or saved (pre-release builds)
+  useEffect(() => {
+    if (!TRANSLATOR_TOOLS) return;
+    const unlisten = listen<PreviewCatalog>("translation-preview", (event) => {
+      void applyPreview(event.payload);
+    });
+    return () => {
+      unlisten.then((fn) => fn());
+    };
+  }, []);
 
   // The language setting changed, in this window or another
   useEffect(() => {

@@ -158,6 +158,11 @@ mod tests {
         assert!(!languages().contains(&"pseudo"));
     }
 
+    #[test]
+    fn spanish_is_offered() {
+        assert!(languages().contains(&"es"));
+    }
+
     const ES: &str = r#"msgid ""
 msgstr ""
 "Language: es\n"

@@ -27,3 +27,5 @@ src-tauri/gen/
 # Temp
 *.log
 /tmp/
+
+storybook-static/

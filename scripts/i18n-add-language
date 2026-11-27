@@ -1,0 +1,43 @@
+#!/bin/sh
+# Adds a language: locales/<lang>.po from the template, with Maxima's own
+# catalog for the language suggesting translations, marked fuzzy for a
+# translator to review.  See docs/i18n.md, "Adding a language".
+#
+#   scripts/i18n-add-language es [path/to/maxima/locale/es.po]
+#
+# Without a path, Maxima's catalog is looked for in ../maxima/locale/.
+set -eu
+
+cd "$(dirname "$0")/.."
+
+lang="${1:?usage: $0 <lang> [maxima-catalog.po]}"
+maxima_po="${2:-../maxima/locale/$lang.po}"
+po="locales/$lang.po"
+
+if [ -f "$po" ]; then
+  echo "$po exists already" >&2
+  exit 1
+fi
+
+msginit --no-translator --no-wrap --locale="$lang" \
+  --input=locales/messages.pot --output-file="$po"
+# msginit --no-translator leaves out the revision date, which msgfmt -c
+# warns about
+sed -i.bak 's/^"Report-Msgid-Bugs-To: .*\\n"$/&\
+"PO-Revision-Date: \\n"/' "$po" && rm -f "$po.bak"
+
+if [ -f "$maxima_po" ]; then
+  work=$(mktemp -d)
+  trap 'rm -rf "$work"' EXIT
+  # Maxima's translations as suggestions: msgmerge marks those it matches
+  # only approximately as fuzzy, so they show only once reviewed
+  msgmerge --quiet --previous --no-wrap --compendium="$maxima_po" \
+    --output-file="$work/seeded.po" "$po" locales/messages.pot
+  cp "$work/seeded.po" "$po"
+  echo "seeded $po from $maxima_po"
+else
+  echo "no Maxima catalog at $maxima_po: $po starts empty" >&2
+fi
+
+msgfmt --check --statistics --output-file=/dev/null "$po"
+echo "Add \"$lang\" to locales in lingui.config.ts."

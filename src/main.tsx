@@ -4,6 +4,12 @@ import { I18nProvider } from "@lingui/react";
 import App from "./App";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { i18n, activateDevelopmentLocale } from "./lib/i18n";
+import { TRANSLATOR_TOOLS } from "./lib/translation-preview";
+import { installSourceTags } from "./lib/show-sources";
+import { TranslatorTools } from "./components/TranslatorTools";
+
+// Pre-release builds: strings can carry their IDs, for show-sources
+if (TRANSLATOR_TOOLS) installSourceTags(i18n);
 
 // Async errors (rejected promises from Plotly, IPC, etc.) are not caught by
 // React error boundaries. Log them instead of letting them surface as an
@@ -18,6 +24,7 @@ ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
       <ErrorBoundary>
         <App />
       </ErrorBoundary>
+      {TRANSLATOR_TOOLS && <TranslatorTools />}
     </I18nProvider>
   </React.StrictMode>,
 );

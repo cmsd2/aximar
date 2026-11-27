@@ -3172,3 +3172,36 @@
   background: color-mix(in srgb, var(--color-text-muted, #888) 10%, transparent);
 }
 
+
+/* Show sources, in pre-release builds (SourcesOverlay.tsx) */
+.sources-overlay {
+  position: fixed;
+  z-index: 10000;
+  max-width: 420px;
+  padding: 8px 10px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
+  font-size: 12px;
+  pointer-events: none;
+}
+
+.sources-entry + .sources-entry {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid var(--border-color);
+}
+
+.sources-msgid {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.sources-detail {
+  color: var(--text-secondary);
+}
+
+.sources-file {
+  font-family: "JetBrains Mono", "Fira Code", "SF Mono", Menlo, Consolas, monospace;
+}

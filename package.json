@@ -9,7 +9,10 @@
     "build": "tsc && vite build",
     "preview": "vite preview",
     "tauri": "tauri",
-    "test": "vitest run"
+    "test": "vitest run",
+    "storybook": "storybook dev -p 6006",
+    "build-storybook": "storybook build",
+    "i18n:gallery": "storybook build -o storybook-static --quiet && node scripts/i18n-gallery.mjs"
   },
   "dependencies": {
     "@codemirror/autocomplete": "^6.20.1",
@@ -44,6 +47,7 @@
     "@lingui/cli": "^6.12.0",
     "@lingui/format-po-gettext": "^6.12.0",
     "@lingui/vite-plugin": "^6.12.0",
+    "@storybook/react-vite": "^10.6.7",
     "@tauri-apps/cli": "^2",
     "@types/katex": "^0.16.0",
     "@types/plotly.js": "^3.0.10",
@@ -51,6 +55,8 @@
     "@types/react-dom": "^19.1.6",
     "@vitejs/plugin-react": "^4.6.0",
     "happy-dom": "^21.0.4",
+    "playwright": "^1.65.0",
+    "storybook": "^10.6.7",
     "typescript": "~5.8.3",
     "vite": "^7.0.4",
     "vitest": "^3.2.7"

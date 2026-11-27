@@ -8,6 +8,9 @@ i18n.activate("en");
 
 export { i18n };
 
+/** The English catalog, which other languages fall back to */
+export const englishMessages: Messages = en;
+
 /** Each language's catalog, compiled by the Lingui Vite plugin on import */
 const catalogs = import.meta.glob<{ messages: Messages }>([
   "../../locales/*.po",
@@ -15,8 +18,17 @@ const catalogs = import.meta.glob<{ messages: Messages }>([
   "!../../locales/pseudo.po",
 ]);
 
-/** True while the development pseudo-locale is on, which a setting doesn't override */
-let pseudo = false;
+/**
+ * True while the pseudo-locale or a translation preview is on: the
+ * language setting doesn't override either
+ */
+let override = false;
+
+/** Turn the override on or off; off goes back to `language` */
+export async function setLanguageOverride(on: boolean, language?: string): Promise<void> {
+  override = on;
+  if (!on && language) await activateLanguage(language);
+}
 
 /**
  * Show the window in `language`, such as `es`: at start, and when the
@@ -24,7 +36,7 @@ let pseudo = false;
  * I18nProvider re-renders the window.
  */
 export async function activateLanguage(language: string): Promise<void> {
-  if (pseudo) return;
+  if (override) return;
   const load = catalogs[`../../locales/${language}.po`];
   if (language === "en" || !load) {
     i18n.activate("en");
@@ -53,7 +65,7 @@ export function languageName(language: string): string {
  */
 export async function activateDevelopmentLocale(): Promise<void> {
   if (import.meta.env.DEV && import.meta.env.VITE_AXIMAR_LOCALE === "pseudo") {
-    pseudo = true;
+    override = true;
     const { messages } = await import("../../locales/pseudo.po");
     i18n.load("pseudo", messages);
     i18n.activate("pseudo");

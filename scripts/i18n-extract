@@ -56,6 +56,11 @@ msgcat --use-first --no-wrap --to-code=UTF-8 \
   "$work/header.pot" "$work/window/messages.pot" "$work/rust.pot" \
   --output-file="$work/messages.pot"
 
+# Which Storybook stories show each string, from scripts/i18n-gallery.mjs
+if [ -f locales/screens.json ]; then
+  node scripts/i18n-screens.mjs "$work/messages.pot"
+fi
+
 # A catalog for every language the window loads, merged with the template.
 # English is the source and needs no translations; `pseudo` is generated
 # from the English at build time.  Add a language with
@@ -109,9 +114,9 @@ if $stale; then
   exit 1
 fi
 
-# The list of Aximar's messages about Maxima, from the template.  The
+# The list of Aximar's messages about Maxima, from the template, and the
+# Storybook gallery's fixtures of them.  The
 # test job checks it, since this script's CI job has no Rust.
 if ! $check; then
-  AXIMAR_UPDATE_DOCS=1 cargo test --quiet -p aximar-core --test maxima_messages \
-    the_list_of_messages_is_current >/dev/null
+  AXIMAR_UPDATE_DOCS=1 cargo test --quiet -p aximar-core --test maxima_messages >/dev/null
 fi

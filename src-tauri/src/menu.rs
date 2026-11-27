@@ -98,7 +98,13 @@ impl MenuLabels {
 /// Build the menu bar in `language` and use it: at start, and again when
 /// the language changes
 pub fn set_menu_language(app: &AppHandle, language: &str) -> tauri::Result<()> {
-    let l = MenuLabels::new(&Translations::for_language(language));
+    set_menu_translations(app, &Translations::for_language(language))
+}
+
+/// Build the menu bar from `translations` and use it, as for a translation
+/// preview
+pub fn set_menu_translations(app: &AppHandle, translations: &Translations) -> tauri::Result<()> {
+    let l = MenuLabels::new(translations);
 
     // --- Custom menu items ---
 

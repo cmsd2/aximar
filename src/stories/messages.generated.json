@@ -1,0 +1,1297 @@
+{
+  "explanations": [
+    {
+      "error": "expt: undefined: 0 to a negative exponent.",
+      "error_info": {
+        "correct_signatures": [],
+        "did_you_mean": [],
+        "example": null,
+        "explanation": "The expression involves division by zero or raising zero to a negative power, which is undefined.",
+        "id": "error.division_by_zero",
+        "messages": {
+          "explanation": {
+            "id": "error.division_by_zero.explanation",
+            "template": "The expression involves division by zero or raising zero to a negative power, which is undefined."
+          },
+          "suggestion": {
+            "id": "error.division_by_zero.suggestion",
+            "template": "Check your denominator or exponent for cases where the value might be zero."
+          },
+          "title": {
+            "id": "error.division_by_zero.title",
+            "template": "Division by Zero"
+          }
+        },
+        "params": {},
+        "suggestion": "Check your denominator or exponent for cases where the value might be zero.",
+        "title": "Division by Zero"
+      }
+    },
+    {
+      "error": "incorrect syntax: Premature termination of input at ;.",
+      "error_info": {
+        "correct_signatures": [],
+        "did_you_mean": [],
+        "example": null,
+        "explanation": "The expression ended unexpectedly. This usually means a missing closing parenthesis, bracket, or semicolon.",
+        "id": "error.incomplete_input",
+        "messages": {
+          "explanation": {
+            "id": "error.incomplete_input.explanation",
+            "template": "The expression ended unexpectedly. This usually means a missing closing parenthesis, bracket, or semicolon."
+          },
+          "suggestion": {
+            "id": "error.incomplete_input.suggestion",
+            "template": "Check that all parentheses () and brackets [] are matched, and the expression ends with ; or $"
+          },
+          "title": {
+            "id": "error.incomplete_input.title",
+            "template": "Incomplete Expression"
+          }
+        },
+        "params": {},
+        "suggestion": "Check that all parentheses () and brackets [] are matched, and the expression ends with ; or $",
+        "title": "Incomplete Expression"
+      }
+    },
+    {
+      "error": "incorrect syntax: Missing )",
+      "error_info": {
+        "correct_signatures": [],
+        "did_you_mean": [],
+        "example": null,
+        "explanation": "A closing ) is missing.",
+        "id": "error.syntax_missing",
+        "messages": {
+          "explanation": {
+            "id": "error.syntax_missing.explanation",
+            "template": "A closing {delimiter} is missing."
+          },
+          "suggestion": {
+            "id": "error.syntax_missing.suggestion",
+            "template": "Check that every opening bracket has its closing {delimiter}, in the right order."
+          },
+          "title": {
+            "id": "error.syntax_missing.title",
+            "template": "Syntax Error"
+          }
+        },
+        "params": {
+          "delimiter": ")"
+        },
+        "suggestion": "Check that every opening bracket has its closing ), in the right order.",
+        "title": "Syntax Error"
+      }
+    },
+    {
+      "error": "incorrect syntax: ! is not a prefix operator",
+      "error_info": {
+        "correct_signatures": [],
+        "did_you_mean": [],
+        "example": null,
+        "explanation": "\"!\" can't start an expression here. Check for a missing operand or a misplaced operator.",
+        "id": "error.syntax_operator",
+        "messages": {
+          "explanation": {
+            "id": "error.syntax_operator.explanation.prefix",
+            "template": "\"{token}\" can't start an expression here. Check for a missing operand or a misplaced operator."
+          },
+          "suggestion": {
+            "id": "error.syntax_operator.suggestion",
+            "template": "Check for missing *, +, or other operators. Ensure all parentheses are matched."
+          },
+          "title": {
+            "id": "error.syntax_operator.title",
+            "template": "Syntax Error"
+          }
+        },
+        "params": {
+          "token": "!"
+        },
+        "suggestion": "Check for missing *, +, or other operators. Ensure all parentheses are matched.",
+        "title": "Syntax Error"
+      }
+    },
+    {
+      "error": "incorrect syntax: y is not an infix operator",
+      "error_info": {
+        "correct_signatures": [],
+        "did_you_mean": [],
+        "example": null,
+        "explanation": "Two values appear next to each other without an operator between them, before \"y\".",
+        "id": "error.syntax_operator",
+        "messages": {
+          "explanation": {
+            "id": "error.syntax_operator.explanation.infix",
+            "template": "Two values appear next to each other without an operator between them, before \"{token}\"."
+          },
+          "suggestion": {
+            "id": "error.syntax_operator.suggestion",
+            "template": "Check for missing *, +, or other operators. Ensure all parentheses are matched."
+          },
+          "title": {
+            "id": "error.syntax_operator.title",
+            "template": "Syntax Error"
+          }
+        },
+        "params": {
+          "token": "y"
+        },
+        "suggestion": "Check for missing *, +, or other operators. Ensure all parentheses are matched.",
+        "title": "Syntax Error"
+      }
+    },
+    {
+      "error": "incorrect syntax: Too many )'s",
+      "error_info": {
+        "correct_signatures": [],
+        "did_you_mean": [],
+        "example": null,
+        "explanation": "The expression contains a syntax error: Too many )'s. Check for missing operators, unmatched parentheses, or misplaced characters.",
+        "id": "error.syntax",
+        "messages": {
+          "explanation": {
+            "id": "error.syntax.explanation",
+            "template": "The expression contains a syntax error: {message}. Check for missing operators, unmatched parentheses, or misplaced characters."
+          },
+          "suggestion": {
+            "id": "error.syntax.suggestion",
+            "template": "Check for missing *, +, or other operators. Ensure all parentheses are matched."
+          },
+          "title": {
+            "id": "error.syntax.title",
+            "template": "Syntax Error"
+          }
+        },
+        "params": {
+          "message": "Too many )'s"
+        },
+        "suggestion": "Check for missing *, +, or other operators. Ensure all parentheses are matched.",
+        "title": "Syntax Error"
+      }
+    },
+    {
+      "error": "Too many arguments supplied to f(x); found: [1,2]",
+      "error_info": {
+        "correct_signatures": [],
+        "did_you_mean": [],
+        "example": null,
+        "explanation": "f is defined as f(x), but was called with [1,2].",
+        "id": "error.arg_count",
+        "messages": {
+          "explanation": {
+            "id": "error.arg_count.explanation",
+            "template": "{func} is defined as {definition}, but was called with {found}."
+          },
+          "suggestion": {
+            "id": "error.arg_count.suggestion",
+            "template": "Call {func} with the arguments {definition} names, or change its definition."
+          },
+          "title": {
+            "id": "error.arg_count.title",
+            "template": "Wrong Argument Count"
+          }
+        },
+        "params": {
+          "definition": "f(x)",
+          "found": "[1,2]",
+          "func": "f"
+        },
+        "suggestion": "Call f with the arguments f(x) names, or change its definition.",
+        "title": "Wrong Argument Count"
+      }
+    },
+    {
+      "error": "Too few arguments supplied to integrate; found: 0",
+      "error_info": {
+        "correct_signatures": [
+          "integrate(expr, x)",
+          "integrate(expr, x, a, b)"
+        ],
+        "did_you_mean": [],
+        "example": null,
+        "explanation": "Too few arguments were passed to integrate.",
+        "id": "error.arg_count",
+        "messages": {
+          "explanation": {
+            "id": "error.arg_count.explanation.too_few",
+            "template": "Too few arguments were passed to {func}."
+          },
+          "suggestion": {
+            "id": "error.arg_count.suggestion.signatures",
+            "template": "Correct usage: {signatures}"
+          },
+          "title": {
+            "id": "error.arg_count.title",
+            "template": "Wrong Argument Count"
+          }
+        },
+        "params": {
+          "func": "integrate",
+          "signatures": "integrate(expr, x); integrate(expr, x, a, b)"
+        },
+        "suggestion": "Correct usage: integrate(expr, x); integrate(expr, x, a, b)",
+        "title": "Wrong Argument Count"
+      }
+    },
+    {
+      "error": "Too few arguments supplied to myfunc",
+      "error_info": {
+        "correct_signatures": [],
+        "did_you_mean": [],
+        "example": null,
+        "explanation": "Too few arguments were passed to myfunc.",
+        "id": "error.arg_count",
+        "messages": {
+          "explanation": {
+            "id": "error.arg_count.explanation.too_few",
+            "template": "Too few arguments were passed to {func}."
+          },
+          "suggestion": {
+            "id": "error.arg_count.suggestion.describe",
+            "template": "Check the documentation for {func} with describe({func})."
+          },
+          "title": {
+            "id": "error.arg_count.title",
+            "template": "Wrong Argument Count"
+          }
+        },
+        "params": {
+          "func": "myfunc"
+        },
+        "suggestion": "Check the documentation for myfunc with describe(myfunc).",
+        "title": "Wrong Argument Count"
+      }
+    },
+    {
+      "error": "Too many arguments supplied to myfunc",
+      "error_info": {
+        "correct_signatures": [],
+        "did_you_mean": [],
+        "example": null,
+        "explanation": "Too many arguments were passed to myfunc.",
+        "id": "error.arg_count",
+        "messages": {
+          "explanation": {
+            "id": "error.arg_count.explanation.too_many",
+            "template": "Too many arguments were passed to {func}."
+          },
+          "suggestion": {
+            "id": "error.arg_count.suggestion.describe",
+            "template": "Check the documentation for {func} with describe({func})."
+          },
+          "title": {
+            "id": "error.arg_count.title",
+            "template": "Wrong Argument Count"
+          }
+        },
+        "params": {
+          "func": "myfunc"
+        },
+        "suggestion": "Check the documentation for myfunc with describe(myfunc).",
+        "title": "Wrong Argument Count"
+      }
+    },
+    {
+      "error": "unbound variable foo",
+      "error_info": {
+        "correct_signatures": [],
+        "did_you_mean": [],
+        "example": "foo: 42;",
+        "explanation": "The variable \"foo\" has not been assigned a value.",
+        "id": "error.undefined_variable",
+        "messages": {
+          "explanation": {
+            "id": "error.undefined_variable.explanation",
+            "template": "The variable \"{name}\" has not been assigned a value."
+          },
+          "suggestion": {
+            "id": "error.undefined_variable.suggestion",
+            "template": "Assign it first with {name}: value; or use it as a symbolic variable."
+          },
+          "title": {
+            "id": "error.undefined_variable.title",
+            "template": "Undefined Variable"
+          }
+        },
+        "params": {
+          "name": "foo"
+        },
+        "suggestion": "Assign it first with foo: value; or use it as a symbolic variable.",
+        "title": "Undefined Variable"
+      }
+    },
+    {
+      "error": "funcall: no such function: pdf_normal",
+      "error_info": {
+        "correct_signatures": [],
+        "did_you_mean": [],
+        "example": "load(\"distrib\")$",
+        "explanation": "\"pdf_normal\" is provided by the \"distrib\" package, which needs to be loaded first.",
+        "id": "error.unknown_function",
+        "messages": {
+          "explanation": {
+            "id": "error.unknown_function.explanation.in_package",
+            "template": "\"{func}\" is provided by the \"{package}\" package, which needs to be loaded first."
+          },
+          "suggestion": {
+            "id": "error.unknown_function.suggestion.in_package",
+            "template": "Add load(\"{package}\")$ before using this function."
+          },
+          "title": {
+            "id": "error.unknown_function.title",
+            "template": "Unknown Function"
+          }
+        },
+        "params": {
+          "func": "pdf_normal",
+          "package": "distrib"
+        },
+        "suggestion": "Add load(\"distrib\")$ before using this function.",
+        "title": "Unknown Function"
+      }
+    },
+    {
+      "error": "funcall: no such function: intgrate",
+      "error_info": {
+        "correct_signatures": [],
+        "did_you_mean": [
+          "integrate",
+          "untrace"
+        ],
+        "example": null,
+        "explanation": "\"intgrate\" is not a known Maxima function.",
+        "id": "error.unknown_function",
+        "messages": {
+          "explanation": {
+            "id": "error.unknown_function.explanation",
+            "template": "\"{func}\" is not a known Maxima function."
+          },
+          "title": {
+            "id": "error.unknown_function.title",
+            "template": "Unknown Function"
+          }
+        },
+        "params": {
+          "func": "intgrate"
+        },
+        "suggestion": null,
+        "title": "Unknown Function"
+      }
+    },
+    {
+      "error": "funcall: no such function: zzqqxx",
+      "error_info": {
+        "correct_signatures": [],
+        "did_you_mean": [],
+        "example": null,
+        "explanation": "\"zzqqxx\" is not a known Maxima function.",
+        "id": "error.unknown_function",
+        "messages": {
+          "explanation": {
+            "id": "error.unknown_function.explanation",
+            "template": "\"{func}\" is not a known Maxima function."
+          },
+          "suggestion": {
+            "id": "error.unknown_function.suggestion",
+            "template": "Check the spelling or use describe(\"{func}\") to search."
+          },
+          "title": {
+            "id": "error.unknown_function.title",
+            "template": "Unknown Function"
+          }
+        },
+        "params": {
+          "func": "zzqqxx"
+        },
+        "suggestion": "Check the spelling or use describe(\"zzqqxx\") to search.",
+        "title": "Unknown Function"
+      }
+    },
+    {
+      "error": "Maxima encountered a Lisp error: The value 1 is not of type LIST when binding LIST",
+      "error_info": {
+        "correct_signatures": [],
+        "did_you_mean": [],
+        "example": null,
+        "explanation": "A function inside Maxima expected a value of type list but got 1.",
+        "id": "error.lisp_type",
+        "messages": {
+          "explanation": {
+            "id": "error.lisp_type.explanation",
+            "template": "A function inside Maxima expected a value of type {lisp_type} but got {value}."
+          },
+          "suggestion": {
+            "id": "error.lisp_type.suggestion",
+            "template": "Check the arguments of the functions in this cell, especially Lisp functions called with ?, which don't check their arguments."
+          },
+          "title": {
+            "id": "error.lisp_type.title",
+            "template": "Wrong Kind of Value"
+          }
+        },
+        "params": {
+          "lisp_type": "list",
+          "value": "1"
+        },
+        "suggestion": "Check the arguments of the functions in this cell, especially Lisp functions called with ?, which don't check their arguments.",
+        "title": "Wrong Kind of Value"
+      }
+    },
+    {
+      "error": "Maxima encountered a Lisp error: Control stack exhausted (no more space for function call frames).",
+      "error_info": {
+        "correct_signatures": [],
+        "did_you_mean": [],
+        "example": null,
+        "explanation": "A function called itself, directly or through others, until Maxima ran out of room for the calls.",
+        "id": "error.recursion",
+        "messages": {
+          "explanation": {
+            "id": "error.recursion.explanation",
+            "template": "A function called itself, directly or through others, until Maxima ran out of room for the calls."
+          },
+          "suggestion": {
+            "id": "error.recursion.suggestion",
+            "template": "Check that each recursive function has a case that stops it, such as f(0) := 1."
+          },
+          "title": {
+            "id": "error.recursion.title",
+            "template": "Runaway Recursion"
+          }
+        },
+        "params": {},
+        "suggestion": "Check that each recursive function has a case that stops it, such as f(0) := 1.",
+        "title": "Runaway Recursion"
+      }
+    },
+    {
+      "error": "Maxima encountered a Lisp error: arithmetic error FLOATING-POINT-OVERFLOW signalled",
+      "error_info": {
+        "correct_signatures": [],
+        "did_you_mean": [],
+        "example": null,
+        "explanation": "A floating-point result was too large to represent.",
+        "id": "error.float_overflow",
+        "messages": {
+          "explanation": {
+            "id": "error.float_overflow.explanation",
+            "template": "A floating-point result was too large to represent."
+          },
+          "suggestion": {
+            "id": "error.float_overflow.suggestion",
+            "template": "Keep the computation exact, or use bfloat() for very large numbers."
+          },
+          "title": {
+            "id": "error.float_overflow.title",
+            "template": "Number Too Large"
+          }
+        },
+        "params": {},
+        "suggestion": "Keep the computation exact, or use bfloat() for very large numbers.",
+        "title": "Number Too Large"
+      }
+    },
+    {
+      "error": "Maxima encountered a Lisp error: Heap exhausted",
+      "error_info": {
+        "correct_signatures": [],
+        "did_you_mean": [],
+        "example": null,
+        "explanation": "Maxima encountered an internal error in the underlying Lisp system: Heap exhausted",
+        "id": "error.lisp",
+        "messages": {
+          "explanation": {
+            "id": "error.lisp.explanation",
+            "template": "Maxima encountered an internal error in the underlying Lisp system: {condition}"
+          },
+          "suggestion": {
+            "id": "error.lisp.suggestion",
+            "template": "Try restarting the Maxima session. If the error persists, the expression may be too complex or trigger a bug in Maxima."
+          },
+          "title": {
+            "id": "error.lisp.title",
+            "template": "Internal Error"
+          }
+        },
+        "params": {
+          "condition": "Heap exhausted"
+        },
+        "suggestion": "Try restarting the Maxima session. If the error persists, the expression may be too complex or trigger a bug in Maxima.",
+        "title": "Internal Error"
+      }
+    },
+    {
+      "error": "defint: integral is divergent.",
+      "error_info": {
+        "correct_signatures": [],
+        "did_you_mean": [],
+        "example": null,
+        "explanation": "The definite integral does not converge to a finite value.",
+        "id": "error.divergent_integral",
+        "messages": {
+          "explanation": {
+            "id": "error.divergent_integral.explanation",
+            "template": "The definite integral does not converge to a finite value."
+          },
+          "suggestion": {
+            "id": "error.divergent_integral.suggestion",
+            "template": "Check the integration bounds and integrand. The function may have singularities or not decay fast enough."
+          },
+          "title": {
+            "id": "error.divergent_integral.title",
+            "template": "Divergent Integral"
+          }
+        },
+        "params": {},
+        "suggestion": "Check the integration bounds and integrand. The function may have singularities or not decay fast enough.",
+        "title": "Divergent Integral"
+      }
+    },
+    {
+      "error": "solve: inconsistent equations",
+      "error_info": {
+        "correct_signatures": [],
+        "did_you_mean": [],
+        "example": null,
+        "explanation": "The system of equations has no solution: the equations contradict each other.",
+        "id": "error.inconsistent_equations",
+        "messages": {
+          "explanation": {
+            "id": "error.inconsistent_equations.explanation",
+            "template": "The system of equations has no solution: the equations contradict each other."
+          },
+          "suggestion": {
+            "id": "error.inconsistent_equations.suggestion",
+            "template": "Check that the equations are correct and compatible."
+          },
+          "title": {
+            "id": "error.inconsistent_equations.title",
+            "template": "Inconsistent Equations"
+          }
+        },
+        "params": {},
+        "suggestion": "Check that the equations are correct and compatible.",
+        "title": "Inconsistent Equations"
+      }
+    },
+    {
+      "error": "Maxima needs to know: Is x positive, negative or zero?",
+      "error_info": {
+        "correct_signatures": [],
+        "did_you_mean": [],
+        "example": "assume(x > 0)$",
+        "explanation": "Maxima needs to know whether x is positive, negative or zero to go on.",
+        "id": "question.sign",
+        "messages": {
+          "explanation": {
+            "id": "question.sign.explanation",
+            "template": "Maxima needs to know whether {expr} is positive, negative or zero to go on."
+          },
+          "suggestion": {
+            "id": "question.sign.suggestion",
+            "template": "Add {line} before this line, or in a cell above, and run it again."
+          },
+          "title": {
+            "id": "question.sign.title",
+            "template": "Maxima Needs to Know"
+          }
+        },
+        "params": {
+          "expr": "x",
+          "line": "assume(x > 0)$"
+        },
+        "suggestion": "Add assume(x > 0)$ before this line, or in a cell above, and run it again.",
+        "title": "Maxima Needs to Know"
+      }
+    },
+    {
+      "error": "Maxima needs to know: Is x positive or zero?",
+      "error_info": {
+        "correct_signatures": [],
+        "did_you_mean": [],
+        "example": "assume(x > 0)$",
+        "explanation": "Maxima needs to know whether x is positive or zero to go on.",
+        "id": "question.sign_pz",
+        "messages": {
+          "explanation": {
+            "id": "question.sign_pz.explanation",
+            "template": "Maxima needs to know whether {expr} is positive or zero to go on."
+          },
+          "suggestion": {
+            "id": "question.sign_pz.suggestion",
+            "template": "Add {line} before this line, or in a cell above, and run it again."
+          },
+          "title": {
+            "id": "question.sign_pz.title",
+            "template": "Maxima Needs to Know"
+          }
+        },
+        "params": {
+          "expr": "x",
+          "line": "assume(x > 0)$"
+        },
+        "suggestion": "Add assume(x > 0)$ before this line, or in a cell above, and run it again.",
+        "title": "Maxima Needs to Know"
+      }
+    },
+    {
+      "error": "Maxima needs to know: Is x negative or zero?",
+      "error_info": {
+        "correct_signatures": [],
+        "did_you_mean": [],
+        "example": "assume(x < 0)$",
+        "explanation": "Maxima needs to know whether x is negative or zero to go on.",
+        "id": "question.sign_nz",
+        "messages": {
+          "explanation": {
+            "id": "question.sign_nz.explanation",
+            "template": "Maxima needs to know whether {expr} is negative or zero to go on."
+          },
+          "suggestion": {
+            "id": "question.sign_nz.suggestion",
+            "template": "Add {line} before this line, or in a cell above, and run it again."
+          },
+          "title": {
+            "id": "question.sign_nz.title",
+            "template": "Maxima Needs to Know"
+          }
+        },
+        "params": {
+          "expr": "x",
+          "line": "assume(x < 0)$"
+        },
+        "suggestion": "Add assume(x < 0)$ before this line, or in a cell above, and run it again.",
+        "title": "Maxima Needs to Know"
+      }
+    },
+    {
+      "error": "Maxima needs to know: Is x positive or negative?",
+      "error_info": {
+        "correct_signatures": [],
+        "did_you_mean": [],
+        "example": "assume(x > 0)$",
+        "explanation": "Maxima needs to know whether x is positive or negative to go on.",
+        "id": "question.sign_pn",
+        "messages": {
+          "explanation": {
+            "id": "question.sign_pn.explanation",
+            "template": "Maxima needs to know whether {expr} is positive or negative to go on."
+          },
+          "suggestion": {
+            "id": "question.sign_pn.suggestion",
+            "template": "Add {line} before this line, or in a cell above, and run it again."
+          },
+          "title": {
+            "id": "question.sign_pn.title",
+            "template": "Maxima Needs to Know"
+          }
+        },
+        "params": {
+          "expr": "x",
+          "line": "assume(x > 0)$"
+        },
+        "suggestion": "Add assume(x > 0)$ before this line, or in a cell above, and run it again.",
+        "title": "Maxima Needs to Know"
+      }
+    },
+    {
+      "error": "Maxima needs to know: Is x zero or nonzero?",
+      "error_info": {
+        "correct_signatures": [],
+        "did_you_mean": [],
+        "example": "assume(notequal(x, 0))$",
+        "explanation": "Maxima needs to know whether x is zero to go on.",
+        "id": "question.zero",
+        "messages": {
+          "explanation": {
+            "id": "question.zero.explanation",
+            "template": "Maxima needs to know whether {expr} is zero to go on."
+          },
+          "suggestion": {
+            "id": "question.zero.suggestion",
+            "template": "Add {line} before this line, or in a cell above, and run it again."
+          },
+          "title": {
+            "id": "question.zero.title",
+            "template": "Maxima Needs to Know"
+          }
+        },
+        "params": {
+          "expr": "x",
+          "line": "assume(notequal(x, 0))$"
+        },
+        "suggestion": "Add assume(notequal(x, 0))$ before this line, or in a cell above, and run it again.",
+        "title": "Maxima Needs to Know"
+      }
+    },
+    {
+      "error": "Maxima needs to know: Is a equal to -1?",
+      "error_info": {
+        "correct_signatures": [],
+        "did_you_mean": [],
+        "example": "assume(notequal(a, -1))$",
+        "explanation": "Maxima needs to know whether a equals -1 to go on.",
+        "id": "question.equal",
+        "messages": {
+          "explanation": {
+            "id": "question.equal.explanation",
+            "template": "Maxima needs to know whether {a} equals {b} to go on."
+          },
+          "suggestion": {
+            "id": "question.equal.suggestion",
+            "template": "Add {line} before this line, or in a cell above, and run it again."
+          },
+          "title": {
+            "id": "question.equal.title",
+            "template": "Maxima Needs to Know"
+          }
+        },
+        "params": {
+          "a": "a",
+          "b": "-1",
+          "line": "assume(notequal(a, -1))$"
+        },
+        "suggestion": "Add assume(notequal(a, -1))$ before this line, or in a cell above, and run it again.",
+        "title": "Maxima Needs to Know"
+      }
+    },
+    {
+      "error": "Maxima needs to know: Is n an integer?",
+      "error_info": {
+        "correct_signatures": [],
+        "did_you_mean": [],
+        "example": "declare(n, integer)$",
+        "explanation": "Maxima needs to know whether n has the property integer to go on.",
+        "id": "question.property",
+        "messages": {
+          "explanation": {
+            "id": "question.property.explanation",
+            "template": "Maxima needs to know whether {expr} has the property {property} to go on."
+          },
+          "suggestion": {
+            "id": "question.property.suggestion",
+            "template": "Add {line} before this line, or in a cell above, and run it again."
+          },
+          "title": {
+            "id": "question.property.title",
+            "template": "Maxima Needs to Know"
+          }
+        },
+        "params": {
+          "expr": "n",
+          "line": "declare(n, integer)$",
+          "property": "integer"
+        },
+        "suggestion": "Add declare(n, integer)$ before this line, or in a cell above, and run it again.",
+        "title": "Maxima Needs to Know"
+      }
+    },
+    {
+      "error": "Maxima needs to know: Answer 1, 2, 3 or 4 :",
+      "error_info": {
+        "correct_signatures": [],
+        "did_you_mean": [],
+        "example": null,
+        "explanation": "Maxima asked \"Answer 1, 2, 3 or 4 :\" and can't get an answer from a cell.",
+        "id": "question.other",
+        "messages": {
+          "explanation": {
+            "id": "question.other.explanation",
+            "template": "Maxima asked \"{question}\" and can't get an answer from a cell."
+          },
+          "suggestion": {
+            "id": "question.other.suggestion",
+            "template": "Use assume() or declare() before this line to tell Maxima what it needs, then run the cell again."
+          },
+          "title": {
+            "id": "question.other.title",
+            "template": "Maxima Needs to Know"
+          }
+        },
+        "params": {
+          "question": "Answer 1, 2, 3 or 4 :"
+        },
+        "suggestion": "Use assume() or declare() before this line to tell Maxima what it needs, then run the cell again.",
+        "title": "Maxima Needs to Know"
+      }
+    },
+    {
+      "error": "all rows must be the same length",
+      "error_info": {
+        "correct_signatures": [],
+        "did_you_mean": [],
+        "example": "matrix([1,2,3], [4,5,6]);",
+        "explanation": "Matrix rows have different lengths, or the matrices have incompatible dimensions for the operation.",
+        "id": "error.matrix_dimension",
+        "messages": {
+          "explanation": {
+            "id": "error.matrix_dimension.explanation",
+            "template": "Matrix rows have different lengths, or the matrices have incompatible dimensions for the operation."
+          },
+          "suggestion": {
+            "id": "error.matrix_dimension.suggestion",
+            "template": "Ensure all rows have the same number of elements and matrices have compatible dimensions."
+          },
+          "title": {
+            "id": "error.matrix_dimension.title",
+            "template": "Matrix Dimension Error"
+          }
+        },
+        "params": {},
+        "suggestion": "Ensure all rows have the same number of elements and matrices have compatible dimensions.",
+        "title": "Matrix Dimension Error"
+      }
+    },
+    {
+      "error": "loadfile: failed to load mypackage",
+      "error_info": {
+        "correct_signatures": [],
+        "did_you_mean": [],
+        "example": "load(draw);",
+        "explanation": "The package \"mypackage\" could not be found or loaded.",
+        "id": "error.package_not_found",
+        "messages": {
+          "explanation": {
+            "id": "error.package_not_found.explanation",
+            "template": "The package \"{package}\" could not be found or loaded."
+          },
+          "suggestion": {
+            "id": "error.package_not_found.suggestion",
+            "template": "Check the package name. Common packages: draw, simplex, lsquares, descriptive, distrib."
+          },
+          "title": {
+            "id": "error.package_not_found.title",
+            "template": "Package Not Found"
+          }
+        },
+        "params": {
+          "package": "mypackage"
+        },
+        "suggestion": "Check the package name. Common packages: draw, simplex, lsquares, descriptive, distrib.",
+        "title": "Package Not Found"
+      }
+    },
+    {
+      "error": "loadfile: failed to load",
+      "error_info": {
+        "correct_signatures": [],
+        "did_you_mean": [],
+        "example": "load(draw);",
+        "explanation": "The package could not be found or loaded.",
+        "id": "error.package_not_found",
+        "messages": {
+          "explanation": {
+            "id": "error.package_not_found.explanation.unnamed",
+            "template": "The package could not be found or loaded."
+          },
+          "suggestion": {
+            "id": "error.package_not_found.suggestion",
+            "template": "Check the package name. Common packages: draw, simplex, lsquares, descriptive, distrib."
+          },
+          "title": {
+            "id": "error.package_not_found.title",
+            "template": "Package Not Found"
+          }
+        },
+        "params": {},
+        "suggestion": "Check the package name. Common packages: draw, simplex, lsquares, descriptive, distrib.",
+        "title": "Package Not Found"
+      }
+    },
+    {
+      "error": "log: encountered log(0).",
+      "error_info": {
+        "correct_signatures": [],
+        "did_you_mean": [],
+        "example": null,
+        "explanation": "The expression takes the logarithm of 0, which is undefined.",
+        "id": "error.log_zero",
+        "messages": {
+          "explanation": {
+            "id": "error.log_zero.explanation",
+            "template": "The expression takes the logarithm of 0, which is undefined."
+          },
+          "suggestion": {
+            "id": "error.log_zero.suggestion",
+            "template": "Check the argument of log for values that make it 0, or take a limit instead."
+          },
+          "title": {
+            "id": "error.log_zero.title",
+            "template": "Logarithm of Zero"
+          }
+        },
+        "params": {},
+        "suggestion": "Check the argument of log for values that make it 0, or take a limit instead.",
+        "title": "Logarithm of Zero"
+      }
+    },
+    {
+      "error": "part: fell off the end.",
+      "error_info": {
+        "correct_signatures": [],
+        "did_you_mean": [],
+        "example": null,
+        "explanation": "part asked for a part beyond the end of the expression or list.",
+        "id": "error.part_index",
+        "messages": {
+          "explanation": {
+            "id": "error.part_index.explanation",
+            "template": "{func} asked for a part beyond the end of the expression or list."
+          },
+          "suggestion": {
+            "id": "error.part_index.suggestion",
+            "template": "Check the index against length() of the expression or list."
+          },
+          "title": {
+            "id": "error.part_index.title",
+            "template": "Index Out of Range"
+          }
+        },
+        "params": {
+          "func": "part"
+        },
+        "suggestion": "Check the index against length() of the expression or list.",
+        "title": "Index Out of Range"
+      }
+    },
+    {
+      "error": "part: argument must be a non-atomic expression; found x",
+      "error_info": {
+        "correct_signatures": [],
+        "did_you_mean": [],
+        "example": null,
+        "explanation": "part needs an expression with parts, such as a list or a sum, but got x.",
+        "id": "error.part_atom",
+        "messages": {
+          "explanation": {
+            "id": "error.part_atom.explanation",
+            "template": "{func} needs an expression with parts, such as a list or a sum, but got {found}."
+          },
+          "suggestion": {
+            "id": "error.part_atom.suggestion",
+            "template": "Check that the variable holds the list or expression you meant."
+          },
+          "title": {
+            "id": "error.part_atom.title",
+            "template": "No Parts to Take"
+          }
+        },
+        "params": {
+          "found": "x",
+          "func": "part"
+        },
+        "suggestion": "Check that the variable holds the list or expression you meant.",
+        "title": "No Parts to Take"
+      }
+    },
+    {
+      "error": "assignment: cannot assign to 2",
+      "error_info": {
+        "correct_signatures": [],
+        "did_you_mean": [],
+        "example": null,
+        "explanation": "The left side of : must be a variable name, but it is 2.",
+        "id": "error.assign_target",
+        "messages": {
+          "explanation": {
+            "id": "error.assign_target.explanation",
+            "template": "The left side of : must be a variable name, but it is {target}."
+          },
+          "suggestion": {
+            "id": "error.assign_target.suggestion",
+            "template": "To write an equation, use = instead of :, as in x^2 = 4."
+          },
+          "title": {
+            "id": "error.assign_target.title",
+            "template": "Can't Assign"
+          }
+        },
+        "params": {
+          "target": "2"
+        },
+        "suggestion": "To write an equation, use = instead of :, as in x^2 = 4.",
+        "title": "Can't Assign"
+      }
+    },
+    {
+      "error": "first: empty argument.",
+      "error_info": {
+        "correct_signatures": [],
+        "did_you_mean": [],
+        "example": null,
+        "explanation": "first was given an empty list, which has no elements to take.",
+        "id": "error.empty_list",
+        "messages": {
+          "explanation": {
+            "id": "error.empty_list.explanation",
+            "template": "{func} was given an empty list, which has no elements to take."
+          },
+          "suggestion": {
+            "id": "error.empty_list.suggestion",
+            "template": "Check where the list comes from, for example a solve() that found no solutions."
+          },
+          "title": {
+            "id": "error.empty_list.title",
+            "template": "Empty List"
+          }
+        },
+        "params": {
+          "func": "first"
+        },
+        "suggestion": "Check where the list comes from, for example a solve() that found no solutions.",
+        "title": "Empty List"
+      }
+    },
+    {
+      "error": "allroots: expected a polynomial; found sin(x)",
+      "error_info": {
+        "correct_signatures": [],
+        "did_you_mean": [],
+        "example": null,
+        "explanation": "allroots works only on polynomials, but got sin(x).",
+        "id": "error.not_polynomial",
+        "messages": {
+          "explanation": {
+            "id": "error.not_polynomial.explanation",
+            "template": "{func} works only on polynomials, but got {found}."
+          },
+          "suggestion": {
+            "id": "error.not_polynomial.suggestion",
+            "template": "For other equations, try find_root() over an interval, or solve()."
+          },
+          "title": {
+            "id": "error.not_polynomial.title",
+            "template": "Not a Polynomial"
+          }
+        },
+        "params": {
+          "found": "sin(x)",
+          "func": "allroots"
+        },
+        "suggestion": "For other equations, try find_root() over an interval, or solve().",
+        "title": "Not a Polynomial"
+      }
+    },
+    {
+      "error": "algsys: Couldn't reduce system to a polynomial in one variable.",
+      "error_info": {
+        "correct_signatures": [],
+        "did_you_mean": [],
+        "example": null,
+        "explanation": "algsys, which solve uses for systems, couldn't turn the equations into a polynomial in one variable.",
+        "id": "error.algsys_failed",
+        "messages": {
+          "explanation": {
+            "id": "error.algsys_failed.explanation",
+            "template": "algsys, which solve uses for systems, couldn't turn the equations into a polynomial in one variable."
+          },
+          "suggestion": {
+            "id": "error.algsys_failed.suggestion",
+            "template": "For a numerical answer, try mnewton() from load(mnewton) with a starting point."
+          },
+          "title": {
+            "id": "error.algsys_failed.title",
+            "template": "Can't Solve the System"
+          }
+        },
+        "params": {},
+        "suggestion": "For a numerical answer, try mnewton() from load(mnewton) with a starting point.",
+        "title": "Can't Solve the System"
+      }
+    },
+    {
+      "error": "Evaluation timed out after 30 seconds",
+      "error_info": {
+        "correct_signatures": [],
+        "did_you_mean": [],
+        "example": null,
+        "explanation": "The cell ran for longer than 30 seconds, so Aximar stopped it.",
+        "id": "error.timeout",
+        "messages": {
+          "explanation": {
+            "id": "error.timeout.explanation",
+            "template": "The cell ran for longer than {seconds} seconds, so Aximar stopped it."
+          },
+          "suggestion": {
+            "id": "error.timeout.suggestion",
+            "template": "Raise the evaluation timeout in Settings, or try a smaller or numeric version of the computation."
+          },
+          "title": {
+            "id": "error.timeout.title",
+            "template": "Timed Out"
+          }
+        },
+        "params": {
+          "seconds": "30"
+        },
+        "suggestion": "Raise the evaluation timeout in Settings, or try a smaller or numeric version of the computation.",
+        "title": "Timed Out"
+      }
+    },
+    {
+      "error": "Evaluation was cancelled: ",
+      "error_info": {
+        "correct_signatures": [],
+        "did_you_mean": [],
+        "example": null,
+        "explanation": "The cell was stopped before it finished.",
+        "id": "error.cancelled",
+        "messages": {
+          "explanation": {
+            "id": "error.cancelled.explanation",
+            "template": "The cell was stopped before it finished."
+          },
+          "title": {
+            "id": "error.cancelled.title",
+            "template": "Cancelled"
+          }
+        },
+        "params": {},
+        "suggestion": null,
+        "title": "Cancelled"
+      }
+    }
+  ],
+  "generated_by": "crates/aximar-core/tests/maxima_messages.rs",
+  "notes": [
+    {
+      "notes": [
+        {
+          "end": 1,
+          "id": "note.rat_replaced",
+          "message": {
+            "id": "note.rat_replaced.text",
+            "params": {
+              "replacements": "0.5 → 1/2"
+            },
+            "template": "Maxima replaced decimals with exact fractions: {replacements}.",
+            "text": "Maxima replaced decimals with exact fractions: 0.5 → 1/2."
+          },
+          "start": 0
+        }
+      ],
+      "text_output": "rat: replaced 0.5 by 1/2 = 0.5"
+    },
+    {
+      "notes": [
+        {
+          "end": 2,
+          "id": "note.solve_arc_trig",
+          "message": {
+            "id": "note.solve_arc_trig.text",
+            "params": {},
+            "template": "solve used inverse trigonometric functions, so it gives only some of the solutions.",
+            "text": "solve used inverse trigonometric functions, so it gives only some of the solutions."
+          },
+          "start": 0
+        }
+      ],
+      "text_output": "solve: using arc-trig functions to get a solution.\nSome solutions will be lost."
+    },
+    {
+      "notes": [
+        {
+          "end": 1,
+          "id": "note.solve_dependent",
+          "message": {
+            "id": "note.solve_dependent.text",
+            "params": {
+              "equations": "(2)"
+            },
+            "template": "solve dropped equations that follow from the others: {equations}.",
+            "text": "solve dropped equations that follow from the others: (2)."
+          },
+          "start": 0
+        }
+      ],
+      "text_output": "solve: dependent equations eliminated: (2)"
+    },
+    {
+      "notes": [
+        {
+          "end": 1,
+          "id": "note.principal_value",
+          "message": {
+            "id": "note.principal_value.text",
+            "params": {},
+            "template": "The integral diverges inside the range, so the result is its Cauchy principal value.",
+            "text": "The integral diverges inside the range, so the result is its Cauchy principal value."
+          },
+          "start": 0
+        }
+      ],
+      "text_output": "Principal Value"
+    },
+    {
+      "notes": [
+        {
+          "end": 1,
+          "id": "note.plot_non_numeric",
+          "message": {
+            "id": "note.plot_non_numeric.text",
+            "params": {
+              "function": "plot2d"
+            },
+            "template": "{function} left out points where the expression has no real value.",
+            "text": "plot2d left out points where the expression has no real value."
+          },
+          "start": 0
+        }
+      ],
+      "text_output": "plot2d: expression evaluates to non-numeric value somewhere in plotting range."
+    },
+    {
+      "notes": [
+        {
+          "end": 2,
+          "id": "note.quadrature_undefined",
+          "message": {
+            "id": "note.quadrature_undefined.text",
+            "params": {
+              "expr": "f",
+              "function": "quad_qags",
+              "point": "0.0"
+            },
+            "template": "{function} couldn't evaluate {expr} at {point}, so the result may be inaccurate.",
+            "text": "quad_qags couldn't evaluate f at 0.0, so the result may be inaccurate."
+          },
+          "start": 0
+        }
+      ],
+      "text_output": "quad_qags: Numerical evaluation of f at 0.0\nis not a float or is not defined"
+    },
+    {
+      "notes": [
+        {
+          "end": 1,
+          "id": "note.zero_power",
+          "message": {
+            "id": "note.zero_power.text",
+            "params": {},
+            "template": "Maxima met 0 to a negative power on the way, and carried on without that part.",
+            "text": "Maxima met 0 to a negative power on the way, and carried on without that part."
+          },
+          "start": 0
+        }
+      ],
+      "text_output": "expt: undefined: 0 to a negative exponent."
+    },
+    {
+      "notes": [
+        {
+          "end": 1,
+          "id": "note.tellsimp_noncommutative",
+          "message": {
+            "id": "note.tellsimp_noncommutative.text",
+            "params": {},
+            "template": "tellsimp will treat the rule's main operator as noncommutative and nonassociative, so the rule matches only terms in the order it was written.",
+            "text": "tellsimp will treat the rule's main operator as noncommutative and nonassociative, so the rule matches only terms in the order it was written."
+          },
+          "start": 0
+        }
+      ],
+      "text_output": "tellsimp: warning: rule will treat '+' as noncommutative and nonassociative."
+    }
+  ]
+}

@@ -263,3 +263,50 @@ fn the_list_of_messages_is_current() {
         "docs/maxima-messages.md is out of date: run scripts/i18n-extract"
     );
 }
+
+/// Every explanation and note the samples give, as the window receives
+/// them: the fixtures for the Storybook gallery (src/stories)
+fn fixtures() -> String {
+    let (catalog, packages) = (Catalog::load(), PackageCatalog::load());
+    let mut explanations = Vec::new();
+    for raw in SAMPLES {
+        let info = enhance_error_with_packages(raw, &catalog, Some(&packages)).unwrap();
+        explanations.push(serde_json::json!({ "error": raw, "error_info": info }));
+    }
+    for failure in [
+        AppError::Timeout(30),
+        AppError::EvalCancelled(String::new()),
+    ] {
+        explanations.push(serde_json::json!({
+            "error": failure.to_string(),
+            "error_info": explain_failure(&failure).unwrap(),
+        }));
+    }
+    let notes: Vec<_> = NOTE_SAMPLES
+        .iter()
+        .map(|text| serde_json::json!({ "text_output": text, "notes": notes(text, true) }))
+        .collect();
+    let mut out = serde_json::to_string_pretty(&serde_json::json!({
+        "generated_by": "crates/aximar-core/tests/maxima_messages.rs",
+        "explanations": explanations,
+        "notes": notes,
+    }))
+    .unwrap();
+    out.push('\n');
+    out
+}
+
+#[test]
+fn the_gallery_fixtures_are_current() {
+    let path = root().join("src/stories/messages.generated.json");
+    let generated = fixtures();
+    if std::env::var_os("AXIMAR_UPDATE_DOCS").is_some() {
+        std::fs::write(&path, &generated).unwrap();
+        return;
+    }
+    let current = std::fs::read_to_string(&path).unwrap_or_default();
+    assert!(
+        current == generated,
+        "src/stories/messages.generated.json is out of date: run scripts/i18n-extract"
+    );
+}

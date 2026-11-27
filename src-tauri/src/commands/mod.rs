@@ -7,5 +7,6 @@ pub mod plot;
 pub mod reactive;
 pub mod session;
 pub mod suggestions;
+pub mod translation_preview;
 pub mod variables;
 pub mod window;
