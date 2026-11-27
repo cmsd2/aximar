@@ -112,6 +112,75 @@
     },
     {
       "cell_type": "markdown",
+      "source": "Property questions ask whether a symbol is an integer, or even or odd. `declare` answers them:",
+      "metadata": {}
+    },
+    {
+      "cell_type": "code",
+      "source": "askinteger(m, even);",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": "declare(m, even)$\naskinteger(m, even);",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "Declaring a symbol complex brings questions about its real part:",
+      "metadata": {}
+    },
+    {
+      "cell_type": "code",
+      "source": "declare(z, complex)$\nintegrate(exp(-z*t), t, 0, inf);",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": "assume(realpart(z) > 0)$\nintegrate(exp(-z*t), t, 0, inf);",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "Answering one question can lead to another. Here Maxima first asks whether `c` is zero:",
+      "metadata": {}
+    },
+    {
+      "cell_type": "code",
+      "source": "integrate(1/(x^2+c^2), x, minf, inf);",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "Once `c` isn't zero, it asks for the sign. Each question gets its own suggestion, so add one line at a time:",
+      "metadata": {}
+    },
+    {
+      "cell_type": "code",
+      "source": "assume(notequal(c, 0))$\nintegrate(1/(x^2+c^2), x, minf, inf);",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "code",
+      "source": "assume(c > 0)$\nintegrate(1/(x^2+c^2), x, minf, inf);",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
       "source": "A question isn't an ordinary error: `errcatch` doesn't hide it, so a question inside your own error handling still reaches you.",
       "metadata": {}
     },
@@ -124,12 +193,12 @@
     },
     {
       "cell_type": "markdown",
-      "source": "`forget` takes an assumption back:",
+      "source": "`forget` takes assumptions back, and `remove` takes back declarations:",
       "metadata": {}
     },
     {
       "cell_type": "code",
-      "source": "forget(a > 0, notequal(n, -1))$",
+      "source": "forget(a > 0, notequal(n, -1), realpart(z) > 0, notequal(c, 0), c > 0)$\nremove(m, even, z, complex)$",
       "metadata": {},
       "execution_count": null,
       "outputs": []
@@ -142,6 +211,30 @@
     {
       "cell_type": "code",
       "source": "rat(0.5*x + 0.25);",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "A loop can print hundreds of these. Aximar sums them up in one note, and **Show Maxima's text** scrolls through them all:",
+      "metadata": {}
+    },
+    {
+      "cell_type": "code",
+      "source": "makelist(rat(i/10.0), i, 1, 100)$",
+      "metadata": {},
+      "execution_count": null,
+      "outputs": []
+    },
+    {
+      "cell_type": "markdown",
+      "source": "Setting `ratprint` to `false` turns them off. Inside a `block`, it's off only there:",
+      "metadata": {}
+    },
+    {
+      "cell_type": "code",
+      "source": "block([ratprint: false], rat(0.5*x + 0.25));",
       "metadata": {},
       "execution_count": null,
       "outputs": []
