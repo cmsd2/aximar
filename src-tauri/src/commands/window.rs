@@ -1,6 +1,6 @@
 use aximar_core::msg;
 use std::sync::atomic::{AtomicU32, Ordering};
-use tauri::{AppHandle, Emitter, Manager, WebviewUrl, WebviewWindowBuilder};
+use tauri::{AppHandle, Manager, WebviewUrl, WebviewWindowBuilder};
 
 use crate::state::AppState;
 
@@ -37,7 +37,9 @@ pub async fn get_initial_file_args(
 }
 
 /// The local paths among the URLs the system asked Aximar to open.
-/// macOS sends `file://` URLs; anything else is left alone.
+/// macOS sends `file://` URLs; anything else is left alone.  Only macOS and
+/// iOS send them (`RunEvent::Opened`); elsewhere files come as arguments.
+#[cfg(any(target_os = "macos", target_os = "ios", test))]
 pub fn opened_paths(urls: &[tauri::Url]) -> Vec<String> {
     urls.iter()
         .filter(|u| u.scheme() == "file")
@@ -49,7 +51,9 @@ pub fn opened_paths(urls: &[tauri::Url]) -> Vec<String> {
 /// Queue files the system asked Aximar to open, bring the main window
 /// forward, and tell it there are files to take.  If the window hasn't
 /// loaded yet, it takes them when it starts.
+#[cfg(any(target_os = "macos", target_os = "ios"))]
 pub fn queue_opened(app: &AppHandle, paths: Vec<String>) {
+    use tauri::Emitter;
     if paths.is_empty() {
         return;
     }
