@@ -66,13 +66,17 @@ As built: a translated build (`doc build --lang`, which `generate-core-docs --la
 
 core-docs builds `maxima-core-docs-<lang>` for each language whose manual documents at least half the English manual's symbols. Each pack holds only its `doc/maxima-core-docs-doc-index.<lang>.json`, slim and full, and depends on `maxima-core-docs` at the same version. The packs don't replace English `.info` files, so Maxima's `describe` is unaffected. core-docs' CI builds every pack from the Maxima release tag it already uses, and the package index gets one entry per pack. The threshold is computed by the build and printed, so the list of packs follows Maxima's translations as they grow; today it's expected to cover `es`, `pt`, `pt-BR`, `de` and `ja`, and to leave out `ru`, `zh` and `fr`.
 
+As built: core-docs is the `maxima-core-docs` package itself, with its markdown committed and CI running only `mxpm doc build`; CI has no Maxima source. So the packs are made the way the English docs are, by hand from a Maxima tree: `scripts/language-packs.py generate <maxima>` runs `generate-core-docs --lang` for each translated manual, prints each language's coverage, and writes the ones over the threshold to `lang/<tag>/`, each a package the index installs with `subdir`. CI rebuilds each pack's index on every push (`rebuild`) and fails if one falls below the threshold (`report`). From Maxima 5.50post: Spanish 85%, Brazilian Portuguese 64%, Portuguese 59%. German, Japanese and Russian don't build, since `makeinfo --xml` stops on errors in those manuals (references to missing nodes, an undefined `@VERSION`). A pack can't declare a dependency on `maxima-core-docs`, because mxpm manifests have no dependencies; each carries the same Maxima version instead, and works alone, over Aximar's embedded English. Packs leave out figures, which Aximar serves itself, so each is 5 to 7 MB. The English package's install now carries `lang/` too, which Aximar doesn't load.
+
+The docs panel learns which languages have a pack from `doc_index::core_docs_pack`, a list kept with the package index's entries. Group 2 looked them up in `PackageCatalog`, which holds Maxima's share packages rather than mxpm's index, so it never found one.
+
 ### 6. Choosing, in the docs panel
 
 The docs panel's header gets a menu: "Same as Aximar" and each language with any documentation, embedded or installed, shown by its own name ("Español"). The choice is a config field, `docs_language`, with `None` meaning "Same as Aximar". The chain is that language then English.
 
 The choice sits in the docs panel rather than Settings because readers switch while reading, for example to check the English when a translation looks stale. It also keeps the Settings window's sections as the settings-window change defines them.
 
-When the chosen language has no full documentation installed, the panel shows a strip: "Full documentation in Spanish isn't installed", the command `mxpm install maxima-core-docs-es`, and a copy button. The strip names a pack only if the package index lists one for that language.
+When the chosen language has no full documentation installed, the panel shows a strip: "Full documentation in Spanish isn't installed", the command `mxpm install maxima-core-docs-es`, and a copy button. The strip names a pack only if the package index lists one for that language (`core_docs_pack`).
 
 All new text goes through Lingui with translator notes.
 
