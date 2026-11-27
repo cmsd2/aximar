@@ -6,6 +6,7 @@ import { useLogStore } from "../store/logStore";
 import type { LogTab } from "../types/log";
 import { seedNotebook } from "./store";
 import { WaitFor } from "./wait";
+import { setStoryAnswers } from "../../.storybook/tauri-mock";
 
 const meta: Meta = { title: "Panels", tags: ["themes"] };
 export default meta;
@@ -22,18 +23,24 @@ function Docs({ name }: { name?: string }) {
   );
 }
 
+/** The shared mock's answers, not those a Docs panel story left */
+const plainDocs = [async () => setStoryAnswers({})];
+
 /** A function's page: signatures, the manual's text with maths and code, examples, see also */
 export const DocsFunction: StoryObj = {
+  loaders: plainDocs,
   render: () => <Docs name="integrate" />,
 };
 
 /** A package function with no page of its own: its package and how to load it */
 export const DocsPackageFunction: StoryObj = {
+  loaders: plainDocs,
   render: () => <Docs name="pdf_normal" />,
 };
 
 /** The panel opened from the toolbar, before choosing a function */
 export const DocsEmpty: StoryObj = {
+  loaders: plainDocs,
   render: () => <Docs />,
 };
 

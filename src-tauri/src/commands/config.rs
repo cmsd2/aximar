@@ -173,6 +173,9 @@ struct AppConfig {
     /// knows the sections, and shows General for one it doesn't have.
     #[serde(default = "default_settings_section")]
     settings_section: String,
+    /// The help's language, such as `es`; `None` follows the app's
+    #[serde(default)]
+    docs_language: Option<String>,
 }
 
 impl Default for AppConfig {
@@ -203,6 +206,7 @@ impl Default for AppConfig {
             mcp_token: default_mcp_token(),
             language: None,
             settings_section: default_settings_section(),
+            docs_language: None,
         }
     }
 }
@@ -325,6 +329,8 @@ pub struct PublicConfig {
     /// The languages with a translation, English first
     pub languages: Vec<String>,
     pub settings_section: String,
+    /// The help's language, or null to follow the app's
+    pub docs_language: Option<String>,
 }
 
 /// Config response with validation warnings
@@ -334,10 +340,22 @@ pub struct ConfigResponse {
     pub warnings: Vec<String>,
 }
 
+/// A field that may be set to null: present as `Some(None)`, where serde
+/// would otherwise read a null as absent
+fn present<'de, D, T>(deserializer: D) -> Result<Option<T>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+    T: Deserialize<'de>,
+{
+    T::deserialize(deserializer).map(Some)
+}
+
 /// Partial config for updates from the frontend
 #[derive(Debug, Deserialize)]
 pub struct ConfigUpdate {
     pub theme: Option<Theme>,
+    /// Some(None) clears the path, so Aximar finds Maxima itself
+    #[serde(default, deserialize_with = "present")]
     pub maxima_path: Option<Option<String>>,
     pub font_size: Option<u32>,
     pub print_font_size: Option<u32>,
@@ -361,6 +379,9 @@ pub struct ConfigUpdate {
     pub mcp_token: Option<String>,
     pub language: Option<String>,
     pub settings_section: Option<String>,
+    /// Some(None) follows the app's language again
+    #[serde(default, deserialize_with = "present")]
+    pub docs_language: Option<Option<String>>,
 }
 
 fn config_path(app: &tauri::AppHandle) -> Result<PathBuf, AppError> {
@@ -374,7 +395,7 @@ fn config_path(app: &tauri::AppHandle) -> Result<PathBuf, AppError> {
 /// What the settings file holds.
 enum ConfigFile {
     Missing,
-    Valid(AppConfig),
+    Valid(Box<AppConfig>),
     /// The file exists but can't be parsed.  Holds a message for the user.
     Invalid(String),
 }
@@ -383,7 +404,7 @@ fn parse_config_file(path: &Path, contents: Option<&str>) -> ConfigFile {
     match contents {
         None => ConfigFile::Missing,
         Some(text) => match serde_json::from_str::<AppConfig>(text) {
-            Ok(config) => ConfigFile::Valid(config),
+            Ok(config) => ConfigFile::Valid(Box::new(config)),
             Err(e) => ConfigFile::Invalid(format!(
                 "Settings file {} can't be read ({e}). Aximar is using default \
                  settings and won't save changes until the file is fixed or removed.",
@@ -504,6 +525,7 @@ pub async fn get_config(app: tauri::AppHandle) -> Result<ConfigResponse, AppErro
             language,
             languages: i18n::languages().iter().map(|l| l.to_string()).collect(),
             settings_section: config.settings_section,
+            docs_language: config.docs_language,
         },
         warnings,
     })
@@ -594,10 +616,17 @@ pub async fn set_config(app: tauri::AppHandle, updates: ConfigUpdate) -> Result<
     if let Some(section) = updates.settings_section {
         config.settings_section = section;
     }
+    let docs_changed = updates.docs_language.is_some();
+    if let Some(docs_language) = updates.docs_language {
+        config.docs_language = docs_language.filter(|l| !l.trim().is_empty());
+    }
     write_config(&app, &config)?;
 
     if config.language() != language_before {
         apply_language(&app, &config.language()).await;
+    }
+    if docs_changed || config.language() != language_before {
+        i18n::set_docs_language(&config.docs_language());
     }
 
     // Handle MCP server lifecycle changes
@@ -651,6 +680,13 @@ pub async fn set_config(app: tauri::AppHandle, updates: ConfigUpdate) -> Result<
 }
 
 impl AppConfig {
+    /// The help's language: the one chosen for it, or the app's
+    fn docs_language(&self) -> String {
+        self.docs_language
+            .clone()
+            .unwrap_or_else(|| self.language())
+    }
+
     /// The language in use: the user's choice, or else the system's when
     /// Aximar has a translation for it, or else English
     fn language(&self) -> String {
@@ -674,6 +710,19 @@ impl AppConfig {
     }
 }
 
+/// The language chosen for the help, or None to follow the app's
+pub fn read_docs_choice(app: &tauri::AppHandle) -> Option<String> {
+    read_config(app).ok().and_then(|(c, _)| c.docs_language)
+}
+
+/// The help's language, from the settings file now
+pub fn read_docs_language(app: &tauri::AppHandle) -> String {
+    read_config(app)
+        .map(|(c, _)| c)
+        .unwrap_or_default()
+        .docs_language()
+}
+
 /// The language in use, from the settings file now
 pub fn read_language(app: &tauri::AppHandle) -> String {
     read_config(app)
@@ -688,7 +737,7 @@ pub async fn apply_language(app: &tauri::AppHandle, language: &str) {
     let state = app.state::<AppState>();
     let maxima = (language != i18n::ENGLISH).then(|| language.to_string());
     state.registry.lock().await.set_language(maxima);
-    i18n::set_help_language(language);
+    i18n::set_docs_language(&read_docs_language(app));
     if let Err(e) = crate::menu::set_menu_language(app, language) {
         tracing::warn!("menu in {language}: {e}");
     }
@@ -866,6 +915,29 @@ mod tests {
         assert!(matches!(settings.backend, Backend::Local));
         assert_eq!(settings.maxima_path, None);
         assert_eq!(settings.eval_timeout, default_eval_timeout());
+    }
+
+    #[test]
+    fn a_null_in_an_update_clears_the_field() {
+        let update: ConfigUpdate =
+            serde_json::from_str(r#"{"maxima_path": null, "docs_language": null}"#).unwrap();
+        assert_eq!(update.maxima_path, Some(None));
+        assert_eq!(update.docs_language, Some(None));
+        let update: ConfigUpdate = serde_json::from_str(r#"{"font_size": 14}"#).unwrap();
+        assert_eq!(update.maxima_path, None);
+        assert_eq!(update.docs_language, None);
+        let update: ConfigUpdate = serde_json::from_str(r#"{"docs_language": "en"}"#).unwrap();
+        assert_eq!(update.docs_language, Some(Some("en".into())));
+    }
+
+    #[test]
+    fn the_help_follows_the_app_unless_chosen() {
+        let text = r#"{"language": "es"}"#;
+        let (config, _) = config_or_defaults(parse_config_file(path(), Some(text)));
+        assert_eq!(config.docs_language(), "es");
+        let text = r#"{"language": "es", "docs_language": "en"}"#;
+        let (config, _) = config_or_defaults(parse_config_file(path(), Some(text)));
+        assert_eq!(config.docs_language(), "en");
     }
 
     #[test]

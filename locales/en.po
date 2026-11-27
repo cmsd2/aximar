@@ -279,6 +279,10 @@ msgid "Aximar found no Maxima. Install it, or set the Maxima path above."
 msgstr ""
 
 #. Docs panel: tooltip of the arrow button that goes back to the previous page
+#. screen: docs-panel--no-pack-yet
+#. screen: docs-panel--not-in-the-help-language
+#. screen: docs-panel--old-translation
+#. screen: docs-panel--summary-above-english
 #. screen: panels--docs-empty
 #. screen: panels--docs-function
 #. screen: panels--docs-package-function
@@ -430,6 +434,10 @@ msgid "Close (Escape)"
 msgstr ""
 
 #. Docs panel: tooltip of the x button that closes the panel
+#. screen: docs-panel--no-pack-yet
+#. screen: docs-panel--not-in-the-help-language
+#. screen: docs-panel--old-translation
+#. screen: docs-panel--summary-above-english
 #. screen: panels--docs-empty
 #. screen: panels--docs-function
 #. screen: panels--docs-package-function
@@ -514,7 +522,9 @@ msgstr ""
 msgid "Context:"
 msgstr ""
 
+#. Docs panel: the install command's copy button, for two seconds after a copy
 #. Settings: the MCP token copy button, for two seconds after a copy
+#: src/components/docs/DocsLanguageNotes.tsx
 #: src/components/settings/AiAssistantsSection.tsx
 msgid "Copied"
 msgstr ""
@@ -526,11 +536,13 @@ msgid "Copied!"
 msgstr ""
 
 #. Button above a result: copies it to the clipboard as Maxima code. max-length:8
+#. Docs panel button: copies the mxpm install command to the clipboard
 #. Settings button: copies the MCP token to the clipboard
 #. screen: cells--bracket-selection
 #. screen: cells--notebook
 #. screen: cells--print-and-tex
 #. screen: cells--selection
+#. screen: docs-panel--summary-above-english
 #. screen: editor--caret-between-cells
 #. screen: editor--caret-bracket-style
 #. screen: editor--find-and-replace
@@ -539,7 +551,7 @@ msgstr ""
 #. screen: outputs--suggestion-chips
 #. screen: outputs--suggestions-off
 #. screen: screens--whole-window
-#: src/components/CellOutput.tsx
+#: src/components/CellOutput.tsx src/components/docs/DocsLanguageNotes.tsx
 #: src/components/settings/AiAssistantsSection.tsx
 msgid "Copy"
 msgstr ""
@@ -674,6 +686,15 @@ msgstr ""
 #. Link in the hover tooltip of a Maxima function: opens its documentation in the side panel. max-length:10
 #: src/lib/maxima-hover-tooltip.ts
 msgid "Docs →"
+msgstr ""
+
+#. Docs panel: tooltip of the menu that chooses the language of the help
+#. screen: docs-panel--no-pack-yet
+#. screen: docs-panel--not-in-the-help-language
+#. screen: docs-panel--old-translation
+#. screen: docs-panel--summary-above-english
+#: src/components/docs/DocsLanguageMenu.tsx
+msgid "Documentation language"
 msgstr ""
 
 #. Button in the Unsaved Changes dialog: closes the notebooks and loses the changes
@@ -841,6 +862,10 @@ msgid "Font size"
 msgstr ""
 
 #. Docs panel: tooltip of the arrow button that goes forward to the next page
+#. screen: docs-panel--no-pack-yet
+#. screen: docs-panel--not-in-the-help-language
+#. screen: docs-panel--old-translation
+#. screen: docs-panel--summary-above-english
 #. screen: panels--docs-empty
 #. screen: panels--docs-function
 #. screen: panels--docs-package-function
@@ -880,6 +905,18 @@ msgstr ""
 #. Settings, Maxima section: under the found Maxima, where its path came from
 #: src/components/settings/MaximaSection.tsx
 msgid "From the Maxima path setting."
+msgstr ""
+
+#. Docs panel: note when there is no package of full documentation in the help's language. language is a language name
+#. screen: docs-panel--no-pack-yet
+#: src/components/docs/DocsLanguageNotes.tsx
+msgid "Full documentation in {language} isn't available yet."
+msgstr ""
+
+#. Docs panel: note when the help's language has summaries but no full documentation installed; an mxpm command follows. language is a language name
+#. screen: docs-panel--summary-above-english
+#: src/components/docs/DocsLanguageNotes.tsx
+msgid "Full documentation in {language} isn't installed. To install it, run:"
 msgstr ""
 
 #. Docs panel: heading above the list of functions on a package page; functionCount is how many there are
@@ -1635,6 +1672,15 @@ msgstr ""
 msgid "Run cell (Shift+Enter)"
 msgstr ""
 
+#. Docs panel: documentation language menu item; the help follows the app's language setting. max-length:24
+#. screen: docs-panel--no-pack-yet
+#. screen: docs-panel--not-in-the-help-language
+#. screen: docs-panel--old-translation
+#. screen: docs-panel--summary-above-english
+#: src/components/docs/DocsLanguageMenu.tsx
+msgid "Same as Aximar"
+msgstr ""
+
 #. Settings: Markdown font button for the system sans-serif font
 #. screen: dialogs--settings-notebook
 #. screen: ui-segmentedcontrol--options
@@ -1666,6 +1712,10 @@ msgid "Search functions (or type \\ for symbols)..."
 msgstr ""
 
 #. Docs panel: placeholder of the search box at the top of the panel
+#. screen: docs-panel--no-pack-yet
+#. screen: docs-panel--not-in-the-help-language
+#. screen: docs-panel--old-translation
+#. screen: docs-panel--summary-above-english
 #. screen: panels--docs-empty
 #. screen: panels--docs-function
 #. screen: panels--docs-package-function
@@ -1675,6 +1725,10 @@ msgid "Search functions..."
 msgstr ""
 
 #. Docs panel: heading above links to related functions
+#. screen: docs-panel--no-pack-yet
+#. screen: docs-panel--not-in-the-help-language
+#. screen: docs-panel--old-translation
+#. screen: docs-panel--summary-above-english
 #. screen: panels--docs-function
 #. screen: screens--whole-window
 #: src/components/DocsPanel.tsx
@@ -1879,6 +1933,13 @@ msgstr ""
 msgid "The font of text cells."
 msgstr ""
 
+#. Docs panel: note between a translated summary and the full documentation, which is in another language. bodyName is a language name, such as English
+#. screen: docs-panel--no-pack-yet
+#. screen: docs-panel--summary-above-english
+#: src/components/docs/DocsLanguageNotes.tsx
+msgid "The full documentation below is in {bodyName}."
+msgstr ""
+
 #. Settings, General section: hint under Language
 #. screen: dialogs--settings
 #. screen: dialogs--settings-translation
@@ -1929,10 +1990,22 @@ msgstr ""
 msgid "Theme"
 msgstr ""
 
+#. Docs panel: note above a function's documentation when the help's language has nothing for it. helpName and english are language names, such as Spanish and English
+#. screen: docs-panel--not-in-the-help-language
+#: src/components/docs/DocsLanguageNotes.tsx
+msgid "This function isn't documented in {helpName}. Its documentation is in {english}."
+msgstr ""
+
 #. Trust banner above the notebook, shown when an untrusted notebook tries to run a cell that calls functions such as system or batch. functions is a comma-separated list of those Maxima function names
 #. screen: cells--trust-banner-shown
 #: src/components/TrustBanner.tsx
 msgid "This notebook uses dangerous functions: <0>{functions}</0>. Trust it to allow execution."
+msgstr ""
+
+#. Docs panel: note above a translation whose signatures differ from the English documentation's; the English signatures follow. english is a language name
+#. screen: docs-panel--old-translation
+#: src/components/docs/DocsLanguageNotes.tsx
+msgid "This translation may be out of date. The {english} documentation lists these signatures:"
 msgstr ""
 
 #. Find bar: tooltip of the button that shows or hides the replace row

@@ -1,4 +1,7 @@
 {
+  "-5gSx5": [
+    "docs-panel--not-in-the-help-language"
+  ],
   "-90Aw8": [
     "cells--bracket-selection",
     "cells--selection"
@@ -47,6 +50,9 @@
   ],
   "1yWRha": [
     "errors--all-explanations"
+  ],
+  "20JSt_": [
+    "docs-panel--summary-above-english"
   ],
   "28MY56": [
     "outputs--running-and-queued"
@@ -272,6 +278,10 @@
     "errors--all-explanations"
   ],
   "C7zRQH": [
+    "docs-panel--no-pack-yet",
+    "docs-panel--not-in-the-help-language",
+    "docs-panel--old-translation",
+    "docs-panel--summary-above-english",
     "panels--docs-empty",
     "panels--docs-function",
     "panels--docs-package-function",
@@ -366,6 +376,10 @@
   "JiMTQi": [
     "errors--all-explanations"
   ],
+  "Jx4ATq": [
+    "docs-panel--no-pack-yet",
+    "docs-panel--summary-above-english"
+  ],
   "KdQ_-f": [
     "errors--all-explanations"
   ],
@@ -416,6 +430,9 @@
   ],
   "M1co_O": [
     "dialogs--settings-ai-assistants"
+  ],
+  "MCbDl6": [
+    "docs-panel--no-pack-yet"
   ],
   "MohnW9": [
     "notes--all-notes"
@@ -475,6 +492,10 @@
     "errors--all-explanations"
   ],
   "OcoVCB": [
+    "docs-panel--no-pack-yet",
+    "docs-panel--not-in-the-help-language",
+    "docs-panel--old-translation",
+    "docs-panel--summary-above-english",
     "panels--docs-function",
     "screens--whole-window"
   ],
@@ -504,6 +525,12 @@
     "cells--selection",
     "notes--all-notes",
     "screens--whole-window"
+  ],
+  "PqoSoA": [
+    "docs-panel--no-pack-yet",
+    "docs-panel--not-in-the-help-language",
+    "docs-panel--old-translation",
+    "docs-panel--summary-above-english"
   ],
   "PyCiwA": [
     "errors--all-explanations"
@@ -641,6 +668,10 @@
     "panels--log-app"
   ],
   "UTiCbD": [
+    "docs-panel--no-pack-yet",
+    "docs-panel--not-in-the-help-language",
+    "docs-panel--old-translation",
+    "docs-panel--summary-above-english",
     "panels--docs-empty",
     "panels--docs-function",
     "panels--docs-package-function",
@@ -789,6 +820,9 @@
     "outputs--svg-plot",
     "screens--whole-window"
   ],
+  "b8NfeK": [
+    "docs-panel--old-translation"
+  ],
   "bAvovP": [
     "window--shortcuts"
   ],
@@ -920,6 +954,7 @@
     "cells--notebook",
     "cells--print-and-tex",
     "cells--selection",
+    "docs-panel--summary-above-english",
     "editor--caret-between-cells",
     "editor--caret-bracket-style",
     "editor--find-and-replace",
@@ -940,6 +975,10 @@
     "ui-button--variants"
   ],
   "iH8pgl": [
+    "docs-panel--no-pack-yet",
+    "docs-panel--not-in-the-help-language",
+    "docs-panel--old-translation",
+    "docs-panel--summary-above-english",
     "panels--docs-empty",
     "panels--docs-function",
     "panels--docs-package-function",
@@ -1037,6 +1076,12 @@
   "nt-MSq": [
     "errors--all-explanations"
   ],
+  "o08LK6": [
+    "docs-panel--no-pack-yet",
+    "docs-panel--not-in-the-help-language",
+    "docs-panel--old-translation",
+    "docs-panel--summary-above-english"
+  ],
   "ohqUka": [
     "errors--all-explanations"
   ],
@@ -1096,6 +1141,10 @@
     "notes--all-notes"
   ],
   "rxWGWX": [
+    "docs-panel--no-pack-yet",
+    "docs-panel--not-in-the-help-language",
+    "docs-panel--old-translation",
+    "docs-panel--summary-above-english",
     "panels--docs-empty",
     "panels--docs-function",
     "panels--docs-package-function",

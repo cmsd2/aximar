@@ -18,10 +18,22 @@ const templates = [
   { id: "linear-algebra", title: "Linear algebra", description: "Matrices and vectors", cell_count: 1 },
 ];
 
+/**
+ * Answers a story sets for itself, by command, ahead of the ones below.
+ * A story's loader replaces them all, so one story's don't reach the next.
+ */
+export const storyAnswers: Record<string, unknown> = {};
+
+export function setStoryAnswers(answers: Record<string, unknown>): void {
+  for (const key of Object.keys(storyAnswers)) delete storyAnswers[key];
+  Object.assign(storyAnswers, answers);
+}
+
 export function installTauriMock(): void {
   mockWindows("main");
   mockIPC(
     (cmd, payload) => {
+      if (cmd in storyAnswers) return storyAnswers[cmd];
       const args = (payload ?? {}) as Record<string, string>;
       switch (cmd) {
         case "get_config":
@@ -35,7 +47,7 @@ export function installTauriMock(): void {
           // A run that succeeds; the cell's output stays as it was
           return { is_error: false, error: null, duration_ms: 5 };
         case "nb_add_cell":
-          return addCell(payload as AddCell);
+          return addCell(payload as unknown as AddCell);
         case "get_function":
           return functions[args.name] ?? null;
         case "get_function_docs":

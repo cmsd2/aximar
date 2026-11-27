@@ -16,6 +16,10 @@ use super::types::{CompletionResult, DeprecationInfo};
 pub struct DocIndex {
     pub version: u32,
     pub package: String,
+    /// The language of the index's text, a BCP 47 tag such as `es`; an
+    /// index without one is English
+    #[serde(default = "english")]
+    pub language: String,
     #[serde(default)]
     pub source: String,
     pub symbols: BTreeMap<String, SymbolEntry>,
@@ -61,6 +65,99 @@ pub struct SectionEntry {
     pub body_md: String,
     #[serde(default)]
     pub body_html: String,
+}
+
+/// The language every chain ends with, and an index's language by default
+pub const ENGLISH: &str = "en";
+
+fn english() -> String {
+    ENGLISH.to_string()
+}
+
+/// A language tag as the store keys it: `pt-BR` and `pt_br` are one language
+fn language_key(tag: &str) -> String {
+    tag.trim().replace('_', "-").to_lowercase()
+}
+
+// ---------------------------------------------------------------------------
+// Languages: the chain a lookup answers in, and what it found
+// ---------------------------------------------------------------------------
+
+/// The languages to answer in, in order, ending with English: the reader's
+/// language, then English where there's no translation
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct LanguageChain(Vec<String>);
+
+impl LanguageChain {
+    /// `languages` in order, then English, without repeats
+    pub fn new<S: AsRef<str>>(languages: &[S]) -> Self {
+        let mut chain: Vec<String> = Vec::new();
+        for tag in languages.iter().map(|l| language_key(l.as_ref())) {
+            if !tag.is_empty() && !chain.contains(&tag) {
+                chain.push(tag);
+            }
+        }
+        if !chain.iter().any(|l| l == ENGLISH) {
+            chain.push(ENGLISH.to_string());
+        }
+        LanguageChain(chain)
+    }
+
+    /// English alone, as lookups answered before languages
+    pub fn english() -> Self {
+        LanguageChain(vec![ENGLISH.to_string()])
+    }
+
+    /// The reader's language: the first in the chain
+    pub fn first(&self) -> &str {
+        &self.0[0]
+    }
+
+    pub fn languages(&self) -> &[String] {
+        &self.0
+    }
+}
+
+/// A symbol's documentation in one language other than English
+#[derive(Debug, Clone)]
+enum Translation {
+    /// A full entry, from an installed `<stem>-doc-index.<lang>.json`
+    Full {
+        package: String,
+        entry: Box<SymbolEntry>,
+    },
+    /// A summary alone, such as the summaries Aximar embeds
+    Summary(String),
+}
+
+/// A symbol's documentation in a language chain
+#[derive(Debug, Clone)]
+pub struct Resolved {
+    pub package: String,
+    /// The entry to show: a translation where there is one, with its
+    /// summary from the first language that has one
+    pub entry: SymbolEntry,
+    /// The language of `entry.summary`
+    pub summary_language: String,
+    /// The language of the rest: the body, signatures and examples
+    pub body_language: String,
+    /// The chain's first language, when the symbol has nothing in it
+    pub fallback_from: Option<String>,
+    /// A translation whose signatures differ from the English entry's, so
+    /// it may describe an older version
+    pub stale: bool,
+    /// The English signatures, for a stale translation
+    pub english_signatures: Vec<String>,
+}
+
+/// A symbol's signatures as a set, the primary one included
+fn signature_set(entry: &SymbolEntry) -> std::collections::BTreeSet<String> {
+    let squash = |s: &str| s.split_whitespace().collect::<Vec<_>>().join(" ");
+    std::iter::once(&entry.signature)
+        .chain(entry.signatures.iter())
+        .filter(|s| !s.is_empty())
+        .map(|s| squash(s))
+        .collect()
 }
 
 // ---------------------------------------------------------------------------
@@ -131,8 +228,11 @@ fn idx_tokenizer(s: &str) -> Vec<Cow<'_, str>> {
 }
 
 pub struct DocIndexStore {
-    /// symbol_name (lowercase) → (package_name, SymbolEntry)
+    /// symbol_name (lowercase) → (package_name, SymbolEntry), in English
     symbols: HashMap<String, (String, SymbolEntry)>,
+    /// language → symbol_name (lowercase) → its documentation in that
+    /// language, for every language but English
+    translations: HashMap<String, HashMap<String, Translation>>,
     /// Original-case symbol names for prefix completion: (name, package)
     names: Vec<(String, String)>,
     /// Indexed symbols for BM25 search (parallel to names)
@@ -146,17 +246,20 @@ impl DocIndexStore {
     pub fn new_empty() -> Self {
         DocIndexStore {
             symbols: HashMap::new(),
+            translations: HashMap::new(),
             names: Vec::new(),
             indexed: Vec::new(),
             index: Index::new(3),
         }
     }
 
-    /// Load the embedded slim core doc-index as baseline, then overlay
-    /// runtime doc-index files from `~/.maxima/`.
+    /// Load the embedded slim core doc-index as baseline, with the
+    /// summaries Aximar embeds in other languages, then overlay runtime
+    /// doc-index files from `~/.maxima/`.
     pub fn load() -> Self {
         let mut store = Self::new_empty();
         store.load_embedded_core();
+        store.load_embedded_summaries();
         store.load_runtime_files();
         store.build_bm25_index();
         store
@@ -181,6 +284,30 @@ impl DocIndexStore {
         }
     }
 
+    /// The help summaries Aximar embeds in other languages, from Maxima's
+    /// manual in each (`core-doc-summaries.<lang>.json`), as a layer under
+    /// any full documentation installed in that language
+    pub fn load_embedded_summaries(&mut self) {
+        for language in super::summaries::languages() {
+            for (name, summary) in super::summaries::all(language) {
+                self.ingest_summary(language, name, summary);
+            }
+        }
+    }
+
+    /// One symbol's summary in a language other than English.  A full
+    /// translation already loaded keeps its own summary.
+    pub fn ingest_summary(&mut self, language: &str, name: &str, summary: &str) {
+        let lang = language_key(language);
+        if lang == ENGLISH {
+            return;
+        }
+        let entries = self.translations.entry(lang).or_default();
+        entries
+            .entry(name.to_lowercase())
+            .or_insert_with(|| Translation::Summary(summary.to_string()));
+    }
+
     /// Load runtime doc-index files from `~/.maxima/` package directories.
     pub fn load_runtime_files(&mut self) {
         let userdir = match maxima_userdir() {
@@ -190,7 +317,14 @@ impl DocIndexStore {
                 return;
             }
         };
+        self.load_runtime_dir(&userdir);
+    }
 
+    /// Load the doc-index files of every package in a Maxima user
+    /// directory: `<package>/doc/<stem>-doc-index.json` in English, and
+    /// `<stem>-doc-index.<lang>.json` in another language, preferring each
+    /// full index over its `-slim-` variant.
+    pub fn load_runtime_dir(&mut self, userdir: &std::path::Path) {
         if !userdir.is_dir() {
             return;
         }
@@ -204,11 +338,11 @@ impl DocIndexStore {
         // Stem is derived by stripping `-slim-doc-index.json` or
         // `-doc-index.json` from the filename.
         let mut by_stem: StdHashMap<
-            String,
+            (String, String),
             (Option<std::path::PathBuf>, Option<std::path::PathBuf>),
         > = StdHashMap::new();
 
-        let entries = match std::fs::read_dir(&userdir) {
+        let entries = match std::fs::read_dir(userdir) {
             Ok(e) => e,
             Err(_) => return,
         };
@@ -232,21 +366,22 @@ impl DocIndexStore {
             for file_entry in doc_entries.flatten() {
                 let file_name = file_entry.file_name();
                 let name = file_name.to_string_lossy().to_string();
-                if !name.ends_with("-doc-index.json") {
+                let Some((stem, slim, lang)) = doc_index_file_name(&name) else {
                     continue;
-                }
+                };
 
                 let path = file_entry.path();
-                if let Some(stem) = name.strip_suffix("-slim-doc-index.json") {
-                    by_stem.entry(stem.to_string()).or_default().0 = Some(path);
-                } else if let Some(stem) = name.strip_suffix("-doc-index.json") {
-                    by_stem.entry(stem.to_string()).or_default().1 = Some(path);
+                let pair = by_stem.entry((stem, lang)).or_default();
+                if slim {
+                    pair.0 = Some(path);
+                } else {
+                    pair.1 = Some(path);
                 }
             }
         }
 
         let mut file_count = 0u32;
-        for (slim, full) in by_stem.values() {
+        for ((_, lang), (slim, full)) in &by_stem {
             // Prefer full doc-index; fall back to slim
             let path = full.as_ref().or(slim.as_ref());
             let path = match path {
@@ -254,6 +389,14 @@ impl DocIndexStore {
                 None => continue,
             };
             match load_doc_index(path) {
+                Ok(index) if language_key(&index.language) != *lang => {
+                    eprintln!(
+                        "[doc-index] Skipped {}: its name says {} but it holds {}",
+                        path.display(),
+                        lang,
+                        index.language
+                    );
+                }
                 Ok(index) => {
                     self.ingest_index(index);
                     file_count += 1;
@@ -274,8 +417,22 @@ impl DocIndexStore {
     }
 
     /// Ingest all symbols from a doc-index, overwriting existing entries
-    /// for the same symbol name.
+    /// for the same symbol name in the same language.
     pub fn ingest_index(&mut self, index: DocIndex) {
+        let lang = language_key(&index.language);
+        if lang != ENGLISH {
+            let entries = self.translations.entry(lang).or_default();
+            for (sym_name, entry) in index.symbols {
+                entries.insert(
+                    sym_name.to_lowercase(),
+                    Translation::Full {
+                        package: index.package.clone(),
+                        entry: Box::new(entry),
+                    },
+                );
+            }
+            return;
+        }
         let pkg_name = index.package;
         for (sym_name, entry) in index.symbols {
             let key = sym_name.to_lowercase();
@@ -289,15 +446,31 @@ impl DocIndexStore {
                 name: sym_name.clone(),
                 package: pkg_name.clone(),
                 summary: entry.summary.clone(),
-                translated: super::summaries::translations(&sym_name).join(" "),
+                translated: String::new(),
                 keywords: entry.keywords.join(" "),
             });
             self.symbols.insert(key, (pkg_name.clone(), entry));
         }
     }
 
-    /// Build the BM25 index from the current indexed symbols.
+    /// Build the BM25 index from the current indexed symbols, with each
+    /// symbol's text in every other language, so search finds it by either.
     pub fn build_bm25_index(&mut self) {
+        for sym in &mut self.indexed {
+            let key = sym.name.to_lowercase();
+            let mut languages: Vec<&String> = self.translations.keys().collect();
+            languages.sort();
+            sym.translated = languages
+                .into_iter()
+                .filter_map(|lang| match self.translations[lang].get(&key)? {
+                    Translation::Full { entry, .. } => {
+                        Some(format!("{} {}", entry.summary, entry.keywords.join(" ")))
+                    }
+                    Translation::Summary(summary) => Some(summary.clone()),
+                })
+                .collect::<Vec<_>>()
+                .join(" ");
+        }
         self.index = Index::new(3);
         for (i, sym) in self.indexed.iter().enumerate() {
             self.index.add_document(
@@ -346,39 +519,173 @@ impl DocIndexStore {
         self.symbols.get(&name.to_lowercase())
     }
 
+    /// A symbol's documentation in a language chain, resolved for this
+    /// symbol alone: a full translation in the first language that has
+    /// one, else the English entry with the summary from the first
+    /// language that has one.  None when the symbol has no English entry
+    /// and no full translation.
+    pub fn resolve(&self, name: &str, chain: &LanguageChain) -> Option<Resolved> {
+        let key = name.to_lowercase();
+        let english = self.symbols.get(&key);
+        let mut summary: Option<(&str, &str)> = None;
+        for lang in chain.languages() {
+            if lang == ENGLISH {
+                break;
+            }
+            match self.translations.get(lang).and_then(|t| t.get(&key)) {
+                Some(Translation::Full { package, entry }) => {
+                    let stale =
+                        english.is_some_and(|(_, e)| signature_set(e) != signature_set(entry));
+                    let english_signatures = match english {
+                        Some((_, e)) if stale => signature_set(e).into_iter().collect(),
+                        _ => Vec::new(),
+                    };
+                    let mut entry = (**entry).clone();
+                    let mut summary_language = lang.clone();
+                    // A translation without a summary of its own
+                    if entry.summary.is_empty() {
+                        if let Some((l, s)) = summary {
+                            entry.summary = s.to_string();
+                            summary_language = l.to_string();
+                        }
+                    }
+                    return Some(Resolved {
+                        package: package.clone(),
+                        entry,
+                        summary_language,
+                        body_language: lang.clone(),
+                        fallback_from: (lang != chain.first()).then(|| chain.first().to_string()),
+                        stale,
+                        english_signatures,
+                    });
+                }
+                Some(Translation::Summary(s)) if summary.is_none() => summary = Some((lang, s)),
+                _ => {}
+            }
+        }
+        let (package, english) = english?;
+        let mut entry = english.clone();
+        let summary_language = match summary {
+            Some((lang, s)) => {
+                entry.summary = s.to_string();
+                lang.to_string()
+            }
+            None => ENGLISH.to_string(),
+        };
+        Some(Resolved {
+            package: package.clone(),
+            entry,
+            fallback_from: (summary_language != chain.first()).then(|| chain.first().to_string()),
+            summary_language,
+            body_language: ENGLISH.to_string(),
+            stale: false,
+            english_signatures: Vec::new(),
+        })
+    }
+
+    /// BM25 search, matching every language's text, with each result's
+    /// summary in the chain
+    pub fn search_in(&self, query: &str, chain: &LanguageChain) -> Vec<DocSearchResult> {
+        let mut results = self.search(query);
+        for r in &mut results {
+            if let Some(resolved) = self.resolve(&r.name, chain) {
+                r.summary = resolved.entry.summary;
+                r.signature = resolved.entry.signature;
+            }
+        }
+        results
+    }
+
+    /// Prefix completion, with summaries in the chain
+    pub fn complete_in(&self, prefix: &str, chain: &LanguageChain) -> Vec<CompletionResult> {
+        let mut results = self.complete(prefix);
+        for r in results.iter_mut().filter(|r| r.package.is_none()) {
+            if let Some(resolved) = self.resolve(&r.name, chain) {
+                r.description = resolved.entry.summary;
+            }
+        }
+        results
+    }
+
+    /// Signature help in the chain: the summary in the reader's language,
+    /// and the English signatures when a translation's differ
+    pub fn signature_info_in(
+        &self,
+        func_name: &str,
+        chain: &LanguageChain,
+    ) -> Option<Vec<(String, Vec<String>, String)>> {
+        let mut sigs = self.signature_info(func_name)?;
+        if let Some(resolved) = self.resolve(func_name, chain) {
+            for (_, _, summary) in &mut sigs {
+                summary.clone_from(&resolved.entry.summary);
+            }
+        }
+        Some(sigs)
+    }
+
+    /// Hover markdown in the chain
+    pub fn hover_markdown_in(&self, name: &str, chain: &LanguageChain) -> Option<String> {
+        let resolved = self.resolve(name, chain)?;
+        Some(hover_markdown_for(&resolved.package, &resolved.entry))
+    }
+
     /// Build hover markdown for a symbol.
     ///
     /// Images are stripped since VS Code hover tooltips can't render them.
     pub fn hover_markdown(&self, name: &str) -> Option<String> {
         let (pkg_name, entry) = self.get(name)?;
-
-        let mut md = format!("```maxima\n{}\n```\n\n", entry.signature);
-
-        if !entry.body_md.is_empty() {
-            md.push_str(&strip_markdown_images(&entry.body_md));
-        } else if !entry.summary.is_empty() {
-            md.push_str(&entry.summary);
-        }
-
-        if !entry.examples.is_empty() {
-            md.push_str("\n\n**Examples:**\n");
-            for ex in &entry.examples {
-                md.push_str(&format!("```maxima\n{}\n```\n", ex.input));
-                if !ex.description.is_empty() {
-                    md.push_str(&format!("{}\n", ex.description));
-                }
-            }
-        }
-
-        if !entry.see_also.is_empty() {
-            md.push_str(&format!("\n**See also:** {}", entry.see_also.join(", ")));
-        }
-
-        md.push_str(&format!("\n\n*From package `{}`*", pkg_name));
-
-        Some(md)
+        Some(hover_markdown_for(pkg_name, entry))
     }
 
+    /// The languages, other than English, the store has any text in
+    pub fn languages(&self) -> Vec<String> {
+        let mut languages: Vec<String> = self.translations.keys().cloned().collect();
+        languages.sort();
+        languages
+    }
+
+    /// Whether the store has full documentation, not only summaries, in a
+    /// language
+    pub fn has_full_documentation(&self, language: &str) -> bool {
+        let lang = language_key(language);
+        lang == ENGLISH
+            || self
+                .translations
+                .get(&lang)
+                .is_some_and(|t| t.values().any(|e| matches!(e, Translation::Full { .. })))
+    }
+}
+
+/// Hover markdown for one entry: signature, documentation, examples
+fn hover_markdown_for(pkg_name: &str, entry: &SymbolEntry) -> String {
+    let mut md = format!("```maxima\n{}\n```\n\n", entry.signature);
+
+    if !entry.body_md.is_empty() {
+        md.push_str(&strip_markdown_images(&entry.body_md));
+    } else if !entry.summary.is_empty() {
+        md.push_str(&entry.summary);
+    }
+
+    if !entry.examples.is_empty() {
+        md.push_str("\n\n**Examples:**\n");
+        for ex in &entry.examples {
+            md.push_str(&format!("```maxima\n{}\n```\n", ex.input));
+            if !ex.description.is_empty() {
+                md.push_str(&format!("{}\n", ex.description));
+            }
+        }
+    }
+
+    if !entry.see_also.is_empty() {
+        md.push_str(&format!("\n**See also:** {}", entry.see_also.join(", ")));
+    }
+
+    md.push_str(&format!("\n\n*From package `{}`*", pkg_name));
+
+    md
+}
+
+impl DocIndexStore {
     /// Prefix-match symbol names for completion.
     pub fn complete(&self, prefix: &str) -> Vec<CompletionResult> {
         if prefix.is_empty() {
@@ -532,6 +839,25 @@ impl DocIndexStore {
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
+
+/// A doc-index file's stem, whether it's the slim variant, and the
+/// language its name gives: `core-doc-index.json` is `("core", false,
+/// "en")`, `core-slim-doc-index.es.json` is `("core", true, "es")`
+fn doc_index_file_name(name: &str) -> Option<(String, bool, String)> {
+    let base = name.strip_suffix(".json")?;
+    let (rest, lang) = match base.rsplit_once('.') {
+        Some((rest, lang)) if rest.ends_with("-doc-index") && !lang.is_empty() => {
+            (rest, language_key(lang))
+        }
+        _ => (base, ENGLISH.to_string()),
+    };
+    if let Some(stem) = rest.strip_suffix("-slim-doc-index") {
+        Some((stem.to_string(), true, lang))
+    } else {
+        rest.strip_suffix("-doc-index")
+            .map(|stem| (stem.to_string(), false, lang))
+    }
+}
 
 fn load_doc_index(path: &std::path::Path) -> Result<DocIndex, String> {
     let content = std::fs::read_to_string(path).map_err(|e| format!("read error: {}", e))?;
@@ -690,6 +1016,358 @@ fn extract_word(s: &str) -> String {
 }
 
 #[cfg(test)]
+mod language_tests {
+    use super::*;
+    use std::path::Path;
+
+    /// A doc index for `package` in `language` (None for no field), with
+    /// entries `(name, signatures, summary, body)`
+    fn index_json(
+        package: &str,
+        language: Option<&str>,
+        entries: &[(&str, &[&str], &str, &str)],
+    ) -> String {
+        let symbols: serde_json::Map<String, serde_json::Value> = entries
+            .iter()
+            .map(|(name, sigs, summary, body)| {
+                (
+                    name.to_string(),
+                    serde_json::json!({
+                        "type": "Function",
+                        "signature": sigs[0],
+                        "signatures": sigs,
+                        "summary": summary,
+                        "body_md": body,
+                    }),
+                )
+            })
+            .collect();
+        let mut index = serde_json::json!({ "version": 1, "package": package, "symbols": symbols });
+        if let Some(lang) = language {
+            index["language"] = lang.into();
+        }
+        index.to_string()
+    }
+
+    fn write(userdir: &Path, package: &str, file: &str, json: &str) {
+        let doc = userdir.join(package).join("doc");
+        std::fs::create_dir_all(&doc).unwrap();
+        std::fs::write(doc.join(file), json).unwrap();
+    }
+
+    const INTEGRATE_EN: (&str, &[&str], &str, &str) = (
+        "integrate",
+        &["integrate(expr, x)", "integrate(expr, x, a, b)"],
+        "Attempts to symbolically compute the integral.",
+        "The full English documentation.",
+    );
+    const FFT_EN: (&str, &[&str], &str, &str) =
+        ("fft", &["fft(x)"], "Fast Fourier transform.", "About fft.");
+
+    /// A store with English core docs, as maxima-core-docs installs them
+    fn store_with_english(userdir: &Path) -> DocIndexStore {
+        write(
+            userdir,
+            "maxima-core-docs",
+            "maxima-core-docs-doc-index.json",
+            &index_json("maxima-core-docs", None, &[INTEGRATE_EN, FFT_EN]),
+        );
+        let mut store = DocIndexStore::new_empty();
+        store.load_runtime_dir(userdir);
+        store
+    }
+
+    fn spanish() -> LanguageChain {
+        LanguageChain::new(&["es"])
+    }
+
+    #[test]
+    fn a_chain_ends_with_english_once() {
+        assert_eq!(LanguageChain::new(&["es"]).languages(), ["es", "en"]);
+        assert_eq!(
+            LanguageChain::new(&["pt_BR", "en"]).languages(),
+            ["pt-br", "en"]
+        );
+        assert_eq!(LanguageChain::new::<&str>(&[]).languages(), ["en"]);
+        assert_eq!(LanguageChain::english().first(), "en");
+    }
+
+    #[test]
+    fn file_names_give_stem_variant_and_language() {
+        let parse = doc_index_file_name;
+        assert_eq!(
+            parse("core-doc-index.json"),
+            Some(("core".into(), false, "en".into()))
+        );
+        assert_eq!(
+            parse("core-slim-doc-index.json"),
+            Some(("core".into(), true, "en".into()))
+        );
+        assert_eq!(
+            parse("core-doc-index.es.json"),
+            Some(("core".into(), false, "es".into()))
+        );
+        assert_eq!(
+            parse("core-slim-doc-index.pt-BR.json"),
+            Some(("core".into(), true, "pt-br".into()))
+        );
+        assert_eq!(parse("notes.json"), None);
+    }
+
+    #[test]
+    fn an_index_without_a_language_is_english() {
+        let dir = tempfile::tempdir().unwrap();
+        let store = store_with_english(dir.path());
+        let integrate = store
+            .resolve("integrate", &LanguageChain::english())
+            .unwrap();
+        assert_eq!(integrate.body_language, "en");
+        assert_eq!(integrate.entry.body_md, "The full English documentation.");
+        assert!(store.languages().is_empty());
+    }
+
+    #[test]
+    fn a_translated_index_loads_by_name() {
+        let dir = tempfile::tempdir().unwrap();
+        write(
+            dir.path(),
+            "maxima-core-docs-es",
+            "maxima-core-docs-doc-index.es.json",
+            &index_json(
+                "maxima-core-docs-es",
+                Some("es"),
+                &[(
+                    "integrate",
+                    &["integrate(expr, x)", "integrate(expr, x, a, b)"],
+                    "Calcula la integral.",
+                    "La documentación en español.",
+                )],
+            ),
+        );
+        let store = store_with_english(dir.path());
+        assert_eq!(store.languages(), ["es"]);
+        assert!(store.has_full_documentation("es"));
+        // English lookups are as before
+        assert_eq!(
+            store.get("integrate").unwrap().1.body_md,
+            "The full English documentation."
+        );
+    }
+
+    #[test]
+    fn a_mismatched_index_is_skipped() {
+        let dir = tempfile::tempdir().unwrap();
+        write(
+            dir.path(),
+            "maxima-core-docs-es",
+            "maxima-core-docs-doc-index.es.json",
+            &index_json(
+                "maxima-core-docs-es",
+                Some("de"),
+                &[(
+                    "integrate",
+                    &["integrate(expr, x)"],
+                    "Integral.",
+                    "Deutsch.",
+                )],
+            ),
+        );
+        let store = store_with_english(dir.path());
+        assert!(store.languages().is_empty());
+        assert_eq!(
+            store
+                .resolve("integrate", &spanish())
+                .unwrap()
+                .body_language,
+            "en"
+        );
+    }
+
+    #[test]
+    fn a_translated_symbol_comes_first() {
+        let dir = tempfile::tempdir().unwrap();
+        write(
+            dir.path(),
+            "maxima-core-docs-es",
+            "maxima-core-docs-doc-index.es.json",
+            &index_json(
+                "maxima-core-docs-es",
+                Some("es"),
+                &[(
+                    "integrate",
+                    &["integrate(expr, x)", "integrate(expr, x, a, b)"],
+                    "Calcula la integral.",
+                    "La documentación en español.",
+                )],
+            ),
+        );
+        let store = store_with_english(dir.path());
+        let integrate = store.resolve("integrate", &spanish()).unwrap();
+        assert_eq!(integrate.entry.body_md, "La documentación en español.");
+        assert_eq!(
+            (
+                integrate.summary_language.as_str(),
+                integrate.body_language.as_str()
+            ),
+            ("es", "es")
+        );
+        assert_eq!(integrate.fallback_from, None);
+        assert!(!integrate.stale);
+    }
+
+    #[test]
+    fn a_missing_translation_falls_back_to_english() {
+        let dir = tempfile::tempdir().unwrap();
+        write(
+            dir.path(),
+            "maxima-core-docs-es",
+            "maxima-core-docs-doc-index.es.json",
+            &index_json(
+                "maxima-core-docs-es",
+                Some("es"),
+                &[("integrate", &["integrate(expr, x)"], "Calcula.", "Español.")],
+            ),
+        );
+        let store = store_with_english(dir.path());
+        let fft = store.resolve("fft", &spanish()).unwrap();
+        assert_eq!(fft.entry.body_md, "About fft.");
+        assert_eq!(fft.body_language, "en");
+        assert_eq!(fft.fallback_from.as_deref(), Some("es"));
+    }
+
+    #[test]
+    fn differing_signatures_mark_a_translation_stale() {
+        let dir = tempfile::tempdir().unwrap();
+        write(
+            dir.path(),
+            "maxima-core-docs-es",
+            "maxima-core-docs-doc-index.es.json",
+            &index_json(
+                "maxima-core-docs-es",
+                Some("es"),
+                &[(
+                    "integrate",
+                    &["integrate(expr, x)"],
+                    "Calcula.",
+                    "Español antiguo.",
+                )],
+            ),
+        );
+        let store = store_with_english(dir.path());
+        let integrate = store.resolve("integrate", &spanish()).unwrap();
+        assert!(integrate.stale);
+        assert_eq!(
+            integrate.english_signatures,
+            ["integrate(expr, x)", "integrate(expr, x, a, b)"]
+        );
+    }
+
+    #[test]
+    fn search_matches_either_language() {
+        let dir = tempfile::tempdir().unwrap();
+        write(
+            dir.path(),
+            "maxima-core-docs-es",
+            "maxima-core-docs-doc-index.es.json",
+            &index_json(
+                "maxima-core-docs-es",
+                Some("es"),
+                &[(
+                    "integrate",
+                    &["integrate(expr, x)", "integrate(expr, x, a, b)"],
+                    "Calcula la integral definida.",
+                    "Español.",
+                )],
+            ),
+        );
+        let mut store = store_with_english(dir.path());
+        store.build_bm25_index();
+        let hits = store.search_in("integral definida", &spanish());
+        let integrate = hits
+            .iter()
+            .find(|h| h.name == "integrate")
+            .expect("integrate found by its Spanish text");
+        assert_eq!(integrate.summary, "Calcula la integral definida.");
+        let english = store.search_in("integral", &LanguageChain::english());
+        assert_eq!(
+            english
+                .iter()
+                .find(|h| h.name == "integrate")
+                .unwrap()
+                .summary,
+            "Attempts to symbolically compute the integral."
+        );
+    }
+
+    #[test]
+    fn a_summary_layer_sits_above_english_documentation() {
+        let dir = tempfile::tempdir().unwrap();
+        let mut store = DocIndexStore::new_empty();
+        store.ingest_summary("es", "integrate", "Calcula simbólicamente la integral.");
+        // maxima-core-docs installed: full English documentation
+        write(
+            dir.path(),
+            "maxima-core-docs",
+            "maxima-core-docs-doc-index.json",
+            &index_json("maxima-core-docs", None, &[INTEGRATE_EN, FFT_EN]),
+        );
+        store.load_runtime_dir(dir.path());
+        let integrate = store.resolve("integrate", &spanish()).unwrap();
+        assert_eq!(
+            integrate.entry.summary,
+            "Calcula simbólicamente la integral."
+        );
+        assert_eq!(integrate.entry.body_md, "The full English documentation.");
+        assert_eq!(
+            (
+                integrate.summary_language.as_str(),
+                integrate.body_language.as_str()
+            ),
+            ("es", "en")
+        );
+        assert_eq!(integrate.fallback_from, None);
+        assert!(!store.has_full_documentation("es"));
+        // A full translation, installed later, takes over from the summary
+        write(
+            dir.path(),
+            "maxima-core-docs-es",
+            "maxima-core-docs-doc-index.es.json",
+            &index_json(
+                "maxima-core-docs-es",
+                Some("es"),
+                &[(
+                    "integrate",
+                    &["integrate(expr, x)", "integrate(expr, x, a, b)"],
+                    "Calcula la integral.",
+                    "Español.",
+                )],
+            ),
+        );
+        store.load_runtime_dir(dir.path());
+        let integrate = store.resolve("integrate", &spanish()).unwrap();
+        assert_eq!(integrate.entry.body_md, "Español.");
+        assert_eq!(integrate.body_language, "es");
+    }
+
+    #[test]
+    fn the_embedded_spanish_summaries_load() {
+        let mut store = DocIndexStore::new_empty();
+        store.load_embedded_core();
+        store.load_embedded_summaries();
+        let integrate = store.resolve("integrate", &spanish()).unwrap();
+        assert!(
+            integrate
+                .entry
+                .summary
+                .starts_with("Calcula simbólicamente"),
+            "{}",
+            integrate.entry.summary
+        );
+        assert_eq!(integrate.summary_language, "es");
+    }
+}
+
+#[cfg(test)]
 mod tests {
     use super::*;
 
@@ -793,6 +1471,7 @@ mod tests {
         let index: DocIndex = serde_json::from_str(json).unwrap();
         let mut store = DocIndexStore {
             symbols: HashMap::new(),
+            translations: HashMap::new(),
             names: Vec::new(),
             indexed: Vec::new(),
             index: Index::new(3),
@@ -847,6 +1526,7 @@ mod tests {
     fn test_ingest_overlay_overwrites() {
         let mut store = DocIndexStore {
             symbols: HashMap::new(),
+            translations: HashMap::new(),
             names: Vec::new(),
             indexed: Vec::new(),
             index: Index::new(3),

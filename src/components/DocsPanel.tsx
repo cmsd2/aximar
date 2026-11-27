@@ -6,8 +6,12 @@ import rehypeKatex from "rehype-katex";
 import katex from "katex";
 import { Trans, useLingui } from "@lingui/react/macro";
 import { plural } from "@lingui/core/macro";
-import { getFunctionDocs, getFunction, searchFunctions, getPackage, packageForFunction, searchPackageFunctions, searchPackages } from "../lib/catalog-client";
-import type { MaximaFunction, SearchResult, PackageInfo, PackageFunctionSearchResult, PackageSearchResult } from "../types/catalog";
+import { listen } from "@tauri-apps/api/event";
+import { docsLanguages, getFunctionDocs, getFunction, searchFunctions, getPackage, packageForFunction, searchPackageFunctions, searchPackages } from "../lib/catalog-client";
+import { setConfig } from "../lib/config-client";
+import type { DocsLanguages, MaximaFunction, SearchResult, PackageInfo, PackageFunctionSearchResult, PackageSearchResult } from "../types/catalog";
+import { DocsLanguageMenu } from "./docs/DocsLanguageMenu";
+import { DocsLanguageNotes } from "./docs/DocsLanguageNotes";
 
 /**
  * Convert single-line `$$...$$` to multi-line format required by remark-math v6.
@@ -35,6 +39,7 @@ export function DocsPanel({ open, functionName, requestId, onClose }: DocsPanelP
   const [currentPackage, setCurrentPackage] = useState<PackageInfo | null>(null);
   const [stubFunctionName, setStubFunctionName] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [docsInfo, setDocsInfo] = useState<DocsLanguages | null>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
@@ -114,6 +119,37 @@ export function DocsPanel({ open, functionName, requestId, onClose }: DocsPanelP
       setLoading(false);
     }
   }, []);
+
+  // The help's languages; again when the app's language changes, which the
+  // help follows unless a language is chosen for it
+  const loadDocsInfo = useCallback(() => {
+    docsLanguages()
+      .then(setDocsInfo)
+      .catch(() => setDocsInfo(null));
+  }, []);
+
+  useEffect(() => {
+    loadDocsInfo();
+    const unlisten = listen("language-changed", () => {
+      loadDocsInfo();
+      const page = historyRef.current[historyIndexRef.current];
+      if (page) void navigateTo(page, false);
+    });
+    return () => {
+      void unlisten.then((f) => f());
+    };
+  }, [loadDocsInfo, navigateTo]);
+
+  /** Choose the help's language, and show the page again in it */
+  const chooseDocsLanguage = useCallback(
+    async (language: string | null) => {
+      await setConfig({ docs_language: language });
+      loadDocsInfo();
+      const page = historyRef.current[historyIndexRef.current];
+      if (page) await navigateTo(page, false);
+    },
+    [loadDocsInfo, navigateTo],
+  );
 
   // Load docs when a new request arrives (requestId bumps on each click)
   useEffect(() => {
@@ -241,6 +277,7 @@ export function DocsPanel({ open, functionName, requestId, onClose }: DocsPanelP
             }
           }}
         />
+        {docsInfo && <DocsLanguageMenu info={docsInfo} onChange={(l) => void chooseDocsLanguage(l)} />}
         <button
           className="docs-close-btn"
           onClick={onClose}
@@ -464,6 +501,8 @@ export function DocsPanel({ open, functionName, requestId, onClose }: DocsPanelP
                 ))}
               </div>
             )}
+
+            <DocsLanguageNotes fn={currentFunction} info={docsInfo} />
 
             {currentDocs ? (
               <div className="docs-markdown-body">

@@ -43,7 +43,7 @@ pub fn run() {
         .setup(|app| {
             let language = commands::config::read_language(app.handle());
             menu::setup_menu(app, &language)?;
-            i18n::set_help_language(&language);
+            i18n::set_docs_language(&commands::config::read_docs_language(app.handle()));
             let state = app.state::<AppState>();
             let handle = app.handle().clone();
 
@@ -116,6 +116,7 @@ pub fn run() {
             commands::catalog::get_function,
             commands::catalog::list_categories,
             commands::catalog::get_function_docs,
+            commands::catalog::docs_languages,
             commands::catalog::search_packages,
             commands::catalog::complete_packages,
             commands::catalog::get_package,
