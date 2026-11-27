@@ -8,7 +8,12 @@ wasn't checked; see "Screens with no story" for what that leaves out.
 
 ## Quick fixes
 
-These are bugs more than design work.
+These are bugs more than design work.  All four are fixed: the export
+dialog has a primary button and fits its content, every text in the
+stories reaches 4.5:1 in both themes (the Settings window's Claude status
+aside, which the settings-window change replaces), `--font-mono` holds the
+one monospace stack, and the Shortcuts story shows the hints.  The
+trust banner, syntax colours and warning colours are theme variables now.
 
 1. **The Export as LaTeX dialog is unstyled.**  Its Export button uses
    the class `template-start`, which has no CSS, so it shows as a bare

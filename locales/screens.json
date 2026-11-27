@@ -46,7 +46,8 @@
     "errors--all-explanations"
   ],
   "36rXYG": [
-    "cells--notebook"
+    "cells--notebook",
+    "cells--print-and-tex"
   ],
   "3mUZZb": [
     "errors--all-explanations"
@@ -108,10 +109,12 @@
     "dialogs--command-palette-open"
   ],
   "9uI_rE": [
+    "window--shortcuts",
     "window--toolbar-and-tabs"
   ],
   "9wSsIz": [
-    "cells--notebook"
+    "cells--notebook",
+    "cells--print-and-tex"
   ],
   "AR39Q1": [
     "errors--all-explanations"
@@ -128,7 +131,8 @@
     "errors--all-explanations"
   ],
   "BEqAg8": [
-    "cells--notebook"
+    "cells--notebook",
+    "cells--print-and-tex"
   ],
   "BNropb": [
     "dialogs--settings"
@@ -138,6 +142,9 @@
   ],
   "BddwrJ": [
     "dialogs--settings"
+  ],
+  "Bpglf1": [
+    "window--shortcuts"
   ],
   "BrW77_": [
     "errors--all-explanations"
@@ -150,6 +157,9 @@
   ],
   "CnuZG0": [
     "errors--all-explanations"
+  ],
+  "DPc2P9": [
+    "window--shortcuts"
   ],
   "ENfAMB": [
     "errors--all-explanations"
@@ -179,6 +189,7 @@
     "errors--all-explanations"
   ],
   "H3oH0g": [
+    "window--shortcuts",
     "window--toolbar-and-tabs"
   ],
   "HeKaRX": [
@@ -207,6 +218,9 @@
   ],
   "KrwLDh": [
     "notes--all-notes"
+  ],
+  "KujtjC": [
+    "window--shortcuts"
   ],
   "L-UTYm": [
     "errors--all-explanations"
@@ -288,10 +302,12 @@
     "errors--all-explanations"
   ],
   "Q65zPG": [
-    "cells--notebook"
+    "cells--notebook",
+    "cells--print-and-tex"
   ],
   "QHqTyt": [
-    "cells--notebook"
+    "cells--notebook",
+    "cells--print-and-tex"
   ],
   "Qhrs6G": [
     "errors--all-explanations"
@@ -331,7 +347,8 @@
     "window--toolbar-and-tabs"
   ],
   "U09AZZ": [
-    "cells--notebook"
+    "cells--notebook",
+    "cells--print-and-tex"
   ],
   "UeJ1vj": [
     "errors--all-explanations"
@@ -375,6 +392,9 @@
   "Zw-Zv-": [
     "dialogs--settings"
   ],
+  "ZyMBtl": [
+    "window--shortcuts"
+  ],
   "_4AfjN": [
     "errors--all-explanations"
   ],
@@ -382,7 +402,8 @@
     "errors--all-explanations"
   ],
   "_fOYgv": [
-    "cells--notebook"
+    "cells--notebook",
+    "cells--print-and-tex"
   ],
   "aHyNBr": [
     "errors--all-explanations"
@@ -391,7 +412,11 @@
     "dialogs--settings"
   ],
   "ay_e24": [
-    "cells--notebook"
+    "cells--notebook",
+    "cells--print-and-tex"
+  ],
+  "bAvovP": [
+    "window--shortcuts"
   ],
   "bIaBmV": [
     "cells--notebook"
@@ -425,6 +450,9 @@
   ],
   "d5zxa4": [
     "dialogs--settings"
+  ],
+  "d9E9pE": [
+    "window--shortcuts"
   ],
   "dEgA5A": [
     "dialogs--export-latex"
@@ -477,6 +505,7 @@
   ],
   "he3ygx": [
     "cells--notebook",
+    "cells--print-and-tex",
     "dialogs--settings"
   ],
   "i17GIR": [
@@ -550,7 +579,8 @@
     "errors--all-explanations"
   ],
   "prKc8h": [
-    "cells--notebook"
+    "cells--notebook",
+    "cells--print-and-tex"
   ],
   "pvY0_v": [
     "errors--all-explanations"

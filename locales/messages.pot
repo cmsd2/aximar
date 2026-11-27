@@ -293,6 +293,7 @@ msgstr ""
 
 #. Tooltip of the bracket beside a code cell: hides the cell's output
 #. screen: cells--notebook
+#. screen: cells--print-and-tex
 #: src/components/Cell.tsx
 msgid "Collapse output"
 msgstr ""
@@ -337,6 +338,7 @@ msgstr ""
 #. Button above a result: copies it to the clipboard as Maxima code. max-length:8
 #. Settings button: copies the MCP token to the clipboard
 #. screen: cells--notebook
+#. screen: cells--print-and-tex
 #. screen: dialogs--settings
 #: src/components/CellOutput.tsx src/components/SettingsModal.tsx
 msgid "Copy"
@@ -344,12 +346,14 @@ msgstr ""
 
 #. Tooltip of the TeX button above a result: copies the result's LaTeX to the clipboard
 #. screen: cells--notebook
+#. screen: cells--print-and-tex
 #: src/components/CellOutput.tsx
 msgid "Copy LaTeX source"
 msgstr ""
 
 #. Tooltip of the Copy button above a result: copies the result as Maxima code
 #. screen: cells--notebook
+#. screen: cells--print-and-tex
 #: src/components/CellOutput.tsx
 msgid "Copy Maxima expression"
 msgstr ""
@@ -386,12 +390,14 @@ msgstr ""
 #. Tooltip of the cross button that deletes a cell
 #. Tooltip of the cross button that deletes a cell
 #. screen: cells--notebook
+#. screen: cells--print-and-tex
 #: src/components/Cell.tsx src/components/MarkdownCell.tsx
 #: src/components/RawCell.tsx
 msgid "Delete cell"
 msgstr ""
 
 #. Shortcut hints shown while Cmd or Ctrl is held: deletes the active cell. max-length:16
+#. screen: window--shortcuts
 #: src/components/ShortcutHints.tsx
 msgid "Delete Cell"
 msgstr ""
@@ -549,11 +555,13 @@ msgid "Filter {categoryLabel}... (Backspace to go back)"
 msgstr ""
 
 #. Shortcut hints shown while Cmd or Ctrl is held: opens the find bar. max-length:16
+#. screen: window--shortcuts
 #: src/components/ShortcutHints.tsx
 msgid "Find"
 msgstr ""
 
 #. Shortcut hints shown while Cmd or Ctrl is held: opens find and replace. max-length:16
+#. screen: window--shortcuts
 #: src/components/ShortcutHints.tsx
 msgid "Find & Replace"
 msgstr ""
@@ -646,6 +654,7 @@ msgstr ""
 
 #. Label left of a code cell's input, as in Jupyter. execNum is how many cells the session had run when this one last ran. max-length:10
 #. screen: cells--notebook
+#. screen: cells--print-and-tex
 #: src/components/Cell.tsx
 msgid "In [{execNum}]"
 msgstr ""
@@ -828,17 +837,20 @@ msgstr ""
 
 #. Tooltip of a code cell's down-arrow button
 #. screen: cells--notebook
+#. screen: cells--print-and-tex
 #: src/components/Cell.tsx
 msgid "Move cell down"
 msgstr ""
 
 #. Tooltip of a code cell's up-arrow button
 #. screen: cells--notebook
+#. screen: cells--print-and-tex
 #: src/components/Cell.tsx
 msgid "Move cell up"
 msgstr ""
 
 #. Shortcut hints shown while Cmd or Ctrl is held: moves the active cell down one place. max-length:16
+#. screen: window--shortcuts
 #: src/components/ShortcutHints.tsx
 msgid "Move Down"
 msgstr ""
@@ -849,6 +861,7 @@ msgid "Move to New Window"
 msgstr ""
 
 #. Shortcut hints shown while Cmd or Ctrl is held: moves the active cell up one place. max-length:16
+#. screen: window--shortcuts
 #: src/components/ShortcutHints.tsx
 msgid "Move Up"
 msgstr ""
@@ -919,6 +932,7 @@ msgstr ""
 
 #. Label left of a code cell's output, as in Jupyter. execNum is how many cells the session had run when this one last ran. max-length:10
 #. screen: cells--notebook
+#. screen: cells--print-and-tex
 #: src/components/Cell.tsx
 msgid "Out [{execNum}]"
 msgstr ""
@@ -945,6 +959,7 @@ msgid "Packages"
 msgstr ""
 
 #. Shortcut hints shown while Cmd or Ctrl is held: opens the command palette. max-length:16
+#. screen: window--shortcuts
 #: src/components/ShortcutHints.tsx
 msgid "Palette"
 msgstr ""
@@ -1009,6 +1024,7 @@ msgstr ""
 
 #. Shortcut hints shown while Cmd or Ctrl is held: redoes the last undone edit. max-length:16
 #. Toolbar button: redoes the last undone change. max-length:12
+#. screen: window--shortcuts
 #. screen: window--toolbar-and-tabs
 #: src/components/ShortcutHints.tsx src/components/Toolbar.tsx
 msgid "Redo"
@@ -1077,6 +1093,7 @@ msgstr ""
 
 #. Tooltip of a code cell's run button. Shift+Enter is the keyboard shortcut; keep it as it is
 #. screen: cells--notebook
+#. screen: cells--print-and-tex
 #: src/components/Cell.tsx
 msgid "Run cell (Shift+Enter)"
 msgstr ""
@@ -1261,6 +1278,7 @@ msgstr ""
 
 #. Shortcut hints shown while Cmd or Ctrl is held: undoes the last edit. max-length:16
 #. Toolbar button: undoes the last change to the notebook. max-length:12
+#. screen: window--shortcuts
 #. screen: window--toolbar-and-tabs
 #: src/components/ShortcutHints.tsx src/components/Toolbar.tsx
 msgid "Undo"

@@ -8,17 +8,23 @@
   --bg-cell: #fafafa;
   --bg-input: #ffffff;
   --text-primary: #1d1d1f;
-  --text-secondary: #6e6e73;
+  --text-secondary: #636366;
   --text-placeholder: #aeaeb2;
   --border-color: #d2d2d7;
   --accent: #0071e3;
   --accent-hover: #0077ed;
-  --error-color: #e3342f;
+  --error-color: #c62828;
   --error-bg: #fef2f2;
   --success-color: #2d8a4e;
   --running-color: #b8860b;
+  --warning-color: #e5a00d;
+  --warning-text: #7a4f00;
+  --syntax-builtin: #8a6508;
+  --syntax-string: #237a42;
+  --syntax-number: #8e44ad;
   --gutter-width: 56px;
   --font-size-mono: 14px;
+  --font-mono: "JetBrains Mono", "Fira Code", "SF Mono", Menlo, Consolas, monospace;
   --font-family-markdown: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
   --markdown-indent: 16px;
 
@@ -47,6 +53,11 @@
     --error-bg: #2e1a1e;
     --success-color: #a6e3a1;
     --running-color: #f9e2af;
+    --warning-color: #e5a00d;
+    --warning-text: #f9e2af;
+    --syntax-builtin: #f9e2af;
+    --syntax-string: #a6e3a1;
+    --syntax-number: #cba6f7;
   }
 }
 
@@ -66,6 +77,11 @@
   --error-bg: #2e1a1e;
   --success-color: #a6e3a1;
   --running-color: #f9e2af;
+  --warning-color: #e5a00d;
+  --warning-text: #f9e2af;
+  --syntax-builtin: #f9e2af;
+  --syntax-string: #a6e3a1;
+  --syntax-number: #cba6f7;
 }
 
 * {
@@ -469,8 +485,7 @@
   background: transparent;
   border: none;
   color: var(--text-primary);
-  font-family: "JetBrains Mono", "Fira Code", "SF Mono", Menlo, Consolas,
-    monospace;
+  font-family: var(--font-mono);
   font-size: var(--font-size-mono);
   line-height: 1.5;
   resize: none;
@@ -725,7 +740,7 @@
 }
 
 .reactive-control-name {
-  font-family: var(--font-mono, monospace);
+  font-family: var(--font-mono);
   color: var(--text-secondary, #aaa);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -733,7 +748,7 @@
 }
 
 .reactive-control-value {
-  font-family: var(--font-mono, monospace);
+  font-family: var(--font-mono);
   color: var(--text-primary, #e0e0e0);
   text-align: right;
 }
@@ -763,7 +778,7 @@
   border: 1px solid var(--border-color, #333);
   border-radius: 4px;
   padding: 2px 6px;
-  font-family: var(--font-mono, monospace);
+  font-family: var(--font-mono);
   font-size: 13px;
 }
 
@@ -777,8 +792,7 @@
 }
 
 .text-output {
-  font-family: "JetBrains Mono", "Fira Code", "SF Mono", Menlo, Consolas,
-    monospace;
+  font-family: var(--font-mono);
   font-size: calc(var(--font-size-mono) - 1px);
   line-height: 1.5;
   color: var(--text-secondary);
@@ -790,7 +804,7 @@
 .signature-hint {
   padding: 6px 10px;
   max-width: 420px;
-  font-family: "JetBrains Mono", "Fira Code", "SF Mono", Menlo, Consolas, monospace;
+  font-family: var(--font-mono);
   font-size: 12px;
 }
 
@@ -995,7 +1009,7 @@
 
 .palette-category-item.selected .palette-category-item-count {
   color: inherit;
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(0, 0, 0, 0.15);
 }
 
 .palette-item {
@@ -1053,7 +1067,7 @@
 }
 
 .palette-item.selected .palette-package-badge {
-  background: rgba(255, 255, 255, 0.25);
+  background: rgba(0, 0, 0, 0.15);
   color: inherit;
 }
 
@@ -1074,7 +1088,7 @@
 }
 
 .palette-item-sig {
-  font-family: "JetBrains Mono", "Fira Code", "SF Mono", Menlo, Consolas, monospace;
+  font-family: var(--font-mono);
   font-size: 12px;
   color: var(--text-secondary);
   margin-top: 1px;
@@ -1105,13 +1119,13 @@
 }
 
 .palette-symbol-name {
-  font-family: "JetBrains Mono", "Fira Code", "SF Mono", Menlo, Consolas, monospace;
+  font-family: var(--font-mono);
   font-size: 14px;
   font-weight: 500;
 }
 
 .palette-symbol-maxima {
-  font-family: "JetBrains Mono", "Fira Code", "SF Mono", Menlo, Consolas, monospace;
+  font-family: var(--font-mono);
   font-size: 12px;
   color: var(--text-secondary);
   margin-left: auto;
@@ -1138,8 +1152,7 @@
 }
 
 .error-output pre {
-  font-family: "JetBrains Mono", "Fira Code", "SF Mono", Menlo, Consolas,
-    monospace;
+  font-family: var(--font-mono);
   font-size: 13px;
   color: var(--error-color);
   background: var(--error-bg);
@@ -1194,7 +1207,7 @@
   /* A note can cover hundreds of lines */
   max-height: 16em;
   overflow-y: auto;
-  font-family: "JetBrains Mono", "Fira Code", "SF Mono", Menlo, Consolas, monospace;
+  font-family: var(--font-mono);
   font-size: 12px;
   white-space: pre-wrap;
   word-break: break-word;
@@ -1203,7 +1216,7 @@
 }
 
 .enhanced-error-translated {
-  font-family: "JetBrains Mono", "Fira Code", "SF Mono", Menlo, Consolas, monospace;
+  font-family: var(--font-mono);
   font-size: 12px;
   color: var(--text-primary);
   white-space: pre-wrap;
@@ -1238,7 +1251,7 @@
   background: none;
   border: none;
   color: var(--accent);
-  font-family: "JetBrains Mono", "Fira Code", "SF Mono", Menlo, Consolas, monospace;
+  font-family: var(--font-mono);
   font-size: 13px;
   cursor: pointer;
   text-decoration: underline;
@@ -1261,7 +1274,7 @@
 
 .enhanced-error-sig {
   display: inline-block;
-  font-family: "JetBrains Mono", "Fira Code", "SF Mono", Menlo, Consolas, monospace;
+  font-family: var(--font-mono);
   font-size: 12px;
   background: var(--bg-secondary);
   padding: 2px 6px;
@@ -1277,13 +1290,13 @@
 }
 
 .enhanced-error-example-code {
-  font-family: "JetBrains Mono", "Fira Code", "SF Mono", Menlo, Consolas, monospace;
+  font-family: var(--font-mono);
   font-size: 12px;
   background: var(--bg-secondary);
   padding: 2px 6px;
   border-radius: 3px;
   cursor: pointer;
-  color: var(--accent);
+  color: var(--text-primary);
 }
 
 .enhanced-error-example-code:hover {
@@ -1294,7 +1307,7 @@
 .enhanced-error-toggle {
   background: none;
   border: none;
-  color: var(--text-placeholder);
+  color: var(--text-secondary);
   font-size: 11px;
   cursor: pointer;
   padding: 0;
@@ -1302,7 +1315,7 @@
 }
 
 .enhanced-error-toggle:hover {
-  color: var(--text-secondary);
+  color: var(--text-primary);
 }
 
 /* Template Chooser */
@@ -1376,7 +1389,7 @@
 
 .template-card-meta {
   font-size: 11px;
-  color: var(--text-placeholder);
+  color: var(--text-secondary);
 }
 
 .template-footer {
@@ -1452,7 +1465,7 @@
 
 .variable-empty {
   font-size: 12px;
-  color: var(--text-placeholder);
+  color: var(--text-secondary);
   font-style: italic;
 }
 
@@ -1468,7 +1481,7 @@
 }
 
 .variable-name {
-  font-family: "JetBrains Mono", "Fira Code", "SF Mono", Menlo, Consolas, monospace;
+  font-family: var(--font-mono);
   color: var(--text-primary);
 }
 
@@ -1497,7 +1510,7 @@
 }
 
 .enhanced-error-raw {
-  font-family: "JetBrains Mono", "Fira Code", "SF Mono", Menlo, Consolas, monospace;
+  font-family: var(--font-mono);
   font-size: 12px;
   color: var(--text-secondary);
   background: var(--bg-secondary);
@@ -1515,8 +1528,7 @@
   min-width: 0;
   margin: 0;
   padding: 6px 12px;
-  font-family: "JetBrains Mono", "Fira Code", "SF Mono", Menlo, Consolas,
-    monospace;
+  font-family: var(--font-mono);
   font-size: calc(var(--font-size-mono) - 1px);
   line-height: 1.5;
   color: var(--text-secondary);
@@ -1598,7 +1610,7 @@
 }
 
 .markdown-cell-view code {
-  font-family: "JetBrains Mono", "Fira Code", "SF Mono", Menlo, Consolas, monospace;
+  font-family: var(--font-mono);
   font-size: 0.9em;
   background: var(--bg-secondary);
   padding: 1px 5px;
@@ -1669,7 +1681,7 @@
   background: transparent;
   border: none;
   color: var(--text-primary);
-  font-family: "JetBrains Mono", "Fira Code", "SF Mono", Menlo, Consolas, monospace;
+  font-family: var(--font-mono);
   font-size: var(--font-size-mono);
   line-height: 1.5;
   resize: none;
@@ -1742,7 +1754,7 @@
   border-radius: 6px;
   color: var(--text-primary);
   font-size: 13px;
-  font-family: "JetBrains Mono", "Fira Code", "SF Mono", Menlo, Consolas, monospace;
+  font-family: var(--font-mono);
   outline: none;
   transition: border-color 0.15s;
 }
@@ -1775,11 +1787,11 @@
 }
 
 .settings-wsl-status[title^="Found"] {
-  color: var(--color-success, #22c55e);
+  color: var(--success-color);
 }
 
 .settings-wsl-status[title="maxima not found in this distro"] {
-  color: var(--color-error, #ef4444);
+  color: var(--error-color);
 }
 
 .settings-wsl-status[title="Checking..."]::before {
@@ -1926,15 +1938,45 @@
   text-align: center;
 }
 
-/* Export LaTeX modal */
+/* Export LaTeX modal: as tall as its content, not the overlay */
 .export-latex-modal {
   max-width: 420px;
+  align-self: flex-start;
 }
 
 .export-latex-scope {
-  padding: 8px 20px 4px;
+  padding: 4px 0 12px;
   color: var(--text-secondary);
   font-size: 13px;
+}
+
+.export-latex-modal .settings-footer {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+}
+
+/* The button that carries out a dialog's action */
+.dialog-primary-btn {
+  background: var(--accent);
+  color: var(--bg-primary);
+  border: 1px solid var(--accent);
+  border-radius: 6px;
+  padding: 5px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.dialog-primary-btn:hover:not(:disabled) {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+}
+
+.dialog-primary-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
 }
 
 /* Bracket cell style */
@@ -2189,7 +2231,7 @@
   flex-shrink: 0;
   cursor: pointer;
   font-size: 12px;
-  font-family: "JetBrains Mono", "Fira Code", "SF Mono", Menlo, Consolas, monospace;
+  font-family: var(--font-mono);
   user-select: none;
   position: relative;
 }
@@ -2349,7 +2391,7 @@
   gap: 8px;
   padding: 2px 16px;
   font-size: 12px;
-  font-family: "JetBrains Mono", "Fira Code", "SF Mono", Menlo, Consolas, monospace;
+  font-family: var(--font-mono);
 }
 
 .log-entry-time {
@@ -2389,7 +2431,7 @@
   gap: 6px;
   padding: 1px 16px;
   font-size: 12px;
-  font-family: "JetBrains Mono", "Fira Code", "SF Mono", Menlo, Consolas, monospace;
+  font-family: var(--font-mono);
 }
 
 .log-raw-time {
@@ -2417,7 +2459,7 @@
 
 /* Events tab: one-line envelope frames; click row to expand JSON */
 .log-envelope {
-  font-family: "JetBrains Mono", "Fira Code", "SF Mono", Menlo, Consolas, monospace;
+  font-family: var(--font-mono);
   font-size: 12px;
 }
 
@@ -2503,7 +2545,7 @@
   height: 16px;
   padding: 0 4px;
   background: var(--error-color);
-  color: #fff;
+  color: var(--bg-primary);
   font-size: 10px;
   font-weight: 700;
   border-radius: 8px;
@@ -2521,7 +2563,7 @@
 }
 
 .hover-tooltip-sig {
-  font-family: "JetBrains Mono", "Fira Code", "SF Mono", Menlo, Consolas, monospace;
+  font-family: var(--font-mono);
   font-size: 12px;
   color: var(--text-primary);
   margin-bottom: 6px;
@@ -2696,7 +2738,7 @@
 
 .docs-result-sig {
   color: var(--text-secondary);
-  font-family: "SF Mono", "Fira Code", monospace;
+  font-family: var(--font-mono);
   font-size: 12px;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -2746,7 +2788,7 @@
 }
 
 .docs-signature {
-  font-family: "SF Mono", "Fira Code", monospace;
+  font-family: var(--font-mono);
   font-size: var(--font-size-mono);
   color: var(--accent);
   background: var(--bg-secondary);
@@ -2778,7 +2820,7 @@
 }
 
 .docs-markdown-body code {
-  font-family: "SF Mono", "Fira Code", monospace;
+  font-family: var(--font-mono);
   font-size: 0.9em;
 }
 
@@ -3159,15 +3201,15 @@
   gap: 10px;
   padding: 8px 16px;
   margin: 0 0 4px;
-  background: color-mix(in srgb, var(--color-warning, #e5a00d) 12%, transparent);
-  border: 1px solid color-mix(in srgb, var(--color-warning, #e5a00d) 30%, transparent);
+  background: color-mix(in srgb, var(--warning-color) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--warning-color) 30%, transparent);
   border-radius: 6px;
   font-size: 13px;
 }
 
 .trust-banner-warning {
   flex: 1;
-  color: var(--color-warning, #e5a00d);
+  color: var(--warning-text);
 }
 
 .trust-banner-btn {
@@ -3179,23 +3221,23 @@
 }
 
 .trust-btn {
-  background: color-mix(in srgb, #40a02b 15%, transparent);
-  color: #40a02b;
-  border: 1px solid #40a02b;
+  background: color-mix(in srgb, var(--warning-color) 15%, transparent);
+  color: var(--warning-text);
+  border: 1px solid color-mix(in srgb, var(--warning-color) 60%, transparent);
 }
 
 .trust-btn:hover {
-  background: color-mix(in srgb, #40a02b 25%, transparent);
+  background: color-mix(in srgb, var(--warning-color) 25%, transparent);
 }
 
 .dismiss-btn {
   background: transparent;
-  color: var(--color-text-muted, #888);
-  border: 1px solid var(--color-border, #444);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-color);
 }
 
 .dismiss-btn:hover {
-  background: color-mix(in srgb, var(--color-text-muted, #888) 10%, transparent);
+  background: color-mix(in srgb, var(--text-secondary) 10%, transparent);
 }
 
 
@@ -3229,5 +3271,5 @@
 }
 
 .sources-file {
-  font-family: "JetBrains Mono", "Fira Code", "SF Mono", Menlo, Consolas, monospace;
+  font-family: var(--font-mono);
 }
