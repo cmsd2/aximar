@@ -11,6 +11,8 @@ export interface Tokens {
   darkAuto: TokenMap;
   /** The dark block under `[data-theme="dark"]` */
   dark: TokenMap;
+  /** The paper block under `[data-theme="paper"]` */
+  paper: TokenMap;
   /** The print palette, under `@media print` */
   print: TokenMap;
   /** Each token's comment heading in `:root`, such as "Spacing, on a 4px grid" */
@@ -49,8 +51,9 @@ export function parseTokens(css: string): Tokens {
   const autoDark = blockAfter(css, "@media (prefers-color-scheme: dark)");
   return {
     light: variables(rootBody),
-    darkAuto: variables(blockAfter(autoDark, ':root:not([data-theme="light"])')),
+    darkAuto: variables(blockAfter(autoDark, ":root:not([data-theme])")),
     dark: variables(blockAfter(css, '[data-theme="dark"]')),
+    paper: variables(blockAfter(css, '[data-theme="paper"]')),
     print: variables(blockAfter(css, "@media print")),
     groups,
   };

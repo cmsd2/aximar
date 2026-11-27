@@ -21,6 +21,7 @@ pub enum Theme {
     #[default]
     Auto,
     Light,
+    Paper,
     Dark,
 }
 

@@ -23,7 +23,7 @@ function Swatch({ value }: { value: string }) {
   );
 }
 
-/** Every colour token, with its light, dark and print values */
+/** Every colour token, with its light, paper, dark and print values */
 export const Tokens: StoryObj = {
   render: () => (
     <div style={page}>
@@ -36,6 +36,7 @@ export const Tokens: StoryObj = {
             <th style={headCell}>Token</th>
             <th style={headCell}>Now</th>
             <th style={headCell}>Light</th>
+            <th style={headCell}>Paper</th>
             <th style={headCell}>Dark</th>
             <th style={headCell}>Print</th>
           </tr>
@@ -61,6 +62,7 @@ export const Tokens: StoryObj = {
               <td style={cell}>
                 <Swatch value={light} />
               </td>
+              <td style={cell}>{tokens.paper.get(name) && <Swatch value={tokens.paper.get(name)!} />}</td>
               <td style={cell}>{tokens.dark.get(name) && <Swatch value={tokens.dark.get(name)!} />}</td>
               <td style={cell}>{tokens.print.get(name) && <Swatch value={tokens.print.get(name)!} />}</td>
             </tr>
@@ -98,7 +100,7 @@ function Ratio({ text, background, value }: { text: string; background: string; 
 export const Contrast: StoryObj = {
   render: () => (
     <div style={page}>
-      <Heading note="From src/styles/contrast-pairs.ts. Each pair needs 4.5:1 in both themes; src/styles/tokens.test.ts checks it.">
+      <Heading note="From src/styles/contrast-pairs.ts. Each pair needs 4.5:1 in every theme; src/styles/tokens.test.ts checks it.">
         Contrast
       </Heading>
       <table style={{ borderCollapse: "collapse", width: "100%" }}>
@@ -107,6 +109,7 @@ export const Contrast: StoryObj = {
             <th style={headCell}>Text</th>
             <th style={headCell}>On</th>
             <th style={headCell}>Light</th>
+            <th style={headCell}>Paper</th>
             <th style={headCell}>Dark</th>
             <th style={headCell}>Exempt</th>
           </tr>
@@ -114,6 +117,7 @@ export const Contrast: StoryObj = {
         <tbody>
           {CONTRAST_PAIRS.map(({ text, background, exempt }) => {
             const light = [tokens.light.get(text)!, tokens.light.get(background)!];
+            const paper = [tokens.paper.get(text)!, tokens.paper.get(background)!];
             const dark = [tokens.dark.get(text)!, tokens.dark.get(background)!];
             return (
               <tr key={`${text} ${background}`}>
@@ -125,6 +129,9 @@ export const Contrast: StoryObj = {
                 </td>
                 <td style={cell}>
                   <Ratio text={light[0]} background={light[1]} value={contrast(light[0], light[1])} />
+                </td>
+                <td style={cell}>
+                  <Ratio text={paper[0]} background={paper[1]} value={contrast(paper[0], paper[1])} />
                 </td>
                 <td style={cell}>
                   <Ratio text={dark[0]} background={dark[1]} value={contrast(dark[0], dark[1])} />

@@ -19,6 +19,10 @@ export const THEMES: { value: Theme; label: Label }[] = [
     label: msg({ message: "Auto", comment: "Settings: theme button that follows the system's light or dark mode" }),
   },
   { value: "light", label: msg({ message: "Light", comment: "Settings: theme button for the light theme" }) },
+  {
+    value: "paper",
+    label: msg({ message: "Paper", comment: "Settings: theme button for a light theme on warm off-white, like paper" }),
+  },
   { value: "dark", label: msg({ message: "Dark", comment: "Settings: theme button for the dark theme" }) },
 ];
 

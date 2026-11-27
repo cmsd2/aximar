@@ -21,7 +21,7 @@ See the [vector calculus example](assets/vc.pdf) for a Stokes' theorem verificat
 - **Error enhancement** — friendly explanations, "did you mean?" suggestions, correct signatures
 - **Variables panel** — inspect and manage bound variables
 - **Templates** — starter notebooks for calculus, linear algebra, plotting, and more
-- **Dark/light/auto theme** — follows your system preference or set manually
+- **Light, paper, dark or auto theme** — follows your system preference or set manually; paper is warm off-white with ink text
 - **MCP server** — AI integration via Model Context Protocol, with built-in setup for Claude Code, Codex, and Gemini CLI
 - **Multiple backends** — run Maxima locally, in Docker/Podman, or via WSL
 - **Save & load** — persist notebooks in Jupyter-compatible format; drag `.macnb` or `.ipynb` files onto the window to open them, or open them from Finder (double-click, Open With, or a drop on the Dock icon)

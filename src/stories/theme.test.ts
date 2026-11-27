@@ -6,6 +6,8 @@ describe("the Storybook theme switch", () => {
   it("sets data-theme from the global", () => {
     applyStoryTheme("dark");
     expect(document.documentElement.dataset.theme).toBe("dark");
+    applyStoryTheme("paper");
+    expect(document.documentElement.dataset.theme).toBe("paper");
     applyStoryTheme("light");
     expect(document.documentElement.dataset.theme).toBe("light");
   });

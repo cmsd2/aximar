@@ -1798,6 +1798,11 @@ msgstr ""
 msgid "Packages"
 msgstr ""
 
+#. Settings: theme button for a light theme on warm off-white, like paper
+#: src/components/settings/GeneralSection.tsx
+msgid "Paper"
+msgstr ""
+
 #. Edit menu item: pastes text. max-length:24
 #: src/commands/menu-model.ts
 msgid "Paste"
