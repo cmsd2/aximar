@@ -37,7 +37,7 @@ export const Variables: StoryObj = {
   render: () => <VariablePanel open />,
 };
 
-/** The keyboard shortcut hints */
+/** The keyboard shortcut hints, as shown while Cmd or Ctrl is held */
 export const Shortcuts: StoryObj = {
-  render: () => <ShortcutHints />,
+  render: () => <ShortcutHints held />,
 };

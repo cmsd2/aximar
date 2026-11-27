@@ -47,22 +47,24 @@ const baseHints: Hint[] = [
   },
 ];
 
-export function ShortcutHints() {
+/** The hints, shown while Cmd or Ctrl is held, or always with `held` (for the gallery) */
+export function ShortcutHints({ held = false }: { held?: boolean }) {
   const { i18n } = useLingui();
-  const [visible, setVisible] = useState(false);
+  const [pressed, setPressed] = useState(false);
+  const visible = held || pressed;
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Meta" || e.key === "Control") {
-        setVisible(true);
+        setPressed(true);
       }
     };
     const onKeyUp = (e: KeyboardEvent) => {
       if (e.key === "Meta" || e.key === "Control") {
-        setVisible(false);
+        setPressed(false);
       }
     };
-    const onBlur = () => setVisible(false);
+    const onBlur = () => setPressed(false);
 
     window.addEventListener("keydown", onKeyDown);
     window.addEventListener("keyup", onKeyUp);

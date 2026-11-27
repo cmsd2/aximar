@@ -5,9 +5,6 @@
   "-jr-Qp": [
     "errors--all-explanations"
   ],
-  "-v70vq": [
-    "dialogs--settings-maxima"
-  ],
   "0-XL2u": [
     "errors--all-explanations"
   ],
@@ -40,6 +37,9 @@
   "2AUJEs": [
     "dialogs--command-palette-open"
   ],
+  "2Ajfpu": [
+    "dialogs--settings-maxima"
+  ],
   "2uZJcF": [
     "errors--all-explanations"
   ],
@@ -55,9 +55,6 @@
   ],
   "4Vwr9d": [
     "errors--all-explanations"
-  ],
-  "4Zbf-g": [
-    "dialogs--settings-maxima"
   ],
   "56fvpZ": [
     "window--toolbar-and-tabs"
@@ -95,6 +92,14 @@
   "82Kg_m": [
     "dialogs--settings-notebook"
   ],
+  "82jzvP": [
+    "dialogs--settings",
+    "dialogs--settings-ai-assistants",
+    "dialogs--settings-maxima",
+    "dialogs--settings-notebook",
+    "dialogs--settings-printing",
+    "dialogs--settings-translation"
+  ],
   "88YXb4": [
     "dialogs--settings",
     "dialogs--settings-translation"
@@ -120,11 +125,15 @@
     "dialogs--settings-ai-assistants"
   ],
   "9uI_rE": [
+    "window--shortcuts",
     "window--toolbar-and-tabs"
   ],
   "9wSsIz": [
     "cells--notebook",
     "cells--print-and-tex"
+  ],
+  "A0B1z3": [
+    "dialogs--settings-maxima"
   ],
   "AR39Q1": [
     "errors--all-explanations"
@@ -153,6 +162,9 @@
   "BddwrJ": [
     "dialogs--settings-ai-assistants"
   ],
+  "Bpglf1": [
+    "window--shortcuts"
+  ],
   "BrW77_": [
     "errors--all-explanations"
   ],
@@ -165,11 +177,11 @@
   "CnuZG0": [
     "errors--all-explanations"
   ],
+  "DPc2P9": [
+    "window--shortcuts"
+  ],
   "ENfAMB": [
     "errors--all-explanations"
-  ],
-  "EPbv7_": [
-    "dialogs--settings-maxima"
   ],
   "Evq8yS": [
     "errors--all-explanations"
@@ -204,6 +216,7 @@
     "errors--all-explanations"
   ],
   "H3oH0g": [
+    "window--shortcuts",
     "window--toolbar-and-tabs"
   ],
   "HeKaRX": [
@@ -235,6 +248,9 @@
   ],
   "KrwLDh": [
     "notes--all-notes"
+  ],
+  "KujtjC": [
+    "window--shortcuts"
   ],
   "L-UTYm": [
     "errors--all-explanations"
@@ -424,6 +440,9 @@
   "Ydr9ge": [
     "errors--all-explanations"
   ],
+  "YeJ5Vd": [
+    "dialogs--settings-maxima"
+  ],
   "Z3bFuq": [
     "dialogs--settings-ai-assistants"
   ],
@@ -435,6 +454,9 @@
   ],
   "Zw-Zv-": [
     "dialogs--settings-ai-assistants"
+  ],
+  "ZyMBtl": [
+    "window--shortcuts"
   ],
   "_4AfjN": [
     "errors--all-explanations"
@@ -452,12 +474,18 @@
   "aPaH_t": [
     "dialogs--settings-ai-assistants"
   ],
+  "adymB5": [
+    "dialogs--settings-maxima"
+  ],
   "aoI17n": [
     "dialogs--settings-notebook"
   ],
   "ay_e24": [
     "cells--notebook",
     "cells--print-and-tex"
+  ],
+  "bAvovP": [
+    "window--shortcuts"
   ],
   "bIaBmV": [
     "cells--notebook"
@@ -494,6 +522,9 @@
   ],
   "d5zxa4": [
     "dialogs--settings-maxima"
+  ],
+  "d9E9pE": [
+    "window--shortcuts"
   ],
   "dEgA5A": [
     "dialogs--export-latex"
@@ -548,9 +579,6 @@
   ],
   "hLsRax": [
     "errors--all-explanations"
-  ],
-  "hSCoQ1": [
-    "dialogs--settings-maxima"
   ],
   "hdtrow": [
     "errors--all-explanations"
@@ -670,6 +698,9 @@
   "rmV3TY": [
     "notes--all-notes"
   ],
+  "s-OGK4": [
+    "dialogs--settings-maxima"
+  ],
   "sNekt1": [
     "dialogs--export-latex"
   ],
@@ -702,6 +733,9 @@
   ],
   "vB68nd": [
     "errors--all-explanations"
+  ],
+  "vM-QdZ": [
+    "dialogs--settings-maxima"
   ],
   "vXIe7J": [
     "dialogs--settings",
@@ -746,14 +780,6 @@
   ],
   "xn5H58": [
     "errors--all-explanations"
-  ],
-  "y1t8bQ": [
-    "dialogs--settings",
-    "dialogs--settings-ai-assistants",
-    "dialogs--settings-maxima",
-    "dialogs--settings-notebook",
-    "dialogs--settings-printing",
-    "dialogs--settings-translation"
   ],
   "yz7wBu": [
     "dialogs--settings",

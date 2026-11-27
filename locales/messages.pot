@@ -81,15 +81,24 @@ msgstr ""
 msgid "{kind} Image"
 msgstr ""
 
-#. Settings, Maxima section: status line when the Maxima path names no file. path is the path
+#. Settings, Maxima section: status when the Maxima path names no file. path is the path
 #: src/components/settings/MaximaSection.tsx
 msgid "{path} doesn't exist."
 msgstr ""
 
-#. Settings, Maxima section: status line when the Maxima path names a file that can't be run. path is the path
+#. Settings, Maxima section: status when the Maxima path names a file that can't be run. path is the path
 #: src/components/settings/MaximaSection.tsx
 msgid "{path} isn't a program Aximar can run."
 msgstr ""
+
+#. Settings, Maxima section: an evaluation timeout in the menu
+#. js-lingui:icu=%7Bsecs%2C+plural%2C+one+%7B%23+second%7D+other+%7B%23+seconds%7D%7D&pluralize_on=secs
+#. screen: dialogs--settings-maxima
+#: src/components/settings/MaximaSection.tsx
+msgid "# second"
+msgid_plural "# seconds"
+msgstr[0] ""
+msgstr[1] ""
 
 #. Toolbar button: adds a code cell below the active cell. max-length:12
 #. screen: window--toolbar-and-tabs
@@ -145,6 +154,12 @@ msgstr ""
 #. screen: dialogs--command-palette-open
 #: src/components/CommandPalette.tsx
 msgid "<0>Esc</0> close"
+msgstr ""
+
+#. Settings, Maxima section: hint under Evaluation timeout
+#. screen: dialogs--settings-maxima
+#: src/components/settings/MaximaSection.tsx
+msgid "A cell running longer than this stops."
 msgstr ""
 
 #. Settings: argument help button; the hint follows the argument under the cursor
@@ -233,30 +248,9 @@ msgstr ""
 msgid "Aximar could not find Maxima on your system."
 msgstr ""
 
-#. Settings, Maxima section: status line when Aximar can't find Maxima anywhere
+#. Settings, Maxima section: status when Aximar can't find Maxima anywhere
 #: src/components/settings/MaximaSection.tsx
 msgid "Aximar found no Maxima. Install it, or set the Maxima path above."
-msgstr ""
-
-#. Settings, Maxima section: status line. path is the Maxima program Aximar found
-#. screen: dialogs--settings-maxima
-#: src/components/settings/MaximaSection.tsx
-msgid "Aximar runs {path}, found in a standard install location."
-msgstr ""
-
-#. Settings, Maxima section: status line. path is the Maxima program; PATH is the list of folders the system searches for programs
-#: src/components/settings/MaximaSection.tsx
-msgid "Aximar runs {path}, found on PATH."
-msgstr ""
-
-#. Settings, Maxima section: status line. path is the Maxima program; envVar is an environment variable's name
-#: src/components/settings/MaximaSection.tsx
-msgid "Aximar runs {path}, from the {envVar} environment variable."
-msgstr ""
-
-#. Settings, Maxima section: status line. path is the Maxima program Aximar starts
-#: src/components/settings/MaximaSection.tsx
-msgid "Aximar runs {path}, from the Maxima path setting."
 msgstr ""
 
 #. Docs panel: tooltip of the arrow button that goes back to the previous page
@@ -327,6 +321,17 @@ msgstr ""
 msgid "Cell style"
 msgstr ""
 
+#. Settings: a note at the bottom of each section; there is no Save button
+#. screen: dialogs--settings
+#. screen: dialogs--settings-ai-assistants
+#. screen: dialogs--settings-maxima
+#. screen: dialogs--settings-notebook
+#. screen: dialogs--settings-printing
+#. screen: dialogs--settings-translation
+#: src/components/settings/SettingsShell.tsx
+msgid "Changes apply as you make them."
+msgstr ""
+
 #. Settings button: asks Claude Code, by running its claude command, whether its configuration lists Aximar's MCP server
 #. screen: dialogs--settings-ai-assistants
 #: src/components/settings/AiClients.tsx
@@ -364,6 +369,7 @@ msgid "Click to use this example"
 msgstr ""
 
 #. Maxima Not Found dialog: the button that closes the dialog
+#. Settings button: closes the settings window
 #. Settings button: closes the settings window
 #. screen: dialogs--settings
 #. screen: dialogs--settings-ai-assistants
@@ -487,9 +493,9 @@ msgstr ""
 msgid "Correct usage:"
 msgstr ""
 
-#. Settings, AI assistants section: the MCP server's status when it failed to start. address is its address and port; reason is the system's message, such as Address already in use
+#. Settings, AI assistants section: the MCP server's status when it failed to start; the system's reason follows. address is its address and port
 #: src/components/settings/AiAssistantsSection.tsx
-msgid "Couldn't listen on {address}: {reason}"
+msgid "Couldn't listen on {address}."
 msgstr ""
 
 #. Title of the error dialog when a notebook file fails to open; the dialog shows the reason below
@@ -520,6 +526,7 @@ msgid "Delete cell"
 msgstr ""
 
 #. Shortcut hints shown while Cmd or Ctrl is held: deletes the active cell. max-length:16
+#. screen: window--shortcuts
 #: src/components/ShortcutHints.tsx
 msgid "Delete Cell"
 msgstr ""
@@ -614,7 +621,7 @@ msgstr ""
 #. Settings: the label of the menu that chooses how long a cell may run before Aximar stops it
 #. screen: dialogs--settings-maxima
 #: src/components/settings/MaximaSection.tsx
-msgid "Eval timeout"
+msgid "Evaluation timeout"
 msgstr ""
 
 #. Log window: tab that lists the protocol frames Maxima sent, one per row. max-length:16
@@ -677,11 +684,13 @@ msgid "Filter {categoryLabel}... (Backspace to go back)"
 msgstr ""
 
 #. Shortcut hints shown while Cmd or Ctrl is held: opens the find bar. max-length:16
+#. screen: window--shortcuts
 #: src/components/ShortcutHints.tsx
 msgid "Find"
 msgstr ""
 
 #. Shortcut hints shown while Cmd or Ctrl is held: opens find and replace. max-length:16
+#. screen: window--shortcuts
 #: src/components/ShortcutHints.tsx
 msgid "Find & Replace"
 msgstr ""
@@ -708,6 +717,17 @@ msgstr ""
 msgid "Forward"
 msgstr ""
 
+#. Settings, Maxima section: status. version is Maxima's version, such as 5.50.0; path is the program
+#. screen: dialogs--settings-maxima
+#: src/components/settings/MaximaSection.tsx
+msgid "Found Maxima {version} at {path}"
+msgstr ""
+
+#. Settings, Maxima section: status, before or without Maxima's version. path is the program
+#: src/components/settings/MaximaSection.tsx
+msgid "Found Maxima at {path}"
+msgstr ""
+
 #. Settings: tooltip beside the WSL distro menu. found is where the maxima program is in the distro
 #: src/components/settings/MaximaSection.tsx
 msgid "Found: {found}"
@@ -716,6 +736,16 @@ msgstr ""
 #. Tooltip of a dimmed cell output that was saved in the file and not produced by this session
 #: src/components/Cell.tsx
 msgid "From an earlier session. Run the cell to update it."
+msgstr ""
+
+#. Settings, Maxima section: under the found Maxima, where its path came from. envVar is an environment variable's name
+#: src/components/settings/MaximaSection.tsx
+msgid "From the {envVar} environment variable."
+msgstr ""
+
+#. Settings, Maxima section: under the found Maxima, where its path came from
+#: src/components/settings/MaximaSection.tsx
+msgid "From the Maxima path setting."
 msgstr ""
 
 #. Docs panel: heading above the list of functions on a package page; functionCount is how many there are
@@ -773,12 +803,6 @@ msgstr ""
 msgid "Hold Alt and point at text to see its English, note and source file"
 msgstr ""
 
-#. Settings, Maxima section: hint under Eval timeout
-#. screen: dialogs--settings-maxima
-#: src/components/settings/MaximaSection.tsx
-msgid "How long a cell may run before Aximar stops it."
-msgstr ""
-
 #. Maxima Not Found dialog: the last paragraph, above an Open Settings button. envVar is the name of an environment variable
 #: src/hooks/useMaxima.ts
 msgid "If Maxima is installed somewhere else, give its path in Settings, or set the {envVar} environment variable."
@@ -800,6 +824,12 @@ msgstr ""
 #. screen: cells--print-and-tex
 #: src/components/Cell.tsx
 msgid "In [{execNum}]"
+msgstr ""
+
+#. Settings, Maxima section: under the found Maxima, where Aximar found it
+#. screen: dialogs--settings-maxima
+#: src/components/settings/MaximaSection.tsx
+msgid "In a standard install location."
 msgstr ""
 
 #. Export as LaTeX: checkbox label; when on, the export includes each cell's Maxima input
@@ -1022,6 +1052,7 @@ msgid "Move cell up"
 msgstr ""
 
 #. Shortcut hints shown while Cmd or Ctrl is held: moves the active cell down one place. max-length:16
+#. screen: window--shortcuts
 #: src/components/ShortcutHints.tsx
 msgid "Move Down"
 msgstr ""
@@ -1032,6 +1063,7 @@ msgid "Move to New Window"
 msgstr ""
 
 #. Shortcut hints shown while Cmd or Ctrl is held: moves the active cell up one place. max-length:16
+#. screen: window--shortcuts
 #: src/components/ShortcutHints.tsx
 msgid "Move Up"
 msgstr ""
@@ -1111,6 +1143,11 @@ msgstr ""
 msgid "Notebook"
 msgstr ""
 
+#. Settings, Maxima section: under the found Maxima, where Aximar found it. PATH is the list of folders the system searches for programs
+#: src/components/settings/MaximaSection.tsx
+msgid "On PATH."
+msgstr ""
+
 #. Log window: a button on an entry that opens the Settings section that helps with it. name is the section's name, such as AI assistants
 #: src/components/LogPanel.tsx
 msgid "Open {name} settings"
@@ -1155,6 +1192,7 @@ msgid "Packages"
 msgstr ""
 
 #. Shortcut hints shown while Cmd or Ctrl is held: opens the command palette. max-length:16
+#. screen: window--shortcuts
 #: src/components/ShortcutHints.tsx
 msgid "Palette"
 msgstr ""
@@ -1231,6 +1269,7 @@ msgstr ""
 
 #. Shortcut hints shown while Cmd or Ctrl is held: redoes the last undone edit. max-length:16
 #. Toolbar button: redoes the last undone change. max-length:12
+#. screen: window--shortcuts
 #. screen: window--toolbar-and-tabs
 #: src/components/ShortcutHints.tsx src/components/Toolbar.tsx
 msgid "Redo"
@@ -1362,17 +1401,6 @@ msgstr ""
 #. screen: window--toolbar-and-tabs
 #: src/components/settings/SettingsShell.tsx src/components/Toolbar.tsx
 msgid "Settings"
-msgstr ""
-
-#. Settings: what a screen reader calls the sidebar of sections
-#. screen: dialogs--settings
-#. screen: dialogs--settings-ai-assistants
-#. screen: dialogs--settings-maxima
-#. screen: dialogs--settings-notebook
-#. screen: dialogs--settings-printing
-#. screen: dialogs--settings-translation
-#: src/components/settings/SettingsShell.tsx
-msgid "Settings sections"
 msgstr ""
 
 #. Button on a note in a cell's output: shows the lines Maxima printed, which the note explains
@@ -1578,6 +1606,7 @@ msgstr ""
 
 #. Shortcut hints shown while Cmd or Ctrl is held: undoes the last edit. max-length:16
 #. Toolbar button: undoes the last change to the notebook. max-length:12
+#. screen: window--shortcuts
 #. screen: window--toolbar-and-tabs
 #: src/components/ShortcutHints.tsx src/components/Toolbar.tsx
 msgid "Undo"
@@ -1628,7 +1657,7 @@ msgstr ""
 #. Settings, Maxima section: hint under Backend
 #. screen: dialogs--settings-maxima
 #: src/components/settings/MaximaSection.tsx
-msgid "Where Maxima runs: on this computer, in a container, or under WSL."
+msgid "Where Maxima runs."
 msgstr ""
 
 #. Settings: the label of the menu that chooses the Linux distribution under WSL that runs Maxima

@@ -141,7 +141,7 @@ export function ExportLatexModal({ onClose }: ExportLatexModalProps) {
             {t({ message: "Cancel", comment: "Export as LaTeX button: closes the window without exporting" })}
           </button>
           <button
-            className="template-start"
+            className="dialog-primary-btn"
             onClick={handleExport}
             disabled={exporting}
           >
