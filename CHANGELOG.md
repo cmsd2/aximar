@@ -74,6 +74,22 @@ see the `v*` releases on GitHub.
   arguments given ("f is defined as f(x), but was called with [1,2]."),
   and no longer suggests `describe`, which only knows Maxima's own
   functions.
+- **Documentation in a language**: `get_function_docs` and
+  `search_functions` take an optional `language`, such as `es`, and answer
+  in it where there is a translation, with English elsewhere. Results name
+  each text's language (`language`, and `description_language` in
+  `get_function_docs`), and say when a function has nothing in that
+  language (`fallback_from`) or a translation's signatures differ from the
+  English (`stale`, with `english_signatures`). Search matches every
+  installed language. Without `language`, the text is English as before.
+
+### maxima-lsp
+
+- **Help in the editor's language**: hover, completion and signature help
+  follow the `locale` the editor sends when it starts the server, such as
+  VS Code's display language, then English. A regional locale such as
+  `es-ES` falls back to `es`. Spanish summaries are built in, so a Spanish
+  editor shows them above the English documentation.
 
 ## [0.6.2] — 2026-11-25
 
