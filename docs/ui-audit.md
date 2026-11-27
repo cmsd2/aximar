@@ -186,6 +186,103 @@ problems:
   (cmsd2/aximar#44).  The chips also keep their 8px under a card, which
   the card spacing change above had taken away.
 
+## Menus and toolbars
+
+Aximar's commands live in six places, each built on its own: the native
+menu bar, the toolbar, the tab bar, buttons that appear on a hovered cell,
+keyboard shortcuts, and the command palette.  No one place lists them all,
+and many commands exist in only one.
+
+| Command | Menu bar | Toolbar | Elsewhere |
+| --- | --- | --- | --- |
+| New, Open, Save, Save As, Export, Print | yes | | tab bar + (New) |
+| Undo, Redo | Edit (the text field's own) | yes | Cmd+Z, Cmd+Shift+Z, Cmd+Y |
+| Find, Find and Replace | | | Cmd+F, Cmd+Shift+F only |
+| New code or Markdown cell | | yes | the gap's + and caret |
+| Run cell, run and stay | | | Shift+Enter, Cmd+Enter, hover ▶ |
+| Run All, Restart | | yes | |
+| Interrupt | | | hover stop button on a running cell |
+| Delete, move a cell | | | Cmd+D, Cmd+Shift+Up/Down, hover ▲ ▼ × |
+| Variables, Log, Docs panels | | yes | |
+| Templates | | yes | |
+| Settings | Aximar (macOS), Edit (elsewhere) | yes | Cmd+, |
+| Palette | | | Cmd+K |
+| Close tab, move tab to a window | | | Cmd+W, the tab's context menu |
+
+25. **The menu bar holds only the file commands.**  It has Aximar, File,
+    Edit and Window, and Window has only Minimize.  There is no View,
+    Cell, Session or Help menu.  On macOS the menu bar is where people
+    look for a command and learn its shortcut, so Run All, Restart,
+    Interrupt, Find and the panels can't be found there.  The shortcut
+    hints shown while Cmd is held make up for some of this.
+26. **Edit's Undo and Redo are the text field's, not the notebook's.**
+    They are the predefined items, which act on the focused text.  The
+    notebook's undo (cells added, deleted, moved) runs only from the
+    toolbar and from Cmd+Z caught in the window, so the menu item and the
+    shortcut beside it can do different things.
+27. **Shortcuts collide or repeat.**  Cmd+W is both the tab bar's Close
+    Tab and the menu's Close Window; which wins depends on the platform
+    and needs checking in the app.  Cmd+N (New Notebook) and Cmd+T (new
+    tab) do the same thing.  Cmd+P prints, where many editors open a
+    finder.  Cmd+D deletes a cell with no confirmation, one key from Cmd+S
+    and Cmd+F.  Every label says Cmd, on Windows and Linux too.
+28. **The toolbar puts five kinds of control in one row at one weight:**
+    inserting (+ Cell, + Markdown), running (Run All, Restart), editing
+    (Undo, Redo), opening things (Templates, Settings) and panel toggles
+    (Variables, Log, Docs), then the notebook's name and the session
+    status.  Undo, Redo and Settings repeat the menu bar; the name
+    repeats the tab; Templates is a kind of New.  Two panels open make
+    two solid accent buttons, the strongest things in the window, for
+    state that the open panels already show.  Restart sits far from the
+    status it changes.
+29. **Three icon styles.**  The tab bar's + is a character, the gap's +
+    is a Tabler icon, the hovered cell's ▲ ▼ ▶ × are characters in boxes,
+    the find bar has Aa ▲ ▼ ↔ ×, the docs panel ← →, and the log, docs and
+    variables each draw their own ×.
+30. **The palette searches functions and symbols, not commands.**  Cmd+K
+    opens a function and symbol finder called "Palette"; it can't run
+    Run All or open a panel, which is what a command palette does
+    elsewhere.
+31. **Panels have different headers.**  Variables has an upper-case title
+    and Kill All and no close button; Log has tabs, Clear and a ×; Docs
+    has back and forward, a search field and a ×; the find bar has its own
+    rows of buttons.  Heights, close buttons and button styles differ.
+32. **Only tabs have a context menu.**  A right-click on a cell, a result
+    or a panel does nothing of Aximar's own.
+33. **The session's state shows in three places:** the tab's dot, the
+    toolbar's pill and the status bar's last log line.
+
+### Proposal
+
+- **The menu bar lists every command, with its shortcut.**
+  - File: New Notebook (Cmd+N), New from Template..., Open..., Save,
+    Save As..., Export as LaTeX..., Print..., Close Tab (Cmd+W), Close
+    Window (Cmd+Shift+W).
+  - Edit: Undo and Redo wired to the notebook's undo, Cut, Copy, Paste,
+    Select All, Find (Cmd+F), Find and Replace (Cmd+Option+F).
+  - Cell: New Code Cell, New Markdown Cell, Run (Shift+Enter), Run and
+    Stay (Cmd+Enter), Run All, Move Up, Move Down, Delete Cell.
+  - Session: Interrupt, Restart.
+  - View: Variables, Log and Docs with check marks, Command Palette,
+    Shortcut Hints.
+  - Window: Minimize, Zoom, Next and Previous Tab, Move Tab to New
+    Window.
+  - Help: Aximar Help (the docs panel), Keyboard Shortcuts, What's New,
+    Report an Issue.
+- **A smaller toolbar in three groups:** the session (Run All,
+  Interrupt, Restart and the status beside them), then space, then the
+  panel toggles as one row of icons with tooltips (Variables, Docs,
+  Log with its count) and Settings.  Insert moves to the gaps, undo to
+  the menu and Cmd+Z, Templates to File and the empty notebook, the
+  name to the tab.
+- **Tabler icons for every icon button**, through `ui/icons.ts`, with
+  one close button and one header component for the panels.
+- **Commands in the palette,** from the same list the menu bar is built
+  from, so the two can't drift apart.
+- **A context menu on cells** with the Cell menu's commands.
+- **Shortcut labels that follow the platform:** Cmd on macOS, Ctrl
+  elsewhere.
+
 ## Suggested order
 
 1. Quick fixes 1 to 4.
@@ -196,4 +293,5 @@ problems:
    them.
 4. The notebook: one output style, quieter errors, notes with code
    formatting.
-5. The toolbar, an icon set and the capitalisation rule.
+5. The toolbar, an icon set and the capitalisation rule: see "Menus and
+   toolbars" above.
