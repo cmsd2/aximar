@@ -125,14 +125,14 @@
 
 /* Paper: warm off-white, ink text, for long reading in daylight */
 [data-theme="paper"] {
-  --bg-primary: #fbf8f1;
-  --bg-secondary: #f2ede2;
-  --bg-cell: #f7f3ea;
-  --bg-input: #fffdf8;
+  --bg-primary: #fdfcfa;
+  --bg-secondary: #f5f4f0;
+  --bg-cell: #f9f8f5;
+  --bg-input: #fffffd;
   --text-primary: #1f2440;
   --text-secondary: #5f594f;
-  --text-placeholder: #a9a294;
-  --border-color: #dcd4c3;
+  --text-placeholder: #a8a49a;
+  --border-color: #e2dfd8;
   --accent: #2f55a4;
   --accent-hover: #3a62b5;
   --error-color: #b3261e;
@@ -142,7 +142,7 @@
   --success-text: #255f36;
   --running-color: #7f5c08;
   --warn-bg: #f7edd5;
-  --selected-bg: #ebe4d3;
+  --selected-bg: #edebe5;
   --warning-color: #d9950b;
   --warning-text: #6f4708;
   --syntax-builtin: #7f5c08;
