@@ -1,5 +1,6 @@
 // Tauri's commands, mocked for stories: the window runs in a plain browser
 import { mockIPC, mockWindows } from "@tauri-apps/api/mocks";
+import { completions, docs, functions, packages } from "./catalog-fixture";
 
 export const config = {
   theme: "light", maxima_path: null, font_size: 14, print_font_size: 11, eval_timeout: 30,
@@ -19,20 +20,34 @@ const templates = [
 export function installTauriMock(): void {
   mockWindows("main");
   mockIPC(
-    (cmd) => {
+    (cmd, payload) => {
+      const args = (payload ?? {}) as Record<string, string>;
       switch (cmd) {
         case "get_config":
           return { config, warnings: [] };
         case "list_templates":
           return templates;
         case "list_variables":
-          return [
-            { name: "x", value: "42" },
-            { name: "f", value: "f(t):=t^2" },
-          ];
+          // The names of the user's variables, as Maxima's values list gives them
+          return ["F", "a", "f"];
+        case "get_function":
+          return functions[args.name] ?? null;
+        case "get_function_docs":
+          return docs[args.name] ?? null;
+        case "complete_function":
+          return completions(args.prefix);
+        case "get_package":
+          return packages[args.name] ?? null;
+        case "package_for_function":
+          return Object.values(packages).find((p) => p.functions.includes(args.name))?.name ?? null;
+        case "search_functions":
+          return Object.values(functions)
+            .filter((f) => f.name.includes(args.query) || f.description.includes(args.query))
+            .map((f) => ({ function: f, score: 1 }));
         case "list_wsl_distros":
         case "get_suggestions":
-        case "search_functions":
+        case "get_buffered_logs":
+        case "search_package_functions":
         case "search_packages":
         case "list_categories":
           return [];

@@ -12,6 +12,7 @@ msgstr ""
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
 #. Shown in a cell's output area when the cell ran and produced nothing to show
+#. screen: outputs--running-and-queued
 #: src/components/CellOutput.tsx
 msgid "(no output)"
 msgstr ""
@@ -75,6 +76,7 @@ msgstr[0] ""
 msgstr[1] ""
 
 #. Find bar: which match is selected; current is its position and total is the number of matches. max-length:12
+#. screen: editor--find-and-replace
 #: src/components/FindBar.tsx
 msgid "{current} of {total}"
 msgstr ""
@@ -105,18 +107,47 @@ msgstr[0] ""
 msgstr[1] ""
 
 #. Toolbar button: adds a code cell below the active cell. max-length:12
+#. screen: screens--first-run
+#. screen: screens--maxima-not-found
+#. screen: screens--whole-window
 #. screen: window--toolbar-and-tabs
 #: src/components/Toolbar.tsx
 msgid "+ Cell"
 msgstr ""
 
 #. Button in the bar between cells: inserts a code cell there. max-length:12
+#. screen: cells--notebook
+#. screen: cells--print-and-tex
+#. screen: editor--argument-help
+#. screen: editor--completion
+#. screen: editor--find-and-replace
+#. screen: outputs--markdown
+#. screen: outputs--plotly-plot
+#. screen: outputs--reactive-controls
+#. screen: outputs--running-and-queued
+#. screen: outputs--svg-plot
+#. screen: screens--first-run
+#. screen: screens--maxima-not-found
+#. screen: screens--whole-window
 #: src/components/Notebook.tsx
 msgid "+ Code"
 msgstr ""
 
 #. Button in the bar between cells: inserts a markdown cell there. max-length:14
 #. Toolbar button: adds a Markdown text cell below the active cell. max-length:12
+#. screen: cells--notebook
+#. screen: cells--print-and-tex
+#. screen: editor--argument-help
+#. screen: editor--completion
+#. screen: editor--find-and-replace
+#. screen: outputs--markdown
+#. screen: outputs--plotly-plot
+#. screen: outputs--reactive-controls
+#. screen: outputs--running-and-queued
+#. screen: outputs--svg-plot
+#. screen: screens--first-run
+#. screen: screens--maxima-not-found
+#. screen: screens--whole-window
 #. screen: window--toolbar-and-tabs
 #: src/components/Notebook.tsx src/components/Toolbar.tsx
 msgid "+ Markdown"
@@ -186,6 +217,7 @@ msgstr ""
 #. screen: dialogs--settings-notebook
 #. screen: dialogs--settings-printing
 #. screen: dialogs--settings-translation
+#. screen: panels--log-app
 #: src/components/settings/sections.ts
 msgid "AI assistants"
 msgstr ""
@@ -209,6 +241,7 @@ msgid "Aligned lines text cells up with the code in code cells."
 msgstr ""
 
 #. Find bar: button that replaces every match in every cell. max-length:8
+#. screen: editor--find-and-replace
 #: src/components/FindBar.tsx
 msgid "All"
 msgstr ""
@@ -219,6 +252,9 @@ msgid "All Supported"
 msgstr ""
 
 #. Log window: tab that lists Aximar's own log messages. max-length:16
+#. screen: panels--log-app
+#. screen: panels--log-events
+#. screen: panels--log-maxima-output
 #: src/components/LogPanel.tsx
 msgid "App Log"
 msgstr ""
@@ -262,6 +298,10 @@ msgid "Aximar found no Maxima. Install it, or set the Maxima path above."
 msgstr ""
 
 #. Docs panel: tooltip of the arrow button that goes back to the previous page
+#. screen: panels--docs-empty
+#. screen: panels--docs-function
+#. screen: panels--docs-package-function
+#. screen: screens--whole-window
 #: src/components/DocsPanel.tsx
 msgid "Back"
 msgstr ""
@@ -309,6 +349,7 @@ msgid "Cancel"
 msgstr ""
 
 #. Tooltip of the stop button on a running code cell: interrupts Maxima
+#. screen: outputs--running-and-queued
 #: src/components/Cell.tsx
 msgid "Cancel cell"
 msgstr ""
@@ -369,6 +410,9 @@ msgid "Choose a template to get started with Maxima"
 msgstr ""
 
 #. Log window: button that empties the open tab. max-length:10
+#. screen: panels--log-app
+#. screen: panels--log-events
+#. screen: panels--log-maxima-output
 #: src/components/LogPanel.tsx
 msgid "Clear"
 msgstr ""
@@ -393,11 +437,16 @@ msgid "Close"
 msgstr ""
 
 #. Find bar: tooltip of the x button that closes the find bar; Escape is the key
+#. screen: editor--find-and-replace
 #: src/components/FindBar.tsx
 msgid "Close (Escape)"
 msgstr ""
 
 #. Docs panel: tooltip of the x button that closes the panel
+#. screen: panels--docs-empty
+#. screen: panels--docs-function
+#. screen: panels--docs-package-function
+#. screen: screens--whole-window
 #: src/components/DocsPanel.tsx
 msgid "Close docs"
 msgstr ""
@@ -415,6 +464,12 @@ msgstr ""
 #. Tooltip of the bracket beside a code cell: hides the cell's output
 #. screen: cells--notebook
 #. screen: cells--print-and-tex
+#. screen: editor--find-and-replace
+#. screen: outputs--plotly-plot
+#. screen: outputs--reactive-controls
+#. screen: outputs--running-and-queued
+#. screen: outputs--svg-plot
+#. screen: screens--whole-window
 #: src/components/Cell.tsx
 msgid "Collapse output"
 msgstr ""
@@ -474,6 +529,9 @@ msgstr ""
 #. Settings button: copies the MCP token to the clipboard
 #. screen: cells--notebook
 #. screen: cells--print-and-tex
+#. screen: editor--find-and-replace
+#. screen: outputs--running-and-queued
+#. screen: screens--whole-window
 #: src/components/CellOutput.tsx
 #: src/components/settings/AiAssistantsSection.tsx
 msgid "Copy"
@@ -482,6 +540,9 @@ msgstr ""
 #. Tooltip of the TeX button above a result: copies the result's LaTeX to the clipboard
 #. screen: cells--notebook
 #. screen: cells--print-and-tex
+#. screen: editor--find-and-replace
+#. screen: outputs--running-and-queued
+#. screen: screens--whole-window
 #: src/components/CellOutput.tsx
 msgid "Copy LaTeX source"
 msgstr ""
@@ -489,6 +550,9 @@ msgstr ""
 #. Tooltip of the Copy button above a result: copies the result as Maxima code
 #. screen: cells--notebook
 #. screen: cells--print-and-tex
+#. screen: editor--find-and-replace
+#. screen: outputs--running-and-queued
+#. screen: screens--whole-window
 #: src/components/CellOutput.tsx
 msgid "Copy Maxima expression"
 msgstr ""
@@ -534,6 +598,10 @@ msgstr ""
 #. Tooltip of the cross button that deletes a cell
 #. screen: cells--notebook
 #. screen: cells--print-and-tex
+#. screen: editor--find-and-replace
+#. screen: outputs--running-and-queued
+#. screen: screens--first-run
+#. screen: screens--whole-window
 #: src/components/Cell.tsx src/components/MarkdownCell.tsx
 #: src/components/RawCell.tsx
 msgid "Delete cell"
@@ -573,6 +641,9 @@ msgid "Docker image"
 msgstr ""
 
 #. Toolbar button: shows or hides the documentation panel. max-length:12
+#. screen: screens--first-run
+#. screen: screens--maxima-not-found
+#. screen: screens--whole-window
 #. screen: window--toolbar-and-tabs
 #: src/components/Toolbar.tsx
 msgid "Docs"
@@ -612,6 +683,11 @@ msgid "e.g. {exampleImage}"
 msgstr ""
 
 #. Tooltip of the pencil button on a markdown cell: opens its text for editing
+#. screen: cells--notebook
+#. screen: editor--find-and-replace
+#. screen: outputs--markdown
+#. screen: screens--first-run
+#. screen: screens--whole-window
 #: src/components/MarkdownCell.tsx
 msgid "Edit markdown"
 msgstr ""
@@ -623,11 +699,13 @@ msgstr ""
 
 #. Placeholder in an empty code cell. Shift+Enter is the keyboard shortcut; keep it as it is
 #. screen: cells--notebook
+#. screen: screens--maxima-not-found
 #: src/hooks/useCodeMirrorEditor.ts
 msgid "Enter Maxima expression... (Shift+Enter to evaluate)"
 msgstr ""
 
 #. Toolbar: session status when Maxima failed. message is the error from the backend, in English
+#. screen: screens--maxima-not-found
 #: src/components/Toolbar.tsx
 msgid "Error: {message}"
 msgstr ""
@@ -639,6 +717,9 @@ msgid "Evaluation timeout"
 msgstr ""
 
 #. Log window: tab that lists the protocol frames Maxima sent, one per row. max-length:16
+#. screen: panels--log-app
+#. screen: panels--log-events
+#. screen: panels--log-maxima-output
 #: src/components/LogPanel.tsx
 msgid "Events"
 msgstr ""
@@ -671,11 +752,13 @@ msgid "Export as LaTeX"
 msgstr ""
 
 #. Button in the plot viewer window: saves the chart as a PNG image. max-length:14
+#. screen: outputs--plot-viewer-tab
 #: src/components/PlotViewer.tsx
 msgid "Export PNG"
 msgstr ""
 
 #. Button in the plot viewer window: saves the chart as an SVG image. max-length:14
+#. screen: outputs--plot-viewer-tab
 #: src/components/PlotViewer.tsx
 msgid "Export SVG"
 msgstr ""
@@ -714,6 +797,7 @@ msgid "Find & Replace"
 msgstr ""
 
 #. Find bar: placeholder of the box for the text to find in the notebook's cells
+#. screen: editor--find-and-replace
 #: src/components/FindBar.tsx
 msgid "Find..."
 msgstr ""
@@ -732,6 +816,10 @@ msgid "Font size"
 msgstr ""
 
 #. Docs panel: tooltip of the arrow button that goes forward to the next page
+#. screen: panels--docs-empty
+#. screen: panels--docs-function
+#. screen: panels--docs-package-function
+#. screen: screens--whole-window
 #: src/components/DocsPanel.tsx
 msgid "Forward"
 msgstr ""
@@ -754,6 +842,7 @@ msgid "Found: {found}"
 msgstr ""
 
 #. Tooltip of a dimmed cell output that was saved in the file and not produced by this session
+#. screen: outputs--running-and-queued
 #: src/components/Cell.tsx
 msgid "From an earlier session. Run the cell to update it."
 msgstr ""
@@ -836,6 +925,11 @@ msgstr ""
 
 #. Label left of the input of a code cell that has not run yet, as in Jupyter. max-length:6
 #. screen: cells--notebook
+#. screen: editor--argument-help
+#. screen: editor--completion
+#. screen: outputs--running-and-queued
+#. screen: screens--first-run
+#. screen: screens--maxima-not-found
 #: src/components/Cell.tsx
 msgid "In"
 msgstr ""
@@ -843,6 +937,12 @@ msgstr ""
 #. Label left of a code cell's input, as in Jupyter. execNum is how many cells the session had run when this one last ran. max-length:10
 #. screen: cells--notebook
 #. screen: cells--print-and-tex
+#. screen: editor--find-and-replace
+#. screen: outputs--plotly-plot
+#. screen: outputs--reactive-controls
+#. screen: outputs--running-and-queued
+#. screen: outputs--svg-plot
+#. screen: screens--whole-window
 #: src/components/Cell.tsx
 msgid "In [{execNum}]"
 msgstr ""
@@ -896,6 +996,7 @@ msgid "Jupyter Notebook"
 msgstr ""
 
 #. Variable panel button: unbinds every variable, like Maxima's kill(all). max-length:12
+#. screen: screens--whole-window
 #: src/components/VariablePanel.tsx
 msgid "Kill All"
 msgstr ""
@@ -974,6 +1075,9 @@ msgid "Local"
 msgstr ""
 
 #. Toolbar button: shows or hides the log panel. max-length:12
+#. screen: screens--first-run
+#. screen: screens--maxima-not-found
+#. screen: screens--whole-window
 #. screen: window--toolbar-and-tabs
 #: src/components/Toolbar.tsx
 msgid "Log"
@@ -997,6 +1101,7 @@ msgid "Markdown indent"
 msgstr ""
 
 #. Find bar: tooltip of the Aa button that makes the search case-sensitive
+#. screen: editor--find-and-replace
 #: src/components/FindBar.tsx
 msgid "Match Case"
 msgstr ""
@@ -1038,6 +1143,9 @@ msgid "Maxima Notebook"
 msgstr ""
 
 #. Log window: tab that shows the raw text Maxima read and printed. max-length:16
+#. screen: panels--log-app
+#. screen: panels--log-events
+#. screen: panels--log-maxima-output
 #: src/components/LogPanel.tsx
 msgid "Maxima Output"
 msgstr ""
@@ -1076,6 +1184,10 @@ msgstr ""
 #. Tooltip of a code cell's down-arrow button
 #. screen: cells--notebook
 #. screen: cells--print-and-tex
+#. screen: editor--find-and-replace
+#. screen: outputs--running-and-queued
+#. screen: screens--first-run
+#. screen: screens--whole-window
 #: src/components/Cell.tsx
 msgid "Move cell down"
 msgstr ""
@@ -1083,6 +1195,10 @@ msgstr ""
 #. Tooltip of a code cell's up-arrow button
 #. screen: cells--notebook
 #. screen: cells--print-and-tex
+#. screen: editor--find-and-replace
+#. screen: outputs--running-and-queued
+#. screen: screens--first-run
+#. screen: screens--whole-window
 #: src/components/Cell.tsx
 msgid "Move cell up"
 msgstr ""
@@ -1105,12 +1221,16 @@ msgid "Move Up"
 msgstr ""
 
 #. Tab bar: tooltip of the + button that opens a new notebook tab. newTabShortcut is its keyboard shortcut, such as Cmd+T
+#. screen: screens--first-run
+#. screen: screens--maxima-not-found
+#. screen: screens--whole-window
 #. screen: window--toolbar-and-tabs
 #: src/components/TabBar.tsx
 msgid "New notebook ({newTabShortcut})"
 msgstr ""
 
 #. Find bar: tooltip of the down arrow button that selects the next match; Enter is the shortcut
+#. screen: editor--find-and-replace
 #: src/components/FindBar.tsx
 msgid "Next Match (Enter)"
 msgstr ""
@@ -1185,6 +1305,7 @@ msgid "On PATH."
 msgstr ""
 
 #. Log window: a button on an entry that opens the Settings section that helps with it. name is the section's name, such as AI assistants
+#. screen: panels--log-app
 #: src/components/LogPanel.tsx
 msgid "Open {name} settings"
 msgstr ""
@@ -1202,6 +1323,12 @@ msgstr ""
 #. Label left of a code cell's output, as in Jupyter. execNum is how many cells the session had run when this one last ran. max-length:10
 #. screen: cells--notebook
 #. screen: cells--print-and-tex
+#. screen: editor--find-and-replace
+#. screen: outputs--plotly-plot
+#. screen: outputs--reactive-controls
+#. screen: outputs--running-and-queued
+#. screen: outputs--svg-plot
+#. screen: screens--whole-window
 #: src/components/Cell.tsx
 msgid "Out [{execNum}]"
 msgstr ""
@@ -1212,6 +1339,7 @@ msgid "Package"
 msgstr ""
 
 #. Docs panel: badge beside a function name that marks it as provided by a loadable package
+#. screen: panels--docs-package-function
 #: src/components/DocsPanel.tsx
 msgid "Package Function"
 msgstr ""
@@ -1245,11 +1373,13 @@ msgid "Plot"
 msgstr ""
 
 #. Alt text of a plot image in a cell's output
+#. screen: outputs--svg-plot
 #: src/components/CellOutput.tsx
 msgid "Plot output"
 msgstr ""
 
 #. Find bar: tooltip of the up arrow button that selects the previous match; Shift+Enter is the shortcut
+#. screen: editor--find-and-replace
 #: src/components/FindBar.tsx
 msgid "Previous Match (Shift+Enter)"
 msgstr ""
@@ -1278,6 +1408,7 @@ msgid "Printing"
 msgstr ""
 
 #. Docs panel: on the page of a function from a package; packageName is the package name, a link to its page
+#. screen: panels--docs-package-function
 #: src/components/DocsPanel.tsx
 msgid "Provided by the <0>{packageName}</0> package."
 msgstr ""
@@ -1293,6 +1424,7 @@ msgid "Raw cell: kept as it is, never run"
 msgstr ""
 
 #. Toolbar: session status when Maxima is ready to run cells. max-length:12
+#. screen: screens--whole-window
 #: src/components/Toolbar.tsx
 msgid "Ready"
 msgstr ""
@@ -1305,6 +1437,9 @@ msgstr ""
 
 #. Shortcut hints shown while Cmd or Ctrl is held: redoes the last undone edit. max-length:16
 #. Toolbar button: redoes the last undone change. max-length:12
+#. screen: screens--first-run
+#. screen: screens--maxima-not-found
+#. screen: screens--whole-window
 #. screen: window--shortcuts
 #. screen: window--toolbar-and-tabs
 #: src/components/ShortcutHints.tsx src/components/Toolbar.tsx
@@ -1312,6 +1447,9 @@ msgid "Redo"
 msgstr ""
 
 #. Toolbar: tooltip of the Redo button. redoShortcut is its keyboard shortcut, such as Cmd+Shift+Z
+#. screen: screens--first-run
+#. screen: screens--maxima-not-found
+#. screen: screens--whole-window
 #. screen: window--toolbar-and-tabs
 #: src/components/Toolbar.tsx
 msgid "Redo ({redoShortcut})"
@@ -1323,21 +1461,25 @@ msgid "Regenerate"
 msgstr ""
 
 #. Docs panel: heading above the other functions in the same package
+#. screen: panels--docs-package-function
 #: src/components/DocsPanel.tsx
 msgid "Related Functions"
 msgstr ""
 
 #. Find bar: button that replaces the selected match with the replacement text
+#. screen: editor--find-and-replace
 #: src/components/FindBar.tsx
 msgid "Replace"
 msgstr ""
 
 #. Find bar: tooltip of the All button that replaces every match in every cell
+#. screen: editor--find-and-replace
 #: src/components/FindBar.tsx
 msgid "Replace All"
 msgstr ""
 
 #. Find bar: placeholder of the box for the replacement text
+#. screen: editor--find-and-replace
 #: src/components/FindBar.tsx
 msgid "Replace..."
 msgstr ""
@@ -1354,6 +1496,9 @@ msgid "requires load(\"{pkgName}\")"
 msgstr ""
 
 #. Toolbar button: restarts the Maxima session, clearing its state. max-length:12
+#. screen: screens--first-run
+#. screen: screens--maxima-not-found
+#. screen: screens--whole-window
 #. screen: window--toolbar-and-tabs
 #: src/components/Toolbar.tsx
 msgid "Restart"
@@ -1366,6 +1511,9 @@ msgid "Right"
 msgstr ""
 
 #. Toolbar button: runs every cell in order. max-length:12
+#. screen: screens--first-run
+#. screen: screens--maxima-not-found
+#. screen: screens--whole-window
 #. screen: window--toolbar-and-tabs
 #: src/components/Toolbar.tsx
 msgid "Run All"
@@ -1374,6 +1522,16 @@ msgstr ""
 #. Tooltip of a code cell's run button. Shift+Enter is the keyboard shortcut; keep it as it is
 #. screen: cells--notebook
 #. screen: cells--print-and-tex
+#. screen: editor--argument-help
+#. screen: editor--completion
+#. screen: editor--find-and-replace
+#. screen: outputs--plotly-plot
+#. screen: outputs--reactive-controls
+#. screen: outputs--running-and-queued
+#. screen: outputs--svg-plot
+#. screen: screens--first-run
+#. screen: screens--maxima-not-found
+#. screen: screens--whole-window
 #: src/components/Cell.tsx
 msgid "Run cell (Shift+Enter)"
 msgstr ""
@@ -1391,11 +1549,13 @@ msgid "Save"
 msgstr ""
 
 #. Button in the plot viewer window: saves the chart's Plotly data as a JSON file. max-length:14
+#. screen: outputs--plot-viewer-tab
 #: src/components/PlotViewer.tsx
 msgid "Save JSON"
 msgstr ""
 
 #. Docs panel: shown when no page is open; Docs is the name of the button on a function's hover tooltip
+#. screen: panels--docs-empty
 #: src/components/DocsPanel.tsx
 msgid "Search for a function or click “Docs” on a hover tooltip to view documentation."
 msgstr ""
@@ -1407,16 +1567,35 @@ msgid "Search functions (or type \\ for symbols)..."
 msgstr ""
 
 #. Docs panel: placeholder of the search box at the top of the panel
+#. screen: panels--docs-empty
+#. screen: panels--docs-function
+#. screen: panels--docs-package-function
+#. screen: screens--whole-window
 #: src/components/DocsPanel.tsx
 msgid "Search functions..."
 msgstr ""
 
 #. Docs panel: heading above links to related functions
+#. screen: panels--docs-function
+#. screen: screens--whole-window
 #: src/components/DocsPanel.tsx
 msgid "See Also"
 msgstr ""
 
 #. Tooltip of the bracket right of a cell: clicking it selects the cell. Shift+click selects every cell up to it
+#. screen: cells--notebook
+#. screen: cells--print-and-tex
+#. screen: editor--argument-help
+#. screen: editor--completion
+#. screen: editor--find-and-replace
+#. screen: outputs--markdown
+#. screen: outputs--plotly-plot
+#. screen: outputs--reactive-controls
+#. screen: outputs--running-and-queued
+#. screen: outputs--svg-plot
+#. screen: screens--first-run
+#. screen: screens--maxima-not-found
+#. screen: screens--whole-window
 #: src/components/Notebook.tsx
 msgid "Select cell (Shift+click for range)"
 msgstr ""
@@ -1436,6 +1615,9 @@ msgstr ""
 #. screen: dialogs--settings-notebook
 #. screen: dialogs--settings-printing
 #. screen: dialogs--settings-translation
+#. screen: screens--first-run
+#. screen: screens--maxima-not-found
+#. screen: screens--whole-window
 #. screen: window--toolbar-and-tabs
 #: src/components/settings/SettingsShell.tsx src/components/Toolbar.tsx
 msgid "Settings"
@@ -1451,6 +1633,7 @@ msgstr ""
 #. Button on a note in a cell's output: shows the lines Maxima printed, which the note explains
 #. screen: cells--notebook
 #. screen: notes--all-notes
+#. screen: screens--whole-window
 #: src/components/TextWithNotes.tsx
 msgid "Show Maxima's text"
 msgstr ""
@@ -1466,6 +1649,7 @@ msgstr ""
 #. Button: shows the error exactly as Maxima printed it, below Aximar's explanation
 #. screen: cells--notebook
 #. screen: errors--all-explanations
+#. screen: screens--whole-window
 #: src/components/EnhancedErrorOutput.tsx
 msgid "Show raw error"
 msgstr ""
@@ -1508,6 +1692,7 @@ msgid "Starter Notebooks"
 msgstr ""
 
 #. Toolbar: session status while Maxima starts up. max-length:12
+#. screen: screens--first-run
 #: src/components/Toolbar.tsx
 msgid "Starting"
 msgstr ""
@@ -1541,6 +1726,9 @@ msgid "Symbols"
 msgstr ""
 
 #. Toolbar button: opens the starter notebook chooser. max-length:12
+#. screen: screens--first-run
+#. screen: screens--maxima-not-found
+#. screen: screens--whole-window
 #. screen: window--toolbar-and-tabs
 #: src/components/Toolbar.tsx
 msgid "Templates"
@@ -1625,6 +1813,7 @@ msgid "This notebook uses dangerous functions: <0>{functions}</0>. Trust it to a
 msgstr ""
 
 #. Find bar: tooltip of the button that shows or hides the replace row
+#. screen: editor--find-and-replace
 #: src/components/FindBar.tsx
 msgid "Toggle Replace"
 msgstr ""
@@ -1663,6 +1852,9 @@ msgstr ""
 
 #. Shortcut hints shown while Cmd or Ctrl is held: undoes the last edit. max-length:16
 #. Toolbar button: undoes the last change to the notebook. max-length:12
+#. screen: screens--first-run
+#. screen: screens--maxima-not-found
+#. screen: screens--whole-window
 #. screen: window--shortcuts
 #. screen: window--toolbar-and-tabs
 #: src/components/ShortcutHints.tsx src/components/Toolbar.tsx
@@ -1670,6 +1862,9 @@ msgid "Undo"
 msgstr ""
 
 #. Toolbar: tooltip of the Undo button. undoShortcut is its keyboard shortcut, such as Cmd+Z
+#. screen: screens--first-run
+#. screen: screens--maxima-not-found
+#. screen: screens--whole-window
 #. screen: window--toolbar-and-tabs
 #: src/components/Toolbar.tsx
 msgid "Undo ({undoShortcut})"
@@ -1681,6 +1876,9 @@ msgid "Unsaved Changes"
 msgstr ""
 
 #. Tab and toolbar: the name shown for a notebook that has not been saved to a file
+#. screen: screens--first-run
+#. screen: screens--maxima-not-found
+#. screen: screens--whole-window
 #. screen: window--toolbar-and-tabs
 #: src/lib/tab-title.ts
 msgid "Untitled"
@@ -1696,6 +1894,9 @@ msgstr ""
 
 #. Toolbar button: shows or hides the variable panel. max-length:12
 #. Variable panel: the title of the panel that lists the variables bound in the Maxima session
+#. screen: screens--first-run
+#. screen: screens--maxima-not-found
+#. screen: screens--whole-window
 #. screen: window--toolbar-and-tabs
 #. screen: window--variables
 #: src/components/Toolbar.tsx src/components/VariablePanel.tsx
@@ -1732,6 +1933,7 @@ msgstr ""
 #. screen: cells--notebook
 #. screen: errors--all-explanations
 #. screen: errors--translated-maxima-error
+#. screen: screens--whole-window
 #: crates/aximar-core/src/maxima/errors.rs
 msgctxt "error.division_by_zero.title"
 msgid "Division by Zero"
@@ -1740,6 +1942,7 @@ msgstr ""
 #. screen: cells--notebook
 #. screen: errors--all-explanations
 #. screen: errors--translated-maxima-error
+#. screen: screens--whole-window
 #: crates/aximar-core/src/maxima/errors.rs
 msgctxt "error.division_by_zero.explanation"
 msgid "The expression involves division by zero or raising zero to a negative power, which is undefined."
@@ -1748,6 +1951,7 @@ msgstr ""
 #. screen: cells--notebook
 #. screen: errors--all-explanations
 #. screen: errors--translated-maxima-error
+#. screen: screens--whole-window
 #: crates/aximar-core/src/maxima/errors.rs
 msgctxt "error.division_by_zero.suggestion"
 msgid "Check your denominator or exponent for cases where the value might be zero."
@@ -2480,6 +2684,7 @@ msgstr ""
 #. replacements lists them, such as "0.25 → 1/4, 0.5 → 1/2"
 #. screen: cells--notebook
 #. screen: notes--all-notes
+#. screen: screens--whole-window
 #: crates/aximar-core/src/maxima/notes.rs
 #, rust-format
 msgctxt "note.rat_replaced.text"

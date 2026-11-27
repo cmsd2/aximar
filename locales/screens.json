@@ -1,4 +1,7 @@
 {
+  "-L5ZyG": [
+    "editor--find-and-replace"
+  ],
   "-amopq": [
     "errors--all-explanations"
   ],
@@ -10,7 +13,8 @@
   ],
   "00pVqO": [
     "cells--notebook",
-    "notes--all-notes"
+    "notes--all-notes",
+    "screens--whole-window"
   ],
   "0735Pj": [
     "dialogs--command-palette-open"
@@ -29,11 +33,17 @@
     "dialogs--settings-translation",
     "ui-segmentedcontrol--options"
   ],
+  "1wTrMB": [
+    "editor--find-and-replace"
+  ],
   "1wYCQr": [
     "errors--all-explanations"
   ],
   "1yWRha": [
     "errors--all-explanations"
+  ],
+  "28MY56": [
+    "outputs--running-and-queued"
   ],
   "2AUJEs": [
     "dialogs--command-palette-open"
@@ -48,9 +58,25 @@
   "30iXR4": [
     "errors--all-explanations"
   ],
+  "35isoC": [
+    "editor--find-and-replace"
+  ],
   "36rXYG": [
     "cells--notebook",
-    "cells--print-and-tex"
+    "cells--print-and-tex",
+    "editor--argument-help",
+    "editor--completion",
+    "editor--find-and-replace",
+    "outputs--plotly-plot",
+    "outputs--reactive-controls",
+    "outputs--running-and-queued",
+    "outputs--svg-plot",
+    "screens--first-run",
+    "screens--maxima-not-found",
+    "screens--whole-window"
+  ],
+  "3JaK3G": [
+    "outputs--running-and-queued"
   ],
   "3mUZZb": [
     "errors--all-explanations"
@@ -58,14 +84,26 @@
   "4Vwr9d": [
     "errors--all-explanations"
   ],
+  "56XI0o": [
+    "editor--find-and-replace"
+  ],
   "56fvpZ": [
+    "screens--first-run",
+    "screens--maxima-not-found",
+    "screens--whole-window",
     "window--toolbar-and-tabs"
+  ],
+  "59fwkx": [
+    "outputs--plot-viewer-tab"
   ],
   "5E-Yo2": [
     "errors--all-explanations"
   ],
   "5sAfap": [
     "errors--all-explanations"
+  ],
+  "5ueZpG": [
+    "editor--find-and-replace"
   ],
   "6RkRDk": [
     "errors--all-explanations"
@@ -74,6 +112,9 @@
     "errors--all-explanations"
   ],
   "6z9W13": [
+    "screens--first-run",
+    "screens--maxima-not-found",
+    "screens--whole-window",
     "window--toolbar-and-tabs"
   ],
   "73IRLA": [
@@ -122,7 +163,8 @@
   "9s1Urw": [
     "cells--notebook",
     "errors--all-explanations",
-    "errors--translated-maxima-error"
+    "errors--translated-maxima-error",
+    "screens--whole-window"
   ],
   "9sfgQI": [
     "dialogs--command-palette-open"
@@ -131,12 +173,19 @@
     "dialogs--settings-ai-assistants"
   ],
   "9uI_rE": [
+    "screens--first-run",
+    "screens--maxima-not-found",
+    "screens--whole-window",
     "window--shortcuts",
     "window--toolbar-and-tabs"
   ],
   "9wSsIz": [
     "cells--notebook",
-    "cells--print-and-tex"
+    "cells--print-and-tex",
+    "editor--find-and-replace",
+    "outputs--running-and-queued",
+    "screens--first-run",
+    "screens--whole-window"
   ],
   "A0B1z3": [
     "dialogs--settings-maxima",
@@ -148,7 +197,8 @@
   "AX-znr": [
     "cells--notebook",
     "errors--all-explanations",
-    "errors--translated-maxima-error"
+    "errors--translated-maxima-error",
+    "screens--whole-window"
   ],
   "AdZgB2": [
     "cells--trust-banner-shown"
@@ -158,7 +208,16 @@
   ],
   "BEqAg8": [
     "cells--notebook",
-    "cells--print-and-tex"
+    "cells--print-and-tex",
+    "editor--find-and-replace",
+    "outputs--running-and-queued",
+    "screens--whole-window"
+  ],
+  "BEuwx9": [
+    "editor--find-and-replace"
+  ],
+  "BJpySY": [
+    "outputs--plot-viewer-tab"
   ],
   "BNropb": [
     "dialogs--settings-notebook",
@@ -179,6 +238,12 @@
   ],
   "BrW77_": [
     "errors--all-explanations"
+  ],
+  "C7zRQH": [
+    "panels--docs-empty",
+    "panels--docs-function",
+    "panels--docs-package-function",
+    "screens--whole-window"
   ],
   "CDTv_S": [
     "errors--all-explanations"
@@ -206,6 +271,9 @@
     "dialogs--settings-translation"
   ],
   "FOw3tu": [
+    "screens--first-run",
+    "screens--maxima-not-found",
+    "screens--whole-window",
     "window--toolbar-and-tabs"
   ],
   "FadsqE": [
@@ -215,6 +283,9 @@
     "dialogs--settings",
     "dialogs--settings-translation",
     "ui-fields--rows"
+  ],
+  "FkY3LZ": [
+    "panels--docs-empty"
   ],
   "G1YN7S": [
     "errors--all-explanations"
@@ -232,6 +303,9 @@
     "errors--all-explanations"
   ],
   "H3oH0g": [
+    "screens--first-run",
+    "screens--maxima-not-found",
+    "screens--whole-window",
     "window--shortcuts",
     "window--toolbar-and-tabs"
   ],
@@ -251,6 +325,21 @@
   "J7RtOU": [
     "errors--all-explanations"
   ],
+  "JImYXE": [
+    "cells--notebook",
+    "cells--print-and-tex",
+    "editor--argument-help",
+    "editor--completion",
+    "editor--find-and-replace",
+    "outputs--markdown",
+    "outputs--plotly-plot",
+    "outputs--reactive-controls",
+    "outputs--running-and-queued",
+    "outputs--svg-plot",
+    "screens--first-run",
+    "screens--maxima-not-found",
+    "screens--whole-window"
+  ],
   "JL7uQa": [
     "errors--all-explanations"
   ],
@@ -259,6 +348,13 @@
   ],
   "KdQ_-f": [
     "errors--all-explanations"
+  ],
+  "Kluw6D": [
+    "cells--notebook",
+    "editor--find-and-replace",
+    "outputs--markdown",
+    "screens--first-run",
+    "screens--whole-window"
   ],
   "KnmLZH": [
     "dialogs--settings-notebook",
@@ -305,6 +401,9 @@
   "N2N1Oe": [
     "dialogs--settings-notebook"
   ],
+  "N40H-G": [
+    "editor--find-and-replace"
+  ],
   "N4oBF2": [
     "errors--all-explanations"
   ],
@@ -332,13 +431,18 @@
   "OY3pHY": [
     "errors--all-explanations"
   ],
+  "OcoVCB": [
+    "panels--docs-function",
+    "screens--whole-window"
+  ],
   "Ofdh9s": [
     "errors--all-explanations"
   ],
   "OkRgzN": [
     "cells--notebook",
     "errors--all-explanations",
-    "errors--translated-maxima-error"
+    "errors--translated-maxima-error",
+    "screens--whole-window"
   ],
   "On2Xn1": [
     "errors--all-explanations"
@@ -351,18 +455,30 @@
   ],
   "PmiBrO": [
     "cells--notebook",
-    "notes--all-notes"
+    "notes--all-notes",
+    "screens--whole-window"
   ],
   "PyCiwA": [
     "errors--all-explanations"
   ],
   "Q65zPG": [
     "cells--notebook",
-    "cells--print-and-tex"
+    "cells--print-and-tex",
+    "editor--find-and-replace",
+    "outputs--running-and-queued",
+    "screens--first-run",
+    "screens--whole-window"
+  ],
+  "QAlcIj": [
+    "panels--docs-package-function"
   ],
   "QHqTyt": [
     "cells--notebook",
-    "cells--print-and-tex"
+    "cells--print-and-tex",
+    "editor--find-and-replace",
+    "outputs--running-and-queued",
+    "screens--first-run",
+    "screens--whole-window"
   ],
   "Qhrs6G": [
     "errors--all-explanations"
@@ -387,6 +503,11 @@
   "RnxDx5": [
     "ui-statusbox--all-tones"
   ],
+  "RzKJQe": [
+    "panels--log-app",
+    "panels--log-events",
+    "panels--log-maxima-output"
+  ],
   "SH-UEH": [
     "errors--all-explanations"
   ],
@@ -400,6 +521,9 @@
     "dialogs--settings-notebook"
   ],
   "TbjyhA": [
+    "screens--first-run",
+    "screens--maxima-not-found",
+    "screens--whole-window",
     "window--toolbar-and-tabs"
   ],
   "Tz0i8g": [
@@ -409,20 +533,53 @@
     "dialogs--settings-notebook",
     "dialogs--settings-printing",
     "dialogs--settings-translation",
+    "screens--first-run",
+    "screens--maxima-not-found",
+    "screens--whole-window",
     "window--toolbar-and-tabs"
   ],
   "U09AZZ": [
     "cells--notebook",
-    "cells--print-and-tex"
+    "cells--print-and-tex",
+    "editor--find-and-replace",
+    "outputs--plotly-plot",
+    "outputs--reactive-controls",
+    "outputs--running-and-queued",
+    "outputs--svg-plot",
+    "screens--whole-window"
   ],
   "UEulME": [
     "dialogs--settings-printing"
+  ],
+  "UTNtYh": [
+    "panels--log-app"
+  ],
+  "UTiCbD": [
+    "panels--docs-empty",
+    "panels--docs-function",
+    "panels--docs-package-function",
+    "screens--whole-window"
   ],
   "UeJ1vj": [
     "errors--all-explanations"
   ],
   "UlKSMd": [
     "dialogs--settings-printing"
+  ],
+  "V-9-F1": [
+    "cells--notebook",
+    "cells--print-and-tex",
+    "editor--argument-help",
+    "editor--completion",
+    "editor--find-and-replace",
+    "outputs--markdown",
+    "outputs--plotly-plot",
+    "outputs--reactive-controls",
+    "outputs--running-and-queued",
+    "outputs--svg-plot",
+    "screens--first-run",
+    "screens--maxima-not-found",
+    "screens--whole-window"
   ],
   "V-xeVI": [
     "dialogs--settings",
@@ -443,6 +600,9 @@
   "WWy8TN": [
     "dialogs--settings-printing"
   ],
+  "W_YkLW": [
+    "editor--find-and-replace"
+  ],
   "Weq9zb": [
     "dialogs--settings",
     "dialogs--settings-ai-assistants",
@@ -451,8 +611,20 @@
     "dialogs--settings-printing",
     "dialogs--settings-translation"
   ],
+  "Wziu1q": [
+    "panels--docs-package-function"
+  ],
+  "X4V5R5": [
+    "outputs--running-and-queued"
+  ],
   "XRGyBX": [
     "errors--all-explanations"
+  ],
+  "XYBo1f": [
+    "editor--find-and-replace"
+  ],
+  "XegCkM": [
+    "outputs--plot-viewer-tab"
   ],
   "YHEqUE": [
     "errors--all-explanations"
@@ -489,7 +661,13 @@
   ],
   "_fOYgv": [
     "cells--notebook",
-    "cells--print-and-tex"
+    "cells--print-and-tex",
+    "editor--find-and-replace",
+    "outputs--plotly-plot",
+    "outputs--reactive-controls",
+    "outputs--running-and-queued",
+    "outputs--svg-plot",
+    "screens--whole-window"
   ],
   "_pQZ9b": [
     "dialogs--settings",
@@ -501,6 +679,11 @@
   "aPaH_t": [
     "dialogs--settings-ai-assistants"
   ],
+  "aTrKfy": [
+    "panels--log-app",
+    "panels--log-events",
+    "panels--log-maxima-output"
+  ],
   "adymB5": [
     "dialogs--settings-maxima"
   ],
@@ -509,13 +692,20 @@
   ],
   "ay_e24": [
     "cells--notebook",
-    "cells--print-and-tex"
+    "cells--print-and-tex",
+    "editor--find-and-replace",
+    "outputs--plotly-plot",
+    "outputs--reactive-controls",
+    "outputs--running-and-queued",
+    "outputs--svg-plot",
+    "screens--whole-window"
   ],
   "bAvovP": [
     "window--shortcuts"
   ],
   "bIaBmV": [
-    "cells--notebook"
+    "cells--notebook",
+    "screens--maxima-not-found"
   ],
   "bUObdg": [
     "dialogs--command-palette-open"
@@ -536,6 +726,9 @@
   "cj6h01": [
     "errors--all-explanations"
   ],
+  "ckH3fT": [
+    "screens--whole-window"
+  ],
   "clKErK": [
     "errors--all-explanations"
   ],
@@ -554,6 +747,9 @@
   ],
   "d9E9pE": [
     "window--shortcuts"
+  ],
+  "dE9Ihk": [
+    "outputs--svg-plot"
   ],
   "dEgA5A": [
     "dialogs--export-latex",
@@ -594,6 +790,9 @@
   "fhjAzF": [
     "errors--all-explanations"
   ],
+  "fqSfXY": [
+    "editor--find-and-replace"
+  ],
   "g3Ua3N": [
     "errors--all-explanations"
   ],
@@ -607,6 +806,9 @@
     "errors--all-explanations"
   ],
   "gpmbqk": [
+    "screens--first-run",
+    "screens--maxima-not-found",
+    "screens--whole-window",
     "window--toolbar-and-tabs",
     "window--variables"
   ],
@@ -621,7 +823,10 @@
   ],
   "he3ygx": [
     "cells--notebook",
-    "cells--print-and-tex"
+    "cells--print-and-tex",
+    "editor--find-and-replace",
+    "outputs--running-and-queued",
+    "screens--whole-window"
   ],
   "i17GIR": [
     "ui-fields--rows"
@@ -633,7 +838,16 @@
     "dialogs--settings-ai-assistants",
     "ui-button--variants"
   ],
+  "iH8pgl": [
+    "panels--docs-empty",
+    "panels--docs-function",
+    "panels--docs-package-function",
+    "screens--whole-window"
+  ],
   "iTylMl": [
+    "screens--first-run",
+    "screens--maxima-not-found",
+    "screens--whole-window",
     "window--toolbar-and-tabs"
   ],
   "igb8BH": [
@@ -641,7 +855,8 @@
   ],
   "ip5Gnc": [
     "cells--notebook",
-    "errors--all-explanations"
+    "errors--all-explanations",
+    "screens--whole-window"
   ],
   "ivlLtN": [
     "errors--all-explanations"
@@ -663,11 +878,20 @@
     "dialogs--settings-printing",
     "dialogs--settings-translation"
   ],
+  "jyEv3f": [
+    "panels--docs-package-function"
+  ],
   "k6BSBZ": [
+    "screens--first-run",
+    "screens--maxima-not-found",
+    "screens--whole-window",
     "window--toolbar-and-tabs"
   ],
   "kryGs-": [
     "dialogs--settings-notebook"
+  ],
+  "l6GfXr": [
+    "screens--first-run"
   ],
   "lVMqsY": [
     "window--variables"
@@ -683,6 +907,19 @@
     "ui-segmentedcontrol--options"
   ],
   "mkn0j1": [
+    "cells--notebook",
+    "cells--print-and-tex",
+    "editor--argument-help",
+    "editor--completion",
+    "editor--find-and-replace",
+    "outputs--markdown",
+    "outputs--plotly-plot",
+    "outputs--reactive-controls",
+    "outputs--running-and-queued",
+    "outputs--svg-plot",
+    "screens--first-run",
+    "screens--maxima-not-found",
+    "screens--whole-window",
     "window--toolbar-and-tabs"
   ],
   "nOPbWJ": [
@@ -713,12 +950,18 @@
   "pIibSm": [
     "errors--all-explanations"
   ],
+  "pMHDCm": [
+    "screens--whole-window"
+  ],
   "pXJBXT": [
     "dialogs--settings-ai-assistants"
   ],
   "prKc8h": [
     "cells--notebook",
-    "cells--print-and-tex"
+    "cells--print-and-tex",
+    "editor--find-and-replace",
+    "outputs--running-and-queued",
+    "screens--whole-window"
   ],
   "pvY0_v": [
     "errors--all-explanations"
@@ -745,6 +988,12 @@
   "rmV3TY": [
     "notes--all-notes"
   ],
+  "rxWGWX": [
+    "panels--docs-empty",
+    "panels--docs-function",
+    "panels--docs-package-function",
+    "screens--whole-window"
+  ],
   "s-OGK4": [
     "dialogs--settings-maxima"
   ],
@@ -758,6 +1007,9 @@
     "dialogs--settings-ai-assistants"
   ],
   "t6m47v": [
+    "screens--first-run",
+    "screens--maxima-not-found",
+    "screens--whole-window",
     "window--toolbar-and-tabs"
   ],
   "tEomDN": [
@@ -765,6 +1017,11 @@
   ],
   "tQpcB9": [
     "dialogs--settings-ai-assistants"
+  ],
+  "tst44n": [
+    "panels--log-app",
+    "panels--log-events",
+    "panels--log-maxima-output"
   ],
   "uHwszI": [
     "errors--all-explanations"
@@ -779,6 +1036,9 @@
     "errors--all-explanations"
   ],
   "ubdrAw": [
+    "screens--first-run",
+    "screens--maxima-not-found",
+    "screens--whole-window",
     "window--toolbar-and-tabs"
   ],
   "vB68nd": [
@@ -805,7 +1065,8 @@
     "dialogs--settings-maxima",
     "dialogs--settings-notebook",
     "dialogs--settings-printing",
-    "dialogs--settings-translation"
+    "dialogs--settings-translation",
+    "panels--log-app"
   ],
   "vnXR61": [
     "errors--all-explanations"
@@ -817,11 +1078,27 @@
   "wCssdg": [
     "errors--all-explanations"
   ],
+  "wKJJ_t": [
+    "screens--maxima-not-found"
+  ],
   "wibUUa": [
-    "cells--notebook"
+    "cells--notebook",
+    "editor--argument-help",
+    "editor--completion",
+    "outputs--running-and-queued",
+    "screens--first-run",
+    "screens--maxima-not-found"
   ],
   "wja8aL": [
+    "screens--first-run",
+    "screens--maxima-not-found",
+    "screens--whole-window",
     "window--toolbar-and-tabs"
+  ],
+  "xCJdfg": [
+    "panels--log-app",
+    "panels--log-events",
+    "panels--log-maxima-output"
   ],
   "xNh9BM": [
     "errors--all-explanations"
@@ -848,6 +1125,9 @@
     "dialogs--export-latex",
     "ui-dialog--small"
   ],
+  "z4G1wy": [
+    "editor--find-and-replace"
+  ],
   "z9YkSR": [
     "errors--all-explanations"
   ],
@@ -861,6 +1141,9 @@
     "dialogs--settings-ai-assistants"
   ],
   "znFg6V": [
+    "screens--first-run",
+    "screens--maxima-not-found",
+    "screens--whole-window",
     "window--toolbar-and-tabs"
   ],
   "zsiX7I": [

@@ -1,9 +1,8 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
-import { Cell } from "../components/Cell";
 import { TrustBanner } from "../components/TrustBanner";
-import { useNotebookStore } from "../store/notebookStore";
 import type { SyncCell } from "../lib/notebook-commands";
 import { fixtures } from "./fixtures";
+import { StoryNotebook } from "./notebook";
 import { seedNotebook } from "./store";
 
 const meta: Meta = { title: "Cells" };
@@ -28,22 +27,11 @@ const cells: SyncCell[] = [
   { id: "c3", cell_type: "code", input: "", output: null, status: "idle" },
 ];
 
-function Cells() {
-  const tab = useNotebookStore((s) => s.notebooks["nb-1"]);
-  if (!tab || tab.type !== "notebook") return null;
-  return (
-    <div>
-      {tab.cells.map((cell) => (
-        <Cell key={cell.id} cell={cell} />
-      ))}
-    </div>
-  );
-}
 
 /** Code and Markdown cells: a result with a note, an error, an empty cell */
 export const Notebook: StoryObj = {
   loaders: [async () => seedNotebook(cells)],
-  render: () => <Cells />,
+  render: () => <StoryNotebook />,
 };
 
 /** The banner over an untrusted notebook whose cell calls a blocked function */
@@ -86,5 +74,5 @@ const printed: SyncCell[] = [
  */
 export const PrintAndTex: StoryObj = {
   loaders: [async () => seedNotebook(printed)],
-  render: () => <Cells />,
+  render: () => <StoryNotebook />,
 };

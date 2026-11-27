@@ -83,7 +83,9 @@ trust banner, syntax colours and warning colours are theme variables now.
     `quad_qags` and `solve` appear as plain words, and a note that starts
     with a function name starts with a lowercase letter.  On a note that
     wraps, "Show Maxima's text" moves to the far right edge.
-12. **The markdown cell's editor shows an "In" label** like a code cell.
+12. *Withdrawn:* the "In" label on a Markdown cell came from the stories,
+    which drew every cell as a code cell.  They now render the
+    `Notebook` component, which gives Markdown cells their own view.
 
 ## The window
 
@@ -112,24 +114,48 @@ trust banner, syntax colours and warning colours are theme variables now.
     Modern") onto two lines.  The settings-window change replaces this
     dialog, so it needs nothing more here.
 
-## Screens with no story
+## Screens that now have stories
 
-The audit couldn't see these.  Each needs a story before it can be
-judged or kept in shape:
+The docs panel, the log window and status bar, Find and Replace,
+completion, argument help, SVG and Plotly plots, reactive controls, the
+plot viewer, rendered Markdown, running and queued cells, the whole
+window, first run and Maxima not found all have stories now (`Panels`,
+`Editor`, `Outputs` and `Screens` in Storybook).  They show these
+problems:
 
-- the docs panel and the log panel
-- the find bar and the completion and argument-help popups
-- plots, both SVG and Plotly, and the plot viewer
-- rendered markdown cells
-- reactive controls (sliders and number fields)
-- cells running and queued, and the whole window together
-- first run, and Maxima not found
+18. **A missing Maxima squeezes the toolbar.**  The status pill holds the
+    whole error ("Error: Failed to start Maxima: maxima: No such file or
+    directory (os error 2)"), so "+ Cell", "+ Markdown" and "Run All"
+    wrap onto two lines and the notebook title shrinks to "U…".  The
+    window gives no way forward apart from a native dialog that shows
+    once.  The pill should say "Maxima not found" and link to the Maxima
+    settings, as the log's entries already can.
+19. **Times break on a 12-hour clock.**  The log's time column wraps "AM"
+    onto a second line, and in the Events tab the time runs into the
+    event's name.  The status bar's unread badge covers the "M" of "PM".
+20. **Markdown display maths renders inline.**  `$$…$$` on one line comes
+    out as inline maths in a Markdown cell.  The docs panel already
+    converts that form (`preprocessDocsMath`); cells don't.  Links in
+    Markdown cells keep the browser's default blue and underline, which
+    measures 1.75:1 in dark.
+21. **Find marks only the current match.**  "2 of 8" highlights one `x`,
+    and the other seven don't show.
+22. **A queued cell looks idle.**  A queued cell has the same plain "In"
+    label and border as a cell that will never run.  The running cell
+    has only a small dot.
+23. **gnuplot plots stay white in dark.**  A plot2d SVG is a white
+    rectangle inside the dark output well.
+24. **More contrast below 4.5:1:** accent text on the secondary
+    background (docs signatures and links, the log's settings link and
+    event names) at 4.31:1 in light; Markdown table cells at 4.26:1; the
+    variables panel's × at 2.21:1 in light and 3.49:1 in dark; the status
+    bar badge at 2.32:1 in dark.
 
 ## Suggested order
 
 1. Quick fixes 1 to 4.
 2. Stories for the screens above, so every later change shows in the
-   gallery.
+   gallery.  *Done;* see items 18 to 24 for what they turned up.
 3. Tokens: bundled fonts, the type and spacing scales, one palette with
    a light and a dark value for each colour.  Then move the rules onto
    them.
