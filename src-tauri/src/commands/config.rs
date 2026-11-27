@@ -661,6 +661,7 @@ pub async fn set_config(app: tauri::AppHandle, updates: ConfigUpdate) -> Result<
                 mcp_controller: state.mcp_controller.clone(),
                 app_log: state.app_log.clone(),
                 initial_file_args: state.initial_file_args.clone(),
+                pending_opens: state.pending_opens.clone(),
             };
             let ct = CancellationToken::new();
             let generation = controller

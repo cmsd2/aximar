@@ -3,7 +3,8 @@ import { listen } from "@tauri-apps/api/event";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { confirmClose } from "../lib/unsaved-changes";
 import { useNotebookStore } from "../store/notebookStore";
-import { nbCreate, nbGetState, nbList, nbClose, nbOpen, nbSetActive, getInitialFileArgs } from "../lib/notebook-commands";
+import { openOrSwitch, replacingBlankTab } from "../lib/file-drop";
+import { nbCreate, nbGetState, nbList, nbClose, nbOpen, nbSetActive, getInitialFileArgs, takePendingOpens } from "../lib/notebook-commands";
 import type { SyncCell } from "../lib/notebook-commands";
 import { openFilePath } from "../lib/notebooks-client";
 import { markDirty, cleanup } from "../lib/dirty-inputs";
@@ -232,11 +233,15 @@ export function useNotebookEvents() {
     let ignore = false;
 
     if (isMainWindow()) {
-      // Main window: check for CLI file arguments first
-      getInitialFileArgs().then(async (fileArgs) => {
+      // Main window: files from the command line first, then files macOS
+      // asked Aximar to open as it started (a double-click, Open With).
+      // The queue is drained only past the ignore check, so strict mode's
+      // discarded first run can't take them.
+      getInitialFileArgs().then(async (args) => {
         if (ignore) return;
+        const fileArgs = [...(args ?? []), ...(await takePendingOpens())];
 
-        if (fileArgs && fileArgs.length > 0) {
+        if (fileArgs.length > 0) {
           // Open files from CLI args — don't create a default notebook
           for (const path of fileArgs) {
             try {
@@ -350,6 +355,31 @@ export function useNotebookEvents() {
       }
     );
 
+    return () => {
+      unlisten.then((fn) => fn());
+    };
+  }, []);
+
+  // --- Files macOS asks Aximar to open while it runs (a drop on the Dock
+  // icon, Open With, a double-click): the backend queues them and says so ---
+  useEffect(() => {
+    if (!isMainWindow()) return;
+    const openWaiting = async () => {
+      const paths = await takePendingOpens();
+      if (paths.length === 0) return;
+      // A file that launched Aximar can arrive after the window made its
+      // blank notebook; the file takes its place
+      await replacingBlankTab(async () => {
+        for (const path of paths) {
+          try {
+            await openOrSwitch(path, openFileAsTab);
+          } catch (e) {
+            console.warn("Failed to open file:", path, e);
+          }
+        }
+      });
+    };
+    const unlisten = listen("files-waiting", openWaiting);
     return () => {
       unlisten.then((fn) => fn());
     };

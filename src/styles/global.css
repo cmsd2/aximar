@@ -521,6 +521,49 @@
 }
 
 /* Cell */
+/* Files dragged onto the window: a dashed frame over it and a card
+   saying what dropping does */
+.drop-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: var(--space-2);
+  border: 2px dashed var(--accent);
+  border-radius: var(--radius-lg);
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+  pointer-events: none;
+}
+
+.drop-overlay-refused {
+  border-color: var(--border-color);
+  background: color-mix(in srgb, var(--text-secondary) 8%, transparent);
+}
+
+.drop-overlay-card {
+  padding: var(--space-4) var(--space-6);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  background: var(--bg-primary);
+  box-shadow: var(--shadow-popover);
+  text-align: center;
+}
+
+.drop-overlay-heading {
+  font-size: var(--text-xl);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.drop-overlay-note {
+  margin-top: var(--space-1);
+  font-size: var(--text-md);
+  color: var(--text-secondary);
+}
+
+
 .cell {
   position: relative;
   margin-bottom: 8px;

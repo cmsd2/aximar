@@ -23,6 +23,9 @@ pub struct AppState {
     pub app_log: Arc<AppLog>,
     /// File paths passed as CLI arguments on initial launch (taken once by frontend)
     pub initial_file_args: Arc<Mutex<Option<Vec<String>>>>,
+    /// Files the system asked Aximar to open (a drop on the Dock icon,
+    /// Open With, a double-click), waiting for the main window to take them
+    pub pending_opens: Arc<std::sync::Mutex<Vec<String>>>,
 }
 
 impl AppState {
@@ -35,6 +38,7 @@ impl AppState {
             mcp_controller: Arc::new(McpController::new()),
             app_log: Arc::new(AppLog::new()),
             initial_file_args: Arc::new(Mutex::new(None)),
+            pending_opens: Arc::new(std::sync::Mutex::new(Vec::new())),
         }
     }
 }

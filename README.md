@@ -24,7 +24,7 @@ See the [vector calculus example](assets/vc.pdf) for a Stokes' theorem verificat
 - **Dark/light/auto theme** — follows your system preference or set manually
 - **MCP server** — AI integration via Model Context Protocol, with built-in setup for Claude Code, Codex, and Gemini CLI
 - **Multiple backends** — run Maxima locally, in Docker/Podman, or via WSL
-- **Save & load** — persist notebooks in Jupyter-compatible format
+- **Save & load** — persist notebooks in Jupyter-compatible format; drag `.macnb` or `.ipynb` files onto the window to open them, or open them from Finder (double-click, Open With, or a drop on the Dock icon)
 - **Print support** — configurable margins and font sizes for printing
 
 ## Getting Started

@@ -6,6 +6,8 @@ import { VariablePanel } from "../components/VariablePanel";
 import { DocsPanel } from "../components/DocsPanel";
 import { LogWindow, StatusBar } from "../components/LogPanel";
 import { useLogStore } from "../store/logStore";
+import { DropOverlay } from "../components/DropOverlay";
+import type { DragState } from "../hooks/useFileDrop";
 import { useNotebookStore } from "../store/notebookStore";
 import type { SessionStatus } from "../types/maxima";
 import type { SyncCell } from "../lib/notebook-commands";
@@ -137,3 +139,22 @@ export const MaximaNotFound: StoryObj = {
   ],
   render: () => <Window />,
 };
+
+function dropStory(drag: DragState): StoryObj {
+  return {
+    loaders: WholeWindow.loaders,
+    render: () => (
+      <>
+        <Window />
+        <DropOverlay drag={drag} />
+      </>
+    ),
+  };
+}
+
+/** Two notebooks dragged over the window */
+export const DropNotebooks = dropStory({ notebooks: 2, others: 0 });
+/** A notebook and a file Aximar doesn't open, dragged together */
+export const DropMixed = dropStory({ notebooks: 1, others: 1 });
+/** Only files that aren't notebooks */
+export const DropRefused = dropStory({ notebooks: 0, others: 1 });

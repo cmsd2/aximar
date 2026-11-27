@@ -23,6 +23,9 @@
     "cells--notebook",
     "cells--selection",
     "notes--all-notes",
+    "screens--drop-mixed",
+    "screens--drop-notebooks",
+    "screens--drop-refused",
     "screens--whole-window"
   ],
   "0735Pj": [
@@ -90,6 +93,9 @@
     "outputs--suggestion-chips",
     "outputs--suggestions-off",
     "outputs--svg-plot",
+    "screens--drop-mixed",
+    "screens--drop-notebooks",
+    "screens--drop-refused",
     "screens--first-run",
     "screens--maxima-not-found",
     "screens--whole-window"
@@ -107,6 +113,9 @@
     "editor--find-and-replace"
   ],
   "56fvpZ": [
+    "screens--drop-mixed",
+    "screens--drop-notebooks",
+    "screens--drop-refused",
     "screens--first-run",
     "screens--maxima-not-found",
     "screens--whole-window",
@@ -117,6 +126,10 @@
   ],
   "5E-Yo2": [
     "errors--all-explanations"
+  ],
+  "5rCHh6": [
+    "screens--drop-mixed",
+    "screens--drop-notebooks"
   ],
   "5sAfap": [
     "errors--all-explanations"
@@ -131,6 +144,9 @@
     "errors--all-explanations"
   ],
   "6z9W13": [
+    "screens--drop-mixed",
+    "screens--drop-notebooks",
+    "screens--drop-refused",
     "screens--first-run",
     "screens--maxima-not-found",
     "screens--whole-window",
@@ -188,6 +204,9 @@
     "cells--selection",
     "errors--all-explanations",
     "errors--translated-maxima-error",
+    "screens--drop-mixed",
+    "screens--drop-notebooks",
+    "screens--drop-refused",
     "screens--whole-window"
   ],
   "9sfgQI": [
@@ -197,6 +216,9 @@
     "dialogs--settings-ai-assistants"
   ],
   "9uI_rE": [
+    "screens--drop-mixed",
+    "screens--drop-notebooks",
+    "screens--drop-refused",
     "screens--first-run",
     "screens--maxima-not-found",
     "screens--whole-window",
@@ -213,6 +235,9 @@
     "editor--find-and-replace",
     "editor--insert-menu",
     "outputs--running-and-queued",
+    "screens--drop-mixed",
+    "screens--drop-notebooks",
+    "screens--drop-refused",
     "screens--first-run",
     "screens--whole-window"
   ],
@@ -229,6 +254,9 @@
     "cells--selection",
     "errors--all-explanations",
     "errors--translated-maxima-error",
+    "screens--drop-mixed",
+    "screens--drop-notebooks",
+    "screens--drop-refused",
     "screens--whole-window"
   ],
   "AdZgB2": [
@@ -249,6 +277,9 @@
     "outputs--running-and-queued",
     "outputs--suggestion-chips",
     "outputs--suggestions-off",
+    "screens--drop-mixed",
+    "screens--drop-notebooks",
+    "screens--drop-refused",
     "screens--whole-window"
   ],
   "BEuwx9": [
@@ -316,6 +347,9 @@
     "dialogs--settings-translation"
   ],
   "FOw3tu": [
+    "screens--drop-mixed",
+    "screens--drop-notebooks",
+    "screens--drop-refused",
     "screens--first-run",
     "screens--maxima-not-found",
     "screens--whole-window",
@@ -348,6 +382,9 @@
     "errors--all-explanations"
   ],
   "H3oH0g": [
+    "screens--drop-mixed",
+    "screens--drop-notebooks",
+    "screens--drop-refused",
     "screens--first-run",
     "screens--maxima-not-found",
     "screens--whole-window",
@@ -389,6 +426,9 @@
     "cells--selection",
     "editor--find-and-replace",
     "outputs--markdown",
+    "screens--drop-mixed",
+    "screens--drop-notebooks",
+    "screens--drop-refused",
     "screens--first-run",
     "screens--whole-window"
   ],
@@ -454,6 +494,9 @@
     "outputs--suggestion-chips",
     "outputs--suggestions-off",
     "outputs--svg-plot",
+    "screens--drop-mixed",
+    "screens--drop-notebooks",
+    "screens--drop-refused",
     "screens--first-run",
     "screens--maxima-not-found",
     "screens--whole-window"
@@ -508,6 +551,9 @@
     "cells--selection",
     "errors--all-explanations",
     "errors--translated-maxima-error",
+    "screens--drop-mixed",
+    "screens--drop-notebooks",
+    "screens--drop-refused",
     "screens--whole-window"
   ],
   "On2Xn1": [
@@ -524,6 +570,9 @@
     "cells--notebook",
     "cells--selection",
     "notes--all-notes",
+    "screens--drop-mixed",
+    "screens--drop-notebooks",
+    "screens--drop-refused",
     "screens--whole-window"
   ],
   "PqoSoA": [
@@ -545,6 +594,9 @@
     "editor--find-and-replace",
     "editor--insert-menu",
     "outputs--running-and-queued",
+    "screens--drop-mixed",
+    "screens--drop-notebooks",
+    "screens--drop-refused",
     "screens--first-run",
     "screens--whole-window"
   ],
@@ -561,6 +613,9 @@
     "editor--find-and-replace",
     "editor--insert-menu",
     "outputs--running-and-queued",
+    "screens--drop-mixed",
+    "screens--drop-notebooks",
+    "screens--drop-refused",
     "screens--first-run",
     "screens--whole-window"
   ],
@@ -616,6 +671,9 @@
     "outputs--suggestion-chips",
     "outputs--suggestions-off",
     "outputs--svg-plot",
+    "screens--drop-mixed",
+    "screens--drop-notebooks",
+    "screens--drop-refused",
     "screens--first-run",
     "screens--maxima-not-found",
     "screens--whole-window"
@@ -627,6 +685,9 @@
     "dialogs--settings-notebook"
   ],
   "TbjyhA": [
+    "screens--drop-mixed",
+    "screens--drop-notebooks",
+    "screens--drop-refused",
     "screens--first-run",
     "screens--maxima-not-found",
     "screens--whole-window",
@@ -639,6 +700,9 @@
     "dialogs--settings-notebook",
     "dialogs--settings-printing",
     "dialogs--settings-translation",
+    "screens--drop-mixed",
+    "screens--drop-notebooks",
+    "screens--drop-refused",
     "screens--first-run",
     "screens--maxima-not-found",
     "screens--whole-window",
@@ -659,6 +723,9 @@
     "outputs--suggestion-chips",
     "outputs--suggestions-off",
     "outputs--svg-plot",
+    "screens--drop-mixed",
+    "screens--drop-notebooks",
+    "screens--drop-refused",
     "screens--whole-window"
   ],
   "UEulME": [
@@ -735,6 +802,10 @@
   "YHEqUE": [
     "errors--all-explanations"
   ],
+  "YOx3Dy": [
+    "screens--drop-mixed",
+    "screens--drop-refused"
+  ],
   "YRwD_R": [
     "errors--all-explanations"
   ],
@@ -780,6 +851,9 @@
     "outputs--suggestion-chips",
     "outputs--suggestions-off",
     "outputs--svg-plot",
+    "screens--drop-mixed",
+    "screens--drop-notebooks",
+    "screens--drop-refused",
     "screens--whole-window"
   ],
   "_pQZ9b": [
@@ -818,6 +892,9 @@
     "outputs--suggestion-chips",
     "outputs--suggestions-off",
     "outputs--svg-plot",
+    "screens--drop-mixed",
+    "screens--drop-notebooks",
+    "screens--drop-refused",
     "screens--whole-window"
   ],
   "b8NfeK": [
@@ -855,6 +932,9 @@
     "errors--all-explanations"
   ],
   "ckH3fT": [
+    "screens--drop-mixed",
+    "screens--drop-notebooks",
+    "screens--drop-refused",
     "screens--whole-window"
   ],
   "clKErK": [
@@ -934,6 +1014,9 @@
     "errors--all-explanations"
   ],
   "gpmbqk": [
+    "screens--drop-mixed",
+    "screens--drop-notebooks",
+    "screens--drop-refused",
     "screens--first-run",
     "screens--maxima-not-found",
     "screens--whole-window",
@@ -962,6 +1045,9 @@
     "outputs--running-and-queued",
     "outputs--suggestion-chips",
     "outputs--suggestions-off",
+    "screens--drop-mixed",
+    "screens--drop-notebooks",
+    "screens--drop-refused",
     "screens--whole-window"
   ],
   "i17GIR": [
@@ -985,6 +1071,9 @@
     "screens--whole-window"
   ],
   "iTylMl": [
+    "screens--drop-mixed",
+    "screens--drop-notebooks",
+    "screens--drop-refused",
     "screens--first-run",
     "screens--maxima-not-found",
     "screens--whole-window",
@@ -998,6 +1087,9 @@
     "cells--notebook",
     "cells--selection",
     "errors--all-explanations",
+    "screens--drop-mixed",
+    "screens--drop-notebooks",
+    "screens--drop-refused",
     "screens--whole-window"
   ],
   "ivlLtN": [
@@ -1024,10 +1116,16 @@
     "panels--docs-package-function"
   ],
   "k6BSBZ": [
+    "screens--drop-mixed",
+    "screens--drop-notebooks",
+    "screens--drop-refused",
     "screens--first-run",
     "screens--maxima-not-found",
     "screens--whole-window",
     "window--toolbar-and-tabs"
+  ],
+  "kpGa12": [
+    "screens--drop-refused"
   ],
   "kpH3_Q": [
     "editor--caret-between-cells",
@@ -1056,6 +1154,9 @@
   "mkn0j1": [
     "cells--bracket-selection",
     "editor--caret-bracket-style",
+    "screens--drop-mixed",
+    "screens--drop-notebooks",
+    "screens--drop-refused",
     "screens--first-run",
     "screens--maxima-not-found",
     "screens--whole-window",
@@ -1113,6 +1214,9 @@
     "outputs--running-and-queued",
     "outputs--suggestion-chips",
     "outputs--suggestions-off",
+    "screens--drop-mixed",
+    "screens--drop-notebooks",
+    "screens--drop-refused",
     "screens--whole-window"
   ],
   "pvY0_v": [
@@ -1163,6 +1267,9 @@
     "dialogs--settings-ai-assistants"
   ],
   "t6m47v": [
+    "screens--drop-mixed",
+    "screens--drop-notebooks",
+    "screens--drop-refused",
     "screens--first-run",
     "screens--maxima-not-found",
     "screens--whole-window",
@@ -1195,6 +1302,9 @@
     "errors--all-explanations"
   ],
   "ubdrAw": [
+    "screens--drop-mixed",
+    "screens--drop-notebooks",
+    "screens--drop-refused",
     "screens--first-run",
     "screens--maxima-not-found",
     "screens--whole-window",
@@ -1254,6 +1364,9 @@
     "screens--maxima-not-found"
   ],
   "wja8aL": [
+    "screens--drop-mixed",
+    "screens--drop-notebooks",
+    "screens--drop-refused",
     "screens--first-run",
     "screens--maxima-not-found",
     "screens--whole-window",
@@ -1305,6 +1418,9 @@
     "dialogs--settings-ai-assistants"
   ],
   "znFg6V": [
+    "screens--drop-mixed",
+    "screens--drop-notebooks",
+    "screens--drop-refused",
     "screens--first-run",
     "screens--maxima-not-found",
     "screens--whole-window",
