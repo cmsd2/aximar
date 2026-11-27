@@ -1,6 +1,7 @@
 import { msg } from "@lingui/core/macro";
 import { useLingui } from "@lingui/react/macro";
 import type { AutocompleteMode, CellStyle } from "../../store/notebookStore";
+import { Checkbox } from "../ui/Checkbox";
 import { FieldRow } from "../ui/FieldRow";
 import type { Label } from "../ui/label";
 import { SegmentedControl } from "../ui/SegmentedControl";
@@ -107,6 +108,22 @@ export function NotebookSection({ config, update }: SectionProps) {
             value={config.autocomplete_mode}
             onChange={(autocomplete_mode) => update({ autocomplete_mode })}
           />
+        )}
+      </FieldRow>
+
+      <FieldRow
+        divided
+        label={t({
+          message: "Suggestions under results",
+          comment: "Settings: the label of the checkbox that shows the suggestion buttons (such as Integrate or Plot) under a cell's result",
+        })}
+        hint={t({
+          message: "Buttons under a result that suggest a next step, such as Integrate. Turn them off so students write each step themselves.",
+          comment: "Settings, Notebook section: hint under Suggestions under results. Integrate is one of the suggestion buttons' labels",
+        })}
+      >
+        {({ id, describedBy }) => (
+          <Checkbox id={id} describedBy={describedBy} checked={config.show_suggestions} onChange={(checked) => update({ show_suggestions: checked })} />
         )}
       </FieldRow>
 

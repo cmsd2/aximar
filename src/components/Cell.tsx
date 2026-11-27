@@ -22,6 +22,7 @@ export function Cell({ cell, onViewDocs, selectBracket }: CellProps) {
   const cells = useActiveTab().cells;
   const cellCount = cells.length;
   const setActiveCellId = useNotebookStore((s) => s.setActiveCellId);
+  const showSuggestions = useNotebookStore((s) => s.showSuggestions);
   const { executeCell } = useMaxima();
 
   const [outputCollapsed, setOutputCollapsed] = useState(false);
@@ -193,7 +194,7 @@ export function Cell({ cell, onViewDocs, selectBracket }: CellProps) {
       )}
       {selectBracket}
     </div>
-    <CellSuggestions cell={cell} />
+    {showSuggestions && <CellSuggestions cell={cell} />}
     </>
   );
 }

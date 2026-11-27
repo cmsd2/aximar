@@ -77,6 +77,8 @@ interface NotebookState {
   theme: Theme;
   cellStyle: CellStyle;
   autocompleteMode: AutocompleteMode;
+  /** Suggestion chips under results; Settings can turn them off */
+  showSuggestions: boolean;
 
   // --- Tab lifecycle ---
   addTab: (id: string, title?: string) => void;
@@ -97,6 +99,7 @@ interface NotebookState {
   setTheme: (theme: Theme) => void;
   setCellStyle: (style: CellStyle) => void;
   setAutocompleteMode: (mode: AutocompleteMode) => void;
+  setShowSuggestions: (show: boolean) => void;
   setActiveCellId: (id: string | null) => void;
   setSelectedCellIds: (ids: string[]) => void;
   clearSelection: () => void;
@@ -155,6 +158,7 @@ export const useNotebookStore = create<NotebookState>((set) => ({
   theme: "auto",
   cellStyle: "card",
   autocompleteMode: "active-hint",
+  showSuggestions: true,
 
   // --- Tab lifecycle ---
 
@@ -254,6 +258,7 @@ export const useNotebookStore = create<NotebookState>((set) => ({
   setCellStyle: (cellStyle: CellStyle) => set({ cellStyle }),
   setAutocompleteMode: (autocompleteMode: AutocompleteMode) =>
     set({ autocompleteMode }),
+  setShowSuggestions: (showSuggestions: boolean) => set({ showSuggestions }),
 
   setActiveCellId: (id: string | null) =>
     set((state) => {

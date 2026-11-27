@@ -26,6 +26,7 @@ export function SettingsShell({ onClose, onSetVariablesOpen, initialSection, req
   const setTheme = useNotebookStore((s) => s.setTheme);
   const setCellStyle = useNotebookStore((s) => s.setCellStyle);
   const setAutocompleteMode = useNotebookStore((s) => s.setAutocompleteMode);
+  const setShowSuggestions = useNotebookStore((s) => s.setShowSuggestions);
   const addLogEntry = useLogStore((s) => s.addEntry);
   const tabs = useRef(new Map<SectionId, HTMLButtonElement>());
 
@@ -48,9 +49,9 @@ export function SettingsShell({ onClose, onSetVariablesOpen, initialSection, req
       const next = { ...config, ...updates };
       setLocalConfig(next);
       setConfig(updates).catch((e) => addLogEntry("error", `Failed to save settings: ${e}`, "settings"));
-      applyConfig(updates, next, { setTheme, setCellStyle, setAutocompleteMode, setVariablesOpen: onSetVariablesOpen });
+      applyConfig(updates, next, { setTheme, setCellStyle, setAutocompleteMode, setShowSuggestions, setVariablesOpen: onSetVariablesOpen });
     },
-    [config, setTheme, setCellStyle, setAutocompleteMode, onSetVariablesOpen, addLogEntry],
+    [config, setTheme, setCellStyle, setAutocompleteMode, setShowSuggestions, onSetVariablesOpen, addLogEntry],
   );
 
   const sections = availableSections();

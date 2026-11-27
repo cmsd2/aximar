@@ -9,6 +9,7 @@ export interface AppConfig {
   variables_open: boolean;
   cell_style: string;
   autocomplete_mode: string;
+  show_suggestions: boolean;
   markdown_font: string;
   markdown_indent: string;
   print_margin_top: number;

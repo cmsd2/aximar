@@ -81,6 +81,8 @@
     "outputs--plotly-plot",
     "outputs--reactive-controls",
     "outputs--running-and-queued",
+    "outputs--suggestion-chips",
+    "outputs--suggestions-off",
     "outputs--svg-plot",
     "screens--first-run",
     "screens--maxima-not-found",
@@ -134,6 +136,9 @@
   "7FK-LY": [
     "dialogs--export-latex",
     "ui-fields--rows"
+  ],
+  "7M0wgb": [
+    "dialogs--settings-notebook"
   ],
   "7V9N66": [
     "dialogs--settings-maxima",
@@ -236,6 +241,8 @@
     "editor--find-and-replace",
     "editor--insert-menu",
     "outputs--running-and-queued",
+    "outputs--suggestion-chips",
+    "outputs--suggestions-off",
     "screens--whole-window"
   ],
   "BEuwx9": [
@@ -422,10 +429,13 @@
     "editor--completion",
     "editor--find-and-replace",
     "editor--insert-menu",
+    "editor--new-notebook",
     "outputs--markdown",
     "outputs--plotly-plot",
     "outputs--reactive-controls",
     "outputs--running-and-queued",
+    "outputs--suggestion-chips",
+    "outputs--suggestions-off",
     "outputs--svg-plot",
     "screens--first-run",
     "screens--maxima-not-found",
@@ -576,6 +586,8 @@
     "outputs--plotly-plot",
     "outputs--reactive-controls",
     "outputs--running-and-queued",
+    "outputs--suggestion-chips",
+    "outputs--suggestions-off",
     "outputs--svg-plot",
     "screens--first-run",
     "screens--maxima-not-found",
@@ -617,6 +629,8 @@
     "outputs--plotly-plot",
     "outputs--reactive-controls",
     "outputs--running-and-queued",
+    "outputs--suggestion-chips",
+    "outputs--suggestions-off",
     "outputs--svg-plot",
     "screens--whole-window"
   ],
@@ -732,6 +746,8 @@
     "outputs--plotly-plot",
     "outputs--reactive-controls",
     "outputs--running-and-queued",
+    "outputs--suggestion-chips",
+    "outputs--suggestions-off",
     "outputs--svg-plot",
     "screens--whole-window"
   ],
@@ -768,6 +784,8 @@
     "outputs--plotly-plot",
     "outputs--reactive-controls",
     "outputs--running-and-queued",
+    "outputs--suggestion-chips",
+    "outputs--suggestions-off",
     "outputs--svg-plot",
     "screens--whole-window"
   ],
@@ -785,6 +803,9 @@
   ],
   "bXyAaS": [
     "errors--all-explanations"
+  ],
+  "bbPDba": [
+    "dialogs--settings-notebook"
   ],
   "bvy5S7": [
     "notes--all-notes"
@@ -904,6 +925,8 @@
     "editor--find-and-replace",
     "editor--insert-menu",
     "outputs--running-and-queued",
+    "outputs--suggestion-chips",
+    "outputs--suggestions-off",
     "screens--whole-window"
   ],
   "i17GIR": [
@@ -969,7 +992,8 @@
   ],
   "kpH3_Q": [
     "editor--caret-between-cells",
-    "editor--caret-bracket-style"
+    "editor--caret-bracket-style",
+    "editor--new-notebook"
   ],
   "kryGs-": [
     "dialogs--settings-notebook"
@@ -1042,6 +1066,8 @@
     "editor--find-and-replace",
     "editor--insert-menu",
     "outputs--running-and-queued",
+    "outputs--suggestion-chips",
+    "outputs--suggestions-off",
     "screens--whole-window"
   ],
   "pvY0_v": [

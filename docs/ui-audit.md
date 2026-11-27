@@ -181,6 +181,11 @@ problems:
   the caret after it.  Notebooks from MCP, templates and files still
   have at least one cell.
 
+- **Suggestion chips can be turned off**, in Settings > Notebook, for
+  a class where students should write each step themselves
+  (cmsd2/aximar#44).  The chips also keep their 8px under a card, which
+  the card spacing change above had taken away.
+
 ## Suggested order
 
 1. Quick fixes 1 to 4.

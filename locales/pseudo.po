@@ -315,6 +315,12 @@ msgstr ""
 msgid "Busy"
 msgstr ""
 
+#. Settings, Notebook section: hint under Suggestions under results. Integrate is one of the suggestion buttons' labels
+#. screen: dialogs--settings-notebook
+#: src/components/settings/NotebookSection.tsx
+msgid "Buttons under a result that suggest a next step, such as Integrate. Turn them off so students write each step themselves."
+msgstr ""
+
 #. Settings: shown beside an AI tool whose configuration file isn't valid. file is the file's path; Aximar leaves the file alone
 #: src/components/settings/AiClients.tsx
 msgid "Can't read {file}"
@@ -460,6 +466,8 @@ msgstr ""
 #. screen: outputs--plotly-plot
 #. screen: outputs--reactive-controls
 #. screen: outputs--running-and-queued
+#. screen: outputs--suggestion-chips
+#. screen: outputs--suggestions-off
 #. screen: outputs--svg-plot
 #. screen: screens--whole-window
 #: src/components/Cell.tsx
@@ -528,6 +536,8 @@ msgstr ""
 #. screen: editor--find-and-replace
 #. screen: editor--insert-menu
 #. screen: outputs--running-and-queued
+#. screen: outputs--suggestion-chips
+#. screen: outputs--suggestions-off
 #. screen: screens--whole-window
 #: src/components/CellOutput.tsx
 #: src/components/settings/AiAssistantsSection.tsx
@@ -544,6 +554,8 @@ msgstr ""
 #. screen: editor--find-and-replace
 #. screen: editor--insert-menu
 #. screen: outputs--running-and-queued
+#. screen: outputs--suggestion-chips
+#. screen: outputs--suggestions-off
 #. screen: screens--whole-window
 #: src/components/CellOutput.tsx
 msgid "Copy LaTeX source"
@@ -559,6 +571,8 @@ msgstr ""
 #. screen: editor--find-and-replace
 #. screen: editor--insert-menu
 #. screen: outputs--running-and-queued
+#. screen: outputs--suggestion-chips
+#. screen: outputs--suggestions-off
 #. screen: screens--whole-window
 #: src/components/CellOutput.tsx
 msgid "Copy Maxima expression"
@@ -962,6 +976,8 @@ msgstr ""
 #. screen: outputs--plotly-plot
 #. screen: outputs--reactive-controls
 #. screen: outputs--running-and-queued
+#. screen: outputs--suggestion-chips
+#. screen: outputs--suggestions-off
 #. screen: outputs--svg-plot
 #. screen: screens--whole-window
 #: src/components/Cell.tsx
@@ -998,10 +1014,13 @@ msgstr ""
 #. screen: editor--completion
 #. screen: editor--find-and-replace
 #. screen: editor--insert-menu
+#. screen: editor--new-notebook
 #. screen: outputs--markdown
 #. screen: outputs--plotly-plot
 #. screen: outputs--reactive-controls
 #. screen: outputs--running-and-queued
+#. screen: outputs--suggestion-chips
+#. screen: outputs--suggestions-off
 #. screen: outputs--svg-plot
 #. screen: screens--first-run
 #. screen: screens--maxima-not-found
@@ -1281,6 +1300,7 @@ msgstr ""
 #. Screen reader label of the caret between two cells, where typing starts a new cell. # starts a Markdown heading and stays as it is
 #. screen: editor--caret-between-cells
 #. screen: editor--caret-bracket-style
+#. screen: editor--new-notebook
 #: src/components/CellGap.tsx
 msgid "New cell: type to start a code cell, or # for a Markdown heading"
 msgstr ""
@@ -1397,6 +1417,8 @@ msgstr ""
 #. screen: outputs--plotly-plot
 #. screen: outputs--reactive-controls
 #. screen: outputs--running-and-queued
+#. screen: outputs--suggestion-chips
+#. screen: outputs--suggestions-off
 #. screen: outputs--svg-plot
 #. screen: screens--whole-window
 #: src/components/Cell.tsx
@@ -1603,6 +1625,8 @@ msgstr ""
 #. screen: outputs--plotly-plot
 #. screen: outputs--reactive-controls
 #. screen: outputs--running-and-queued
+#. screen: outputs--suggestion-chips
+#. screen: outputs--suggestions-off
 #. screen: outputs--svg-plot
 #. screen: screens--first-run
 #. screen: screens--maxima-not-found
@@ -1672,6 +1696,8 @@ msgstr ""
 #. screen: outputs--plotly-plot
 #. screen: outputs--reactive-controls
 #. screen: outputs--running-and-queued
+#. screen: outputs--suggestion-chips
+#. screen: outputs--suggestions-off
 #. screen: outputs--svg-plot
 #. screen: screens--first-run
 #. screen: screens--maxima-not-found
@@ -1803,6 +1829,12 @@ msgstr ""
 #. screen: window--toolbar-and-tabs
 #: src/components/Toolbar.tsx
 msgid "Stopped"
+msgstr ""
+
+#. Settings: the label of the checkbox that shows the suggestion buttons (such as Integrate or Plot) under a cell's result
+#. screen: dialogs--settings-notebook
+#: src/components/settings/NotebookSection.tsx
+msgid "Suggestions under results"
 msgstr ""
 
 #. File type in the Save dialog when saving a plot as SVG

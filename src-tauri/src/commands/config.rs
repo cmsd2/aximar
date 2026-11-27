@@ -63,6 +63,10 @@ pub enum MarkdownIndent {
     Aligned,
 }
 
+fn default_show_suggestions() -> bool {
+    true
+}
+
 fn default_font_size() -> u32 {
     14
 }
@@ -131,6 +135,10 @@ struct AppConfig {
     print_font_size: u32,
     #[serde(default)]
     autocomplete_mode: AutocompleteMode,
+    /// Suggestion chips under results.  A teacher may turn them off so
+    /// students write their own Maxima (issue #44).
+    #[serde(default = "default_show_suggestions")]
+    show_suggestions: bool,
     #[serde(default)]
     markdown_font: MarkdownFont,
     #[serde(default)]
@@ -179,6 +187,7 @@ impl Default for AppConfig {
             cell_style: CellStyle::default(),
             print_font_size: default_print_font_size(),
             autocomplete_mode: AutocompleteMode::default(),
+            show_suggestions: default_show_suggestions(),
             markdown_font: MarkdownFont::default(),
             markdown_indent: MarkdownIndent::default(),
             print_margin_top: default_print_margin_top(),
@@ -297,6 +306,7 @@ pub struct PublicConfig {
     pub variables_open: bool,
     pub cell_style: CellStyle,
     pub autocomplete_mode: AutocompleteMode,
+    pub show_suggestions: bool,
     pub markdown_font: MarkdownFont,
     pub markdown_indent: MarkdownIndent,
     pub print_margin_top: u32,
@@ -335,6 +345,7 @@ pub struct ConfigUpdate {
     pub variables_open: Option<bool>,
     pub cell_style: Option<CellStyle>,
     pub autocomplete_mode: Option<AutocompleteMode>,
+    pub show_suggestions: Option<bool>,
     pub markdown_font: Option<MarkdownFont>,
     pub markdown_indent: Option<MarkdownIndent>,
     pub print_margin_top: Option<u32>,
@@ -476,6 +487,7 @@ pub async fn get_config(app: tauri::AppHandle) -> Result<ConfigResponse, AppErro
             variables_open: config.variables_open,
             cell_style: config.cell_style,
             autocomplete_mode: config.autocomplete_mode,
+            show_suggestions: config.show_suggestions,
             markdown_font: config.markdown_font,
             markdown_indent: config.markdown_indent,
             print_margin_top: config.print_margin_top,
@@ -536,6 +548,9 @@ pub async fn set_config(app: tauri::AppHandle, updates: ConfigUpdate) -> Result<
     }
     if let Some(autocomplete_mode) = updates.autocomplete_mode {
         config.autocomplete_mode = autocomplete_mode;
+    }
+    if let Some(show_suggestions) = updates.show_suggestions {
+        config.show_suggestions = show_suggestions;
     }
     if let Some(markdown_font) = updates.markdown_font {
         config.markdown_font = markdown_font;
@@ -806,6 +821,18 @@ mod tests {
         assert_eq!(config.font_size, default_font_size());
         assert!(warnings.is_empty());
         assert!(config_for_update(parse_config_file(path(), None)).is_ok());
+    }
+
+    #[test]
+    fn suggestions_show_unless_turned_off() {
+        let (config, _) =
+            config_or_defaults(parse_config_file(path(), Some(r#"{"font_size": 14}"#)));
+        assert!(config.show_suggestions);
+        let (config, _) = config_or_defaults(parse_config_file(
+            path(),
+            Some(r#"{"show_suggestions": false}"#),
+        ));
+        assert!(!config.show_suggestions);
     }
 
     #[test]

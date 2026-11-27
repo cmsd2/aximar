@@ -23,6 +23,8 @@ const withLanguage: Decorator = (Story, context) => {
   const cellStyle: CellStyle = context.parameters.cellStyle ?? "card";
   document.documentElement.dataset.cellStyle = cellStyle;
   useNotebookStore.getState().setCellStyle(cellStyle);
+  // Suggestion chips on unless the story turns them off
+  useNotebookStore.getState().setShowSuggestions(context.parameters.showSuggestions ?? true);
   const language = context.globals.locale ?? "en";
   const tag = context.globals.tagStrings === "on";
   const [ready, setReady] = useState(false);

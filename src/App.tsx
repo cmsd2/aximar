@@ -88,6 +88,7 @@ function App() {
           setTheme: store.setTheme,
           setCellStyle: store.setCellStyle,
           setAutocompleteMode: store.setAutocompleteMode,
+          setShowSuggestions: store.setShowSuggestions,
           setVariablesOpen,
         });
         void activateLanguage(cfg.language);

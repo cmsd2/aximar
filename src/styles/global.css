@@ -2326,6 +2326,12 @@
   margin-bottom: 0;
 }
 
+/* The suggestion chips keep the 8px under their card the margin gave */
+[data-cell-style="card"] .cell + .cell-suggestions,
+:root:not([data-cell-style]) .cell + .cell-suggestions {
+  margin-top: var(--space-2);
+}
+
 /* Without the bracket, card style needs no wide right margin; the left
    one holds the gaps' + */
 [data-cell-style="card"] .notebook,

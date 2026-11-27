@@ -5,7 +5,7 @@ import { useNotebookStore } from "../src/store/notebookStore";
 
 export const config = {
   theme: "light", maxima_path: null, font_size: 14, print_font_size: 11, eval_timeout: 30,
-  variables_open: true, cell_style: "bracket", autocomplete_mode: "active-hint",
+  variables_open: true, cell_style: "bracket", autocomplete_mode: "active-hint", show_suggestions: true,
   markdown_font: "sans-serif", markdown_indent: "aligned", print_margin_top: 15,
   print_margin_bottom: 15, print_margin_left: 15, print_margin_right: 15, backend: "local",
   docker_image: "aximar/maxima", wsl_distro: "Ubuntu", container_engine: "docker",
@@ -50,8 +50,14 @@ export function installTauriMock(): void {
           return Object.values(functions)
             .filter((f) => f.name.includes(args.query) || f.description.includes(args.query))
             .map((f) => ({ function: f, score: 1 }));
-        case "list_wsl_distros":
         case "get_suggestions":
+          // What the core offers after a result
+          return [
+            { label: "Simplify", template: "ratsimp(%)", description: "Simplify the result" },
+            { label: "Integrate", template: "integrate(%, x)", description: "Integrate with respect to x" },
+            { label: "Plot", template: "plot2d(%, [x, -5, 5])", description: "Plot the result" },
+          ];
+        case "list_wsl_distros":
         case "get_buffered_logs":
         case "search_package_functions":
         case "search_packages":

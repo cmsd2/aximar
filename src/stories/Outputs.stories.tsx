@@ -169,3 +169,28 @@ export const RunningAndQueued: StoryObj = {
   loaders: [async () => seedNotebook(running)],
   render: () => <StoryNotebook />,
 };
+
+const integrated: SyncCell[] = [
+  {
+    id: "i1", cell_type: "code", status: "success", input: "integrate(x*sin(x), x);",
+    output: { ...output, latex: "\\sin x-x\\,\\cos x", text_plain: "sin(x)-x*cos(x)" },
+  },
+];
+
+/** The suggestion chips under a result */
+export const SuggestionChips: StoryObj = {
+  loaders: [async () => seedNotebook(integrated)],
+  render: () => (
+    <>
+      <StoryNotebook />
+      <WaitFor selector=".cell-suggestions" />
+    </>
+  ),
+};
+
+/** The same result with suggestions turned off in Settings (issue #44) */
+export const SuggestionsOff: StoryObj = {
+  parameters: { showSuggestions: false },
+  loaders: SuggestionChips.loaders,
+  render: () => <StoryNotebook />,
+};
