@@ -83,7 +83,7 @@ fn language_key(tag: &str) -> String {
 /// them: `maxima-core-docs-<lang>`, built in core-docs' `lang/`.  A language
 /// gets one when Maxima's manual in it documents at least half the English
 /// manual's symbols and builds.
-const CORE_DOCS_PACKS: &[&str] = &["es", "pt", "pt-br"];
+const CORE_DOCS_PACKS: &[&str] = &["de", "es", "ja", "pt", "pt-br"];
 
 /// The package that adds full core documentation in `language`, if there is
 /// one, such as `maxima-core-docs-es`
@@ -1408,7 +1408,8 @@ mod language_tests {
             core_docs_pack("pt_BR").as_deref(),
             Some("maxima-core-docs-pt-br")
         );
-        assert_eq!(core_docs_pack("de"), None);
+        assert_eq!(core_docs_pack("ja").as_deref(), Some("maxima-core-docs-ja"));
+        assert_eq!(core_docs_pack("ru"), None);
         assert_eq!(core_docs_pack("en"), None);
     }
 
