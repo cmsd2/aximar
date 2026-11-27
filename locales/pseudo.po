@@ -17,6 +17,7 @@ msgid "(no output)"
 msgstr ""
 
 #. Settings: shown beside an AI tool when its command is not installed. cli is the command name, such as claude
+#. screen: dialogs--settings-ai-assistants
 #: src/components/settings/AiClients.tsx
 msgid "{cli} CLI not found"
 msgstr ""
@@ -151,17 +152,24 @@ msgid "<0>Esc</0> close"
 msgstr ""
 
 #. Settings: argument help button; the hint follows the argument under the cursor
-#. screen: dialogs--settings
+#. screen: dialogs--settings-notebook
 #: src/components/settings/NotebookSection.tsx
 msgid "Active hint"
 msgstr ""
 
 #. Settings, AI assistants section: the heading that shows the MCP server's address and token when opened
+#. screen: dialogs--settings-ai-assistants
 #: src/components/settings/AiAssistantsSection.tsx
 msgid "Advanced"
 msgstr ""
 
 #. Settings sidebar: the MCP server and the AI tools that use it, such as Claude Code. max-length:16
+#. screen: dialogs--settings
+#. screen: dialogs--settings-ai-assistants
+#. screen: dialogs--settings-maxima
+#. screen: dialogs--settings-notebook
+#. screen: dialogs--settings-printing
+#. screen: dialogs--settings-translation
 #: src/components/settings/sections.ts
 msgid "AI assistants"
 msgstr ""
@@ -172,12 +180,13 @@ msgid "AI assistants send this secret with each request. Reconfigure them after 
 msgstr ""
 
 #. Settings: Markdown indent button; text cells line up with the code in code cells
-#. screen: dialogs--settings
+#. screen: dialogs--settings-notebook
 #: src/components/settings/NotebookSection.tsx
 msgid "Aligned"
 msgstr ""
 
 #. Settings, Notebook section: hint under Markdown indent. Aligned is a button's label
+#. screen: dialogs--settings-notebook
 #: src/components/settings/NotebookSection.tsx
 msgid "Aligned lines text cells up with the code in code cells."
 msgstr ""
@@ -198,24 +207,27 @@ msgid "App Log"
 msgstr ""
 
 #. Settings: the label of the buttons that choose how function arguments are shown while typing
-#. screen: dialogs--settings
+#. screen: dialogs--settings-notebook
 #: src/components/settings/NotebookSection.tsx
 msgid "Argument help"
 msgstr ""
 
 #. Settings: theme button that follows the system's light or dark mode
 #. screen: dialogs--settings
+#. screen: dialogs--settings-translation
 #: src/components/settings/GeneralSection.tsx
 msgid "Auto"
 msgstr ""
 
 #. Settings, General section: hint under Theme
+#. screen: dialogs--settings
+#. screen: dialogs--settings-translation
 #: src/components/settings/GeneralSection.tsx
 msgid "Auto follows your system's light or dark mode."
 msgstr ""
 
 #. Settings: placeholder in the Maxima path field; when empty, Aximar finds maxima itself
-#. screen: dialogs--settings
+#. screen: dialogs--settings-maxima
 #: src/components/settings/MaximaSection.tsx
 msgid "Auto-detect"
 msgstr ""
@@ -231,6 +243,7 @@ msgid "Aximar found no Maxima. Install it, or set the Maxima path above."
 msgstr ""
 
 #. Settings, Maxima section: status line. path is the Maxima program Aximar found
+#. screen: dialogs--settings-maxima
 #: src/components/settings/MaximaSection.tsx
 msgid "Aximar runs {path}, found in a standard install location."
 msgstr ""
@@ -256,19 +269,19 @@ msgid "Back"
 msgstr ""
 
 #. Settings: the label of the buttons that choose where Maxima runs
-#. screen: dialogs--settings
+#. screen: dialogs--settings-maxima
 #: src/components/settings/MaximaSection.tsx
 msgid "Backend"
 msgstr ""
 
 #. Settings: label of the bottom print margin field
-#. screen: dialogs--settings
+#. screen: dialogs--settings-printing
 #: src/components/settings/PrintingSection.tsx
 msgid "Bottom"
 msgstr ""
 
 #. Settings: cell style button that marks each cell with a bracket in the margin
-#. screen: dialogs--settings
+#. screen: dialogs--settings-notebook
 #: src/components/settings/NotebookSection.tsx
 msgid "Bracket"
 msgstr ""
@@ -301,28 +314,31 @@ msgid "Cancel cell"
 msgstr ""
 
 #. Settings: cell style button that draws each cell as a boxed card
-#. screen: dialogs--settings
+#. screen: dialogs--settings-notebook
 #: src/components/settings/NotebookSection.tsx
 msgid "Card"
 msgstr ""
 
 #. Settings, Notebook section: hint under Cell style. Card and Bracket are the buttons' labels
+#. screen: dialogs--settings-notebook
 #: src/components/settings/NotebookSection.tsx
 msgid "Card draws each cell in a box. Bracket marks it in the margin."
 msgstr ""
 
 #. Settings: the label of the buttons that choose how cells are drawn
-#. screen: dialogs--settings
+#. screen: dialogs--settings-notebook
 #: src/components/settings/NotebookSection.tsx
 msgid "Cell style"
 msgstr ""
 
 #. Settings button: asks Claude Code, by running its claude command, whether its configuration lists Aximar's MCP server
+#. screen: dialogs--settings-ai-assistants
 #: src/components/settings/AiClients.tsx
 msgid "Check"
 msgstr ""
 
 #. Settings, AI assistants section: hint under Claude Code. command is the command Aximar runs
+#. screen: dialogs--settings-ai-assistants
 #: src/components/settings/AiClients.tsx
 msgid "Check runs {command} to read Claude Code's configuration."
 msgstr ""
@@ -354,6 +370,11 @@ msgstr ""
 #. Maxima Not Found dialog: the button that closes the dialog
 #. Settings button: closes the settings window
 #. screen: dialogs--settings
+#. screen: dialogs--settings-ai-assistants
+#. screen: dialogs--settings-maxima
+#. screen: dialogs--settings-notebook
+#. screen: dialogs--settings-printing
+#. screen: dialogs--settings-translation
 #: src/components/settings/SettingsShell.tsx src/hooks/useMaxima.ts
 msgid "Close"
 msgstr ""
@@ -380,27 +401,31 @@ msgstr ""
 
 #. Tooltip of the bracket beside a code cell: hides the cell's output
 #. screen: cells--notebook
+#. screen: cells--print-and-tex
 #: src/components/Cell.tsx
 msgid "Collapse output"
 msgstr ""
 
 #. Settings button: adds Aximar's MCP server to an AI tool's configuration, such as Claude Code's
-#. screen: dialogs--settings
+#. screen: dialogs--settings-ai-assistants
 #: src/components/settings/AiClients.tsx
 msgid "Configure"
 msgstr ""
 
 #. Settings, AI assistants section: hint under Codex. codexFile is Codex's configuration file
+#. screen: dialogs--settings-ai-assistants
 #: src/components/settings/AiClients.tsx
 msgid "Configure adds Aximar to {codexFile}."
 msgstr ""
 
 #. Settings, AI assistants section: hint under Gemini CLI. geminiFile is Gemini CLI's configuration file
+#. screen: dialogs--settings-ai-assistants
 #: src/components/settings/AiClients.tsx
 msgid "Configure adds Aximar to {geminiFile}."
 msgstr ""
 
 #. Settings: shown beside an AI tool whose configuration includes Aximar's MCP server
+#. screen: dialogs--settings-ai-assistants
 #: src/components/settings/AiClients.tsx
 msgid "Configured"
 msgstr ""
@@ -434,7 +459,7 @@ msgstr ""
 #. Button above a result: copies it to the clipboard as Maxima code. max-length:8
 #. Settings button: copies the MCP token to the clipboard
 #. screen: cells--notebook
-#. screen: dialogs--settings
+#. screen: cells--print-and-tex
 #: src/components/CellOutput.tsx
 #: src/components/settings/AiAssistantsSection.tsx
 msgid "Copy"
@@ -442,18 +467,20 @@ msgstr ""
 
 #. Tooltip of the TeX button above a result: copies the result's LaTeX to the clipboard
 #. screen: cells--notebook
+#. screen: cells--print-and-tex
 #: src/components/CellOutput.tsx
 msgid "Copy LaTeX source"
 msgstr ""
 
 #. Tooltip of the Copy button above a result: copies the result as Maxima code
 #. screen: cells--notebook
+#. screen: cells--print-and-tex
 #: src/components/CellOutput.tsx
 msgid "Copy Maxima expression"
 msgstr ""
 
 #. Settings: tooltip of the button that copies the MCP token
-#. screen: dialogs--settings
+#. screen: dialogs--settings-ai-assistants
 #: src/components/settings/AiAssistantsSection.tsx
 msgid "Copy token"
 msgstr ""
@@ -476,6 +503,7 @@ msgstr ""
 
 #. Settings: theme button for the dark theme
 #. screen: dialogs--settings
+#. screen: dialogs--settings-translation
 #: src/components/settings/GeneralSection.tsx
 msgid "Dark"
 msgstr ""
@@ -489,6 +517,7 @@ msgstr ""
 #. Tooltip of the cross button that deletes a cell
 #. Tooltip of the cross button that deletes a cell
 #. screen: cells--notebook
+#. screen: cells--print-and-tex
 #: src/components/Cell.tsx src/components/MarkdownCell.tsx
 #: src/components/RawCell.tsx
 msgid "Delete cell"
@@ -587,7 +616,7 @@ msgid "Error: {message}"
 msgstr ""
 
 #. Settings: the label of the menu that chooses how long a cell may run before Aximar stops it
-#. screen: dialogs--settings
+#. screen: dialogs--settings-maxima
 #: src/components/settings/MaximaSection.tsx
 msgid "Eval timeout"
 msgstr ""
@@ -667,13 +696,13 @@ msgid "Find..."
 msgstr ""
 
 #. Settings: Markdown indent button; text cells start at the left edge
-#. screen: dialogs--settings
+#. screen: dialogs--settings-notebook
 #: src/components/settings/NotebookSection.tsx
 msgid "Flush"
 msgstr ""
 
 #. Settings: the label of the menu that chooses the size of code text
-#. screen: dialogs--settings
+#. screen: dialogs--settings-notebook
 #: src/components/settings/NotebookSection.tsx
 msgid "Font size"
 msgstr ""
@@ -699,12 +728,18 @@ msgid "Functions ({functionCount})"
 msgstr ""
 
 #. Settings sidebar: language, theme and the variable panel. max-length:16
+#. screen: dialogs--settings
+#. screen: dialogs--settings-ai-assistants
+#. screen: dialogs--settings-maxima
+#. screen: dialogs--settings-notebook
+#. screen: dialogs--settings-printing
+#. screen: dialogs--settings-translation
 #: src/components/settings/sections.ts
 msgid "General"
 msgstr ""
 
 #. Settings: tooltip of the Regenerate button for the MCP token
-#. screen: dialogs--settings
+#. screen: dialogs--settings-ai-assistants
 #: src/components/settings/AiAssistantsSection.tsx
 msgid "Generate new token (restarts MCP server)"
 msgstr ""
@@ -726,12 +761,13 @@ msgid "Hide raw error"
 msgstr ""
 
 #. Settings: argument help button; shows a function's arguments as a hint while typing
-#. screen: dialogs--settings
+#. screen: dialogs--settings-notebook
 #: src/components/settings/NotebookSection.tsx
 msgid "Hint"
 msgstr ""
 
 #. Settings, Notebook section: hint under Argument help. Hint, Snippet and Active hint are the buttons' labels
+#. screen: dialogs--settings-notebook
 #: src/components/settings/NotebookSection.tsx
 msgid "Hint shows the arguments, Snippet inserts them, Active hint follows the cursor."
 msgstr ""
@@ -742,6 +778,7 @@ msgid "Hold Alt and point at text to see its English, note and source file"
 msgstr ""
 
 #. Settings, Maxima section: hint under Eval timeout
+#. screen: dialogs--settings-maxima
 #: src/components/settings/MaximaSection.tsx
 msgid "How long a cell may run before Aximar stops it."
 msgstr ""
@@ -764,6 +801,7 @@ msgstr ""
 
 #. Label left of a code cell's input, as in Jupyter. execNum is how many cells the session had run when this one last ran. max-length:10
 #. screen: cells--notebook
+#. screen: cells--print-and-tex
 #: src/components/Cell.tsx
 msgid "In [{execNum}]"
 msgstr ""
@@ -814,6 +852,7 @@ msgstr ""
 
 #. Settings: the label of the language picker
 #. screen: dialogs--settings
+#. screen: dialogs--settings-translation
 #: src/components/settings/GeneralSection.tsx
 msgid "Language"
 msgstr ""
@@ -829,28 +868,32 @@ msgid "LaTeX render error: {latex}"
 msgstr ""
 
 #. Settings, Maxima section: hint under Maxima path
+#. screen: dialogs--settings-maxima
 #: src/components/settings/MaximaSection.tsx
 msgid "Leave it empty and Aximar finds Maxima itself."
 msgstr ""
 
 #. Settings: label of the left print margin field
-#. screen: dialogs--settings
+#. screen: dialogs--settings-printing
 #: src/components/settings/PrintingSection.tsx
 msgid "Left"
 msgstr ""
 
 #. Settings, AI assistants section: hint under MCP server
+#. screen: dialogs--settings-ai-assistants
 #: src/components/settings/AiAssistantsSection.tsx
 msgid "Lets AI assistants read and run your notebooks."
 msgstr ""
 
 #. Settings: theme button for the light theme
 #. screen: dialogs--settings
+#. screen: dialogs--settings-translation
 #: src/components/settings/GeneralSection.tsx
 msgid "Light"
 msgstr ""
 
 #. Settings, AI assistants section: the MCP server's status. address is its address and port, such as 127.0.0.1:19542
+#. screen: dialogs--settings-ai-assistants
 #: src/components/settings/AiAssistantsSection.tsx
 msgid "Listening on {address}."
 msgstr ""
@@ -866,7 +909,7 @@ msgid "Loading..."
 msgstr ""
 
 #. Settings: backend button; runs Maxima installed on this computer
-#. screen: dialogs--settings
+#. screen: dialogs--settings-maxima
 #: src/components/settings/MaximaSection.tsx
 msgid "Local"
 msgstr ""
@@ -883,13 +926,13 @@ msgid "Make this a code cell"
 msgstr ""
 
 #. Settings: the label of the buttons that choose the font of text cells
-#. screen: dialogs--settings
+#. screen: dialogs--settings-notebook
 #: src/components/settings/NotebookSection.tsx
 msgid "Markdown font"
 msgstr ""
 
 #. Settings: the label of the buttons that choose how far text cells are indented
-#. screen: dialogs--settings
+#. screen: dialogs--settings-notebook
 #: src/components/settings/NotebookSection.tsx
 msgid "Markdown indent"
 msgstr ""
@@ -900,6 +943,12 @@ msgid "Match Case"
 msgstr ""
 
 #. Settings sidebar: where Maxima runs and how long a cell may take. max-length:16
+#. screen: dialogs--settings
+#. screen: dialogs--settings-ai-assistants
+#. screen: dialogs--settings-maxima
+#. screen: dialogs--settings-notebook
+#. screen: dialogs--settings-printing
+#. screen: dialogs--settings-translation
 #: src/components/settings/sections.ts
 msgid "Maxima"
 msgstr ""
@@ -935,43 +984,43 @@ msgid "Maxima Output"
 msgstr ""
 
 #. Settings: the label of the field for the location of the maxima program
-#. screen: dialogs--settings
+#. screen: dialogs--settings-maxima
 #: src/components/settings/MaximaSection.tsx
 msgid "Maxima path"
 msgstr ""
 
 #. Settings: the label of the field for the address and port the MCP server listens on
-#. screen: dialogs--settings
 #: src/components/settings/AiAssistantsSection.tsx
 msgid "MCP listen address"
 msgstr ""
 
 #. Settings: the label of the checkbox that turns on Aximar's MCP server for AI tools
-#. screen: dialogs--settings
+#. screen: dialogs--settings-ai-assistants
 #: src/components/settings/AiAssistantsSection.tsx
 msgid "MCP server"
 msgstr ""
 
 #. Settings: the label of the secret that AI tools send to Aximar's MCP server
-#. screen: dialogs--settings
 #: src/components/settings/AiAssistantsSection.tsx
 msgid "MCP token"
 msgstr ""
 
 #. Settings: Markdown font button for the monospace font
-#. screen: dialogs--settings
+#. screen: dialogs--settings-notebook
 #: src/components/settings/NotebookSection.tsx
 msgid "Mono"
 msgstr ""
 
 #. Tooltip of a code cell's down-arrow button
 #. screen: cells--notebook
+#. screen: cells--print-and-tex
 #: src/components/Cell.tsx
 msgid "Move cell down"
 msgstr ""
 
 #. Tooltip of a code cell's up-arrow button
 #. screen: cells--notebook
+#. screen: cells--print-and-tex
 #: src/components/Cell.tsx
 msgid "Move cell up"
 msgstr ""
@@ -1040,12 +1089,12 @@ msgid "No results"
 msgstr ""
 
 #. Settings: shown beside Claude Code until the user presses Check; Aximar doesn't run claude without being asked
+#. screen: dialogs--settings-ai-assistants
 #: src/components/settings/AiClients.tsx
 msgid "Not checked"
 msgstr ""
 
 #. Settings: shown beside an AI tool whose configuration does not include Aximar's MCP server
-#. screen: dialogs--settings
 #: src/components/settings/AiClients.tsx
 msgid "Not configured"
 msgstr ""
@@ -1056,6 +1105,12 @@ msgid "notebook"
 msgstr ""
 
 #. Settings sidebar: font size, cell style, argument help and text cells. max-length:16
+#. screen: dialogs--settings
+#. screen: dialogs--settings-ai-assistants
+#. screen: dialogs--settings-maxima
+#. screen: dialogs--settings-notebook
+#. screen: dialogs--settings-printing
+#. screen: dialogs--settings-translation
 #: src/components/settings/sections.ts
 msgid "Notebook"
 msgstr ""
@@ -1077,6 +1132,7 @@ msgstr ""
 
 #. Label left of a code cell's output, as in Jupyter. execNum is how many cells the session had run when this one last ran. max-length:10
 #. screen: cells--notebook
+#. screen: cells--print-and-tex
 #: src/components/Cell.tsx
 msgid "Out [{execNum}]"
 msgstr ""
@@ -1129,18 +1185,24 @@ msgid "Previous Match (Shift+Enter)"
 msgstr ""
 
 #. Settings: the label of the menu that chooses the size of text when printing
-#. screen: dialogs--settings
+#. screen: dialogs--settings-printing
 #: src/components/settings/PrintingSection.tsx
 msgid "Print font size"
 msgstr ""
 
 #. Settings: the label of the four print margin fields, in millimetres
-#. screen: dialogs--settings
+#. screen: dialogs--settings-printing
 #: src/components/settings/PrintingSection.tsx
 msgid "Print margins (mm)"
 msgstr ""
 
 #. Settings sidebar: print font size and margins. max-length:16
+#. screen: dialogs--settings
+#. screen: dialogs--settings-ai-assistants
+#. screen: dialogs--settings-maxima
+#. screen: dialogs--settings-notebook
+#. screen: dialogs--settings-printing
+#. screen: dialogs--settings-translation
 #: src/components/settings/sections.ts
 msgid "Printing"
 msgstr ""
@@ -1166,6 +1228,7 @@ msgid "Ready"
 msgstr ""
 
 #. Settings button: adds Aximar's MCP server to an AI tool's configuration again, with the current address and token
+#. screen: dialogs--settings-ai-assistants
 #: src/components/settings/AiClients.tsx
 msgid "Reconfigure"
 msgstr ""
@@ -1184,7 +1247,6 @@ msgid "Redo ({redoShortcut})"
 msgstr ""
 
 #. Settings button: replaces the MCP token with a new random one
-#. screen: dialogs--settings
 #: src/components/settings/AiAssistantsSection.tsx
 msgid "Regenerate"
 msgstr ""
@@ -1227,7 +1289,7 @@ msgid "Restart"
 msgstr ""
 
 #. Settings: label of the right print margin field
-#. screen: dialogs--settings
+#. screen: dialogs--settings-printing
 #: src/components/settings/PrintingSection.tsx
 msgid "Right"
 msgstr ""
@@ -1240,12 +1302,13 @@ msgstr ""
 
 #. Tooltip of a code cell's run button. Shift+Enter is the keyboard shortcut; keep it as it is
 #. screen: cells--notebook
+#. screen: cells--print-and-tex
 #: src/components/Cell.tsx
 msgid "Run cell (Shift+Enter)"
 msgstr ""
 
 #. Settings: Markdown font button for the system sans-serif font
-#. screen: dialogs--settings
+#. screen: dialogs--settings-notebook
 #: src/components/settings/NotebookSection.tsx
 msgid "Sans-serif"
 msgstr ""
@@ -1287,7 +1350,7 @@ msgid "Select cell (Shift+click for range)"
 msgstr ""
 
 #. Settings: Markdown font button for the system serif font
-#. screen: dialogs--settings
+#. screen: dialogs--settings-notebook
 #: src/components/settings/NotebookSection.tsx
 msgid "Serif"
 msgstr ""
@@ -1295,12 +1358,23 @@ msgstr ""
 #. Settings: the title of the settings window
 #. Toolbar button: opens the settings window. max-length:12
 #. screen: dialogs--settings
+#. screen: dialogs--settings-ai-assistants
+#. screen: dialogs--settings-maxima
+#. screen: dialogs--settings-notebook
+#. screen: dialogs--settings-printing
+#. screen: dialogs--settings-translation
 #. screen: window--toolbar-and-tabs
 #: src/components/settings/SettingsShell.tsx src/components/Toolbar.tsx
 msgid "Settings"
 msgstr ""
 
 #. Settings: what a screen reader calls the sidebar of sections
+#. screen: dialogs--settings
+#. screen: dialogs--settings-ai-assistants
+#. screen: dialogs--settings-maxima
+#. screen: dialogs--settings-notebook
+#. screen: dialogs--settings-printing
+#. screen: dialogs--settings-translation
 #: src/components/settings/SettingsShell.tsx
 msgid "Settings sections"
 msgstr ""
@@ -1333,6 +1407,8 @@ msgid "Show sources"
 msgstr ""
 
 #. Settings, General section: hint under Variable panel open by default
+#. screen: dialogs--settings
+#. screen: dialogs--settings-translation
 #: src/components/settings/GeneralSection.tsx
 msgid "Show the variable panel when Aximar starts."
 msgstr ""
@@ -1343,7 +1419,7 @@ msgid "Shows a .po file in the window and the menus, again each time you save it
 msgstr ""
 
 #. Settings: argument help button; completing a function inserts its arguments as placeholders to fill in
-#. screen: dialogs--settings
+#. screen: dialogs--settings-notebook
 #: src/components/settings/NotebookSection.tsx
 msgid "Snippet"
 msgstr ""
@@ -1414,11 +1490,14 @@ msgid "The container image that holds Maxima."
 msgstr ""
 
 #. Settings, Notebook section: hint under Markdown font
+#. screen: dialogs--settings-notebook
 #: src/components/settings/NotebookSection.tsx
 msgid "The font of text cells."
 msgstr ""
 
 #. Settings, General section: hint under Language
+#. screen: dialogs--settings
+#. screen: dialogs--settings-translation
 #: src/components/settings/GeneralSection.tsx
 msgid "The language of the window, the menus and Maxima's messages."
 msgstr ""
@@ -1434,22 +1513,26 @@ msgid "The program that runs the Maxima container."
 msgstr ""
 
 #. Settings, Notebook section: hint under Font size
+#. screen: dialogs--settings-notebook
 #: src/components/settings/NotebookSection.tsx
 msgid "The size of code and output text."
 msgstr ""
 
 #. Settings, Printing section: hint under Print font size
+#. screen: dialogs--settings-printing
 #: src/components/settings/PrintingSection.tsx
 msgid "The size of text on paper."
 msgstr ""
 
 #. Settings, Printing section: hint under Print margins
+#. screen: dialogs--settings-printing
 #: src/components/settings/PrintingSection.tsx
 msgid "The space around each printed page."
 msgstr ""
 
 #. Settings: the label of the theme buttons
 #. screen: dialogs--settings
+#. screen: dialogs--settings-translation
 #: src/components/settings/GeneralSection.tsx
 msgid "Theme"
 msgstr ""
@@ -1466,7 +1549,7 @@ msgid "Toggle Replace"
 msgstr ""
 
 #. Settings: label of the top print margin field
-#. screen: dialogs--settings
+#. screen: dialogs--settings-printing
 #: src/components/settings/PrintingSection.tsx
 msgid "Top"
 msgstr ""
@@ -1523,6 +1606,7 @@ msgstr ""
 
 #. Settings: the label of the checkbox that opens the variable panel when Aximar starts
 #. screen: dialogs--settings
+#. screen: dialogs--settings-translation
 #: src/components/settings/GeneralSection.tsx
 msgid "Variable panel open by default"
 msgstr ""
@@ -1546,6 +1630,7 @@ msgid "View package docs"
 msgstr ""
 
 #. Settings, Maxima section: hint under Backend
+#. screen: dialogs--settings-maxima
 #: src/components/settings/MaximaSection.tsx
 msgid "Where Maxima runs: on this computer, in a container, or under WSL."
 msgstr ""

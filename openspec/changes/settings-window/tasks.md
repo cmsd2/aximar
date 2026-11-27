@@ -14,7 +14,7 @@
 - [x] 2.2 Add `settings_section` to `AppConfig` with a default of `general`, saved by `set_config`; verify with config tests `settings_section_defaults_to_general` and `an_older_file_without_settings_section_reads`
 - [x] 2.3 Add `src/components/settings/` with `SettingsShell`, `sections.ts`, `SettingRow`, `ChoiceButtons`, `TextSetting` and the six section components, moving every row from `SettingsModal.tsx`; keep `SettingsModal` as a re-export; verify with a vitest test `settings-sections.test.tsx` that renders each section and checks the full list of config fields appears once across them
 - [x] 2.4 Keep the Maxima section's backend fields to the chosen backend, as the flat window does; verify with vitest tests `docker_shows_its_fields` and `switching_back_keeps_the_path`
-- [ ] 2.5 Lay out the sidebar and page in `src/styles/global.css` for both themes and the print stylesheet's exclusion; replace the Settings story with one story per section in `src/stories/Settings.stories.tsx`; verify `npm run build-storybook` and `npm run i18n:gallery` succeed and the gallery shows each section in English, Spanish and pseudo
+- [x] 2.5 Lay out the sidebar and page in `src/styles/global.css` for both themes and the print stylesheet's exclusion; add a story per section beside the Settings story in `src/stories/Dialogs.stories.tsx`; verify `npm run build-storybook` and `npm run i18n:gallery` succeed and the gallery shows each section in English, Spanish and pseudo (its production build has no Translation section, as a release doesn't)
 - [x] 2.6 Hide Translation in release builds; verify with a vitest test that mocks `TRANSLATOR_TOOLS` off and on and checks the sidebar's entries
 - [x] 2.7 Run `scripts/i18n-extract`, commit the template and catalogs, and verify `scripts/i18n-extract --check` and the catalog test pass
 
@@ -37,5 +37,5 @@
 
 ## 5. Docs (with group 4's PR)
 
-- [ ] 5.1 Describe the sections, the deep links and the AI client checks in the user docs under `docs/`, and add the Settings sidebar's `max-length` limit to `docs/i18n.md`; verify the links in the new text resolve
-- [ ] 5.2 Leave CHANGELOG.md alone, since it covers only the `tools-v*` releases and none of these changes reach the tools, and verify `openspec validate settings-window` passes before archiving
+- [x] 5.1 Describe the sections, the deep links and the AI client checks in the user docs under `docs/`, and add the Settings sidebar's `max-length` limit to `docs/i18n.md`; verify the links in the new text resolve
+- [x] 5.2 Leave CHANGELOG.md alone, since it covers only the `tools-v*` releases and none of these changes reach the tools, and verify `openspec validate settings-window` passes before archiving

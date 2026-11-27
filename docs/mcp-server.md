@@ -41,15 +41,17 @@ When the Aximar desktop app is running, it can host an MCP streamable HTTP serve
 
 A session that MCP starts uses the Maxima backend, Maxima path and evaluation timeout from Settings as they are when the session starts. The environment variables above apply only to standalone mode.
 
-**Enable the MCP server** in Settings by toggling the "MCP server" checkbox. The listen address defaults to `127.0.0.1:19542` and can be changed without restarting the app — the server restarts automatically.
+**Enable the MCP server** in the AI assistants section of Settings by toggling the "MCP server" checkbox. A line under it says whether the server is listening, or why it couldn't listen, such as another program holding the port. The listen address, under Advanced, defaults to `127.0.0.1:19542` and can be changed without restarting the app; the server restarts by itself. When the server can't listen, its log entry links to the AI assistants section.
+
+**Opening Settings runs no AI client's program.** Aximar finds each client's command on PATH, and in the folders their installers use (`~/.local/bin`, `~/.claude/local`, `~/.npm-global/bin`, `/opt/homebrew/bin`, `/usr/local/bin`), since an app opened from the macOS Finder gets a short PATH. It reads `~/.codex/config.toml` and `~/.gemini/settings.json` to see whether Codex and Gemini CLI list Aximar, and leaves a file it can't parse alone. Claude Code's CLI is the only supported way to read its configuration, so Aximar runs `claude mcp get aximar` only when you press **Check**, and once after **Configure**, with a 10-second limit.
 
 #### Authentication
 
-The connected-mode server requires a **bearer token** on every HTTP request. A random 256-bit token is generated on first launch and stored in the app config. You can view, copy, or regenerate the token in Settings under "MCP token".
+The connected-mode server requires a **bearer token** on every HTTP request. A random 256-bit token is generated on first launch and stored in the app config. You can view, copy, or regenerate the token in Settings, under Advanced in the AI assistants section.
 
 #### Configuring Claude Code
 
-The easiest way is the **Configure** button in Settings (next to "Claude Code"). It runs the necessary CLI commands to register the MCP server with the correct URL and bearer token. Click **Reconfigure** after regenerating the token or changing the listen address.
+The easiest way is the **Configure** button in Settings (next to "Claude Code"). It runs the `claude` Aximar found to register the MCP server with the correct URL and bearer token, then checks the result. Click **Reconfigure** after regenerating the token or changing the listen address.
 
 To configure manually via the CLI:
 

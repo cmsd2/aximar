@@ -105,15 +105,16 @@ Hold Ctrl (or Cmd on Mac) to see all shortcuts. Key bindings include:
 
 ### Settings
 
-Open Settings from the toolbar to configure:
+Open Settings from the toolbar, or with Cmd+, (Ctrl+, on Windows and Linux). A sidebar lists its sections, and each setting has a one-line hint under it. Changes apply at once. Settings reopens at the section you used last.
 
-- **Theme** — auto, light, or dark
-- **Cell style** — card or bracket
-- **Backend** — local, Docker, or WSL
-- **Font sizes** — editor and print
-- **Markdown font** — sans-serif, serif, Computer Modern, or mono
-- **Evaluation timeout** — 10s to 120s
-- **Print margins** — top, bottom, left, right (mm)
+- **General**: language, theme, and whether the variable panel opens at start
+- **Notebook**: font size, cell style, argument help, Markdown font and indent
+- **Maxima**: backend (Local, Docker or WSL) and its fields, the evaluation timeout, and a line saying which Maxima Aximar runs and where it found it
+- **Printing**: print font size and margins (mm)
+- **AI assistants**: the MCP server, whether it is listening, and setup for Claude Code, Codex and Gemini CLI (see [Connected mode](#connected-mode-recommended)); the address and token sit under Advanced
+- **Translation**: in pre-release builds only, tools for translators (see [docs/i18n.md](docs/i18n.md))
+
+The Maxima Not Found dialog has an Open Settings button that goes to the Maxima section, and a log entry about the MCP server failing to start links to AI assistants.
 
 ### Logging
 
@@ -178,7 +179,7 @@ Aximar exposes its capabilities via the [Model Context Protocol](https://modelco
 
 When the Aximar app is running, enable the MCP server in Settings. It listens on `localhost:19542` with bearer token authentication.
 
-**One-click setup** — Settings shows **Configure** buttons for [Claude Code](https://docs.anthropic.com/en/docs/claude-code) and [Codex](https://github.com/openai/codex) that automatically register the MCP server with the correct URL and auth token. No manual config needed.
+**One-click setup**: the AI assistants section of Settings has **Configure** buttons for [Claude Code](https://docs.anthropic.com/en/docs/claude-code), [Codex](https://github.com/openai/codex) and Gemini CLI that register the MCP server with the correct URL and auth token. Opening Settings runs none of these programs: Aximar looks for them on PATH and reads Codex's and Gemini CLI's configuration files. Claude Code's status needs its CLI, so press **Check** to see it.
 
 You can also configure manually:
 
