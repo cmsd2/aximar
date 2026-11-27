@@ -8,9 +8,9 @@ vi.mock("@tauri-apps/api/core", () => ({ invoke: vi.fn() }));
 // Plotly needs a browser to load
 vi.mock("./PlotlyChart", () => ({ PlotlyChart: () => null }));
 
-import { CellOutput } from "./CellOutput";
+import { CellOutput, shownOutput } from "./CellOutput";
 import { RawCell } from "./RawCell";
-import type { CellOutput as CellOutputType } from "../types/notebook";
+import type { Cell, CellOutput as CellOutputType } from "../types/notebook";
 
 function render(node: ReactNode): string {
   return renderToStaticMarkup(<I18nProvider i18n={i18n}>{node}</I18nProvider>);
@@ -126,5 +126,33 @@ describe("an error with suggestions", () => {
     expect(html).toContain(
       'Example: <code class="enhanced-error-example-code" title="Click to use this example">integrate(x^2, x)</code>',
     );
+  });
+});
+
+describe("a cell with nothing to show", () => {
+  const cell = (input: string, silent: boolean, fields: Partial<CellOutputType> = {}): Cell => ({
+    id: "c1",
+    cellType: "code",
+    input,
+    status: "success",
+    silent,
+    output: output(fields),
+  });
+
+  it("shows no output area when it ends in $", () => {
+    expect(shownOutput(cell("f(x) := x^2 - 2$", true))).toBeNull();
+  });
+
+  it("still shows what a silent cell printed", () => {
+    expect(shownOutput(cell('print("hi")$', true, { textOutput: "hi" }))?.textOutput).toBe("hi");
+  });
+
+  it("shows an error from a silent cell", () => {
+    expect(shownOutput(cell("1/0$", true, { isError: true, error: "expt: undefined" }))).not.toBeNull();
+  });
+
+  it("says (no output) when it ends in ; and gave nothing", () => {
+    const shown = shownOutput(cell("kill(x);", false));
+    expect(render(<CellOutput output={shown!} cellId="c1" />)).toContain("(no output)");
   });
 });

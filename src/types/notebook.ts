@@ -35,6 +35,8 @@ export interface Cell {
   input: string;
   output: CellOutput | null;
   status: CellStatus;
+  /** The input's last statement ends in `$`: no result by design (from the core) */
+  silent?: boolean;
 }
 
 export interface Notebook {

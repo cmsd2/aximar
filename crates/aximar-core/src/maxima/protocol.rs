@@ -628,6 +628,18 @@ fn strip_trailing_comments(expr: &str) -> &str {
     s
 }
 
+/// Whether a cell's input ends in `$`, so it shows no result by design.
+/// Trailing whitespace and comments don't count, and a `$` inside a string
+/// or comment isn't a terminator.  Input with no terminator at its end gets a
+/// `;` when it runs, so it isn't silent.
+pub fn ends_silent(input: &str) -> bool {
+    let s = strip_trailing_comments(input);
+    match find_terminators(s).last() {
+        Some(&i) => i + 1 == s.len() && s.as_bytes()[i] == b'$',
+        None => false,
+    }
+}
+
 /// Find positions of statement terminators (`;` and `$`) in a Maxima expression,
 /// skipping those inside string literals and block comments.
 fn find_terminators(expr: &str) -> Vec<usize> {
@@ -693,6 +705,25 @@ fn suppress_display(expr: &str) -> (String, bool) {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn silent_input_ends_in_dollar() {
+        assert!(ends_silent("x$"));
+        assert!(ends_silent("f(x) := x^2 - 2$\n"));
+        assert!(!ends_silent("x;"));
+        assert!(!ends_silent("x"));
+        assert!(!ends_silent(""));
+        // The last statement decides
+        assert!(!ends_silent("a: 1$ b: 2;"));
+        assert!(ends_silent("a: 1; b: 2$"));
+        // A comment after the terminator doesn't count
+        assert!(ends_silent("g(x) := x$ /* helper */"));
+        // A statement with no terminator after a silent one gets a `;`
+        assert!(!ends_silent("a: 1$ b"));
+        // A `$` in a string or a comment isn't a terminator
+        assert!(!ends_silent("print(\"cost: 5$\")"));
+        assert!(!ends_silent("x; /* ends in $ */"));
+    }
 
     #[test]
     fn single_statement_semicolon() {

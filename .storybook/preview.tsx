@@ -20,7 +20,8 @@ installSourceTags(i18n);
 const withLanguage: Decorator = (Story, context) => {
   applyStoryTheme(context.globals.theme);
   // Card style unless the story asks for bracket style
-  const cellStyle: CellStyle = context.parameters.cellStyle ?? "card";
+  // A story that needs a style asks for it; otherwise the toolbar's choice
+  const cellStyle: CellStyle = context.parameters.cellStyle ?? (context.globals.cellStyle === "bracket" ? "bracket" : "card");
   document.documentElement.dataset.cellStyle = cellStyle;
   useNotebookStore.getState().setCellStyle(cellStyle);
   // Suggestion chips on unless the story turns them off
@@ -82,12 +83,24 @@ const preview: Preview = {
         dynamicTitle: true,
       },
     },
+    cellStyle: {
+      description: "Cell style",
+      toolbar: {
+        title: "Cells",
+        icon: "component",
+        items: [
+          { value: "card", title: "Card" },
+          { value: "bracket", title: "Bracket" },
+        ],
+        dynamicTitle: true,
+      },
+    },
     tagStrings: {
       description: "Tag strings with their IDs, for the screenshot run",
       toolbar: { title: "Tags", items: ["off", "on"] },
     },
   },
-  initialGlobals: { locale: "en", theme: "light", tagStrings: "off" },
+  initialGlobals: { locale: "en", theme: "light", cellStyle: "card", tagStrings: "off" },
   parameters: { layout: "fullscreen" },
 };
 

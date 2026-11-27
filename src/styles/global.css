@@ -629,8 +629,9 @@
   overflow: visible;
 }
 
+/* A running cell's border is the accent */
 .cell.running {
-  border-color: var(--running-color);
+  border-color: var(--accent);
 }
 
 .cell.error {
@@ -686,7 +687,7 @@
 }
 
 .cell-indicator.running {
-  color: var(--running-color);
+  color: var(--accent);
   animation: pulse 1s infinite;
 }
 
@@ -1007,18 +1008,20 @@
   accent-color: var(--accent-color, #4a9eff);
 }
 
-.empty-output {
-  color: var(--text-placeholder);
-  font-style: italic;
-}
-
+/* Printed text is output like a result, at full contrast; "(no output)"
+   is a note about the cell, in secondary text */
 .text-output {
   font-family: var(--font-mono);
   font-size: calc(var(--font-size-mono) - 1px);
   line-height: 1.5;
-  color: var(--text-secondary);
+  color: var(--text-primary);
   white-space: pre-wrap;
   word-break: break-word;
+}
+
+.text-output.empty-output {
+  color: var(--text-secondary);
+  font-style: italic;
 }
 
 /* Signature Hint Popup (rendered inside CM .cm-tooltip) */
@@ -2233,7 +2236,7 @@
 }
 
 [data-cell-style="bracket"] .cell.running::after {
-  border-color: var(--running-color);
+  border-color: var(--accent);
 }
 
 [data-cell-style="bracket"] .cell.error::after {
@@ -2304,7 +2307,7 @@
    direct-child form silently never matched, so the triangle stayed
    the default gray on running / error cells. */
 [data-cell-style="bracket"] .cell.running .bracket-toggle::before {
-  border-top-color: var(--running-color);
+  border-top-color: var(--accent);
 }
 
 [data-cell-style="bracket"] .cell.error .bracket-toggle::before {
@@ -2331,7 +2334,7 @@
 }
 
 [data-cell-style="bracket"] .cell.running .cell-output-area::before {
-  background: var(--running-color);
+  background: var(--accent);
 }
 
 [data-cell-style="bracket"] .cell.error .cell-output-area::before {

@@ -177,6 +177,7 @@ export function mapSyncCells(syncCells: SyncCell[]) {
       input: sc.input,
       output,
       status: (sc.status as CellStatus) ?? "idle",
+      silent: sc.silent ?? false,
     };
   });
 }
