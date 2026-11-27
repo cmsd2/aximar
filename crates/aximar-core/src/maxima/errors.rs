@@ -152,7 +152,7 @@ fn check_premature_termination(raw: &str) -> Option<ErrorInfo> {
         )
         .with_suggestion(msg_ctx!(
             "error.incomplete_input.suggestion",
-            "Check that all parentheses () and brackets [] are matched, and the expression ends with ; or $"
+            "Check that all parentheses `()` and brackets `[]` are matched, and the expression ends with `;` or `$`"
         )),
     )
 }
@@ -170,13 +170,13 @@ fn check_syntax_error(raw: &str) -> Option<ErrorInfo> {
                 msg_ctx!(
                     "error.syntax_missing.explanation",
                     // i18n: delimiter is a closing bracket, such as ) or ]
-                    "A closing {delimiter} is missing.",
+                    "A closing `{delimiter}` is missing.",
                     delimiter = delimiter
                 ),
             )
             .with_suggestion(msg_ctx!(
                 "error.syntax_missing.suggestion",
-                "Check that every opening bracket has its closing {delimiter}, in the right order.",
+                "Check that every opening bracket has its closing `{delimiter}`, in the right order.",
                 delimiter = delimiter
             )),
         );
@@ -188,14 +188,14 @@ fn check_syntax_error(raw: &str) -> Option<ErrorInfo> {
             msg_ctx!(
                 "error.syntax_operator.explanation.prefix",
                 // i18n: token is what Maxima read where an expression should start, such as !
-                "\"{token}\" can't start an expression here. Check for a missing operand or a misplaced operator.",
+                "`{token}` can't start an expression here. Check for a missing operand or a misplaced operator.",
                 token = token
             )
         } else {
             msg_ctx!(
                 "error.syntax_operator.explanation.infix",
                 // i18n: token is the value Maxima read after another value, as y in "x y"
-                "Two values appear next to each other without an operator between them, before \"{token}\".",
+                "Two values appear next to each other without an operator between them, before `{token}`.",
                 token = token
             )
         };
@@ -208,7 +208,7 @@ fn check_syntax_error(raw: &str) -> Option<ErrorInfo> {
             )
             .with_suggestion(msg_ctx!(
                 "error.syntax_operator.suggestion",
-                "Check for missing *, +, or other operators. Ensure all parentheses are matched."
+                "Check for missing `*`, `+`, or other operators. Ensure all parentheses are matched."
             )),
         );
     }
@@ -227,7 +227,7 @@ fn check_syntax_error(raw: &str) -> Option<ErrorInfo> {
         )
         .with_suggestion(msg_ctx!(
             "error.syntax.suggestion",
-            "Check for missing *, +, or other operators. Ensure all parentheses are matched."
+            "Check for missing `*`, `+`, or other operators. Ensure all parentheses are matched."
         )),
     )
 }
@@ -251,7 +251,7 @@ fn check_arg_count(raw: &str, catalog: &Catalog) -> Option<ErrorInfo> {
                     "error.arg_count.explanation",
                     // i18n: func is the function's name; definition is its name and parameters
                     // as defined, such as f(x); found is the list of arguments it was given
-                    "{func} is defined as {definition}, but was called with {found}.",
+                    "`{func}` is defined as `{definition}`, but was called with `{found}`.",
                     func = func,
                     definition = called,
                     found = found.as_str()
@@ -259,7 +259,7 @@ fn check_arg_count(raw: &str, catalog: &Catalog) -> Option<ErrorInfo> {
             )
             .with_suggestion(msg_ctx!(
                 "error.arg_count.suggestion",
-                "Call {func} with the arguments {definition} names, or change its definition.",
+                "Call `{func}` with the arguments `{definition}` names, or change its definition.",
                 func = func,
                 definition = called
             )),
@@ -275,27 +275,27 @@ fn check_arg_count(raw: &str, catalog: &Catalog) -> Option<ErrorInfo> {
     let explanation = if too_few {
         msg_ctx!(
             "error.arg_count.explanation.too_few",
-            "Too few arguments were passed to {func}.",
+            "Too few arguments were passed to `{func}`.",
             func = func
         )
     } else {
         msg_ctx!(
             "error.arg_count.explanation.too_many",
-            "Too many arguments were passed to {func}.",
+            "Too many arguments were passed to `{func}`.",
             func = func
         )
     };
     let suggestion = if correct_signatures.is_empty() {
         msg_ctx!(
             "error.arg_count.suggestion.describe",
-            "Check the documentation for {func} with describe({func}).",
+            "Check the documentation for `{func}` with `describe({func})`.",
             func = func
         )
     } else {
         msg_ctx!(
             "error.arg_count.suggestion.signatures",
             // i18n: signatures is one or more ways to call the function, separated by semicolons
-            "Correct usage: {signatures}",
+            "Correct usage: `{signatures}`",
             signatures = correct_signatures.join("; ")
         )
     };
@@ -315,13 +315,13 @@ fn check_undefined_variable(raw: &str) -> Option<ErrorInfo> {
             msg_ctx!("error.undefined_variable.title", "Undefined Variable"),
             msg_ctx!(
                 "error.undefined_variable.explanation",
-                "The variable \"{name}\" has not been assigned a value.",
+                "The variable `{name}` has not been assigned a value.",
                 name = name
             ),
         )
         .with_suggestion(msg_ctx!(
             "error.undefined_variable.suggestion",
-            "Assign it first with {name}: value; or use it as a symbolic variable.",
+            "Assign it first with `{name}: value;` or use it as a symbolic variable.",
             name = name
         ))
         .with_example(format!("{name}: 42;")),
@@ -348,14 +348,14 @@ fn check_undefined_function(
                 title,
                 msg_ctx!(
                     "error.unknown_function.explanation.in_package",
-                    "\"{func}\" is provided by the \"{package}\" package, which needs to be loaded first.",
+                    "`{func}` is provided by the `{package}` package, which needs to be loaded first.",
                     func = func,
                     package = package
                 ),
             )
             .with_suggestion(msg_ctx!(
                 "error.unknown_function.suggestion.in_package",
-                "Add load(\"{package}\")$ before using this function.",
+                "Add `load(\"{package}\")$` before using this function.",
                 package = package
             ))
             .with_example(format!("load(\"{package}\")$")),
@@ -368,14 +368,14 @@ fn check_undefined_function(
         title,
         msg_ctx!(
             "error.unknown_function.explanation",
-            "\"{func}\" is not a known Maxima function.",
+            "`{func}` is not a known Maxima function.",
             func = func
         ),
     );
     if similar.is_empty() {
         info.suggestion = Some(msg_ctx!(
             "error.unknown_function.suggestion",
-            "Check the spelling or use describe(\"{func}\") to search.",
+            "Check the spelling or use `describe(\"{func}\")` to search.",
             func = func
         ));
     }
@@ -404,14 +404,14 @@ fn check_lisp_error(raw: &str) -> Option<ErrorInfo> {
                     "error.lisp_type.explanation",
                     // i18n: value is the value given, such as 1; lisp_type is a Lisp
                     // type name, such as list or number, which stays in English
-                    "A function inside Maxima expected a value of type {lisp_type} but got {value}.",
+                    "A function inside Maxima expected a value of type `{lisp_type}` but got `{value}`.",
                     value = value,
                     lisp_type = lisp_type
                 ),
             )
             .with_suggestion(msg_ctx!(
                 "error.lisp_type.suggestion",
-                "Check the arguments of the functions in this cell, especially Lisp functions called with ?, which don't check their arguments."
+                "Check the arguments of the functions in this cell, especially Lisp functions called with `?`, which don't check their arguments."
             )),
         );
     }
@@ -429,7 +429,7 @@ fn check_lisp_error(raw: &str) -> Option<ErrorInfo> {
             )
             .with_suggestion(msg_ctx!(
                 "error.recursion.suggestion",
-                "Check that each recursive function has a case that stops it, such as f(0) := 1."
+                "Check that each recursive function has a case that stops it, such as `f(0) := 1`."
             )),
         );
     }
@@ -447,7 +447,7 @@ fn check_lisp_error(raw: &str) -> Option<ErrorInfo> {
             )
             .with_suggestion(msg_ctx!(
                 "error.float_overflow.suggestion",
-                "Keep the computation exact, or use bfloat() for very large numbers."
+                "Keep the computation exact, or use `bfloat()` for very large numbers."
             )),
         );
     }
@@ -487,7 +487,7 @@ fn check_survey_errors(raw: &str) -> Option<ErrorInfo> {
             )
             .with_suggestion(msg_ctx!(
                 "error.log_zero.suggestion",
-                "Check the argument of log for values that make it 0, or take a limit instead."
+                "Check the argument of `log` for values that make it 0, or take a limit instead."
             )),
         );
     }
@@ -502,13 +502,13 @@ fn check_survey_errors(raw: &str) -> Option<ErrorInfo> {
                 msg_ctx!(
                     "error.part_index.explanation",
                     // i18n: func is the Maxima function, such as part or inpart
-                    "{func} asked for a part beyond the end of the expression or list.",
+                    "`{func}` asked for a part beyond the end of the expression or list.",
                     func = func
                 ),
             )
             .with_suggestion(msg_ctx!(
                 "error.part_index.suggestion",
-                "Check the index against length() of the expression or list."
+                "Check the index against `length()` of the expression or list."
             )),
         );
     }
@@ -523,7 +523,7 @@ fn check_survey_errors(raw: &str) -> Option<ErrorInfo> {
                 msg_ctx!(
                     "error.part_atom.explanation",
                     // i18n: func is the Maxima function, such as part; found is what it was given, such as x
-                    "{func} needs an expression with parts, such as a list or a sum, but got {found}.",
+                    "`{func}` needs an expression with parts, such as a list or a sum, but got `{found}`.",
                     func = func,
                     found = found
                 ),
@@ -545,13 +545,13 @@ fn check_survey_errors(raw: &str) -> Option<ErrorInfo> {
                 msg_ctx!(
                     "error.assign_target.explanation",
                     // i18n: target is what the cell tried to assign to, such as 2 or %pi
-                    "The left side of : must be a variable name, but it is {target}.",
+                    "The left side of `:` must be a variable name, but it is `{target}`.",
                     target = target
                 ),
             )
             .with_suggestion(msg_ctx!(
                 "error.assign_target.suggestion",
-                "To write an equation, use = instead of :, as in x^2 = 4."
+                "To write an equation, use `=` instead of `:`, as in `x^2 = 4`."
             )),
         );
     }
@@ -566,13 +566,13 @@ fn check_survey_errors(raw: &str) -> Option<ErrorInfo> {
                 msg_ctx!(
                     "error.empty_list.explanation",
                     // i18n: func is the Maxima function, such as first or last
-                    "{func} was given an empty list, which has no elements to take.",
+                    "`{func}` was given an empty list, which has no elements to take.",
                     func = func
                 ),
             )
             .with_suggestion(msg_ctx!(
                 "error.empty_list.suggestion",
-                "Check where the list comes from, for example a solve() that found no solutions."
+                "Check where the list comes from, for example a `solve()` that found no solutions."
             )),
         );
     }
@@ -587,14 +587,14 @@ fn check_survey_errors(raw: &str) -> Option<ErrorInfo> {
                 msg_ctx!(
                     "error.not_polynomial.explanation",
                     // i18n: func is the Maxima function, such as allroots; found is the expression given
-                    "{func} works only on polynomials, but got {found}.",
+                    "`{func}` works only on polynomials, but got `{found}`.",
                     func = func,
                     found = found
                 ),
             )
             .with_suggestion(msg_ctx!(
                 "error.not_polynomial.suggestion",
-                "For other equations, try find_root() over an interval, or solve()."
+                "For other equations, try `find_root()` over an interval, or `solve()`."
             )),
         );
     }
@@ -607,12 +607,12 @@ fn check_survey_errors(raw: &str) -> Option<ErrorInfo> {
                 msg_ctx!("error.algsys_failed.title", "Can't Solve the System"),
                 msg_ctx!(
                     "error.algsys_failed.explanation",
-                    "algsys, which solve uses for systems, couldn't turn the equations into a polynomial in one variable."
+                    "`algsys`, which `solve` uses for systems, couldn't turn the equations into a polynomial in one variable."
                 ),
             )
             .with_suggestion(msg_ctx!(
                 "error.algsys_failed.suggestion",
-                "For a numerical answer, try mnewton() from load(mnewton) with a starting point."
+                "For a numerical answer, try `mnewton()` from `load(mnewton)` with a starting point."
             )),
         );
     }
@@ -714,14 +714,14 @@ fn check_question(raw: &str) -> Option<ErrorInfo> {
                     msg_ctx!(
                         "question.sign_pz.explanation",
                         // i18n: expr is a Maxima expression, such as a or b*c-1
-                        "Maxima needs to know whether {expr} is positive or zero to go on.",
+                        "Maxima needs to know whether `{expr}` is positive or zero to go on.",
                         expr = expr
                     ),
                 )
                 .with_suggestion(msg_ctx!(
                     "question.sign_pz.suggestion",
                     // i18n: line is Maxima code that answers the question, such as assume(a > 0)$
-                    "Add {line} before this line, or in a cell above, and run it again.",
+                    "Add `{line}` before this line, or in a cell above, and run it again.",
                     line = line.as_str()
                 ))
                 .with_example(line)
@@ -735,14 +735,14 @@ fn check_question(raw: &str) -> Option<ErrorInfo> {
                     msg_ctx!(
                         "question.sign_nz.explanation",
                         // i18n: expr is a Maxima expression, such as a or b*c-1
-                        "Maxima needs to know whether {expr} is negative or zero to go on.",
+                        "Maxima needs to know whether `{expr}` is negative or zero to go on.",
                         expr = expr
                     ),
                 )
                 .with_suggestion(msg_ctx!(
                     "question.sign_nz.suggestion",
                     // i18n: line is Maxima code that answers the question, such as assume(a < 0)$
-                    "Add {line} before this line, or in a cell above, and run it again.",
+                    "Add `{line}` before this line, or in a cell above, and run it again.",
                     line = line.as_str()
                 ))
                 .with_example(line)
@@ -756,14 +756,14 @@ fn check_question(raw: &str) -> Option<ErrorInfo> {
                     msg_ctx!(
                         "question.sign_pn.explanation",
                         // i18n: expr is a Maxima expression, such as k or b*c-1
-                        "Maxima needs to know whether {expr} is positive or negative to go on.",
+                        "Maxima needs to know whether `{expr}` is positive or negative to go on.",
                         expr = expr
                     ),
                 )
                 .with_suggestion(msg_ctx!(
                     "question.sign_pn.suggestion",
                     // i18n: line is Maxima code that answers the question, such as assume(k > 0)$
-                    "Add {line} before this line, or in a cell above, and run it again.",
+                    "Add `{line}` before this line, or in a cell above, and run it again.",
                     line = line.as_str()
                 ))
                 .with_example(line)
@@ -777,14 +777,14 @@ fn check_question(raw: &str) -> Option<ErrorInfo> {
                     msg_ctx!(
                         "question.zero.explanation",
                         // i18n: expr is a Maxima expression, such as x or b*c-1
-                        "Maxima needs to know whether {expr} is zero to go on.",
+                        "Maxima needs to know whether `{expr}` is zero to go on.",
                         expr = expr
                     ),
                 )
                 .with_suggestion(msg_ctx!(
                     "question.zero.suggestion",
                     // i18n: line is Maxima code that answers the question, such as assume(notequal(x, 0))$
-                    "Add {line} before this line, or in a cell above, and run it again.",
+                    "Add `{line}` before this line, or in a cell above, and run it again.",
                     line = line.as_str()
                 ))
                 .with_example(line)
@@ -798,14 +798,14 @@ fn check_question(raw: &str) -> Option<ErrorInfo> {
                     msg_ctx!(
                         "question.sign.explanation",
                         // i18n: expr is a Maxima expression, such as a or b*c-1
-                        "Maxima needs to know whether {expr} is positive, negative or zero to go on.",
+                        "Maxima needs to know whether `{expr}` is positive, negative or zero to go on.",
                         expr = expr
                     ),
                 )
                 .with_suggestion(msg_ctx!(
                     "question.sign.suggestion",
                     // i18n: line is Maxima code that answers the question, such as assume(a > 0)$
-                    "Add {line} before this line, or in a cell above, and run it again.",
+                    "Add `{line}` before this line, or in a cell above, and run it again.",
                     line = line.as_str()
                 ))
                 .with_example(line)
@@ -824,7 +824,7 @@ fn check_question(raw: &str) -> Option<ErrorInfo> {
                 msg_ctx!(
                     "question.equal.explanation",
                     // i18n: a and b are Maxima expressions, such as a and -1
-                    "Maxima needs to know whether {a} equals {b} to go on.",
+                    "Maxima needs to know whether `{a}` equals `{b}` to go on.",
                     a = a,
                     b = b
                 ),
@@ -832,7 +832,7 @@ fn check_question(raw: &str) -> Option<ErrorInfo> {
             .with_suggestion(msg_ctx!(
                 "question.equal.suggestion",
                 // i18n: line is Maxima code that answers the question, such as assume(notequal(a, -1))$
-                "Add {line} before this line, or in a cell above, and run it again.",
+                "Add `{line}` before this line, or in a cell above, and run it again.",
                 line = line.as_str()
             ))
             .with_example(line),
@@ -851,7 +851,7 @@ fn check_question(raw: &str) -> Option<ErrorInfo> {
                     "question.property.explanation",
                     // i18n: expr is a Maxima expression; property is a Maxima
                     // feature name such as integer or even, which stays in English
-                    "Maxima needs to know whether {expr} has the property {property} to go on.",
+                    "Maxima needs to know whether `{expr}` has the property `{property}` to go on.",
                     expr = expr,
                     property = property
                 ),
@@ -859,7 +859,7 @@ fn check_question(raw: &str) -> Option<ErrorInfo> {
             .with_suggestion(msg_ctx!(
                 "question.property.suggestion",
                 // i18n: line is Maxima code that answers the question, such as declare(n, integer)$
-                "Add {line} before this line, or in a cell above, and run it again.",
+                "Add `{line}` before this line, or in a cell above, and run it again.",
                 line = line.as_str()
             ))
             .with_example(line),
@@ -880,7 +880,7 @@ fn check_question(raw: &str) -> Option<ErrorInfo> {
         )
         .with_suggestion(msg_ctx!(
             "question.other.suggestion",
-            "Use assume() or declare() before this line to tell Maxima what it needs, then run the cell again."
+            "Use `assume()` or `declare()` before this line to tell Maxima what it needs, then run the cell again."
         )),
     )
 }
@@ -920,7 +920,7 @@ fn check_load_failed(raw: &str) -> Option<ErrorInfo> {
     let explanation = match package {
         Some(package) => msg_ctx!(
             "error.package_not_found.explanation",
-            "The package \"{package}\" could not be found or loaded.",
+            "The package `{package}` could not be found or loaded.",
             package = package
         ),
         None => msg_ctx!(
@@ -937,7 +937,7 @@ fn check_load_failed(raw: &str) -> Option<ErrorInfo> {
         )
         .with_suggestion(msg_ctx!(
             "error.package_not_found.suggestion",
-            "Check the package name. Common packages: draw, simplex, lsquares, descriptive, distrib."
+            "Check the package name. Common packages: `draw`, `simplex`, `lsquares`, `descriptive`, `distrib`."
         ))
         .with_example("load(draw);"),
     )
@@ -1283,7 +1283,10 @@ mod tests {
         assert_eq!(e.params["func"], "f");
         assert_eq!(e.params["definition"], "f(x)");
         assert_eq!(e.params["found"], "[1, 2]");
-        assert_eq!(e.text, "f is defined as f(x), but was called with [1, 2].");
+        assert_eq!(
+            e.text,
+            "`f` is defined as `f(x)`, but was called with `[1, 2]`."
+        );
         // A user function isn't in the manual
         let suggestion = &info.suggestion.unwrap().text;
         assert!(!suggestion.contains("describe"), "{suggestion}");
@@ -1330,7 +1333,7 @@ mod tests {
         assert_eq!(json["title"], "Undefined Variable");
         assert_eq!(
             json["explanation"],
-            "The variable \"foo\" has not been assigned a value."
+            "The variable `foo` has not been assigned a value."
         );
         assert_eq!(json["params"]["name"], "foo");
         assert_eq!(
@@ -1339,7 +1342,7 @@ mod tests {
         );
         assert_eq!(
             json["messages"]["explanation"]["template"],
-            "The variable \"{name}\" has not been assigned a value."
+            "The variable `{name}` has not been assigned a value."
         );
         assert_eq!(json["example"], "foo: 42;");
 
@@ -1397,7 +1400,7 @@ mod tests {
         assert_eq!(info.explanation.params["found"], "sin(x)");
         assert_eq!(
             info.explanation.text,
-            "allroots works only on polynomials, but got sin(x)."
+            "`allroots` works only on polynomials, but got `sin(x)`."
         );
         let info = enhance_error("inpart: fell off the end.", &catalog()).unwrap();
         assert_eq!(info.explanation.params["func"], "inpart");

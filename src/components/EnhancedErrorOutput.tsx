@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Trans, useLingui } from "@lingui/react/macro";
 import type { ErrorInfo } from "../types/maxima";
-import { errorText } from "../lib/messages";
+import { errorContent } from "../lib/messages";
 import { useNotebookStore } from "../store/notebookStore";
 import { IconAlertCircle, IconBulb } from "./ui/icons";
 
@@ -59,10 +59,10 @@ export function EnhancedErrorOutput({
     <div className="enhanced-error">
       <div className="enhanced-error-title">
         <ErrorIcon />
-        <span>{errorText(i18n, errorInfo, "title")}</span>
+        <span>{errorContent(i18n, errorInfo, "title")}</span>
       </div>
       <div className="enhanced-error-explanation">
-        {errorText(i18n, errorInfo, "explanation")}
+        {errorContent(i18n, errorInfo, "explanation")}
       </div>
       {/* Maxima's own message in the user's language, under Aximar's explanation */}
       {errorTranslated && (
@@ -72,7 +72,7 @@ export function EnhancedErrorOutput({
       {errorInfo.suggestion && (
         <div className="enhanced-error-suggestion">
           <IconBulb className="enhanced-error-bulb" size={15} stroke={1.75} aria-hidden="true" />
-          <span>{errorText(i18n, errorInfo, "suggestion")}</span>
+          <span>{errorContent(i18n, errorInfo, "suggestion")}</span>
         </div>
       )}
 

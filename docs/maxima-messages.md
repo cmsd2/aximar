@@ -11,8 +11,8 @@ Covers: "algsys: Couldn't reduce system to a polynomial in one variable." screen
 | Field | English |
 |---|---|
 | title | Can't Solve the System |
-| explanation | algsys, which solve uses for systems, couldn't turn the equations into a polynomial in one variable. |
-| suggestion | For a numerical answer, try mnewton() from load(mnewton) with a starting point. |
+| explanation | `algsys`, which `solve` uses for systems, couldn't turn the equations into a polynomial in one variable. |
+| suggestion | For a numerical answer, try `mnewton()` from `load(mnewton)` with a starting point. |
 
 ## `error.arg_count`
 
@@ -23,12 +23,12 @@ Parameters: `definition`, `found`, `func`, `signatures`
 | Field | English |
 |---|---|
 | title | Wrong Argument Count |
-| explanation | {func} is defined as {definition}, but was called with {found}. |
-| explanation.too_few | Too few arguments were passed to {func}. |
-| explanation.too_many | Too many arguments were passed to {func}. |
-| suggestion | Call {func} with the arguments {definition} names, or change its definition. |
-| suggestion.describe | Check the documentation for {func} with describe({func}). |
-| suggestion.signatures | Correct usage: {signatures} |
+| explanation | `{func}` is defined as `{definition}`, but was called with `{found}`. |
+| explanation.too_few | Too few arguments were passed to `{func}`. |
+| explanation.too_many | Too many arguments were passed to `{func}`. |
+| suggestion | Call `{func}` with the arguments `{definition}` names, or change its definition. |
+| suggestion.describe | Check the documentation for `{func}` with `describe({func})`. |
+| suggestion.signatures | Correct usage: `{signatures}` |
 
 ## `error.assign_target`
 
@@ -39,8 +39,8 @@ Parameters: `target`
 | Field | English |
 |---|---|
 | title | Can't Assign |
-| explanation | The left side of : must be a variable name, but it is {target}. |
-| suggestion | To write an equation, use = instead of :, as in x^2 = 4. |
+| explanation | The left side of `:` must be a variable name, but it is `{target}`. |
+| suggestion | To write an equation, use `=` instead of `:`, as in `x^2 = 4`. |
 
 ## `error.cancelled`
 
@@ -80,8 +80,8 @@ Parameters: `func`
 | Field | English |
 |---|---|
 | title | Empty List |
-| explanation | {func} was given an empty list, which has no elements to take. |
-| suggestion | Check where the list comes from, for example a solve() that found no solutions. |
+| explanation | `{func}` was given an empty list, which has no elements to take. |
+| suggestion | Check where the list comes from, for example a `solve()` that found no solutions. |
 
 ## `error.float_overflow`
 
@@ -91,7 +91,7 @@ Covers: "Maxima encountered a Lisp error: arithmetic error FLOATING-POINT-OVERFL
 |---|---|
 | title | Number Too Large |
 | explanation | A floating-point result was too large to represent. |
-| suggestion | Keep the computation exact, or use bfloat() for very large numbers. |
+| suggestion | Keep the computation exact, or use `bfloat()` for very large numbers. |
 
 ## `error.incomplete_input`
 
@@ -101,7 +101,7 @@ Covers: "incorrect syntax: Premature termination of input at ;." screen: errors-
 |---|---|
 | title | Incomplete Expression |
 | explanation | The expression ended unexpectedly. This usually means a missing closing parenthesis, bracket, or semicolon. |
-| suggestion | Check that all parentheses () and brackets [] are matched, and the expression ends with ; or $ |
+| suggestion | Check that all parentheses `()` and brackets `[]` are matched, and the expression ends with `;` or `$` |
 
 ## `error.inconsistent_equations`
 
@@ -134,8 +134,8 @@ Parameters: `lisp_type`, `value`
 | Field | English |
 |---|---|
 | title | Wrong Kind of Value |
-| explanation | A function inside Maxima expected a value of type {lisp_type} but got {value}. |
-| suggestion | Check the arguments of the functions in this cell, especially Lisp functions called with ?, which don't check their arguments. |
+| explanation | A function inside Maxima expected a value of type `{lisp_type}` but got `{value}`. |
+| suggestion | Check the arguments of the functions in this cell, especially Lisp functions called with `?`, which don't check their arguments. |
 
 ## `error.log_zero`
 
@@ -145,7 +145,7 @@ Covers: "log: encountered log(0)." screen: errors--all-explanations
 |---|---|
 | title | Logarithm of Zero |
 | explanation | The expression takes the logarithm of 0, which is undefined. |
-| suggestion | Check the argument of log for values that make it 0, or take a limit instead. |
+| suggestion | Check the argument of `log` for values that make it 0, or take a limit instead. |
 
 ## `error.matrix_dimension`
 
@@ -166,8 +166,8 @@ Parameters: `found`, `func`
 | Field | English |
 |---|---|
 | title | Not a Polynomial |
-| explanation | {func} works only on polynomials, but got {found}. |
-| suggestion | For other equations, try find_root() over an interval, or solve(). |
+| explanation | `{func}` works only on polynomials, but got `{found}`. |
+| suggestion | For other equations, try `find_root()` over an interval, or `solve()`. |
 
 ## `error.package_not_found`
 
@@ -178,9 +178,9 @@ Parameters: `package`
 | Field | English |
 |---|---|
 | title | Package Not Found |
-| explanation | The package "{package}" could not be found or loaded. |
+| explanation | The package `{package}` could not be found or loaded. |
 | explanation.unnamed | The package could not be found or loaded. |
-| suggestion | Check the package name. Common packages: draw, simplex, lsquares, descriptive, distrib. |
+| suggestion | Check the package name. Common packages: `draw`, `simplex`, `lsquares`, `descriptive`, `distrib`. |
 
 ## `error.part_atom`
 
@@ -191,7 +191,7 @@ Parameters: `found`, `func`
 | Field | English |
 |---|---|
 | title | No Parts to Take |
-| explanation | {func} needs an expression with parts, such as a list or a sum, but got {found}. |
+| explanation | `{func}` needs an expression with parts, such as a list or a sum, but got `{found}`. |
 | suggestion | Check that the variable holds the list or expression you meant. |
 
 ## `error.part_index`
@@ -203,8 +203,8 @@ Parameters: `func`
 | Field | English |
 |---|---|
 | title | Index Out of Range |
-| explanation | {func} asked for a part beyond the end of the expression or list. |
-| suggestion | Check the index against length() of the expression or list. |
+| explanation | `{func}` asked for a part beyond the end of the expression or list. |
+| suggestion | Check the index against `length()` of the expression or list. |
 
 ## `error.recursion`
 
@@ -214,7 +214,7 @@ Covers: "Maxima encountered a Lisp error: Control stack exhausted ..." screen: e
 |---|---|
 | title | Runaway Recursion |
 | explanation | A function called itself, directly or through others, until Maxima ran out of room for the calls. |
-| suggestion | Check that each recursive function has a case that stops it, such as f(0) := 1. |
+| suggestion | Check that each recursive function has a case that stops it, such as `f(0) := 1`. |
 
 ## `error.syntax`
 
@@ -226,7 +226,7 @@ Parameters: `message`
 |---|---|
 | title | Syntax Error |
 | explanation | The expression contains a syntax error: {message}. Check for missing operators, unmatched parentheses, or misplaced characters. |
-| suggestion | Check for missing *, +, or other operators. Ensure all parentheses are matched. |
+| suggestion | Check for missing `*`, `+`, or other operators. Ensure all parentheses are matched. |
 
 ## `error.syntax_missing`
 
@@ -237,8 +237,8 @@ Parameters: `delimiter`
 | Field | English |
 |---|---|
 | title | Syntax Error |
-| explanation | A closing {delimiter} is missing. |
-| suggestion | Check that every opening bracket has its closing {delimiter}, in the right order. |
+| explanation | A closing `{delimiter}` is missing. |
+| suggestion | Check that every opening bracket has its closing `{delimiter}`, in the right order. |
 
 ## `error.syntax_operator`
 
@@ -249,9 +249,9 @@ Parameters: `token`
 | Field | English |
 |---|---|
 | title | Syntax Error |
-| explanation.infix | Two values appear next to each other without an operator between them, before "{token}". |
-| explanation.prefix | "{token}" can't start an expression here. Check for a missing operand or a misplaced operator. |
-| suggestion | Check for missing *, +, or other operators. Ensure all parentheses are matched. |
+| explanation.infix | Two values appear next to each other without an operator between them, before `{token}`. |
+| explanation.prefix | `{token}` can't start an expression here. Check for a missing operand or a misplaced operator. |
+| suggestion | Check for missing `*`, `+`, or other operators. Ensure all parentheses are matched. |
 
 ## `error.timeout`
 
@@ -274,8 +274,8 @@ Parameters: `name`
 | Field | English |
 |---|---|
 | title | Undefined Variable |
-| explanation | The variable "{name}" has not been assigned a value. |
-| suggestion | Assign it first with {name}: value; or use it as a symbolic variable. |
+| explanation | The variable `{name}` has not been assigned a value. |
+| suggestion | Assign it first with `{name}: value;` or use it as a symbolic variable. |
 
 ## `error.unknown_function`
 
@@ -286,10 +286,10 @@ Parameters: `func`, `package`
 | Field | English |
 |---|---|
 | title | Unknown Function |
-| explanation | "{func}" is not a known Maxima function. |
-| explanation.in_package | "{func}" is provided by the "{package}" package, which needs to be loaded first. |
-| suggestion | Check the spelling or use describe("{func}") to search. |
-| suggestion.in_package | Add load("{package}")$ before using this function. |
+| explanation | `{func}` is not a known Maxima function. |
+| explanation.in_package | `{func}` is provided by the `{package}` package, which needs to be loaded first. |
+| suggestion | Check the spelling or use `describe("{func}")` to search. |
+| suggestion.in_package | Add `load("{package}")$` before using this function. |
 
 ## `note.plot_non_numeric`
 
@@ -299,7 +299,7 @@ Parameters: `function`
 
 | Field | English |
 |---|---|
-| text | {function} left out points where the expression has no real value. |
+| text | `{function}` left out points where the expression has no real value. |
 
 ## `note.principal_value`
 
@@ -317,7 +317,7 @@ Parameters: `expr`, `function`, `point`
 
 | Field | English |
 |---|---|
-| text | {function} couldn't evaluate {expr} at {point}, so the result may be inaccurate. |
+| text | `{function}` couldn't evaluate `{expr}` at `{point}`, so the result may be inaccurate. |
 
 ## `note.rat_replaced`
 
@@ -327,8 +327,8 @@ Parameters: `count`, `examples`, `replacements`
 
 | Field | English |
 |---|---|
-| text | Maxima replaced decimals with exact fractions: {replacements}. |
-| text.many | Maxima replaced {count} decimals with exact fractions, such as {examples}. Add ratprint: false$ to hide these messages. |
+| text | Maxima replaced decimals with exact fractions: `{replacements}`. |
+| text.many | Maxima replaced {count} decimals with exact fractions, such as `{examples}`. Add `ratprint: false$` to hide these messages. |
 
 ## `note.solve_arc_trig`
 
@@ -336,7 +336,7 @@ Covers: "solve: using arc-trig functions to get a solution. Some solutions will 
 
 | Field | English |
 |---|---|
-| text | solve used inverse trigonometric functions, so it gives only some of the solutions. |
+| text | `solve` used inverse trigonometric functions, so it gives only some of the solutions. |
 
 ## `note.solve_dependent`
 
@@ -346,7 +346,7 @@ Parameters: `equations`
 
 | Field | English |
 |---|---|
-| text | solve dropped equations that follow from the others: {equations}. |
+| text | `solve` dropped equations that follow from the others: {equations}. |
 
 ## `note.tellsimp_noncommutative`
 
@@ -354,7 +354,7 @@ Covers: "tellsimp: warning: rule will treat '+' as noncommutative and nonassocia
 
 | Field | English |
 |---|---|
-| text | tellsimp will treat the rule's main operator as noncommutative and nonassociative, so the rule matches only terms in the order it was written. |
+| text | `tellsimp` will treat the rule's main operator as noncommutative and nonassociative, so the rule matches only terms in the order it was written. |
 
 ## `note.zero_power`
 
@@ -373,8 +373,8 @@ Parameters: `a`, `b`, `line`
 | Field | English |
 |---|---|
 | title | Maxima Needs to Know |
-| explanation | Maxima needs to know whether {a} equals {b} to go on. |
-| suggestion | Add {line} before this line, or in a cell above, and run it again. |
+| explanation | Maxima needs to know whether `{a}` equals `{b}` to go on. |
+| suggestion | Add `{line}` before this line, or in a cell above, and run it again. |
 
 ## `question.other`
 
@@ -386,7 +386,7 @@ Parameters: `question`
 |---|---|
 | title | Maxima Needs to Know |
 | explanation | Maxima asked "{question}" and can't get an answer from a cell. |
-| suggestion | Use assume() or declare() before this line to tell Maxima what it needs, then run the cell again. |
+| suggestion | Use `assume()` or `declare()` before this line to tell Maxima what it needs, then run the cell again. |
 
 ## `question.property`
 
@@ -397,8 +397,8 @@ Parameters: `expr`, `line`, `property`
 | Field | English |
 |---|---|
 | title | Maxima Needs to Know |
-| explanation | Maxima needs to know whether {expr} has the property {property} to go on. |
-| suggestion | Add {line} before this line, or in a cell above, and run it again. |
+| explanation | Maxima needs to know whether `{expr}` has the property `{property}` to go on. |
+| suggestion | Add `{line}` before this line, or in a cell above, and run it again. |
 
 ## `question.sign`
 
@@ -409,8 +409,8 @@ Parameters: `expr`, `line`
 | Field | English |
 |---|---|
 | title | Maxima Needs to Know |
-| explanation | Maxima needs to know whether {expr} is positive, negative or zero to go on. |
-| suggestion | Add {line} before this line, or in a cell above, and run it again. |
+| explanation | Maxima needs to know whether `{expr}` is positive, negative or zero to go on. |
+| suggestion | Add `{line}` before this line, or in a cell above, and run it again. |
 
 ## `question.sign_nz`
 
@@ -421,8 +421,8 @@ Parameters: `expr`, `line`
 | Field | English |
 |---|---|
 | title | Maxima Needs to Know |
-| explanation | Maxima needs to know whether {expr} is negative or zero to go on. |
-| suggestion | Add {line} before this line, or in a cell above, and run it again. |
+| explanation | Maxima needs to know whether `{expr}` is negative or zero to go on. |
+| suggestion | Add `{line}` before this line, or in a cell above, and run it again. |
 
 ## `question.sign_pn`
 
@@ -433,8 +433,8 @@ Parameters: `expr`, `line`
 | Field | English |
 |---|---|
 | title | Maxima Needs to Know |
-| explanation | Maxima needs to know whether {expr} is positive or negative to go on. |
-| suggestion | Add {line} before this line, or in a cell above, and run it again. |
+| explanation | Maxima needs to know whether `{expr}` is positive or negative to go on. |
+| suggestion | Add `{line}` before this line, or in a cell above, and run it again. |
 
 ## `question.sign_pz`
 
@@ -445,8 +445,8 @@ Parameters: `expr`, `line`
 | Field | English |
 |---|---|
 | title | Maxima Needs to Know |
-| explanation | Maxima needs to know whether {expr} is positive or zero to go on. |
-| suggestion | Add {line} before this line, or in a cell above, and run it again. |
+| explanation | Maxima needs to know whether `{expr}` is positive or zero to go on. |
+| suggestion | Add `{line}` before this line, or in a cell above, and run it again. |
 
 ## `question.zero`
 
@@ -457,5 +457,5 @@ Parameters: `expr`, `line`
 | Field | English |
 |---|---|
 | title | Maxima Needs to Know |
-| explanation | Maxima needs to know whether {expr} is zero to go on. |
-| suggestion | Add {line} before this line, or in a cell above, and run it again. |
+| explanation | Maxima needs to know whether `{expr}` is zero to go on. |
+| suggestion | Add `{line}` before this line, or in a cell above, and run it again. |

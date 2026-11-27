@@ -110,6 +110,13 @@ for po in locales/*.po; do
   compare "$po" "$work/merged.po"
 done
 
+# A translation that loses a backtick shows the rest of its message as
+# prose: a warning, since the catalog still works
+for po in locales/*.po; do
+  case "$po" in */en.po|*/pseudo.po) continue ;; esac
+  node scripts/i18n-backticks.mjs "$po"
+done
+
 if $stale; then
   exit 1
 fi

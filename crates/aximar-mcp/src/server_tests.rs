@@ -2043,6 +2043,35 @@ async fn the_messages_template_shows_what_it_says() {
     assert!(failures.is_empty(), "{}", failures.join("\n\n"));
 }
 
+/// A note's text marks code with backticks, which MCP clients read as
+/// Markdown code
+#[tokio::test]
+#[ignore = "requires Maxima to be installed"]
+async fn note_text_keeps_its_code_marks() {
+    let s = build_server();
+    let cell_id = add_code_cell(&s, "rat(0.5*x);").await;
+    let _ = s
+        .run_cell(Parameters(CellIdParams {
+            cell_id: cell_id.clone(),
+            notebook_id: None,
+        }))
+        .await;
+    let cell = parse_ok(
+        s.get_cell(Parameters(CellIdParams {
+            cell_id,
+            notebook_id: None,
+        }))
+        .await,
+    );
+    let notes = cell["output"]["notes"].as_array().expect("notes");
+    let note = notes
+        .iter()
+        .find(|n| n["id"] == "note.rat_replaced")
+        .unwrap_or_else(|| panic!("no rat note: {}", cell["output"]));
+    let text = note["message"]["text"].as_str().unwrap();
+    assert!(text.contains("`0.5 → 1/2`"), "{text}");
+}
+
 // ── Documentation languages ──────────────────────────────────────────
 
 /// A server whose catalog has English core docs and a Spanish translation:

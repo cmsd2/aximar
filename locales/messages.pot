@@ -2651,7 +2651,7 @@ msgstr ""
 #. screen: errors--all-explanations
 #: crates/aximar-core/src/maxima/errors.rs
 msgctxt "error.incomplete_input.suggestion"
-msgid "Check that all parentheses () and brackets [] are matched, and the expression ends with ; or $"
+msgid "Check that all parentheses `()` and brackets `[]` are matched, and the expression ends with `;` or `$`"
 msgstr ""
 
 #. i18n: Maxima: "incorrect syntax: Missing )", or another closing delimiter
@@ -2666,14 +2666,14 @@ msgstr ""
 #: crates/aximar-core/src/maxima/errors.rs
 #, rust-format
 msgctxt "error.syntax_missing.explanation"
-msgid "A closing {delimiter} is missing."
+msgid "A closing `{delimiter}` is missing."
 msgstr ""
 
 #. screen: errors--all-explanations
 #: crates/aximar-core/src/maxima/errors.rs
 #, rust-format
 msgctxt "error.syntax_missing.suggestion"
-msgid "Check that every opening bracket has its closing {delimiter}, in the right order."
+msgid "Check that every opening bracket has its closing `{delimiter}`, in the right order."
 msgstr ""
 
 #. i18n: token is what Maxima read where an expression should start, such as !
@@ -2681,7 +2681,7 @@ msgstr ""
 #: crates/aximar-core/src/maxima/errors.rs
 #, rust-format
 msgctxt "error.syntax_operator.explanation.prefix"
-msgid "\"{token}\" can't start an expression here. Check for a missing operand or a misplaced operator."
+msgid "`{token}` can't start an expression here. Check for a missing operand or a misplaced operator."
 msgstr ""
 
 #. i18n: token is the value Maxima read after another value, as y in "x y"
@@ -2689,7 +2689,7 @@ msgstr ""
 #: crates/aximar-core/src/maxima/errors.rs
 #, rust-format
 msgctxt "error.syntax_operator.explanation.infix"
-msgid "Two values appear next to each other without an operator between them, before \"{token}\"."
+msgid "Two values appear next to each other without an operator between them, before `{token}`."
 msgstr ""
 
 #. i18n: Maxima: "incorrect syntax: y is not an infix operator" or "! is not a prefix operator"
@@ -2702,7 +2702,7 @@ msgstr ""
 #. screen: errors--all-explanations
 #: crates/aximar-core/src/maxima/errors.rs
 msgctxt "error.syntax_operator.suggestion"
-msgid "Check for missing *, +, or other operators. Ensure all parentheses are matched."
+msgid "Check for missing `*`, `+`, or other operators. Ensure all parentheses are matched."
 msgstr ""
 
 #. i18n: Maxima: any other "incorrect syntax: ..." message
@@ -2723,7 +2723,7 @@ msgstr ""
 #. screen: errors--all-explanations
 #: crates/aximar-core/src/maxima/errors.rs
 msgctxt "error.syntax.suggestion"
-msgid "Check for missing *, +, or other operators. Ensure all parentheses are matched."
+msgid "Check for missing `*`, `+`, or other operators. Ensure all parentheses are matched."
 msgstr ""
 
 #. i18n: Maxima: "Too many arguments supplied to f(x); found: [1, 2]" or "Too few ..."
@@ -2739,35 +2739,35 @@ msgstr ""
 #: crates/aximar-core/src/maxima/errors.rs
 #, rust-format
 msgctxt "error.arg_count.explanation"
-msgid "{func} is defined as {definition}, but was called with {found}."
+msgid "`{func}` is defined as `{definition}`, but was called with `{found}`."
 msgstr ""
 
 #. screen: errors--all-explanations
 #: crates/aximar-core/src/maxima/errors.rs
 #, rust-format
 msgctxt "error.arg_count.suggestion"
-msgid "Call {func} with the arguments {definition} names, or change its definition."
+msgid "Call `{func}` with the arguments `{definition}` names, or change its definition."
 msgstr ""
 
 #. screen: errors--all-explanations
 #: crates/aximar-core/src/maxima/errors.rs
 #, rust-format
 msgctxt "error.arg_count.explanation.too_few"
-msgid "Too few arguments were passed to {func}."
+msgid "Too few arguments were passed to `{func}`."
 msgstr ""
 
 #. screen: errors--all-explanations
 #: crates/aximar-core/src/maxima/errors.rs
 #, rust-format
 msgctxt "error.arg_count.explanation.too_many"
-msgid "Too many arguments were passed to {func}."
+msgid "Too many arguments were passed to `{func}`."
 msgstr ""
 
 #. screen: errors--all-explanations
 #: crates/aximar-core/src/maxima/errors.rs
 #, rust-format
 msgctxt "error.arg_count.suggestion.describe"
-msgid "Check the documentation for {func} with describe({func})."
+msgid "Check the documentation for `{func}` with `describe({func})`."
 msgstr ""
 
 #. i18n: signatures is one or more ways to call the function, separated by semicolons
@@ -2775,7 +2775,7 @@ msgstr ""
 #: crates/aximar-core/src/maxima/errors.rs
 #, rust-format
 msgctxt "error.arg_count.suggestion.signatures"
-msgid "Correct usage: {signatures}"
+msgid "Correct usage: `{signatures}`"
 msgstr ""
 
 #. i18n: Maxima: "unbound variable x" or "undefined variable x"
@@ -2789,14 +2789,14 @@ msgstr ""
 #: crates/aximar-core/src/maxima/errors.rs
 #, rust-format
 msgctxt "error.undefined_variable.explanation"
-msgid "The variable \"{name}\" has not been assigned a value."
+msgid "The variable `{name}` has not been assigned a value."
 msgstr ""
 
 #. screen: errors--all-explanations
 #: crates/aximar-core/src/maxima/errors.rs
 #, rust-format
 msgctxt "error.undefined_variable.suggestion"
-msgid "Assign it first with {name}: value; or use it as a symbolic variable."
+msgid "Assign it first with `{name}: value;` or use it as a symbolic variable."
 msgstr ""
 
 #. i18n: Maxima: "funcall: no such function: f" or "The function f is not known to Maxima"
@@ -2810,28 +2810,28 @@ msgstr ""
 #: crates/aximar-core/src/maxima/errors.rs
 #, rust-format
 msgctxt "error.unknown_function.explanation.in_package"
-msgid "\"{func}\" is provided by the \"{package}\" package, which needs to be loaded first."
+msgid "`{func}` is provided by the `{package}` package, which needs to be loaded first."
 msgstr ""
 
 #. screen: errors--all-explanations
 #: crates/aximar-core/src/maxima/errors.rs
 #, rust-format
 msgctxt "error.unknown_function.suggestion.in_package"
-msgid "Add load(\"{package}\")$ before using this function."
+msgid "Add `load(\"{package}\")$` before using this function."
 msgstr ""
 
 #. screen: errors--all-explanations
 #: crates/aximar-core/src/maxima/errors.rs
 #, rust-format
 msgctxt "error.unknown_function.explanation"
-msgid "\"{func}\" is not a known Maxima function."
+msgid "`{func}` is not a known Maxima function."
 msgstr ""
 
 #. screen: errors--all-explanations
 #: crates/aximar-core/src/maxima/errors.rs
 #, rust-format
 msgctxt "error.unknown_function.suggestion"
-msgid "Check the spelling or use describe(\"{func}\") to search."
+msgid "Check the spelling or use `describe(\"{func}\")` to search."
 msgstr ""
 
 #. i18n: Maxima: "Maxima encountered a Lisp error: The value 1 is not of type LIST"
@@ -2847,13 +2847,13 @@ msgstr ""
 #: crates/aximar-core/src/maxima/errors.rs
 #, rust-format
 msgctxt "error.lisp_type.explanation"
-msgid "A function inside Maxima expected a value of type {lisp_type} but got {value}."
+msgid "A function inside Maxima expected a value of type `{lisp_type}` but got `{value}`."
 msgstr ""
 
 #. screen: errors--all-explanations
 #: crates/aximar-core/src/maxima/errors.rs
 msgctxt "error.lisp_type.suggestion"
-msgid "Check the arguments of the functions in this cell, especially Lisp functions called with ?, which don't check their arguments."
+msgid "Check the arguments of the functions in this cell, especially Lisp functions called with `?`, which don't check their arguments."
 msgstr ""
 
 #. i18n: Maxima: "Maxima encountered a Lisp error: Control stack exhausted ..."
@@ -2872,7 +2872,7 @@ msgstr ""
 #. screen: errors--all-explanations
 #: crates/aximar-core/src/maxima/errors.rs
 msgctxt "error.recursion.suggestion"
-msgid "Check that each recursive function has a case that stops it, such as f(0) := 1."
+msgid "Check that each recursive function has a case that stops it, such as `f(0) := 1`."
 msgstr ""
 
 #. i18n: Maxima: "Maxima encountered a Lisp error: arithmetic error FLOATING-POINT-OVERFLOW signalled"
@@ -2891,7 +2891,7 @@ msgstr ""
 #. screen: errors--all-explanations
 #: crates/aximar-core/src/maxima/errors.rs
 msgctxt "error.float_overflow.suggestion"
-msgid "Keep the computation exact, or use bfloat() for very large numbers."
+msgid "Keep the computation exact, or use `bfloat()` for very large numbers."
 msgstr ""
 
 #. i18n: Maxima: "Maxima encountered a Lisp error:" and any other condition
@@ -2931,7 +2931,7 @@ msgstr ""
 #. screen: errors--all-explanations
 #: crates/aximar-core/src/maxima/errors.rs
 msgctxt "error.log_zero.suggestion"
-msgid "Check the argument of log for values that make it 0, or take a limit instead."
+msgid "Check the argument of `log` for values that make it 0, or take a limit instead."
 msgstr ""
 
 #. i18n: Maxima: "part: fell off the end.", or the same from inpart or rest
@@ -2946,13 +2946,13 @@ msgstr ""
 #: crates/aximar-core/src/maxima/errors.rs
 #, rust-format
 msgctxt "error.part_index.explanation"
-msgid "{func} asked for a part beyond the end of the expression or list."
+msgid "`{func}` asked for a part beyond the end of the expression or list."
 msgstr ""
 
 #. screen: errors--all-explanations
 #: crates/aximar-core/src/maxima/errors.rs
 msgctxt "error.part_index.suggestion"
-msgid "Check the index against length() of the expression or list."
+msgid "Check the index against `length()` of the expression or list."
 msgstr ""
 
 #. i18n: Maxima: "part: argument must be a non-atomic expression; found x"
@@ -2967,7 +2967,7 @@ msgstr ""
 #: crates/aximar-core/src/maxima/errors.rs
 #, rust-format
 msgctxt "error.part_atom.explanation"
-msgid "{func} needs an expression with parts, such as a list or a sum, but got {found}."
+msgid "`{func}` needs an expression with parts, such as a list or a sum, but got `{found}`."
 msgstr ""
 
 #. screen: errors--all-explanations
@@ -2988,13 +2988,13 @@ msgstr ""
 #: crates/aximar-core/src/maxima/errors.rs
 #, rust-format
 msgctxt "error.assign_target.explanation"
-msgid "The left side of : must be a variable name, but it is {target}."
+msgid "The left side of `:` must be a variable name, but it is `{target}`."
 msgstr ""
 
 #. screen: errors--all-explanations
 #: crates/aximar-core/src/maxima/errors.rs
 msgctxt "error.assign_target.suggestion"
-msgid "To write an equation, use = instead of :, as in x^2 = 4."
+msgid "To write an equation, use `=` instead of `:`, as in `x^2 = 4`."
 msgstr ""
 
 #. i18n: Maxima: "first: empty argument.", or the same from last and others
@@ -3009,13 +3009,13 @@ msgstr ""
 #: crates/aximar-core/src/maxima/errors.rs
 #, rust-format
 msgctxt "error.empty_list.explanation"
-msgid "{func} was given an empty list, which has no elements to take."
+msgid "`{func}` was given an empty list, which has no elements to take."
 msgstr ""
 
 #. screen: errors--all-explanations
 #: crates/aximar-core/src/maxima/errors.rs
 msgctxt "error.empty_list.suggestion"
-msgid "Check where the list comes from, for example a solve() that found no solutions."
+msgid "Check where the list comes from, for example a `solve()` that found no solutions."
 msgstr ""
 
 #. i18n: Maxima: "allroots: expected a polynomial; found sin(x)"
@@ -3030,13 +3030,13 @@ msgstr ""
 #: crates/aximar-core/src/maxima/errors.rs
 #, rust-format
 msgctxt "error.not_polynomial.explanation"
-msgid "{func} works only on polynomials, but got {found}."
+msgid "`{func}` works only on polynomials, but got `{found}`."
 msgstr ""
 
 #. screen: errors--all-explanations
 #: crates/aximar-core/src/maxima/errors.rs
 msgctxt "error.not_polynomial.suggestion"
-msgid "For other equations, try find_root() over an interval, or solve()."
+msgid "For other equations, try `find_root()` over an interval, or `solve()`."
 msgstr ""
 
 #. i18n: Maxima: "algsys: Couldn't reduce system to a polynomial in one variable."
@@ -3049,13 +3049,13 @@ msgstr ""
 #. screen: errors--all-explanations
 #: crates/aximar-core/src/maxima/errors.rs
 msgctxt "error.algsys_failed.explanation"
-msgid "algsys, which solve uses for systems, couldn't turn the equations into a polynomial in one variable."
+msgid "`algsys`, which `solve` uses for systems, couldn't turn the equations into a polynomial in one variable."
 msgstr ""
 
 #. screen: errors--all-explanations
 #: crates/aximar-core/src/maxima/errors.rs
 msgctxt "error.algsys_failed.suggestion"
-msgid "For a numerical answer, try mnewton() from load(mnewton) with a starting point."
+msgid "For a numerical answer, try `mnewton()` from `load(mnewton)` with a starting point."
 msgstr ""
 
 #. i18n: Maxima: "defint: integral is divergent."
@@ -3142,7 +3142,7 @@ msgstr ""
 #: crates/aximar-core/src/maxima/errors.rs
 #, rust-format
 msgctxt "question.sign_pz.explanation"
-msgid "Maxima needs to know whether {expr} is positive or zero to go on."
+msgid "Maxima needs to know whether `{expr}` is positive or zero to go on."
 msgstr ""
 
 #. i18n: line is Maxima code that answers the question, such as assume(a > 0)$
@@ -3150,7 +3150,7 @@ msgstr ""
 #: crates/aximar-core/src/maxima/errors.rs
 #, rust-format
 msgctxt "question.sign_pz.suggestion"
-msgid "Add {line} before this line, or in a cell above, and run it again."
+msgid "Add `{line}` before this line, or in a cell above, and run it again."
 msgstr ""
 
 #. i18n: Maxima: "Maxima needs to know: Is a negative or zero?"
@@ -3165,7 +3165,7 @@ msgstr ""
 #: crates/aximar-core/src/maxima/errors.rs
 #, rust-format
 msgctxt "question.sign_nz.explanation"
-msgid "Maxima needs to know whether {expr} is negative or zero to go on."
+msgid "Maxima needs to know whether `{expr}` is negative or zero to go on."
 msgstr ""
 
 #. i18n: line is Maxima code that answers the question, such as assume(a < 0)$
@@ -3173,7 +3173,7 @@ msgstr ""
 #: crates/aximar-core/src/maxima/errors.rs
 #, rust-format
 msgctxt "question.sign_nz.suggestion"
-msgid "Add {line} before this line, or in a cell above, and run it again."
+msgid "Add `{line}` before this line, or in a cell above, and run it again."
 msgstr ""
 
 #. i18n: Maxima: "Maxima needs to know: Is k positive or negative?"
@@ -3188,7 +3188,7 @@ msgstr ""
 #: crates/aximar-core/src/maxima/errors.rs
 #, rust-format
 msgctxt "question.sign_pn.explanation"
-msgid "Maxima needs to know whether {expr} is positive or negative to go on."
+msgid "Maxima needs to know whether `{expr}` is positive or negative to go on."
 msgstr ""
 
 #. i18n: line is Maxima code that answers the question, such as assume(k > 0)$
@@ -3196,7 +3196,7 @@ msgstr ""
 #: crates/aximar-core/src/maxima/errors.rs
 #, rust-format
 msgctxt "question.sign_pn.suggestion"
-msgid "Add {line} before this line, or in a cell above, and run it again."
+msgid "Add `{line}` before this line, or in a cell above, and run it again."
 msgstr ""
 
 #. i18n: Maxima: "Maxima needs to know: Is x zero or nonzero?"
@@ -3211,7 +3211,7 @@ msgstr ""
 #: crates/aximar-core/src/maxima/errors.rs
 #, rust-format
 msgctxt "question.zero.explanation"
-msgid "Maxima needs to know whether {expr} is zero to go on."
+msgid "Maxima needs to know whether `{expr}` is zero to go on."
 msgstr ""
 
 #. i18n: line is Maxima code that answers the question, such as assume(notequal(x, 0))$
@@ -3219,7 +3219,7 @@ msgstr ""
 #: crates/aximar-core/src/maxima/errors.rs
 #, rust-format
 msgctxt "question.zero.suggestion"
-msgid "Add {line} before this line, or in a cell above, and run it again."
+msgid "Add `{line}` before this line, or in a cell above, and run it again."
 msgstr ""
 
 #. i18n: Maxima: "Maxima needs to know: Is a positive, negative or zero?"
@@ -3234,7 +3234,7 @@ msgstr ""
 #: crates/aximar-core/src/maxima/errors.rs
 #, rust-format
 msgctxt "question.sign.explanation"
-msgid "Maxima needs to know whether {expr} is positive, negative or zero to go on."
+msgid "Maxima needs to know whether `{expr}` is positive, negative or zero to go on."
 msgstr ""
 
 #. i18n: line is Maxima code that answers the question, such as assume(a > 0)$
@@ -3242,7 +3242,7 @@ msgstr ""
 #: crates/aximar-core/src/maxima/errors.rs
 #, rust-format
 msgctxt "question.sign.suggestion"
-msgid "Add {line} before this line, or in a cell above, and run it again."
+msgid "Add `{line}` before this line, or in a cell above, and run it again."
 msgstr ""
 
 #. i18n: Maxima: "Maxima needs to know: Is a equal to -1?"
@@ -3257,7 +3257,7 @@ msgstr ""
 #: crates/aximar-core/src/maxima/errors.rs
 #, rust-format
 msgctxt "question.equal.explanation"
-msgid "Maxima needs to know whether {a} equals {b} to go on."
+msgid "Maxima needs to know whether `{a}` equals `{b}` to go on."
 msgstr ""
 
 #. i18n: line is Maxima code that answers the question, such as assume(notequal(a, -1))$
@@ -3265,7 +3265,7 @@ msgstr ""
 #: crates/aximar-core/src/maxima/errors.rs
 #, rust-format
 msgctxt "question.equal.suggestion"
-msgid "Add {line} before this line, or in a cell above, and run it again."
+msgid "Add `{line}` before this line, or in a cell above, and run it again."
 msgstr ""
 
 #. i18n: Maxima: "Maxima needs to know: Is n an integer?", or another property
@@ -3281,7 +3281,7 @@ msgstr ""
 #: crates/aximar-core/src/maxima/errors.rs
 #, rust-format
 msgctxt "question.property.explanation"
-msgid "Maxima needs to know whether {expr} has the property {property} to go on."
+msgid "Maxima needs to know whether `{expr}` has the property `{property}` to go on."
 msgstr ""
 
 #. i18n: line is Maxima code that answers the question, such as declare(n, integer)$
@@ -3289,7 +3289,7 @@ msgstr ""
 #: crates/aximar-core/src/maxima/errors.rs
 #, rust-format
 msgctxt "question.property.suggestion"
-msgid "Add {line} before this line, or in a cell above, and run it again."
+msgid "Add `{line}` before this line, or in a cell above, and run it again."
 msgstr ""
 
 #. i18n: Maxima: "Maxima needs to know: ..." with any other question
@@ -3310,7 +3310,7 @@ msgstr ""
 #. screen: errors--all-explanations
 #: crates/aximar-core/src/maxima/errors.rs
 msgctxt "question.other.suggestion"
-msgid "Use assume() or declare() before this line to tell Maxima what it needs, then run the cell again."
+msgid "Use `assume()` or `declare()` before this line to tell Maxima what it needs, then run the cell again."
 msgstr ""
 
 #. i18n: Maxima: "matrix: all rows must be the same length." or "incompatible dimensions"
@@ -3336,7 +3336,7 @@ msgstr ""
 #: crates/aximar-core/src/maxima/errors.rs
 #, rust-format
 msgctxt "error.package_not_found.explanation"
-msgid "The package \"{package}\" could not be found or loaded."
+msgid "The package `{package}` could not be found or loaded."
 msgstr ""
 
 #. screen: errors--all-explanations
@@ -3355,7 +3355,7 @@ msgstr ""
 #. screen: errors--all-explanations
 #: crates/aximar-core/src/maxima/errors.rs
 msgctxt "error.package_not_found.suggestion"
-msgid "Check the package name. Common packages: draw, simplex, lsquares, descriptive, distrib."
+msgid "Check the package name. Common packages: `draw`, `simplex`, `lsquares`, `descriptive`, `distrib`."
 msgstr ""
 
 #. i18n: Maxima: "rat: replaced 0.5 by 1/2 = 0.5", one line per number.
@@ -3371,7 +3371,7 @@ msgstr ""
 #: crates/aximar-core/src/maxima/notes.rs
 #, rust-format
 msgctxt "note.rat_replaced.text"
-msgid "Maxima replaced decimals with exact fractions: {replacements}."
+msgid "Maxima replaced decimals with exact fractions: `{replacements}`."
 msgstr ""
 
 #. i18n: Maxima printed "rat: replaced ..." more than 3 times. count is how
@@ -3381,14 +3381,14 @@ msgstr ""
 #: crates/aximar-core/src/maxima/notes.rs
 #, rust-format
 msgctxt "note.rat_replaced.text.many"
-msgid "Maxima replaced {count} decimals with exact fractions, such as {examples}. Add ratprint: false$ to hide these messages."
+msgid "Maxima replaced {count} decimals with exact fractions, such as `{examples}`. Add `ratprint: false$` to hide these messages."
 msgstr ""
 
 #. i18n: Maxima: "solve: using arc-trig functions to get a solution. Some solutions will be lost."
 #. screen: notes--all-notes
 #: crates/aximar-core/src/maxima/notes.rs
 msgctxt "note.solve_arc_trig.text"
-msgid "solve used inverse trigonometric functions, so it gives only some of the solutions."
+msgid "`solve` used inverse trigonometric functions, so it gives only some of the solutions."
 msgstr ""
 
 #. i18n: Maxima: "solve: dependent equations eliminated: (2)".
@@ -3397,7 +3397,7 @@ msgstr ""
 #: crates/aximar-core/src/maxima/notes.rs
 #, rust-format
 msgctxt "note.solve_dependent.text"
-msgid "solve dropped equations that follow from the others: {equations}."
+msgid "`solve` dropped equations that follow from the others: {equations}."
 msgstr ""
 
 #. i18n: Maxima: "Principal Value", from integrate
@@ -3413,7 +3413,7 @@ msgstr ""
 #: crates/aximar-core/src/maxima/notes.rs
 #, rust-format
 msgctxt "note.plot_non_numeric.text"
-msgid "{function} left out points where the expression has no real value."
+msgid "`{function}` left out points where the expression has no real value."
 msgstr ""
 
 #. i18n: Maxima: "quad_qags: Numerical evaluation of f at 0.0 is not a float or is not defined".
@@ -3422,7 +3422,7 @@ msgstr ""
 #: crates/aximar-core/src/maxima/notes.rs
 #, rust-format
 msgctxt "note.quadrature_undefined.text"
-msgid "{function} couldn't evaluate {expr} at {point}, so the result may be inaccurate."
+msgid "`{function}` couldn't evaluate `{expr}` at `{point}`, so the result may be inaccurate."
 msgstr ""
 
 #. i18n: Maxima: "expt: undefined: 0 to a negative exponent.", in a cell
@@ -3437,7 +3437,7 @@ msgstr ""
 #. screen: notes--all-notes
 #: crates/aximar-core/src/maxima/notes.rs
 msgctxt "note.tellsimp_noncommutative.text"
-msgid "tellsimp will treat the rule's main operator as noncommutative and nonassociative, so the rule matches only terms in the order it was written."
+msgid "`tellsimp` will treat the rule's main operator as noncommutative and nonassociative, so the rule matches only terms in the order it was written."
 msgstr ""
 
 #. i18n: The About panel (macOS and Linux): where to find the open-source licences. Settings, General and Licences name the window, section and row
