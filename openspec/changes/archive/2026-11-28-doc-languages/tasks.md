@@ -25,4 +25,4 @@
 ## 5. Language packs (core-docs and package-index, one PR each)
 
 - [x] 5.1 Build `maxima-core-docs-<lang>` in core-docs' CI for each language covering at least half the English symbols, each depending on `maxima-core-docs` at the same version; verify the build prints each language's coverage and produces packs for the languages over the threshold
-- [ ] 5.2 Add the packs to the package index; verify `mxpm install maxima-core-docs-es` installs `~/.maxima/maxima-core-docs-es/doc/maxima-core-docs-doc-index.es.json`, and by hand that Aximar's docs panel then shows Spanish full documentation for `integrate`
+- [x] 5.2 Add the packs to the package index; verify `mxpm install maxima-core-docs-es` installs `~/.maxima/maxima-core-docs-es/doc/maxima-core-docs-doc-index.es.json`, and by hand that Aximar's docs panel then shows Spanish full documentation for `integrate` (checked by hand: `mxpm install maxima-core-docs-es`, then Spanish help for `integrate`, 28 November 2026)

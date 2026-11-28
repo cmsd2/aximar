@@ -127,7 +127,7 @@ Shortcuts lists them all. Hold Ctrl (or Cmd on Mac) to see the common ones.
 | ⌘F / ⇧⌘F | Ctrl+F / Ctrl+Shift+F | Find / find and replace |
 | ⇧↩ | Shift+Enter | Run the cell and move on |
 | ⌘↩ | Ctrl+Enter | Run the cell and stay |
-| ⇧⌘↑ / ⇧⌘↓ | Ctrl+Shift+Up / Down | Move the cell |
+| ⌥⌘↑ / ⌥⌘↓ | Ctrl+Alt+Up / Down | Move the cell |
 | ⇧⌘⌫ | Ctrl+Shift+Backspace | Delete the cell |
 | ⌘. | Ctrl+. | Interrupt |
 | ⌘K | Ctrl+K | Command palette: commands, functions and symbols |
