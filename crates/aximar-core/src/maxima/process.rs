@@ -100,6 +100,7 @@ fn next_container_name() -> String {
 
 /// Current time in milliseconds since the Unix epoch.  Used by the
 /// background stdout/stderr drain task to timestamp emitted OutputEvents.
+#[cfg(unix)]
 fn now_millis() -> u64 {
     std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
@@ -149,6 +150,11 @@ impl MaximaProcess {
         envelope_observer: Option<Arc<dyn crate::maxima::envelope::EnvelopeObserver>>,
     ) -> Result<Self, AppError> {
         Self::preflight_check(&backend).await?;
+
+        // The observer is teed into the fd-3 reader task, which only
+        // exists on unix; elsewhere there are no envelopes to observe.
+        #[cfg(not(unix))]
+        drop(envelope_observer);
 
         // Per-spawn reader-task handle for the kernel-events pipe.
         // Lives in this scope so it survives cmd.spawn() and can be

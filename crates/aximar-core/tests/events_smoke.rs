@@ -11,6 +11,10 @@
 //! ```sh
 //! AXIMAR_RUN_LIVE_TESTS=1 cargo test --package aximar-core --test events_smoke -- --nocapture
 //! ```
+//!
+//! Unix only: the events and cancel pipes rely on fd inheritance, so on
+//! other platforms the process exposes no receiver or cancel handle.
+#![cfg(unix)]
 
 use std::sync::Arc;
 
