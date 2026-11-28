@@ -9,8 +9,17 @@ of edge have the same length, the graph is the truncated icosahedron: a
 football.
 
 Writes master.svg (the full ball, back edges fading with depth) and
-small.svg (the front half only, for icons of 64 px and under).  Plain
-Python; no packages needed.
+small.svg (the front half only, for icons of 64 px and under), and a
+Windows copy of each, master_win.svg and small_win.svg.  Plain Python; no
+packages needed.
+
+The macOS drawings follow Apple's grid: an 824 px tile with a drop shadow
+in a 1024 px canvas.  Windows draws an icon edge to edge with no margin of
+its own, so on the taskbar that tile looks a fifth too small.  The Windows
+copies crop the canvas to the tile and leave off the shadow.  Windows
+icons are mostly bare shapes that reach the edges, and next to them a
+pale tile reads as background, so the Windows copies also enlarge the
+ball to nearly fill the tile.
 """
 import math
 import os
@@ -18,11 +27,15 @@ import os
 INK, SEAM = "#1f2440", "#e0452b"
 PAPER_TOP, PAPER_BOTTOM = "#fbf7ef", "#ece4d4"
 
-FRAME = """<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+# The ball spans 82% of the tile; this takes it to about 96%, which still
+# clears the tile's rounded corners.
+WIN_ZOOM = 1.17
+
+FRAME = """<svg xmlns="http://www.w3.org/2000/svg" viewBox="{viewbox}" width="1024" height="1024">
 <defs><linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="{top}"/><stop offset="1" stop-color="{bottom}"/></linearGradient>
 <filter id="sh" x="-10%" y="-10%" width="120%" height="130%"><feDropShadow dx="0" dy="12" stdDeviation="14" flood-color="#000" flood-opacity="0.28"/></filter>
 </defs>
-<rect x="100" y="100" width="824" height="824" rx="185" fill="url(#bg)" filter="url(#sh)"/>
+<rect x="100" y="100" width="824" height="824" rx="185" fill="url(#bg)"{shadow}/>
 {body}
 </svg>
 """
@@ -100,11 +113,13 @@ def cayley_graph():
     return pts, a_edges, b_edges
 
 
-def draw(pts, a_edges, b_edges, scale=330, wa=30, wb=30, dotr=19, min_op=0.14, min_w=0.55, dots=True, cut=None):
+def draw(pts, a_edges, b_edges, scale=330, wa=30, wb=30, dotr=19, min_op=0.14, min_w=0.55, dots=True, cut=None, windows=False):
     """The ball with vertex 0 facing the viewer and its seam pointing up.
 
     Edges fade and thin towards the back.  With `cut`, edges that reach
-    further back than `cut` (on the unit sphere) are left out.
+    further back than `cut` (on the unit sphere) are left out.  With
+    `windows`, the canvas is cropped to the tile and has no shadow, and
+    the ball is enlarged by WIN_ZOOM.
     """
     ez = unit(pts[0])
     j = next(y if x == 0 else x for x, y in b_edges if 0 in (x, y))
@@ -147,14 +162,24 @@ def draw(pts, a_edges, b_edges, scale=330, wa=30, wb=30, dotr=19, min_op=0.14, m
         else:
             x, y = proj(P[i])
             out.append(f'<circle cx="{x:.1f}" cy="{y:.1f}" r="{width * k:.1f}" fill="{col}" fill-opacity="{op:.2f}"/>')
-    return FRAME.format(top=PAPER_TOP, bottom=PAPER_BOTTOM, body="\n".join(out))
+    body = "\n".join(out)
+    if windows:
+        body = f'<g transform="translate(512 512) scale({WIN_ZOOM}) translate(-512 -512)">\n{body}\n</g>'
+    return FRAME.format(
+        viewbox="100 100 824 824" if windows else "0 0 1024 1024",
+        shadow="" if windows else ' filter="url(#sh)"',
+        top=PAPER_TOP,
+        bottom=PAPER_BOTTOM,
+        body=body,
+    )
 
 
 if __name__ == "__main__":
     here = os.path.dirname(os.path.abspath(__file__))
     graph = cayley_graph()
-    with open(os.path.join(here, "master.svg"), "w") as f:
-        f.write(draw(*graph))
     # Small icons: the front half only, with heavier strokes
-    with open(os.path.join(here, "small.svg"), "w") as f:
-        f.write(draw(*graph, wa=44, wb=44, dots=False, cut=-0.07, min_op=0.55, min_w=0.75))
+    small = dict(wa=44, wb=44, dots=False, cut=-0.07, min_op=0.55, min_w=0.75)
+    for name, kw in (("master", {}), ("small", small)):
+        for suffix, windows in (("", False), ("_win", True)):
+            with open(os.path.join(here, name + suffix + ".svg"), "w", newline="\n") as f:
+                f.write(draw(*graph, windows=windows, **kw))
