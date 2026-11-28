@@ -10,15 +10,17 @@ See the [vector calculus example](assets/vc.pdf) for a Stokes' theorem verificat
 
 ## Features
 
-- **Notebook interface** — code and markdown cells with drag-to-reorder
+- **Notebook interface** — code and Markdown cells, drawn as cards or with brackets in the margin; a cell shows when it's running (In [\*]) or waiting in a Run All (In [·])
 - **LaTeX math rendering** — Maxima output rendered with KaTeX
 - **Interactive plots** — Plotly.js charts via `ax_draw2d`, `ax_draw3d`, `ax_plot2d`, and `ax_polar`, with pan, zoom, and hover. Includes contour plots, heatmaps, bar charts, histograms, vector fields, and phase portraits
-- **Classic plots** — Maxima's built-in `plot2d` and `plot3d` rendered as inline SVGs
+- **Classic plots** — Maxima's built-in `plot2d` and `plot3d` rendered as inline SVGs; point at any plot to save it as SVG, PNG or JSON
 - **Function discovery** — searchable catalog of 2500+ functions, docs panel, hover tooltips
-- **Command palette** — quick access to functions and categories (Ctrl+K / Cmd+K)
+- **Command palette** — every command, function and symbol (Ctrl+K / Cmd+K)
 - **Smart editor** — syntax highlighting, autocomplete, signature hints
 - **Find & replace** — search across cells with regex support
-- **Error enhancement** — friendly explanations, "did you mean?" suggestions, correct signatures
+- **Explained errors and notes** — an explanation for each error Maxima gives, with "did you mean?" suggestions and correct signatures; notes on what Maxima printed (`rat: replaced 0.5 by 1/2`) in place of its raw lines, with Maxima's own text a click away
+- **Next steps** — the + between cells offers a code cell, a Markdown cell, or a next step for the result above, such as Simplify, Integrate or Plot; a setting turns these off for a class
+- **Languages** — Maxima's own messages in the language you choose, help in Spanish, German, Japanese or Portuguese once its documentation pack is installed (`mxpm install maxima-core-docs-es`), and the window and menus ready for translators (see [docs/i18n.md](docs/i18n.md))
 - **Variables panel** — inspect and manage bound variables
 - **Templates** — starter notebooks for calculus, linear algebra, plotting, and more
 - **Light, paper, dark or auto theme** — follows your system preference or set manually; paper is warm off-white with ink text
@@ -102,7 +104,7 @@ Aximar looks for the `maxima` binary in these locations (local backend):
 - **Type a Maxima expression** in a cell (e.g. `integrate(x^2, x);`)
 - **Shift+Enter** runs the cell and moves to the next one; on the last cell it puts the caret below, where typing starts a new cell
 - **Ctrl/Cmd+Enter** runs the cell and stays in it
-- **Insert a cell** by clicking the gap between two cells and typing (`#` starts a Markdown cell), or with the + in the left margin, or from the Cell menu
+- **Insert a cell** by clicking the gap between two cells and typing (`#` starts a Markdown cell), or from the Cell menu. The gap's + opens a menu: a code cell, a Markdown cell, or a next step for the result above, which adds a cell and runs it. Tab at the caret opens the same menu
 - **Run All**, **Interrupt** and **Restart** are on the toolbar and in the Cell and Session menus; Restart clears Maxima's state, not your cells
 - **Right-click a cell** for its commands: run, insert, move and delete
 
@@ -133,14 +135,15 @@ Shortcuts lists them all. Hold Ctrl (or Cmd on Mac) to see the common ones.
 | ⌘/ | Ctrl+/ | Keyboard shortcuts |
 | ⌘, | Ctrl+, | Settings |
 | ↑ / ↓ | Up / Down | From a cell's first or last line, to the gap beside it, then the next cell |
+| ⇥ | Tab | At the caret between cells, the + menu: a code or Markdown cell, or a next step |
 | \\ | \\ | Symbol entry in the palette: type a LaTeX name (e.g. `\alpha`, `\leq`, `\nabla`) to insert Unicode |
 
 ### Settings
 
 Open Settings from the toolbar, or with Cmd+, (Ctrl+, on Windows and Linux). A sidebar lists its sections, and each setting has a one-line hint under it. Changes apply at once. Settings reopens at the section you used last.
 
-- **General**: language, theme, and whether the variable panel opens at start
-- **Notebook**: font size, cell style, argument help, Markdown font and indent
+- **General**: language, help language, theme, whether the variable panel opens at start, and the open-source licences
+- **Notebook**: font size, cell style, argument help, suggested next steps, Markdown font and indent
 - **Maxima**: backend (Local, Docker or WSL) and its fields, the evaluation timeout, and a line saying which Maxima Aximar runs and where it found it
 - **Printing**: print font size and margins (mm)
 - **AI assistants**: the MCP server, whether it is listening, and setup for Claude Code, Codex and Gemini CLI (see [Connected mode](#connected-mode-recommended)); the address and token sit under Advanced
@@ -205,7 +208,7 @@ Maxima's built-in `plot2d` and `plot3d` are also supported and render as inline 
 
 ## MCP Server (AI Integration)
 
-Aximar exposes its capabilities via the [Model Context Protocol](https://modelcontextprotocol.io/), letting AI assistants search function docs, manage notebook cells, run Maxima expressions, and inspect session state. There are 21 tools available — see `docs/mcp-server.md` for the full list.
+Aximar exposes its capabilities via the [Model Context Protocol](https://modelcontextprotocol.io/), letting AI assistants search function docs, manage notebook cells, run Maxima expressions, and inspect session state. There are 30 tools — see `docs/mcp-server.md` for the full list. Explanations and notes in results mark code with backticks, as Markdown does.
 
 ### Connected mode (recommended)
 
@@ -307,7 +310,7 @@ A [Debug Adapter Protocol](https://microsoft.github.io/debug-adapter-protocol/) 
 cargo build --release -p maxima-dap
 ```
 
-Both work with the [Maxima VS Code extension](https://github.com/cmsd2/maxima-extension), a fork of the [original extension](https://github.com/yshl/maxima-extension) by Ohta Yasuhiro with added LSP and DAP support.
+Both work with the [Maxima Notebook extension for VS Code](https://github.com/cmsd2/maxima-notebook), a fork of the [original extension](https://github.com/yshl/maxima-extension) by Ohta Yasuhiro with added LSP and DAP support.
 
 ## Architecture
 

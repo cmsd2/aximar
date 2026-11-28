@@ -337,12 +337,6 @@ msgstr ""
 msgid "Busy"
 msgstr ""
 
-#. Settings, Notebook section: hint under Suggestions under results. Integrate is one of the suggestion buttons' labels
-#. screen: dialogs--settings-notebook
-#: src/components/settings/NotebookSection.tsx
-msgid "Buttons under a result that suggest a next step, such as Integrate. Turn them off so students write each step themselves."
-msgstr ""
-
 #. Settings: shown beside an AI tool whose configuration file isn't valid. file is the file's path; Aximar leaves the file alone
 #: src/components/settings/AiClients.tsx
 msgid "Can't read {file}"
@@ -1702,6 +1696,11 @@ msgstr ""
 msgid "Next Match (Enter)"
 msgstr ""
 
+#. Settings, Notebook section: hint under Suggested next steps. Integrate is one of the suggestions' labels
+#: src/components/settings/NotebookSection.tsx
+msgid "Next steps for a result, such as Integrate, in the + menu between cells. Turn them off so students write each step themselves."
+msgstr ""
+
 #. Window menu item: switches to the next notebook tab. max-length:30
 #. screen: dialogs--keyboard-shortcuts
 #: src/commands/registry.ts
@@ -2376,10 +2375,9 @@ msgstr ""
 msgid "Stopped"
 msgstr ""
 
-#. Settings: the label of the checkbox that shows the suggestion buttons (such as Integrate or Plot) under a cell's result
-#. screen: dialogs--settings-notebook
+#. Settings: the label of the checkbox that shows suggested next steps for a result (such as Integrate or Plot) in the + menu between cells
 #: src/components/settings/NotebookSection.tsx
-msgid "Suggestions under results"
+msgid "Suggested next steps"
 msgstr ""
 
 #. Command palette: list entry that opens the list of math symbols, such as Greek letters

@@ -25,7 +25,7 @@ const noop = () => {};
 /** Each section's settings, by label */
 const LABELS: Record<SectionId, string[]> = {
   general: ["Language", "Help language", "Theme", "Variable panel open by default", "Licences"],
-  notebook: ["Font size", "Cell style", "Argument help", "Suggestions under results", "Markdown font", "Markdown indent"],
+  notebook: ["Font size", "Cell style", "Argument help", "Suggested next steps", "Markdown font", "Markdown indent"],
   maxima: ["Backend", "Maxima path", "Evaluation timeout"],
   printing: ["Print font size", "Print margins (mm)"],
   "ai-assistants": ["MCP server", "Claude Code", "Codex", "Gemini CLI", "MCP listen address", "MCP token"],
@@ -92,7 +92,7 @@ describe("the Settings sections", () => {
     }
     // Rows added since: a link, the suggestions switch (issue #44), and the
     // help language, which moved here from the docs panel
-    const added = ["Licences", "Suggestions under results", "Help language"];
+    const added = ["Licences", "Suggested next steps", "Help language"];
     expect([...shown].sort()).toEqual([...OLD_WINDOW, ...added].sort());
   });
 
