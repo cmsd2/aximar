@@ -144,6 +144,28 @@ UI font there is Segoe UI Variable (`[data-platform="windows"]` in
 `--radius-flyout` tokens are Windows 11's sizes and its close button's
 red.
 
+## The window's frame on macOS
+
+On macOS the system draws the menu bar, at the top of the screen, and the
+traffic lights. The page draws the rest of the title bar, with the tabs in
+it beside the traffic lights, as Safari and Xcode do; before, the system's
+title bar showed "Aximar" in a row of its own above the tabs. The window's
+content runs up to its top edge (`TitleBarStyle::Overlay`, with the title
+hidden, in `notebook_window`), and the traffic lights sit in the middle of
+the page's 38px bar.
+
+- `TitleBar` leaves `--traffic-light-space` at its left for the traffic
+  lights, or none in full screen, where the system hides them. The space
+  between the tabs moves the window; a double click zooms it.
+- The tabs are rounded buttons, as Safari's compact tabs are: the active
+  one is `--bg-primary` with a hairline shadow, and a tab's close button
+  shows while the pointer is over it. While another window has the focus
+  the active tab goes flat and the titles grey, as the traffic lights do.
+
+One shade for the title bar and the toolbar beneath it (`--bg-secondary`),
+as a unified title bar and toolbar are, with a hairline under the toolbar.
+The `--mac-*` tokens hold the bar's and the tabs' sizes.
+
 ## Icon buttons
 
 An icon alone is a `Button` with `icon` and `label`: the label names it

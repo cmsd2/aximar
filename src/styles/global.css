@@ -234,6 +234,60 @@
   color: var(--caption-close-text);
 }
 
+/* macOS: the system draws the traffic lights over the bar's left end, and
+   the tabs sit beside them as rounded buttons, as Safari's compact tabs
+   do.  The bar and the toolbar below it share one shade, as a unified
+   title bar and toolbar do, with a hairline under the toolbar. */
+.title-bar.is-macos {
+  height: var(--mac-title-bar-height);
+  padding-left: var(--traffic-light-space);
+}
+/* In full screen the system hides the traffic lights */
+.title-bar.is-macos.is-full-screen {
+  padding-left: var(--space-2);
+}
+.title-bar.is-macos .tab-bar {
+  align-items: center;
+  gap: var(--space-1);
+  padding: 0 var(--space-2) 0 0;
+}
+.title-bar.is-macos .tab {
+  height: var(--mac-tab-height);
+  min-width: 96px;
+  max-width: 220px;
+  padding: 0 var(--space-1) 0 var(--space-3);
+  border-radius: var(--radius-md);
+  font-size: var(--text-md);
+  cursor: default;
+}
+.title-bar.is-macos .tab:hover {
+  background: var(--selected-bg);
+}
+.title-bar.is-macos .tab-active,
+.title-bar.is-macos .tab-active:hover {
+  background: var(--bg-primary);
+  box-shadow: var(--mac-tab-shadow);
+}
+/* Each tab's close button shows while the pointer is over the tab */
+.title-bar.is-macos .tab-close {
+  visibility: hidden;
+  cursor: default;
+}
+.title-bar.is-macos .tab:hover .tab-close {
+  visibility: visible;
+}
+.title-bar.is-macos .tab-new {
+  cursor: default;
+}
+/* Another window has the focus: the active tab stops standing out */
+.title-bar.is-macos.is-inactive .tab-active {
+  background: none;
+  box-shadow: none;
+}
+.title-bar.is-macos.is-inactive .tab {
+  color: var(--text-placeholder);
+}
+
 /* The bars and panels around the notebook take the window's colour too,
    as the menu and tool row does, with borders between them: the title
    bar's shade stays the title bar's */

@@ -76,6 +76,13 @@
   --caption-close-bg: #c42b1c;
   --caption-close-text: #ffffff;
   --radius-flyout: 8px;
+
+  /* The title bar the page draws on macOS, under the system's traffic
+     lights (src-tauri/src/commands/window.rs places them) */
+  --mac-title-bar-height: 38px;
+  --mac-tab-height: 26px;
+  --traffic-light-space: 86px;
+  --mac-tab-shadow: 0 0 0 0.5px var(--border-color), 0 1px 2px rgba(0, 0, 0, 0.08);
 }
 
 /* Windows 11's own type, where the page draws the window's frame */

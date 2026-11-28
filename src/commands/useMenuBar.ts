@@ -9,17 +9,17 @@ import { i18n } from "../lib/i18n";
 import { readCommandState, shortcutCommand } from "./registry";
 import { menuModel, menuState, type ItemState } from "./menu-model";
 import { currentPlatform } from "./shortcut";
-import { drawsWindowFrame } from "../lib/window-frame";
+import { drawsMenuBar } from "../lib/window-frame";
 import { useCommandState, useRunCommand } from "./useCommands";
 
 /** Send the whole menu bar, in the window's language, unless the page draws it */
 export async function sendMenu(): Promise<void> {
-  if (drawsWindowFrame()) return;
+  if (drawsMenuBar()) return;
   return invoke("set_menu", { model: menuModel(i18n, readCommandState(), currentPlatform()) });
 }
 
 async function sendState(states: ItemState[]): Promise<void> {
-  if (drawsWindowFrame()) return;
+  if (drawsMenuBar()) return;
   return invoke("set_menu_state", { states });
 }
 

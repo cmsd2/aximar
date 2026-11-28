@@ -27,12 +27,18 @@ pub async fn create_window(app: AppHandle, notebook_id: Option<String>) -> Resul
     Ok(label)
 }
 
-/// A notebook window in the platform's style.  On Windows the page draws
-/// the title bar, with the tabs in it, and the menu bar
-/// (`src/components/TitleBar.tsx`), as Windows 11's own apps do: the
-/// system's menu bar can't take the window's fonts or colours.  The page's
-/// Edit > Paste reads the clipboard, which WebView2 asks the user about
-/// unless the window allows it.
+/// A notebook window in the platform's style (`src/lib/window-frame.ts`).
+///
+/// On Windows the page draws the title bar, with the tabs in it, and the
+/// menu bar (`src/components/TitleBar.tsx`), as Windows 11's own apps do:
+/// the system's menu bar can't take the window's fonts or colours.  The
+/// page's Edit > Paste reads the clipboard, which WebView2 asks the user
+/// about unless the window allows it.
+///
+/// On macOS the page fills the window up to its top edge and draws the
+/// title bar there, with the tabs beside the traffic lights, as Safari and
+/// Xcode do.  The system still draws the traffic lights, centred in the
+/// page's bar (`--mac-title-bar-height` in `src/styles/tokens.css`).
 pub fn notebook_window<'a, R: Runtime, M: Manager<R>>(
     builder: WebviewWindowBuilder<'a, R, M>,
 ) -> WebviewWindowBuilder<'a, R, M> {
@@ -40,11 +46,29 @@ pub fn notebook_window<'a, R: Runtime, M: Manager<R>>(
     {
         builder.decorations(false).enable_clipboard_access()
     }
-    #[cfg(not(windows))]
+    #[cfg(target_os = "macos")]
+    {
+        builder
+            .title_bar_style(tauri::TitleBarStyle::Overlay)
+            .hidden_title(true)
+            .traffic_light_position(tauri::LogicalPosition::new(
+                TRAFFIC_LIGHTS_X,
+                TRAFFIC_LIGHTS_Y,
+            ))
+    }
+    #[cfg(not(any(windows, target_os = "macos")))]
     {
         builder
     }
 }
+
+/// Where the traffic lights go on macOS, in points from the window's top
+/// left: the close button's left edge, and the middle of the buttons'
+/// height, which is the middle of the page's 38px title bar
+#[cfg(target_os = "macos")]
+const TRAFFIC_LIGHTS_X: f64 = 14.0;
+#[cfg(target_os = "macos")]
+const TRAFFIC_LIGHTS_Y: f64 = 21.0;
 
 /// Open the main window, which tauri.conf.json describes but doesn't create
 pub fn open_main_window<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<()> {
