@@ -40,7 +40,8 @@ function TranslationPreviewRow({ language }: { language: string }) {
       setPath(currentPreviewPath());
       setError(null);
     } catch (e) {
-      setError(String(e));
+      // The file was just chosen: its name is enough to say which one
+      setError(String(e).split(chosen).join(chosen.split(/[\\/]/).pop() ?? chosen));
     }
   };
 
@@ -62,22 +63,29 @@ function TranslationPreviewRow({ language }: { language: string }) {
       })}
     >
       {({ id, describedBy }) => (
-        <div className="settings-claude-setup">
-          {path ? (
-            <>
-              <span className="settings-claude-status" title={path}>
-                {path.split(/[\\/]/).pop()}
-              </span>
-              <Button size="sm" id={id} aria-describedby={describedBy} onClick={() => void stop()}>
-                {t({ message: "Stop preview", comment: "Settings: stops showing the translation file, going back to the language setting" })}
+        <div className="settings-preview">
+          <div className="settings-claude-setup">
+            {path ? (
+              <>
+                <span className="settings-claude-status" title={path}>
+                  {path.split(/[\\/]/).pop()}
+                </span>
+                <Button size="sm" id={id} aria-describedby={describedBy} onClick={() => void stop()}>
+                  {t({ message: "Stop preview", comment: "Settings: stops showing the translation file, going back to the language setting" })}
+                </Button>
+              </>
+            ) : (
+              <Button size="sm" id={id} aria-describedby={describedBy} onClick={() => void load()}>
+                {t({ message: "Load translation file...", comment: "Settings, pre-release builds: chooses a .po file to show in the window" })}
               </Button>
-            </>
-          ) : (
-            <Button size="sm" id={id} aria-describedby={describedBy} onClick={() => void load()}>
-              {t({ message: "Load translation file...", comment: "Settings, pre-release builds: chooses a .po file to show in the window" })}
-            </Button>
+            )}
+          </div>
+          {/* Under the button, wrapping: a parse error names the file and can be long */}
+          {error && (
+            <p className="settings-preview-error" role="alert">
+              {error}
+            </p>
           )}
-          {error && <span className="settings-claude-status settings-claude-warn">{error}</span>}
         </div>
       )}
     </FieldRow>

@@ -2191,6 +2191,29 @@
   color: var(--error-color);
 }
 
+/* The translation preview's row, with any error on a line of its own.
+   The field row sizes its control to fit, so a cap keeps a long error
+   from squeezing the label: it wraps within the cap instead. */
+.settings-preview {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--space-1);
+  max-width: 320px;
+}
+
+.settings-preview-error {
+  margin: 0;
+  max-width: 100%;
+  text-align: right;
+  max-height: 8em;
+  overflow: auto;
+  font-size: var(--text-sm);
+  color: var(--error-color);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
 
 .export-latex-scope {
   color: var(--text-secondary);
