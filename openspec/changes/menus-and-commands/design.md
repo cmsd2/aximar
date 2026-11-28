@@ -78,7 +78,7 @@ Edit's Undo and Redo become custom items with Mod+Z and Mod+Shift+Z. The dispatc
 
 - `toAccelerator(s)` → Tauri's `"CmdOrCtrl+Shift+W"`.
 - `formatShortcut(s, platform)` → `"⇧⌘W"` on macOS (symbols in Apple's order ⌃⌥⇧⌘), `"Ctrl+Shift+W"` on Windows and Linux.
-- `matches(s, event)` → for the one remaining window alias and for tests.
+- `matches(s, event)` → for the one remaining window alias, for tests, and on Windows for every menu shortcut. There no accelerator fires while the page has the keyboard (WebView2 takes key presses in its own process), so `useMenuBar` runs the menu's shortcuts from a capture-phase `keydown` listener and ignores the menu's own event for one that follows within 250 ms. Punctuation matches by `KeyboardEvent.code`, as Shift turns `]` into `}`; letters match by the character they type.
 
 `platform` comes from `@tauri-apps/plugin-os` if present, else `navigator.userAgent`, read once. Every written-in "Cmd+..." string (`Toolbar`'s undo tooltip, `TabBar`'s new-tab tooltip, `ShortcutHints`) goes through `formatShortcut`. Translator notes say the shortcut is a placeholder.
 

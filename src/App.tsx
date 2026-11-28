@@ -41,6 +41,9 @@ import { useSettingsStore } from "./store/settingsStore";
 import type { LogLink } from "./types/log";
 import { useUiStore } from "./store/uiStore";
 import { useMenuBar } from "./commands/useMenuBar";
+import { drawsMenuBar, drawsTitleBar } from "./lib/window-frame";
+import { TitleBar } from "./components/TitleBar";
+import { MenuBar } from "./components/MenuBar";
 import "./styles/global.css";
 
 function App() {
@@ -249,12 +252,21 @@ function App() {
 
   const activeAnyTab = useActiveAnyTab();
   const isNotebookTab = !activeAnyTab || activeAnyTab.type === "notebook";
+  // On Windows and macOS the page draws the title bar, with the tabs in it,
+  // and on Windows the menu bar too (lib/window-frame.ts)
+  const titleBar = drawsTitleBar();
+  const menuBar = drawsMenuBar();
 
   return (
     <div className="app">
-      <TabBar />
-      {isNotebookTab && (
-        <Toolbar />
+      {titleBar ? <TitleBar /> : <TabBar />}
+      {menuBar ? (
+        <div className="command-bar">
+          <MenuBar />
+          {isNotebookTab && <Toolbar />}
+        </div>
+      ) : (
+        isNotebookTab && <Toolbar />
       )}
       {isNotebookTab && <FindBar />}
       {isNotebookTab && <VariablePanel open={variablesOpen} />}

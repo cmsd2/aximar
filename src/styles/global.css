@@ -9,9 +9,7 @@
   --font-family-markdown: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
   --markdown-indent: 16px;
 
-  font-family:
-    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu,
-    Cantarell, sans-serif;
+  font-family: var(--font-ui);
   font-size: 15px;
   color: var(--text-primary);
   background-color: var(--bg-primary);
@@ -131,6 +129,298 @@
   50% { opacity: 0.5; }
 }
 
+/* The title bar and menu bar the page draws on Windows (lib/window-frame.ts),
+   as Windows 11's apps draw theirs: the tabs in the title bar, the active
+   tab the colour of the bar below it, and a flat menu bar beside the
+   toolbar.  Two shades, the title bar's and the window's. */
+.title-bar {
+  display: flex;
+  align-items: stretch;
+  height: var(--title-bar-height);
+  background: var(--bg-secondary);
+  flex-shrink: 0;
+  user-select: none;
+}
+
+.title-bar-icon {
+  width: var(--space-4);
+  height: var(--space-4);
+  margin: auto var(--space-1) auto var(--space-3);
+  flex-shrink: 0;
+}
+
+.title-bar .tab-bar {
+  flex: 1;
+  min-width: 0;
+  align-items: flex-end;
+  gap: var(--space-1);
+  padding: 0 var(--space-2) 0 var(--space-1);
+  background: none;
+  border-bottom: none;
+  scrollbar-width: none;
+}
+
+.title-bar .tab {
+  height: var(--space-8);
+  min-width: 120px;
+  max-width: 240px;
+  padding: 0 var(--space-2) 0 var(--space-3);
+  border: none;
+  border-radius: var(--radius-flyout) var(--radius-flyout) 0 0;
+  font-size: var(--text-md);
+  color: var(--text-secondary);
+}
+
+.title-bar .tab-title {
+  flex: 1;
+  max-width: none;
+}
+
+.title-bar .tab-active,
+.title-bar .tab-active:hover {
+  background: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+.title-bar .tab-close {
+  display: flex;
+  padding: var(--space-1);
+  border-radius: var(--radius-sm);
+}
+
+.title-bar .tab-close:hover,
+.title-bar .tab-new:hover {
+  background: var(--selected-bg);
+}
+
+.title-bar .tab-new {
+  display: flex;
+  align-self: center;
+  padding: var(--space-2);
+  border-radius: var(--radius-sm);
+}
+
+.window-controls {
+  display: flex;
+  flex-shrink: 0;
+}
+
+.window-control {
+  width: var(--caption-button-width);
+  border: none;
+  background: none;
+  color: var(--text-primary);
+  font-family: "Segoe Fluent Icons", "Segoe MDL2 Assets", sans-serif;
+  font-size: var(--caption-glyph-size);
+  cursor: default;
+}
+
+.window-control:hover {
+  background: var(--selected-bg);
+}
+
+.window-control.window-close:hover {
+  background: var(--caption-close-bg);
+  color: var(--caption-close-text);
+}
+
+/* Another window has the focus: the system dims its title bar's text */
+.title-bar.is-inactive .window-control,
+.title-bar.is-inactive .tab-active {
+  color: var(--text-placeholder);
+}
+
+.title-bar.is-inactive .window-control.window-close:hover {
+  color: var(--caption-close-text);
+}
+
+/* macOS: the system draws the traffic lights over the bar's left end, and
+   the tabs sit beside them as rounded buttons, as Safari's compact tabs
+   do.  The bar and the toolbar below it share one shade, as a unified
+   title bar and toolbar do, with a hairline under the toolbar. */
+.title-bar.is-macos {
+  height: var(--mac-title-bar-height);
+  padding-left: var(--traffic-light-space);
+}
+/* In full screen the system hides the traffic lights */
+.title-bar.is-macos.is-full-screen {
+  padding-left: var(--space-2);
+}
+.title-bar.is-macos .tab-bar {
+  align-items: center;
+  gap: var(--space-1);
+  padding: 0 var(--space-2) 0 0;
+}
+.title-bar.is-macos .tab {
+  height: var(--mac-tab-height);
+  min-width: 96px;
+  max-width: 220px;
+  padding: 0 var(--space-1) 0 var(--space-3);
+  border-radius: var(--radius-md);
+  font-size: var(--text-md);
+  cursor: default;
+}
+.title-bar.is-macos .tab:hover {
+  background: var(--selected-bg);
+}
+.title-bar.is-macos .tab-active,
+.title-bar.is-macos .tab-active:hover {
+  background: var(--bg-primary);
+  box-shadow: var(--mac-tab-shadow);
+}
+/* Each tab's close button shows while the pointer is over the tab */
+.title-bar.is-macos .tab-close {
+  visibility: hidden;
+  cursor: default;
+}
+.title-bar.is-macos .tab:hover .tab-close {
+  visibility: visible;
+}
+.title-bar.is-macos .tab-new {
+  cursor: default;
+}
+/* Another window has the focus: the active tab stops standing out */
+.title-bar.is-macos.is-inactive .tab-active {
+  background: none;
+  box-shadow: none;
+}
+.title-bar.is-macos.is-inactive .tab {
+  color: var(--text-placeholder);
+}
+
+/* The bars and panels around the notebook take the window's colour too,
+   as the menu and tool row does, with borders between them: the title
+   bar's shade stays the title bar's */
+[data-platform="windows"] :is(
+  .variable-panel,
+  .find-bar,
+  .ui-panel-header,
+  .docs-panel-header,
+  .docs-search-results,
+  .log-window,
+  .status-bar,
+  .shortcut-hints
+) {
+  background: var(--bg-primary);
+}
+
+/* The menu bar, then the toolbar, on the window's colour */
+.command-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: calc(var(--space-8) + var(--space-3));
+  padding: var(--space-1) var(--space-2);
+  background: var(--bg-primary);
+  border-bottom: 1px solid var(--border-color);
+  flex-shrink: 0;
+}
+
+.command-bar .toolbar {
+  flex: 1;
+  padding: 0;
+  background: none;
+  border-bottom: none;
+}
+
+.menu-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-half);
+}
+
+.menu-bar-item {
+  position: relative;
+}
+
+.menu-title {
+  height: var(--space-8);
+  padding: 0 var(--space-3);
+  border: none;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--text-primary);
+  font-family: var(--font-ui);
+  font-size: var(--text-lg);
+  cursor: default;
+}
+
+.menu-title:hover,
+.menu-title.is-open {
+  background: var(--selected-bg);
+}
+
+/* Windows underlines the letters only once Alt is pressed */
+.menu-bar.is-keyboard .menu-mnemonic {
+  text-decoration: underline;
+}
+
+.menu-dropdown {
+  position: absolute;
+  top: calc(100% + var(--space-1));
+  left: 0;
+  z-index: 1000;
+  min-width: 240px;
+  padding: var(--space-1);
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-flyout);
+  box-shadow: var(--shadow-popover);
+}
+
+.menu-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  height: var(--space-8);
+  padding: 0 var(--space-3) 0 var(--space-2);
+  border: none;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--text-primary);
+  font-family: var(--font-ui);
+  font-size: var(--text-lg);
+  text-align: left;
+  white-space: nowrap;
+  cursor: default;
+}
+
+.menu-item.is-active {
+  background: var(--selected-bg);
+}
+
+.menu-item:disabled {
+  color: var(--text-placeholder);
+}
+
+.menu-item-check {
+  display: flex;
+  width: var(--space-4);
+  flex-shrink: 0;
+}
+
+.menu-item-label {
+  flex: 1;
+}
+
+.menu-item-key {
+  padding-left: var(--space-6);
+  color: var(--text-secondary);
+  font-family: var(--font-ui);
+  font-size: var(--text-md);
+}
+
+.menu-item:disabled .menu-item-key {
+  color: var(--text-placeholder);
+}
+
+.menu-separator {
+  height: 1px;
+  margin: var(--space-1) calc(-1 * var(--space-1));
+  background: var(--border-color);
+}
+
 /* Tab context menu */
 .tab-context-menu {
   position: fixed;
@@ -214,7 +504,8 @@
   }
 }
 
-[data-theme="dark"] .toolbar-btn:hover:not(:disabled) {
+[data-theme="dark"] .toolbar-btn:hover:not(:disabled),
+[data-theme="night"] .toolbar-btn:hover:not(:disabled) {
   background: rgba(255, 255, 255, 0.08);
 }
 
@@ -786,7 +1077,8 @@
   }
 }
 
-[data-theme="dark"] .cell-output-area {
+[data-theme="dark"] .cell-output-area,
+[data-theme="night"] .cell-output-area {
   background: rgba(0, 0, 0, 0.15);
 }
 

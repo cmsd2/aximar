@@ -8,6 +8,8 @@ describe("the Storybook theme switch", () => {
     expect(document.documentElement.dataset.theme).toBe("dark");
     applyStoryTheme("paper");
     expect(document.documentElement.dataset.theme).toBe("paper");
+    applyStoryTheme("night");
+    expect(document.documentElement.dataset.theme).toBe("night");
     applyStoryTheme("light");
     expect(document.documentElement.dataset.theme).toBe("light");
   });

@@ -438,6 +438,7 @@ msgstr ""
 
 #. Maxima Not Found dialog: the button that closes the dialog
 #. Settings button: closes the settings window
+#. Windows title bar: tooltip of the button that closes the window
 #. screen: dialogs--settings
 #. screen: dialogs--settings-ai-assistants
 #. screen: dialogs--settings-maxima
@@ -446,7 +447,8 @@ msgstr ""
 #. screen: dialogs--settings-translation
 #. screen: dialogs--settings-translation-error
 #. screen: ui-button--variants
-#: src/components/settings/SettingsShell.tsx src/hooks/useMaxima.ts
+#: src/components/settings/SettingsShell.tsx src/components/WindowControls.tsx
+#: src/hooks/useMaxima.ts
 msgid "Close"
 msgstr ""
 
@@ -705,7 +707,7 @@ msgstr ""
 msgid "Cut"
 msgstr ""
 
-#. Settings: theme button for the dark theme
+#. Settings: theme button for the dark theme, in neutral greys like the system's own dark mode
 #. screen: dialogs--settings
 #. screen: ui-segmentedcontrol--options
 #: src/components/settings/GeneralSection.tsx
@@ -1538,6 +1540,12 @@ msgstr ""
 msgid "Maxima path"
 msgstr ""
 
+#. Window menu (Windows): makes the window fill the screen, or back. max-length:30
+#. Windows title bar: tooltip of the button that makes the window fill the screen
+#: src/components/MenuBar.tsx src/components/WindowControls.tsx
+msgid "Maximize"
+msgstr ""
+
 #. Settings: the label of the field for the address and port the MCP server listens on
 #: src/components/settings/AiAssistantsSection.tsx
 msgid "MCP listen address"
@@ -1556,7 +1564,8 @@ msgid "MCP token"
 msgstr ""
 
 #. Window menu item: minimises the window to the Dock or taskbar. max-length:30
-#: src/commands/menu-model.ts
+#. Windows title bar: tooltip of the button that minimises the window to the taskbar
+#: src/commands/menu-model.ts src/components/WindowControls.tsx
 msgid "Minimize"
 msgstr ""
 
@@ -1727,6 +1736,11 @@ msgstr ""
 #. screen: dialogs--keyboard-shortcuts
 #: src/commands/registry.ts
 msgid "Next Tab"
+msgstr ""
+
+#. Settings: theme button for a second dark theme, tinted violet with pastel colours. A word for night or the night sky
+#: src/components/settings/GeneralSection.tsx
+msgid "Night"
 msgstr ""
 
 #. Variable panel: shown when the Maxima session has no bound variables
@@ -2049,6 +2063,11 @@ msgstr ""
 #. screen: window--toolbar-running
 #: src/commands/registry.ts
 msgid "Restart"
+msgstr ""
+
+#. Windows title bar: tooltip of the button that returns a maximised window to its size
+#: src/components/WindowControls.tsx
+msgid "Restore Down"
 msgstr ""
 
 #. Settings: label of the right print margin field

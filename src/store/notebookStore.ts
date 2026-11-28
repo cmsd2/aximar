@@ -4,7 +4,7 @@ import type { SessionStatus } from "../types/maxima";
 import { nextSelection, type SelectHow } from "../lib/selection-utils";
 import { fromBackend, hasPendingSync } from "../lib/dirty-inputs";
 
-export type Theme = "auto" | "light" | "paper" | "dark";
+export type Theme = "auto" | "light" | "paper" | "dark" | "night";
 export type CellStyle = "card" | "bracket";
 export type AutocompleteMode = "hint" | "snippet" | "active-hint";
 

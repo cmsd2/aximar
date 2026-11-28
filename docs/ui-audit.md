@@ -295,10 +295,16 @@ toggles, tinted when on, and Settings (28, 33's pill stays beside the
 session's buttons). Tabler icons replace the characters, and the
 variables, docs and log panels and the find bar share one header (29,
 31). Still to check by hand: the accelerators on Windows and Linux.
-On Windows, Ctrl+Z in a cell went to the page rather than the menu, and
-WebView2's own undo ran on the editor, so the cell editor now runs Undo
-and Redo for their keys itself. The other accelerators, from a cell,
-are still to check.
+On Windows no accelerator fired while the page had the keyboard, which
+is nearly always: WebView2 takes key presses in its own process, and
+neither wry nor Tauri passes them to the menu. So on Windows the page
+runs the menu's shortcuts itself (`useMenuBar.ts`), in the capture
+phase, before the cell editor sees them, as the menu takes them first on
+macOS. Should the menu also report one, its event is ignored. Linux,
+where GTK's accelerators get the key first, is still to check. Windows
+has since lost the native menu bar altogether: the page draws the title
+bar, with the tabs in it, and the menu bar (docs/design-library.md, "The
+window's frame on Windows").
 
 ### Proposal
 

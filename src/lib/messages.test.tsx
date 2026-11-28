@@ -10,7 +10,9 @@ import type { Message } from "../types/maxima";
 
 /** The template's Rust messages with an ID: context, English and placeholders */
 function rustMessages(): { context: string; template: string; params: string[] }[] {
-  const pot = readFileSync(new URL("../../locales/messages.pot", import.meta.url), "utf8");
+  const pot = readFileSync(new URL("../../locales/messages.pot", import.meta.url), "utf8")
+    // A Windows checkout has CRLF line endings
+    .replace(/\r\n/g, "\n");
   const unquote = (s: string) => JSON.parse(s) as string;
   const out = [];
   for (const entry of pot.split("\n\n")) {

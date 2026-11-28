@@ -48,6 +48,7 @@ pub fn run() {
             }
         })
         .setup(|app| {
+            commands::window::open_main_window(app.handle())?;
             let language = commands::config::read_language(app.handle());
             menu::setup_menu(app, &language)?;
             i18n::set_docs_language(&commands::config::read_docs_language(app.handle()));

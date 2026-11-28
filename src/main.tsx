@@ -9,9 +9,13 @@ import { ErrorBoundary } from "./components/ErrorBoundary";
 import { i18n, activateDevelopmentLocale } from "./lib/i18n";
 import { installSourceTags } from "./lib/show-sources";
 import { TranslatorTools } from "./components/TranslatorTools";
+import { currentPlatform } from "./commands/shortcut";
 
 // Strings can carry their IDs, for show-sources; only while it's on
 installSourceTags(i18n);
+
+// Styles that follow the platform, such as Windows 11's type (tokens.css)
+document.documentElement.dataset.platform = currentPlatform();
 
 // Async errors (rejected promises from Plotly, IPC, etc.) are not caught by
 // React error boundaries. Log them instead of letting them surface as an

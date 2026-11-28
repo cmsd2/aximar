@@ -23,7 +23,7 @@ The notebook in the screenshot is [assets/a5-cayley.macnb](assets/a5-cayley.macn
 - **Languages** — Maxima's own messages in the language you choose, help in Spanish, German, Japanese or Portuguese once its documentation pack is installed (`mxpm install maxima-core-docs-es`), and the window and menus ready for translators (see [docs/i18n.md](docs/i18n.md))
 - **Variables panel** — inspect and manage bound variables
 - **Templates** — starter notebooks for calculus, linear algebra, plotting, and more
-- **Light, paper, dark or auto theme** — follows your system preference or set manually; paper is warm off-white with ink text
+- **Light, paper, dark, night or auto theme** — follows your system preference or set manually; paper is warm off-white with ink text, dark is neutral grey, and night is dark tinted violet
 - **MCP server** — AI integration via Model Context Protocol, with built-in setup for Claude Code, Codex, and Gemini CLI
 - **Multiple backends** — run Maxima locally, in Docker/Podman, or via WSL
 - **Save & load** — persist notebooks in Jupyter-compatible format; drag `.macnb` or `.ipynb` files onto the window to open them, or open them from Finder (double-click, Open With, or a drop on the Dock icon)

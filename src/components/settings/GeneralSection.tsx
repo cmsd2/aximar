@@ -23,7 +23,17 @@ export const THEMES: { value: Theme; label: Label }[] = [
     value: "paper",
     label: msg({ message: "Paper", comment: "Settings: theme button for a light theme on warm off-white, like paper" }),
   },
-  { value: "dark", label: msg({ message: "Dark", comment: "Settings: theme button for the dark theme" }) },
+  {
+    value: "dark",
+    label: msg({ message: "Dark", comment: "Settings: theme button for the dark theme, in neutral greys like the system's own dark mode" }),
+  },
+  {
+    value: "night",
+    label: msg({
+      message: "Night",
+      comment: "Settings: theme button for a second dark theme, tinted violet with pastel colours. A word for night or the night sky",
+    }),
+  },
 ];
 
 export function GeneralSection({ config, update }: SectionProps) {

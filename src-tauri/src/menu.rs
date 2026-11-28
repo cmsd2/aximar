@@ -140,7 +140,8 @@ pub fn set_menu_language(app: &AppHandle, language: &str) -> tauri::Result<()> {
 /// translation preview.  It stands in until the first window sends its own
 /// menu; after that a language change reaches the menu through the windows.
 pub fn set_menu_translations(app: &AppHandle, translations: &Translations) -> tauri::Result<()> {
-    if WINDOW_MENU.load(Ordering::Acquire) {
+    // On Windows the page draws the menu bar (commands/window.rs)
+    if cfg!(windows) || WINDOW_MENU.load(Ordering::Acquire) {
         return Ok(());
     }
     let l = MenuLabels::new(translations);
@@ -478,6 +479,10 @@ pub fn set_menu(
     items: tauri::State<'_, MenuItems>,
     model: Vec<MenuNode>,
 ) -> Result<(), String> {
+    // On Windows the page draws the menu bar (commands/window.rs)
+    if cfg!(windows) {
+        return Ok(());
+    }
     let (menu, by_id) = build_menu(&app, &model).map_err(|e| e.to_string())?;
     app.set_menu(menu).map_err(|e| e.to_string())?;
     WINDOW_MENU.store(true, Ordering::Release);

@@ -23,6 +23,8 @@ pub enum Theme {
     Light,
     Paper,
     Dark,
+    /// Dark tinted violet, where Dark is neutral grey
+    Night,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]

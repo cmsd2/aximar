@@ -80,6 +80,7 @@ const preview: Preview = {
           { value: "light", title: "Light", icon: "sun" },
           { value: "paper", title: "Paper", icon: "document" },
           { value: "dark", title: "Dark", icon: "moon" },
+          { value: "night", title: "Night", icon: "contrast" },
         ],
         dynamicTitle: true,
       },

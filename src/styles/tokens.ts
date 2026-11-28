@@ -9,8 +9,10 @@ export interface Tokens {
   light: TokenMap;
   /** The dark block under `prefers-color-scheme: dark` */
   darkAuto: TokenMap;
-  /** The dark block under `[data-theme="dark"]` */
+  /** The neutral dark block under `[data-theme="dark"]` */
   dark: TokenMap;
+  /** The violet dark block under `[data-theme="night"]` */
+  night: TokenMap;
   /** The paper block under `[data-theme="paper"]` */
   paper: TokenMap;
   /** The print palette, under `@media print` */
@@ -53,6 +55,7 @@ export function parseTokens(css: string): Tokens {
     light: variables(rootBody),
     darkAuto: variables(blockAfter(autoDark, ":root:not([data-theme])")),
     dark: variables(blockAfter(css, '[data-theme="dark"]')),
+    night: variables(blockAfter(css, '[data-theme="night"]')),
     paper: variables(blockAfter(css, '[data-theme="paper"]')),
     print: variables(blockAfter(css, "@media print")),
     groups,

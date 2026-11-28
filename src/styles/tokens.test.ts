@@ -7,7 +7,7 @@ const css = readFileSync(new URL("./tokens.css", import.meta.url), "utf8");
 const tokens = parseTokens(css);
 const colourNames = [...tokens.light].filter(([, v]) => isColour(v)).map(([k]) => k);
 
-type Themes = Record<"light" | "paper" | "dark", Map<string, string>>;
+type Themes = Record<"light" | "paper" | "dark" | "night", Map<string, string>>;
 
 /** The pairs below 4.5:1 in a theme, as readable lines */
 function failures(themes: Themes): string[] {
@@ -29,6 +29,12 @@ describe("the design tokens", () => {
     }
   });
 
+  it("give every colour a night value", () => {
+    for (const name of colourNames) {
+      expect(tokens.night.has(name), `--${name} has no night value`).toBe(true);
+    }
+  });
+
   it("give every colour a paper value", () => {
     for (const name of colourNames) {
       expect(tokens.paper.has(name), `--${name} has no paper value`).toBe(true);
@@ -47,7 +53,7 @@ describe("the design tokens", () => {
   });
 
   it("give text at least 4.5:1 in every theme", () => {
-    expect(failures({ light: tokens.light, paper: tokens.paper, dark: tokens.dark })).toEqual([]);
+    expect(failures({ light: tokens.light, paper: tokens.paper, dark: tokens.dark, night: tokens.night })).toEqual([]);
   });
 
   it("print text at 4.5:1 on paper", () => {
@@ -62,7 +68,7 @@ describe("the design tokens", () => {
   it("fail a pair below 4.5:1", () => {
     // The light success text as it was before the settings-window change
     const light = new Map(tokens.light).set("success-text", "#2d8a4e");
-    expect(failures({ light, paper: tokens.paper, dark: tokens.dark })).toContain("--success-text on --success-bg, light: 3.95:1");
+    expect(failures({ light, paper: tokens.paper, dark: tokens.dark, night: tokens.night })).toContain("--success-text on --success-bg, light: 3.95:1");
   });
 
   it("measure contrast as WCAG does", () => {

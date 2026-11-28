@@ -19,7 +19,7 @@ import { afterRun, goTo, insertAt } from "../lib/cell-caret";
 import { openNewNotebook } from "../lib/new-notebook";
 import { openFromDisk, saveActive, saveActiveAs } from "../lib/file-commands";
 import { closeActiveTab, closeWindow, moveTabToNewWindow, stepTab } from "../lib/tab-commands";
-import type { Shortcut } from "./shortcut";
+import { currentPlatform, matches, type Platform, type Shortcut } from "./shortcut";
 
 export type MenuName = "app" | "file" | "edit" | "cell" | "session" | "view" | "window" | "help";
 
@@ -441,6 +441,14 @@ const BY_ID = new Map(COMMANDS.map((c) => [c.id, c]));
 /** The command with this id */
 export function command(id: string): Command | undefined {
   return BY_ID.get(id);
+}
+
+/** The command whose menu shortcut a key press is, on this platform */
+export function shortcutCommand(
+  e: Parameters<typeof matches>[1],
+  platform: Platform = currentPlatform(),
+): Command | undefined {
+  return COMMANDS.find((c) => c.shortcut && matches(c.shortcut, e, platform));
 }
 
 /** Whether focus is in a text field outside the cells, which has its own undo */

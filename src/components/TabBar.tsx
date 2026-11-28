@@ -8,6 +8,7 @@ import { IconPlus, IconX } from "./ui/icons";
 import { useNotebookStore } from "../store/notebookStore";
 import type { NotebookTab } from "../store/notebookStore";
 import { displayTitle } from "../lib/tab-title";
+import { drawsTitleBar } from "../lib/window-frame";
 
 function statusDotClass(status: NotebookTab["sessionStatus"]): string {
   if (status === "Ready") return "tab-status-dot ready";
@@ -78,7 +79,8 @@ export function TabBar() {
   }, []);
 
   return (
-    <div className="tab-bar">
+    // In the page's own title bar, the space between the tabs moves the window
+    <div className="tab-bar" data-tauri-drag-region={drawsTitleBar() || undefined}>
       {tabs.map((tab) => (
         <div
           key={tab.id}
