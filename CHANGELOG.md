@@ -58,6 +58,10 @@ see the `v*` releases on GitHub.
   "Principal Value" and "expt: undefined: 0 to a negative exponent." in a
   cell that still has a result. Notes aren't written to files; opening a
   notebook finds them again.
+- **Cells waiting in a run show as queued**: while `run_all_cells` (or the
+  desktop window's Run All) runs, every cell with code it will reach has
+  the status `queued` until its turn; a cell the run stops before gets its
+  old status back. `list_cells` and `get_cell` show it.
 - **Code in explanations and notes is marked**: the English text of
   `error_info` and of notes puts backticks around code, as in Markdown:
   "`` `allroots` `` works only on polynomials, but got `` `sin(x)` ``.",

@@ -173,6 +173,11 @@ jobs:
       - name: Build frontend
         run: npm run build
 
+      # The window's tests (vitest, in happy-dom): components, stores, and
+      # the libraries under src/lib and scripts/
+      - name: Run the frontend tests
+        run: npm test
+
       # After the frontend build: src-tauri needs dist/ to compile
       - name: Clippy
         run: cargo clippy --workspace --all-targets -- -D warnings
