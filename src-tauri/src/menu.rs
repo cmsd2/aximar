@@ -17,6 +17,29 @@ use crate::i18n::Translations;
 /// menu bar, and the built-in menu isn't rebuilt over it
 static WINDOW_MENU: AtomicBool = AtomicBool::new(false);
 
+/// The label of the window that last gained focus.  On Windows a window
+/// stops counting as focused once its page takes the keyboard, as WebView2
+/// does on a click, so the menu falls back to this one.
+static LAST_FOCUSED: Mutex<Option<String>> = Mutex::new(None);
+
+/// Note that a window gained focus (lib.rs's window events)
+pub fn note_focus(label: &str) {
+    if let Ok(mut last) = LAST_FOCUSED.lock() {
+        *last = Some(label.to_string());
+    }
+}
+
+/// The window a menu item runs its command in: the focused one, or else
+/// the one that last gained focus, if it's still open
+fn menu_target<R: Runtime>(app: &AppHandle<R>) -> Option<tauri::WebviewWindow<R>> {
+    let windows = app.webview_windows();
+    if let Some(window) = windows.values().find(|w| w.is_focused().unwrap_or(false)) {
+        return Some(window.clone());
+    }
+    let last = LAST_FOCUSED.lock().ok()?.clone()?;
+    windows.get(&last).cloned()
+}
+
 /// The menu bar's text in one language
 struct MenuLabels {
     about: String,
@@ -251,11 +274,7 @@ pub fn setup_menu(app: &mut tauri::App, language: &str) -> Result<(), Box<dyn st
     // Window makes one.
     app.on_menu_event(move |app_handle, event| {
         let id = event.id().0.clone();
-        let focused = app_handle
-            .webview_windows()
-            .into_values()
-            .find(|w| w.is_focused().unwrap_or(false));
-        match focused {
+        match menu_target(app_handle) {
             Some(window) => {
                 let _ = window.emit("menu-command", MenuCommand { id });
             }

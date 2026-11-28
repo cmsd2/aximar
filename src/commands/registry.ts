@@ -14,6 +14,7 @@ import { useSettingsStore } from "../store/settingsStore";
 import { useFindStore } from "../store/findStore";
 import { nbDeleteCell, nbMoveCell, nbRedo, nbUndo, createWindow } from "../lib/notebook-commands";
 import { cancelEvaluation } from "../lib/maxima-client";
+import { flushNotebook } from "../lib/dirty-inputs";
 import { afterRun, goTo, insertAt } from "../lib/cell-caret";
 import { openNewNotebook } from "../lib/new-notebook";
 import { openFromDisk, saveActive, saveActiveAs } from "../lib/file-commands";
@@ -451,16 +452,35 @@ function inOwnTextField(): boolean {
   return !el.closest(".cell, .cell-gap");
 }
 
+/** How soon after one asker the other counts as the same key press */
+const ECHO_MS = 250;
+let lastUndo: { which: "undo" | "redo"; from: "menu" | "editor"; at: number } | null = null;
+
 /**
  * Undo or redo the notebook's last change, as the backend records it, or,
- * in a text field outside the cells, that field's typing.
+ * in a text field outside the cells, that field's typing.  Typing reaches
+ * the backend after a pause, so it is sent first: otherwise Undo would
+ * skip it, and sending it later would put it back.
+ *
+ * `from` says what asked.  A cell's editor runs undo itself, because on
+ * Windows Ctrl+Z goes to the page, not the menu, and the browser's own
+ * undo garbles the editor (useCodeMirrorEditor.ts).  Should one key press
+ * reach both, the second asker is ignored; repeats from one asker aren't.
  */
-export function undoOrRedo(which: "undo" | "redo"): void {
+export function undoOrRedo(which: "undo" | "redo", from: "menu" | "editor" = "menu"): void {
+  const now = Date.now();
+  const echo = lastUndo && lastUndo.which === which && lastUndo.from !== from && now - lastUndo.at < ECHO_MS;
+  lastUndo = { which, from, at: now };
+  if (echo) return;
   if (inOwnTextField()) {
     document.execCommand(which);
     return;
   }
-  void (which === "undo" ? nbUndo() : nbRedo());
+  const notebookId = useNotebookStore.getState().activeNotebookId;
+  void (async () => {
+    if (notebookId) await flushNotebook(notebookId);
+    await (which === "undo" ? nbUndo() : nbRedo());
+  })();
 }
 
 /** The state commands are enabled and checked by, read from the stores now */

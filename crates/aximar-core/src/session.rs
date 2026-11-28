@@ -157,12 +157,14 @@ impl SessionManager {
     /// Transition to Ready with a new process.  Extracts the cancel
     /// handle out of the process and parks it outside the session
     /// lock so request_cancel can fire concurrently with eval.
-    pub async fn set_ready(&self, mut process: MaximaProcess) {
+    pub async fn set_ready(&self, process: MaximaProcess) {
         #[cfg(unix)]
-        {
+        let process = {
+            let mut process = process;
             let handle = process.take_cancel_handle();
             self.store_cancel_handle(handle);
-        }
+            process
+        };
         self.apply(|_| (Session::Ready { process }, ())).await
     }
 

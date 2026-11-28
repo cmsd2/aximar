@@ -69,6 +69,21 @@ rebuilds every cell object on every event, and `Notebook.tsx` renders
 them with a plain `.map()` — no `React.memo`, no virtualization. So
 each event also re-renders every cell: KaTeX, Plotly, CodeMirror.
 
+Undo and redo live in the backend, so the debounce matters to them:
+
+- Undo and Redo send any typing still waiting before they run
+  (`undoOrRedo` in `src/commands/registry.ts`), or they would skip it
+  and the late send would put it back.
+- While a cell has typing waiting, `applyBackendState` keeps its local
+  text. Text that came from the backend, such as an undo's, is applied
+  through `fromBackend` and never counts as waiting, or a second quick
+  Undo would be kept out of the editor.
+- The editor applies only the part of the text that changed and puts
+  the cursor at its end (`changeBetween` in `src/lib/text-change.ts`).
+- A cell's editor runs Undo and Redo for their keys itself, and turns
+  the browser's own undo into the notebook's: on Windows the keys reach
+  the page, not the menu (`src/hooks/useCodeMirrorEditor.ts`).
+
 ### Why it's shaped this way
 
 The snapshot is **self-healing**. Tauri emits are fire-and-forget

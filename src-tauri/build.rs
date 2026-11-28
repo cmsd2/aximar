@@ -3,6 +3,11 @@ use std::path::Path;
 
 fn main() {
     embed_catalogs();
+    // tauri_build embeds icons/icon.ico in the Windows executable, and the
+    // crate's generate_context! embeds the window icon.  Our own
+    // rerun-if-changed above turns off Cargo's rerun on any change, so
+    // without this a new icon only shows up after `cargo clean`.
+    println!("cargo:rerun-if-changed=icons");
     tauri_build::build()
 }
 

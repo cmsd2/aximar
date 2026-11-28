@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useMemo, useEffect } from "react";
+import { useState, useCallback, useRef, useMemo } from "react";
 import { useLingui } from "@lingui/react/macro";
 import type { Cell, CellOutput as CellOutputType } from "../types/notebook";
 import { KatexOutput } from "./KatexOutput";
@@ -63,22 +63,15 @@ export function CellOutput({ output, cellId }: CellOutputProps) {
   // The Copy button copies the result's Maxima expression when there is one
   const copyText = output.textPlain || output.textOutput;
 
-  const plotBlobUrl = useMemo(() => {
+  // A data URL, not a blob URL: a blob URL made here and revoked in an
+  // effect's cleanup broke under StrictMode, which runs the cleanup on its
+  // trial unmount but keeps the memoized URL, so the image loaded nothing.
+  const plotSrc = useMemo(() => {
     if (!hasPlot) return "";
     const sanitized = sanitizeSvg(output.plotSvg!);
     if (!sanitized) return "";
-    const blob = new Blob([sanitized], { type: "image/svg+xml" });
-    return URL.createObjectURL(blob);
+    return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(sanitized)}`;
   }, [hasPlot, output.plotSvg]);
-
-  // Revoke blob URL when it changes or on unmount
-  useEffect(() => {
-    return () => {
-      if (plotBlobUrl) {
-        URL.revokeObjectURL(plotBlobUrl);
-      }
-    };
-  }, [plotBlobUrl]);
 
   if (output.isError && output.error) {
     return (
@@ -195,9 +188,9 @@ export function CellOutput({ output, cellId }: CellOutputProps) {
           <PlotlyChart plotData={output.plotData!} />
         </ErrorBoundary>
       )}
-      {hasPlot && plotBlobUrl && (
+      {hasPlot && plotSrc && (
         <div className="plot-output">
-          <img src={plotBlobUrl} alt={t({ message: "Plot output", comment: "Alt text of a plot image in a cell's output" })} />
+          <img src={plotSrc}alt={t({ message: "Plot output", comment: "Alt text of a plot image in a cell's output" })} />
         </div>
       )}
       {hasImage && (

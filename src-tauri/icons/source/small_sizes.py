@@ -1,8 +1,14 @@
-"""Put small.png into every icon of 64 px or less, after `tauri icon`.
+"""Finish the icons after `tauri icon`: small sizes and the Windows files.
 
 tauri icon scales one image to every size; at 32 px and below the faded
 back edges of the full ball blur into noise, so the small sizes use the
-front half only.  Needs Pillow; runs iconutil, so macOS only.
+front half only.
+
+Windows draws icons edge to edge, so icon.ico and the Square*Logo tiles
+come from the *_win drawings, cropped to the tile with no shadow.  The
+macOS drawings' margin would make them look too small on the taskbar.
+
+Needs Pillow.  icon.icns needs iconutil, so it is only rebuilt on macOS.
 """
 import os
 import subprocess
@@ -13,19 +19,30 @@ from PIL import Image
 
 here = os.path.dirname(os.path.abspath(__file__))
 icons = os.path.dirname(here)
-big = Image.open(os.path.join(here, "master.png")).convert("RGBA")
-small = Image.open(os.path.join(here, "small.png")).convert("RGBA")
 
 
-def at(n):
+def load(name):
+    return Image.open(os.path.join(here, name + ".png")).convert("RGBA")
+
+
+mac = (load("small"), load("master"))
+win = (load("small_win"), load("master_win"))
+
+
+def at(n, drawings=mac):
+    small, big = drawings
     return (small if n <= 64 else big).resize((n, n), Image.LANCZOS)
 
 
-for name, n in (("32x32.png", 32), ("Square30x30Logo.png", 30), ("Square44x44Logo.png", 44), ("StoreLogo.png", 50)):
-    at(n).save(os.path.join(icons, name))
+at(32).save(os.path.join(icons, "32x32.png"))
+
+tiles = {f"Square{n}x{n}Logo.png": n for n in (30, 44, 71, 89, 107, 142, 150, 284, 310)}
+tiles["StoreLogo.png"] = 50
+for name, n in tiles.items():
+    at(n, win).save(os.path.join(icons, name))
 
 sizes = [16, 24, 32, 48, 64, 256]
-imgs = [at(n) for n in sizes]
+imgs = [at(n, win) for n in sizes]
 imgs[-1].save(os.path.join(icons, "icon.ico"), sizes=[(n, n) for n in sizes], append_images=imgs[:-1])
 
 if sys.platform == "darwin":

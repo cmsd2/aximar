@@ -33,8 +33,27 @@ function scheduleFlush() {
   }, DEBOUNCE_MS);
 }
 
+let applyingBackend = false;
+
+/**
+ * Run `apply`, which writes the backend's state into the store, without
+ * marking the inputs it changes as edits to send.  They came from the
+ * backend, and counting them would keep the next backend state out of the
+ * editor while they waited: a second Undo would seem to do nothing, and
+ * sending the text back would redo the first.
+ */
+export function fromBackend<T>(apply: () => T): T {
+  applyingBackend = true;
+  try {
+    return apply();
+  } finally {
+    applyingBackend = false;
+  }
+}
+
 /** Record a dirty cell input and reset the debounce timer. */
 export function markDirty(notebookId: string, cellId: string, input: string) {
+  if (applyingBackend) return;
   dirtyInputs.set(key(notebookId, cellId), { notebookId, cellId, input });
   scheduleFlush();
 }
