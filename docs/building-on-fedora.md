@@ -81,7 +81,11 @@ StartupWMClass=aximar
 
 ## 4. The window's chrome
 
-Linux keeps the system's title bar and GTK menu bar. The tab bar and
-toolbar take the menu bar's colours, and the interface takes the desktop's
-font, so they match whatever GTK theme is set: Breeze on KDE, Adwaita on
-GNOME. See "Colour" in [design-library.md](design-library.md).
+By default the page draws the title bar, with the tabs in it, and the menu
+bar, as Firefox does. GTK still draws the window's shadow and resize edges.
+The title bar takes KWin's title bar colour on KDE, and the buttons follow
+the desktop's layout and look. Settings > General > Use the system title
+bar keeps the desktop's own title bar and GTK menu bar instead, from the
+next start. Then the tab bar and toolbar take the menu bar's colours.
+Either way the interface takes the desktop's font. See "The window's frame
+on Linux" and "Colour" in [design-library.md](design-library.md).

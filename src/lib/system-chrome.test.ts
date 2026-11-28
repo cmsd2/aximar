@@ -7,29 +7,44 @@ const breeze: SystemChrome = {
   border: "#bcbebf",
   dark: false,
   fontFamily: "Noto Sans",
+  titleBackground: "#e3e5e7",
+  titleBackdropBackground: "#eff0f1",
+  decorationLayout: "icon:minimize,maximize,close",
+  desktop: "kde",
 };
 
-const breezeDark: SystemChrome = { ...breeze, background: "#292c30", backdropBackground: "#202326", dark: true };
+const breezeDark: SystemChrome = {
+  ...breeze,
+  background: "#292c30",
+  backdropBackground: "#202326",
+  titleBackground: "#2a2e32",
+  titleBackdropBackground: "#202326",
+  dark: true,
+};
 
 const light = { theme: "light", systemDark: false, focused: true } as const;
 
 describe("the desktop's chrome", () => {
-  it("paints the tab bar and toolbar in the menu bar's colours", () => {
+  it("paints the tab bar and toolbar in the menu bar's colours, the title bar in the title bar's", () => {
     expect(systemChromeVariables(breeze, light)).toEqual({
       "--chrome-bg": "#dee0e2",
       "--chrome-border": "#bcbebf",
+      "--chrome-title-bg": "#e3e5e7",
       "--font-ui": '"Noto Sans", sans-serif',
     });
   });
 
-  it("dims with the menu bar when another window is active", () => {
-    expect(systemChromeVariables(breeze, { ...light, focused: false })["--chrome-bg"]).toBe("#eff0f1");
+  it("dims with the menu bar and title bar when another window is active", () => {
+    const vars = systemChromeVariables(breeze, { ...light, focused: false });
+    expect(vars["--chrome-bg"]).toBe("#eff0f1");
+    expect(vars["--chrome-title-bg"]).toBe("#eff0f1");
   });
 
   it("keeps the page's colours when the desktop is the other way round", () => {
     const vars = systemChromeVariables(breeze, { ...light, theme: "dark" });
     expect(vars["--chrome-bg"]).toBeUndefined();
     expect(vars["--chrome-border"]).toBeUndefined();
+    expect(vars["--chrome-title-bg"]).toBeUndefined();
     expect(vars["--font-ui"]).toBe('"Noto Sans", sans-serif');
     expect(systemChromeVariables(breezeDark, light)["--chrome-bg"]).toBeUndefined();
   });
@@ -52,7 +67,10 @@ describe("the desktop's chrome", () => {
   });
 
   it("skips a border and font the theme doesn't give", () => {
-    expect(systemChromeVariables({ ...breeze, border: null, fontFamily: null }, light)).toEqual({ "--chrome-bg": "#dee0e2" });
+    expect(systemChromeVariables({ ...breeze, border: null, fontFamily: null }, light)).toEqual({
+      "--chrome-bg": "#dee0e2",
+      "--chrome-title-bg": "#e3e5e7",
+    });
   });
 
   it("quotes a font family safely", () => {

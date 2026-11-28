@@ -10,6 +10,8 @@ export interface AppConfig {
   cell_style: string;
   autocomplete_mode: string;
   show_suggestions: boolean;
+  /** Linux: the desktop's title bar and menu bar, from the next start */
+  system_title_bar: boolean;
   markdown_font: string;
   markdown_indent: string;
   print_margin_top: number;

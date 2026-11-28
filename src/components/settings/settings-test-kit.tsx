@@ -13,7 +13,7 @@ import { i18n } from "../../lib/i18n";
 
 export const baseConfig = {
   theme: "light", maxima_path: null, font_size: 14, print_font_size: 11, eval_timeout: 30,
-  variables_open: false, cell_style: "bracket", autocomplete_mode: "active-hint", show_suggestions: true,
+  variables_open: false, cell_style: "bracket", autocomplete_mode: "active-hint", show_suggestions: true, system_title_bar: false,
   markdown_font: "sans-serif", markdown_indent: "aligned", print_margin_top: 15,
   print_margin_bottom: 15, print_margin_left: 15, print_margin_right: 15, backend: "local",
   docker_image: "aximar/maxima", wsl_distro: "", container_engine: "docker",

@@ -48,12 +48,11 @@ pub fn run() {
             }
         })
         .setup(|app| {
+            // Who draws the title bar and the menu bar, before either exists
+            commands::window::choose_frame(app.handle());
             commands::window::open_main_window(app.handle())?;
             let language = commands::config::read_language(app.handle());
             menu::setup_menu(app, &language)?;
-            if let Some(window) = app.get_webview_window("main") {
-                commands::system_chrome::watch(&window);
-            }
             i18n::set_docs_language(&commands::config::read_docs_language(app.handle()));
             let state = app.state::<AppState>();
             let handle = app.handle().clone();

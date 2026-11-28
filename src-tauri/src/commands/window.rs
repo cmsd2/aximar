@@ -1,6 +1,6 @@
 use aximar_core::msg;
-use std::sync::atomic::{AtomicU32, Ordering};
-use tauri::{AppHandle, Manager, Runtime, WebviewUrl, WebviewWindowBuilder};
+use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
+use tauri::{AppHandle, Manager, Runtime, WebviewUrl, WebviewWindow, WebviewWindowBuilder};
 
 use crate::state::AppState;
 
@@ -23,10 +23,40 @@ pub async fn create_window(app: AppHandle, notebook_id: Option<String>) -> Resul
     let window = notebook_window(builder)
         .build()
         .map_err(|e| format!("Failed to create window: {e}"))?;
-    crate::commands::system_chrome::watch(&window);
+    show_notebook_window(&window).map_err(|e| format!("Failed to show window: {e}"))?;
 
     Ok(label)
 }
+
+/// Whether the page draws the menu bar, and on Linux the title bar, with
+/// the tabs in it (`src/lib/window-frame.ts`).  Windows always does.  Linux
+/// does unless the user chose the system's title bar; `choose_frame` reads
+/// that once, at startup, since the GTK frame is fixed when a window is
+/// first shown and the menu is app-wide.  macOS keeps the system's menu
+/// bar, though the page draws its title bar (`notebook_window`).
+static PAGE_FRAME: AtomicBool = AtomicBool::new(cfg!(windows));
+
+/// Read whether the page draws the frame, before any window or menu exists
+pub fn choose_frame(app: &AppHandle) {
+    #[cfg(target_os = "linux")]
+    PAGE_FRAME.store(
+        !crate::commands::config::read_system_title_bar(app),
+        Ordering::Release,
+    );
+    #[cfg(not(target_os = "linux"))]
+    let _ = app;
+}
+
+/// Whether the page draws the menu bar (see `PAGE_FRAME`), so the window
+/// has no native one
+pub fn page_draws_frame() -> bool {
+    PAGE_FRAME.load(Ordering::Acquire)
+}
+
+/// Tells the page it draws the frame, before its scripts run
+/// (src/lib/window-frame.ts)
+#[cfg(target_os = "linux")]
+const PAGE_FRAME_SCRIPT: &str = "window.__AXIMAR_PAGE_FRAME__ = true;";
 
 /// A notebook window in the platform's style (`src/lib/window-frame.ts`).
 ///
@@ -40,6 +70,13 @@ pub async fn create_window(app: AppHandle, notebook_id: Option<String>) -> Resul
 /// title bar there, with the tabs beside the traffic lights, as Safari and
 /// Xcode do.  The system still draws the traffic lights, centred in the
 /// page's bar (`--mac-title-bar-height` in `src/styles/tokens.css`).
+///
+/// On Linux, as Firefox does, the page draws the title bar and the menu
+/// bar, unless the user chose the system's.  GTK draws the frame itself,
+/// with its shadow and resize edges, but no title bar
+/// (`show_notebook_window`).  The window starts hidden, since GTK takes a
+/// title bar only before the window is first shown.  Edit > Paste reads
+/// the clipboard, as on Windows.
 pub fn notebook_window<'a, R: Runtime, M: Manager<R>>(
     builder: WebviewWindowBuilder<'a, R, M>,
 ) -> WebviewWindowBuilder<'a, R, M> {
@@ -57,7 +94,18 @@ pub fn notebook_window<'a, R: Runtime, M: Manager<R>>(
                 TRAFFIC_LIGHTS_Y,
             ))
     }
-    #[cfg(not(any(windows, target_os = "macos")))]
+    #[cfg(target_os = "linux")]
+    {
+        if page_draws_frame() {
+            builder
+                .visible(false)
+                .initialization_script(PAGE_FRAME_SCRIPT)
+                .enable_clipboard_access()
+        } else {
+            builder
+        }
+    }
+    #[cfg(not(any(windows, target_os = "macos", target_os = "linux")))]
     {
         builder
     }
@@ -71,6 +119,29 @@ const TRAFFIC_LIGHTS_X: f64 = 14.0;
 #[cfg(target_os = "macos")]
 const TRAFFIC_LIGHTS_Y: f64 = 21.0;
 
+/// Finish a window `notebook_window` built.  On Linux, where the page
+/// draws the frame, give GTK a title bar it never shows, so it draws the
+/// window's frame client-side with no title bar, then show the window.
+/// Not tauri's `decorations(false)`: on Wayland that leaves no shadow and
+/// resizes only from just inside the window.
+pub fn show_notebook_window<R: Runtime>(window: &WebviewWindow<R>) -> tauri::Result<()> {
+    #[cfg(target_os = "linux")]
+    if page_draws_frame() {
+        use gtk::prelude::*;
+        let gtk_window = window.gtk_window()?;
+        // GTK refuses a title bar once the window is realised
+        if !gtk_window.is_realized() {
+            let titlebar = gtk::Box::new(gtk::Orientation::Horizontal, 0);
+            // tao shows the window with show_all; this stays hidden
+            titlebar.set_no_show_all(true);
+            gtk_window.set_titlebar(Some(&titlebar));
+        }
+        window.show()?;
+    }
+    crate::commands::system_chrome::watch(window);
+    Ok(())
+}
+
 /// Open the main window, which tauri.conf.json describes but doesn't create
 pub fn open_main_window<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<()> {
     let config = app
@@ -81,7 +152,8 @@ pub fn open_main_window<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<()> {
         .find(|w| w.label == "main")
         .cloned();
     if let Some(config) = config {
-        notebook_window(WebviewWindowBuilder::from_config(app, &config)?).build()?;
+        let window = notebook_window(WebviewWindowBuilder::from_config(app, &config)?).build()?;
+        show_notebook_window(&window)?;
     }
     Ok(())
 }

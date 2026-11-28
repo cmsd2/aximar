@@ -6,18 +6,21 @@ import { currentPlatform } from "../commands/shortcut";
 import {
   SYSTEM_CHROME_VARIABLES,
   systemChromeVariables,
+  useSystemChromeStore,
   type SystemChrome,
 } from "../lib/system-chrome";
 
 const DARK_QUERY = "(prefers-color-scheme: dark)";
 
 /**
- * Paint the tab bar and toolbar in the desktop's chrome colours, and the
- * interface in its font (src/lib/system-chrome.ts).  Only Linux sends them.
+ * Paint the title bar, tab bar and toolbar in the desktop's chrome colours,
+ * and the interface in its font (src/lib/system-chrome.ts), and keep the
+ * desktop's chrome in useSystemChromeStore for the title bar's layout.
+ * Only Linux sends them.
  */
 export function useSystemChrome() {
   const theme = useNotebookStore((s) => s.theme);
-  const [chrome, setChrome] = useState<SystemChrome | null>(null);
+  const chrome = useSystemChromeStore((s) => s.chrome);
   const [focused, setFocused] = useState(() => typeof document === "undefined" || document.hasFocus());
   const [systemDark, setSystemDark] = useState(
     () => typeof window !== "undefined" && !!window.matchMedia?.(DARK_QUERY).matches,
@@ -27,6 +30,7 @@ export function useSystemChrome() {
   useEffect(() => {
     if (currentPlatform() !== "linux") return;
     let live = true;
+    const setChrome = (c: SystemChrome | null) => useSystemChromeStore.setState({ chrome: c });
     Promise.resolve(invoke<SystemChrome | null>("get_system_chrome"))
       .then((c) => live && setChrome(c ?? null))
       .catch(() => {});

@@ -142,6 +142,10 @@ struct AppConfig {
     /// students write their own Maxima (issue #44).
     #[serde(default = "default_show_suggestions")]
     show_suggestions: bool,
+    /// Linux: the system's title bar and menu bar, rather than the page's
+    /// title bar with the tabs in it.  Read at startup (commands/window.rs).
+    #[serde(default)]
+    system_title_bar: bool,
     #[serde(default)]
     markdown_font: MarkdownFont,
     #[serde(default)]
@@ -194,6 +198,7 @@ impl Default for AppConfig {
             print_font_size: default_print_font_size(),
             autocomplete_mode: AutocompleteMode::default(),
             show_suggestions: default_show_suggestions(),
+            system_title_bar: false,
             markdown_font: MarkdownFont::default(),
             markdown_indent: MarkdownIndent::default(),
             print_margin_top: default_print_margin_top(),
@@ -314,6 +319,7 @@ pub struct PublicConfig {
     pub cell_style: CellStyle,
     pub autocomplete_mode: AutocompleteMode,
     pub show_suggestions: bool,
+    pub system_title_bar: bool,
     pub markdown_font: MarkdownFont,
     pub markdown_indent: MarkdownIndent,
     pub print_margin_top: u32,
@@ -367,6 +373,7 @@ pub struct ConfigUpdate {
     pub cell_style: Option<CellStyle>,
     pub autocomplete_mode: Option<AutocompleteMode>,
     pub show_suggestions: Option<bool>,
+    pub system_title_bar: Option<bool>,
     pub markdown_font: Option<MarkdownFont>,
     pub markdown_indent: Option<MarkdownIndent>,
     pub print_margin_top: Option<u32>,
@@ -512,6 +519,7 @@ pub async fn get_config(app: tauri::AppHandle) -> Result<ConfigResponse, AppErro
             cell_style: config.cell_style,
             autocomplete_mode: config.autocomplete_mode,
             show_suggestions: config.show_suggestions,
+            system_title_bar: config.system_title_bar,
             markdown_font: config.markdown_font,
             markdown_indent: config.markdown_indent,
             print_margin_top: config.print_margin_top,
@@ -576,6 +584,9 @@ pub async fn set_config(app: tauri::AppHandle, updates: ConfigUpdate) -> Result<
     }
     if let Some(show_suggestions) = updates.show_suggestions {
         config.show_suggestions = show_suggestions;
+    }
+    if let Some(system_title_bar) = updates.system_title_bar {
+        config.system_title_bar = system_title_bar;
     }
     if let Some(markdown_font) = updates.markdown_font {
         config.markdown_font = markdown_font;
@@ -732,6 +743,14 @@ pub fn read_docs_language(app: &tauri::AppHandle) -> String {
 }
 
 /// The language in use, from the settings file now
+/// Whether the user chose the system's title bar on Linux (commands/window.rs)
+#[cfg(target_os = "linux")]
+pub fn read_system_title_bar(app: &tauri::AppHandle) -> bool {
+    read_config(app)
+        .map(|(c, _)| c.system_title_bar)
+        .unwrap_or(false)
+}
+
 pub fn read_language(app: &tauri::AppHandle) -> String {
     read_config(app)
         .map(|(c, _)| c)

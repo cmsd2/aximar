@@ -1,12 +1,15 @@
-// The desktop's chrome, for the tab bar and toolbar under the title bar.
+// The desktop's chrome, for the page's title bar, tab bar and toolbar.
 //
-// On Linux the system draws the title bar and the GTK menu bar in the
-// desktop theme's colours, and the page's tabs sit right below them.  The
-// backend reads the menu bar's colours (src-tauri/src/commands/
-// system_chrome.rs) and the page paints its chrome with them, so the frame,
-// menus, tabs and toolbar read as one band.  macOS and Windows send none.
-// See docs/design-library.md.
+// On Linux the backend reads how the desktop draws a window's frame
+// (src-tauri/src/commands/system_chrome.rs): the GTK menu bar's colours,
+// the title bar's colours, the title bar's button layout and which desktop
+// it is.  With the system's title bar, the tab bar and toolbar take the
+// menu bar's colours, so the frame, menus, tabs and toolbar read as one
+// band.  Where the page draws the title bar, it takes the title bar's
+// colours and lays out its buttons as the desktop does (TitleBar.tsx).
+// macOS and Windows send none.  See docs/design-library.md.
 
+import { create } from "zustand";
 import type { Theme } from "../store/notebookStore";
 
 /** How the desktop draws a window's menu bar, as CSS colours */
@@ -21,10 +24,21 @@ export interface SystemChrome {
   dark: boolean;
   /** The desktop's interface font, such as "Noto Sans" */
   fontFamily: string | null;
+  /** The title bar's background while the window is active */
+  titleBackground: string;
+  /** The title bar's background while another window is active */
+  titleBackdropBackground: string;
+  /** GTK's `gtk-decoration-layout`, such as "icon:minimize,maximize,close" */
+  decorationLayout: string | null;
+  /** The desktop, for the window buttons' look */
+  desktop: "kde" | "gnome" | "other";
 }
 
+/** The desktop's chrome, once the backend has sent it */
+export const useSystemChromeStore = create<{ chrome: SystemChrome | null }>(() => ({ chrome: null }));
+
 /** The variables the page sets on the root element, so it can clear them all */
-export const SYSTEM_CHROME_VARIABLES = ["--chrome-bg", "--chrome-border", "--font-ui"] as const;
+export const SYSTEM_CHROME_VARIABLES = ["--chrome-bg", "--chrome-border", "--chrome-title-bg", "--font-ui"] as const;
 
 export type SystemChromeVariable = (typeof SYSTEM_CHROME_VARIABLES)[number];
 
@@ -53,6 +67,7 @@ export function systemChromeVariables(
   const pageDark = theme === "dark" || (theme === "auto" && systemDark);
   if (!OWN_CHROME.has(theme) && chrome.dark === pageDark) {
     out["--chrome-bg"] = focused ? chrome.background : chrome.backdropBackground;
+    out["--chrome-title-bg"] = focused ? chrome.titleBackground : chrome.titleBackdropBackground;
     if (chrome.border) out["--chrome-border"] = chrome.border;
   }
   return out;

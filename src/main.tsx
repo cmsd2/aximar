@@ -10,12 +10,16 @@ import { i18n, activateDevelopmentLocale } from "./lib/i18n";
 import { installSourceTags } from "./lib/show-sources";
 import { TranslatorTools } from "./components/TranslatorTools";
 import { currentPlatform } from "./commands/shortcut";
+import { drawsMenuBar } from "./lib/window-frame";
 
 // Strings can carry their IDs, for show-sources; only while it's on
 installSourceTags(i18n);
 
-// Styles that follow the platform, such as Windows 11's type (tokens.css)
+// Styles that follow the platform, such as Windows 11's type (tokens.css),
+// and those for a window whose page draws its title bar and menu bar, on
+// Windows and Linux (lib/window-frame.ts)
 document.documentElement.dataset.platform = currentPlatform();
+document.documentElement.dataset.frame = drawsMenuBar() ? "page" : "system";
 
 // Async errors (rejected promises from Plotly, IPC, etc.) are not caught by
 // React error boundaries. Log them instead of letting them surface as an

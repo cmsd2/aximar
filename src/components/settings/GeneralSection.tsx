@@ -12,6 +12,7 @@ import { SegmentedControl } from "../ui/SegmentedControl";
 import { Select } from "../ui/Select";
 import { HelpLanguageRow } from "./HelpLanguageRow";
 import type { SectionProps } from "./types";
+import { currentPlatform } from "../../commands/shortcut";
 
 export const THEMES: { value: Theme; label: Label }[] = [
   {
@@ -90,6 +91,24 @@ export function GeneralSection({ config, update }: SectionProps) {
           <Checkbox id={id} describedBy={describedBy} checked={config.variables_open} onChange={(checked) => update({ variables_open: checked })} />
         )}
       </FieldRow>
+
+      {currentPlatform() === "linux" && (
+        <FieldRow
+          divided
+          label={t({
+            message: "Use the system title bar",
+            comment: "Settings, Linux only: the label of the checkbox that keeps the desktop's own title bar and menu bar instead of the tabs in the title bar",
+          })}
+          hint={t({
+            message: "Keep the desktop's title bar and menu bar, with the tabs below them. Takes effect when Aximar restarts.",
+            comment: "Settings, General section, Linux only: hint under Use the system title bar",
+          })}
+        >
+          {({ id, describedBy }) => (
+            <Checkbox id={id} describedBy={describedBy} checked={config.system_title_bar} onChange={(checked) => update({ system_title_bar: checked })} />
+          )}
+        </FieldRow>
+      )}
 
       <LicencesRow />
     </>

@@ -89,6 +89,9 @@
      (src/lib/system-chrome.ts); elsewhere they follow the theme here */
   --chrome-bg: var(--bg-secondary);
   --chrome-border: var(--border-color);
+  /* The title bar the page draws (lib/window-frame.ts); on Linux the
+     desktop's title bar colour */
+  --chrome-title-bg: var(--bg-secondary);
 }
 
 /* Windows 11's own type, where the page draws the window's frame */

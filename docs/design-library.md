@@ -48,18 +48,22 @@ query, `:root:not([data-theme])`, so it leaves Light and Paper alone.
 | Running | `--running-color` |
 | Behind dialogs | `--overlay-bg` |
 | The tab bar and toolbar under the title bar | `--chrome-bg`, `--chrome-border` |
+| The title bar the page draws | `--chrome-title-bg` |
 
 `--chrome-bg` and `--chrome-border` are `--bg-secondary` and
-`--border-color` unless the desktop gives its own. On Linux the system
-draws the title bar and the GTK menu bar in the desktop theme's colours,
-right above the tabs. The backend reads that menu bar's background, its
-background while another window is active, and the theme's border colour
-(`src-tauri/src/commands/system_chrome.rs`). `useSystemChrome` then sets
-the two tokens, so the frame, menus, tabs and toolbar read as one band. It
-uses the colours only when they are as light or dark as the page, and never
-in Paper or Night; otherwise the tokens keep the app's own colours. Auto follows the
-system's light or dark, and the backend sends new colours when the desktop
-theme changes. `--font-ui` takes the desktop's interface font on Linux, such
+`--border-color`, and `--chrome-title-bg` is `--bg-secondary`, unless the
+desktop gives its own. Only Linux does. The backend reads the GTK menu
+bar's background, its background while another window is active, and the
+theme's border colour (`src-tauri/src/commands/system_chrome.rs`). It also
+reads the title bar's colours: on KDE, KWin's own from `kdeglobals`
+(`[WM] activeBackground` and `inactiveBackground`), so the title bar
+matches other windows' exactly; elsewhere, the menu bar's.
+`useSystemChrome` then sets the tokens. With the system's title bar, the
+frame, menus, tabs and toolbar read as one band. It uses the colours only
+when they are as light or dark as the page, and never in Paper or Night;
+otherwise the tokens keep the app's own colours. Auto follows the system's
+light or dark, and the backend sends new colours when the desktop theme
+changes. `--font-ui` takes the desktop's interface font on Linux, such
 as Noto Sans on KDE or Cantarell on GNOME. macOS and Windows send nothing.
 Text on the chrome stays `--text-primary` and `--text-secondary`: on
 Breeze's `#dee0e2`, `--text-secondary` is 4.5:1.
@@ -181,6 +185,74 @@ the page's 38px bar.
 One shade for the title bar and the toolbar beneath it (`--bg-secondary`),
 as a unified title bar and toolbar are, with a hairline under the toolbar.
 The `--mac-*` tokens hold the bar's and the tabs' sizes.
+
+## The window's frame on Linux
+
+On Linux the page draws the title bar and the menu bar too, as Firefox
+does, unless the user ticks Settings > General > Use the system title bar.
+The backend reads that setting once, at startup (`choose_frame` in
+`src-tauri/src/commands/window.rs`): the menu is app-wide and GTK fixes a
+window's frame when it is first shown, so a change takes effect on the
+next start. The page learns it from `window.__AXIMAR_PAGE_FRAME__`, which
+the backend sets before the page's scripts run.
+
+The window keeps GTK's frame, not Tauri's `decorations(false)`: on Wayland
+that leaves no shadow and resizes only from a strip just inside the
+window. Instead the window starts hidden, gets a title bar GTK never shows,
+and is then shown (`show_notebook_window`). GTK draws the frame itself,
+with the theme's shadow and resize edges outside the window, and no title
+bar. Moving goes through the window manager, so snapping, tiling,
+Alt+drag and Alt+F3 work as for any window.
+
+- `TitleBar` lays out the icon and the buttons as the desktop does, from
+  GTK's `gtk-decoration-layout`: KDE puts the icon at the left and
+  minimise, maximise and close at the right; GNOME has close alone.
+- `LinuxWindowControls` draws the buttons as Breeze does on KDE (bare
+  chevrons and a cross, a tint on hover, red behind close) and as Adwaita
+  does elsewhere (each glyph on a faint circle).
+- The title bar is `--chrome-title-bg`, KWin's title bar colour on KDE.
+  The menu and tool row and the panels are `--bg-primary`, as on Windows
+  (`[data-frame="page"]` in `global.css`).
+- There is no native menu, so the page runs the menu's shortcuts itself,
+  as on Windows (`useMenuBar`).
+
+Not yet: a right-click on the title bar doesn't open the window manager's
+menu (Alt+F3 does).
+
+The window's corners are square, by choice. GTK rounds its frame's top
+corners (6px on Breeze) but doesn't clip what's inside the frame, and
+WebKitGTK draws the page with the GPU, over anything GTK draws or clips.
+These were tried on KDE Wayland with WebKitGTK 2.54, and none rounded the
+corners cleanly:
+
+- A transparent window and webview, with the page clipping its own
+  corners: WebKit's DMA-BUF renderer paints an opaque white base, so the
+  corners show white. With that renderer off
+  (`WEBKIT_DISABLE_DMABUF_RENDERER`), the window renders translucent and
+  misaligned.
+- GTK erasing the corners after drawing the window: ignored, because GDK
+  draws WebKit's GL output after cairo. It works with `GDK_GL=disable`,
+  but that turns off WebKit's hardware acceleration, and it erases GTK's
+  shadow in the corner too.
+- Shaping WebKit's own GDK window to leave the corners to GTK's
+  background: the shape is set but not honoured, even with
+  `WEBKIT_DMABUF_RENDERER_FORCE_SHM`.
+
+What would work is `WEBKIT_DMABUF_RENDERER_FORCE_SHM` (still GPU-rendered,
+handed to GTK as images) plus the erase, with GTK's shadow redrawn in the
+corner. That costs a GPU-to-CPU copy of every changed frame, a lot for
+scrolling and 3D plots on large screens, so square corners were preferred.
+Other WebKitGTK apps on Linux have square corners too.
+
+The tests ran in VirtualBox, on its virtual GPU (VMware SVGA3D under
+Mesa), so the white base may be that GPU's. Tauri's issues suggest that
+on Intel and AMD GPUs, a transparent window with CSS `border-radius` does
+round the corners: tauri-apps/tauri#9287 shows how. But a transparent
+window is also where Linux users with Nvidia GPUs hit crashes at launch
+(GBM buffer failures and Wayland protocol error 71) and black or ghosting
+corners: tauri-apps/tauri#14924 and tauri-apps/wry#1667. The
+workaround, `WEBKIT_DISABLE_DMABUF_RENDERER=1`, gives up the accelerated
+path. That is another reason to keep the window opaque.
 
 ## Icon buttons
 

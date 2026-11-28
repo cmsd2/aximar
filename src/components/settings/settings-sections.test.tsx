@@ -21,7 +21,8 @@ const noop = () => {};
 
 /** Each section's settings, by label */
 const LABELS: Record<SectionId, string[]> = {
-  general: ["Language", "Help language", "Theme", "Variable panel open by default", "Licences"],
+  // The tests run as Linux, which has the title bar setting
+  general: ["Language", "Help language", "Theme", "Variable panel open by default", "Use the system title bar", "Licences"],
   notebook: ["Font size", "Cell style", "Argument help", "Suggested next steps", "Markdown font", "Markdown indent"],
   maxima: ["Backend", "Maxima path", "Evaluation timeout"],
   printing: ["Print font size", "Print margins (mm)"],
@@ -87,8 +88,8 @@ describe("the Settings sections", () => {
       unmount();
     }
     // Rows added since: a link, the suggestions switch (issue #44), and the
-    // help language, which moved here from the docs panel
-    const added = ["Licences", "Suggested next steps", "Help language"];
+    // help language, which moved here from the docs panel, and Linux's title bar
+    const added = ["Licences", "Suggested next steps", "Help language", "Use the system title bar"];
     expect([...shown].sort()).toEqual([...OLD_WINDOW, ...added].sort());
   });
 
