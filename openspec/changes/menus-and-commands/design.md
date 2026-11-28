@@ -127,4 +127,4 @@ No data migrates. Users lose Mod+T (use Mod+N) and Mod+D (use Mod+Shift+Backspac
 
 ## Open Questions
 
-- Whether Move Up/Down keeps Mod+Shift+Up/Down or moves to Mod+Alt+Up/Down, decided after the hand check on macOS shows whether CodeMirror takes the key first. Either way the registry changes in one place.
+- *Decided:* Move Up/Down moved to Mod+Alt+Up/Down. The hand check on macOS showed CodeMirror takes Mod+Shift+Up/Down first, selecting to the start or end, which is an everyday text shortcut worth keeping. Mod+Alt+Up/Down was CodeMirror's add-cursor-above/below; the cell editor gives those up (`cellEditorKeymap` in `useCodeMirrorEditor.ts`), and `editor-keys.test.ts` checks that no menu shortcut is one of the cell editor's keys. Some Linux desktops and old Windows graphics drivers use Ctrl+Alt+Up/Down themselves; the hand checks there will show whether that matters.

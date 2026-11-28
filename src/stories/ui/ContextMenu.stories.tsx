@@ -18,8 +18,8 @@ export const Groups: StoryObj = {
         items={[
           { id: "run", label: "Run", shortcut: formatShortcut("Shift+Enter"), onChoose: noop },
           { id: "stay", label: "Run and Stay", shortcut: formatShortcut("Mod+Enter"), onChoose: noop },
-          { id: "up", label: "Move Up", shortcut: formatShortcut("Mod+Shift+ArrowUp"), disabled: true, separatorBefore: true, onChoose: noop },
-          { id: "down", label: "Move Down", shortcut: formatShortcut("Mod+Shift+ArrowDown"), onChoose: noop },
+          { id: "up", label: "Move Up", shortcut: formatShortcut("Mod+Alt+ArrowUp"), disabled: true, separatorBefore: true, onChoose: noop },
+          { id: "down", label: "Move Down", shortcut: formatShortcut("Mod+Alt+ArrowDown"), onChoose: noop },
           { id: "delete", label: "Delete Cell", shortcut: formatShortcut("Mod+Shift+Backspace"), separatorBefore: true, onChoose: noop },
         ]}
       />

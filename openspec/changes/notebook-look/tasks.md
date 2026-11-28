@@ -34,4 +34,4 @@
 
 - [x] 5.1 Update `docs/ui-audit.md` (items 8 to 11 and 22, under "Changed since") and `docs/design-library.md` if the quiet text button or the error header become shared parts; verify the links and anchors resolve
 - [x] 5.2 Regenerate the gallery and catalogs (`npm run i18n:gallery`, `scripts/i18n-extract`), and check the cell stories in both styles and themes; verify `scripts/i18n-extract --check` passes
-- [ ] 5.3 By hand in the app with Maxima: run `1/0;`, `frobnicate(1);`, `rat(0.5*x);`, `print("n =", 3)$`, a definition ending in `$`, and Run All over a slow cell, in bracket and card style
+- [x] 5.3 By hand in the app with Maxima: run `1/0;`, `frobnicate(1);`, `rat(0.5*x);`, `print("n =", 3)$`, a definition ending in `$`, and Run All over a slow cell, in bracket and card style (checked by hand on macOS, 28 November 2026)

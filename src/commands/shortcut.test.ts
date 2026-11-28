@@ -18,6 +18,7 @@ describe("shortcuts", () => {
     expect(formatShortcut("Mod+Shift+W", "windows")).toBe("Ctrl+Shift+W");
     expect(formatShortcut("Mod+.", "windows")).toBe("Ctrl+.");
     expect(formatShortcut("Mod+Shift+ArrowUp", "linux")).toBe("Ctrl+Shift+Up");
+    expect(formatShortcut("Mod+Alt+ArrowUp", "windows")).toBe("Ctrl+Alt+Up");
     expect(formatShortcut("Shift+Enter", "linux")).toBe("Shift+Enter");
   });
 
@@ -25,6 +26,7 @@ describe("shortcuts", () => {
     expect(toAccelerator("Mod+Shift+W")).toBe("CmdOrCtrl+Shift+W");
     expect(toAccelerator("Mod+.")).toBe("CmdOrCtrl+Period");
     expect(toAccelerator("Mod+Shift+ArrowDown")).toBe("CmdOrCtrl+Shift+Down");
+    expect(toAccelerator("Mod+Alt+ArrowDown")).toBe("CmdOrCtrl+Alt+Down");
     expect(toAccelerator("Mod+Shift+]")).toBe("CmdOrCtrl+Shift+BracketRight");
     expect(toAccelerator("Mod+/")).toBe("CmdOrCtrl+Slash");
   });

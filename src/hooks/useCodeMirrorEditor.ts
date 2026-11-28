@@ -42,6 +42,21 @@ interface UseCodeMirrorEditorOptions {
   onViewDocs?: (name: string) => void;
 }
 
+
+/**
+ * CodeMirror's default keys, less those a cell's editor gives up: undo and
+ * redo, which are the notebook's; the add-cursor keys, which Move Cell Up
+ * and Down use; and toggle-comment, which Help > Keyboard Shortcuts uses and
+ * which would do nothing here anyway, as the Maxima language declares no
+ * comment syntax (src/commands/registry.ts).  A key the editor binds never
+ * reaches the menu or the window, so no menu shortcut may be one of its
+ * keys; editor-keys.test.ts checks.
+ */
+export function cellEditorKeymap(): typeof defaultKeymap {
+  const freed = new Set(["mod-z", "mod-y", "mod-shift-z", "mod-alt-arrowup", "mod-alt-arrowdown", "mod-/"]);
+  return defaultKeymap.filter((binding) => !freed.has(binding.key?.toLowerCase() ?? ""));
+}
+
 export function useCodeMirrorEditor({
   cellId,
   initialValue,
@@ -75,14 +90,7 @@ export function useCodeMirrorEditor({
     const container = containerRef.current;
     if (!container) return;
 
-    // Filter out undo/redo from defaultKeymap
-    const filteredKeymap = defaultKeymap.filter(
-      (binding) => {
-        const key = binding.key?.toLowerCase() ?? "";
-        if (key === "mod-z" || key === "mod-y" || key === "mod-shift-z") return false;
-        return true;
-      }
-    );
+    const filteredKeymap = cellEditorKeymap();
 
     const cellKeymap = keymap.of([
       // Undo and redo are the notebook's, run by Edit > Undo and Redo and

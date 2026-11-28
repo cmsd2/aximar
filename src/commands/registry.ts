@@ -278,7 +278,9 @@ export const COMMANDS: Command[] = [
     label: msg({ message: "Move Up", comment: "Cell menu item: moves the cell up one place. max-length:30" }),
     menu: { name: "cell", group: 3 },
     context: 6,
-    shortcut: "Mod+Shift+ArrowUp",
+    // Not Mod+Shift+Up: in a cell the editor takes that, to select to the
+    // start.  The cell editor gives Mod+Alt+Up up (useCodeMirrorEditor.ts)
+    shortcut: "Mod+Alt+ArrowUp",
     hint: true,
     enabled: (s) => hasCell(s) && !s.activeIsFirst,
     run: (ctx) => {
@@ -291,7 +293,7 @@ export const COMMANDS: Command[] = [
     label: msg({ message: "Move Down", comment: "Cell menu item: moves the cell down one place. max-length:30" }),
     menu: { name: "cell", group: 3 },
     context: 7,
-    shortcut: "Mod+Shift+ArrowDown",
+    shortcut: "Mod+Alt+ArrowDown",
     hint: true,
     enabled: (s) => hasCell(s) && !s.activeIsLast,
     run: (ctx) => {
