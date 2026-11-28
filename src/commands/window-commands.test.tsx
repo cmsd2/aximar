@@ -80,11 +80,12 @@ describe("undo", () => {
     document.body.innerHTML = "";
   });
 
-  it("undoes the notebook from a cell", () => {
+  it("undoes the notebook from a cell", async () => {
     document.body.innerHTML = '<div class="cell"><div class="cm-content" contenteditable="true" tabindex="0"></div></div>';
     (document.querySelector(".cm-content") as HTMLElement).focus();
     undoOrRedo("undo");
-    expect(nb.nbUndo).toHaveBeenCalledTimes(1);
+    // After sending any typing still waiting (see undo.test.ts)
+    await vi.waitFor(() => expect(nb.nbUndo).toHaveBeenCalledTimes(1));
   });
 
   it("undoes the find bar's own text", () => {

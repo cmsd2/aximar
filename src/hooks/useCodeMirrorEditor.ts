@@ -19,6 +19,8 @@ import {
 import { maximaHoverTooltip } from "../lib/maxima-hover-tooltip";
 import { gapBeside } from "../lib/cell-caret";
 import { findEnclosingCall } from "../lib/param-tracker";
+import { changeBetween } from "../lib/text-change";
+import { undoOrRedo } from "../commands/registry";
 import { useNotebookStore, getActiveTabState } from "../store/notebookStore";
 import { useFindStore } from "../store/findStore";
 
@@ -93,10 +95,14 @@ export function useCodeMirrorEditor({
     const filteredKeymap = cellEditorKeymap();
 
     const cellKeymap = keymap.of([
-      // Undo and redo are the notebook's, run by Edit > Undo and Redo and
-      // their menu shortcuts (src/commands/registry.ts).  The editor keeps
-      // no history of its own (the filtered keymap above drops it) and
-      // lets the keys through to the menu.
+      // Undo and redo are the notebook's (src/commands/registry.ts); the
+      // editor keeps no history of its own.  It runs them for their keys
+      // itself: on Windows the keys reach the page, not the menu, and
+      // left alone the browser ran its own undo, which knows only the
+      // typing it saw and moves the cursor under CodeMirror's feet.
+      { key: "Mod-z", preventDefault: true, run: () => (undoOrRedo("undo", "editor"), true) },
+      { key: "Mod-y", preventDefault: true, run: () => (undoOrRedo("redo", "editor"), true) },
+      { key: "Mod-Shift-z", preventDefault: true, run: () => (undoOrRedo("redo", "editor"), true) },
       // Cell execution — dismiss signature hint before executing
       {
         key: "Shift-Enter",
@@ -194,6 +200,18 @@ export function useCodeMirrorEditor({
       }
     });
 
+    // The browser's undo by any other way, such as its context menu,
+    // runs the notebook's instead
+    const browserUndo = EditorView.domEventHandlers({
+      beforeinput: (event) => {
+        const which = event.inputType === "historyUndo" ? "undo" : event.inputType === "historyRedo" ? "redo" : null;
+        if (!which) return false;
+        event.preventDefault();
+        undoOrRedo(which, "editor");
+        return true;
+      },
+    });
+
     const initialAutocompleteMode = useNotebookStore.getState().autocompleteMode;
 
     const state = EditorState.create({
@@ -220,6 +238,7 @@ export function useCodeMirrorEditor({
           onViewDocsRef.current?.(name);
         }),
         updateListener,
+        browserUndo,
       ],
     });
 
@@ -248,15 +267,16 @@ export function useCodeMirrorEditor({
     (input: string) => {
       const view = viewRef.current;
       if (!view || isInternalUpdate.current) return;
-      const current = view.state.doc.toString();
-      if (current !== input) {
-        // Preserve cursor position when syncing external content changes
-        const prevSel = view.state.selection.main;
-        const anchor = Math.min(prevSel.anchor, input.length);
-        const head = Math.min(prevSel.head, input.length);
+      // Replace only the text that changed, and put the cursor at the end
+      // of it, as an editor's own undo does.  Keeping the cursor's offset
+      // in the whole text put it a character or a line away from an undone
+      // change made before it.
+      const change = changeBetween(view.state.doc.toString(), input);
+      if (change) {
         view.dispatch({
-          changes: { from: 0, to: current.length, insert: input },
-          selection: { anchor, head },
+          changes: change,
+          selection: { anchor: change.from + change.insert.length },
+          scrollIntoView: view.hasFocus,
         });
       }
 

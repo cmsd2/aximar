@@ -2,7 +2,7 @@ import { create } from "zustand";
 import type { Cell } from "../types/notebook";
 import type { SessionStatus } from "../types/maxima";
 import { nextSelection, type SelectHow } from "../lib/selection-utils";
-import { hasPendingSync } from "../lib/dirty-inputs";
+import { fromBackend, hasPendingSync } from "../lib/dirty-inputs";
 
 export type Theme = "auto" | "light" | "paper" | "dark";
 export type CellStyle = "card" | "bracket";
@@ -392,7 +392,7 @@ export const useNotebookStore = create<NotebookState>((set) => ({
     canRedo?: boolean,
     trusted?: boolean
   ) =>
-    set((state) => {
+    fromBackend(() => set((state) => {
       const tab = state.notebooks[notebookId];
       if (!tab || tab.type !== "notebook") return state;
 
@@ -437,7 +437,7 @@ export const useNotebookStore = create<NotebookState>((set) => ({
       return {
         notebooks: { ...state.notebooks, [notebookId]: updatedTab },
       };
-    }),
+    })),
 }));
 
 // ── Selectors ──────────────────────────────────────────────────────

@@ -8,7 +8,7 @@ vi.mock("./notebook-commands", () => ({
   }),
 }));
 
-import { cleanup, flushCell, flushNotebook, hasPendingSync, markDirty } from "./dirty-inputs";
+import { cleanup, flushCell, flushNotebook, fromBackend, hasPendingSync, markDirty } from "./dirty-inputs";
 
 beforeEach(() => {
   vi.useFakeTimers();
@@ -81,5 +81,21 @@ describe("dirty inputs", () => {
     vi.advanceTimersByTime(300);
     expect(sent).toContainEqual(["nb-b", "cell-1", "b1"]);
     expect(sent).toHaveLength(3);
+  });
+
+  it("doesn't count text from the backend, such as an undo's, as an edit", () => {
+    const result = fromBackend(() => {
+      markDirty("nb-a", "cell-1", "undone");
+      return 7;
+    });
+    expect(result).toBe(7);
+    // Pending, it would keep a second undo's text out of the editor
+    expect(hasPendingSync("nb-a", "cell-1")).toBe(false);
+    vi.advanceTimersByTime(300);
+    expect(sent).toEqual([]);
+
+    // Edits after it count again
+    markDirty("nb-a", "cell-1", "typed");
+    expect(hasPendingSync("nb-a", "cell-1")).toBe(true);
   });
 });
