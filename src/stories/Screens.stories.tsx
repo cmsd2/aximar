@@ -13,6 +13,7 @@ import { useNotebookStore } from "../store/notebookStore";
 import type { SessionStatus } from "../types/maxima";
 import type { SyncCell } from "../lib/notebook-commands";
 import welcome from "../../crates/aximar-core/src/notebooks/welcome.json";
+import a5Showcase from "./fixtures/a5-showcase.json";
 import { fixtures } from "./fixtures";
 import { StoryNotebook } from "./notebook";
 import { seedNotebook } from "./store";
@@ -26,12 +27,14 @@ const noop = () => {};
 interface WindowProps {
   variables?: boolean;
   docs?: string;
+  /** The window's height in px */
+  height?: number;
 }
 
 /** The window's layout, as App.tsx builds it, without App's start-up effects */
-function Window({ variables = false, docs }: WindowProps) {
+function Window({ variables = false, docs, height = 760 }: WindowProps) {
   return (
-    <div className="app" style={{ height: 760 }}>
+    <div className="app" style={{ height }}>
       <TabBar />
       <Toolbar />
       <FindBar />
@@ -98,6 +101,30 @@ export const WholeWindow: StoryObj = {
     },
   ],
   render: () => <Window variables docs="integrate" />,
+};
+
+/**
+ * The README's screenshot: the Cayley graph of A5, the app's icon, built
+ * with the permutations package and drawn with ax-plots.  The cells and
+ * outputs come from running assets/a5-cayley.macnb with `aximar-mcp run`.
+ */
+export const Showcase: StoryObj = {
+  parameters: { cellStyle: "bracket" },
+  loaders: [
+    async () => {
+      seed(a5Showcase as SyncCell[], "Ready", [
+        ["session", "info", "Session starting..."],
+        ["session", "info", "Session ready"],
+      ]);
+      useNotebookStore.getState().setNotebookPath("nb-1", "a5-cayley.macnb");
+    },
+  ],
+  render: () => (
+    <>
+      <Window height={1040} />
+      <WaitFor selector=".plotly-output .main-svg" />
+    </>
+  ),
 };
 
 /** The welcome notebook on first launch, before anything has run */
