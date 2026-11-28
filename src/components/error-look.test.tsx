@@ -80,4 +80,14 @@ describe("the error styles", () => {
     for (const rule of output) expect(rule).not.toMatch(/--error-(color|bg)/);
     expect(rules([".error-icon"]).join(" ")).toContain("var(--error-color)");
   });
+
+  // The Out label lines up with the first baseline of the output.  A flex
+  // row that starts with an icon takes its baseline from the icon's bottom
+  // edge unless its items align on the baseline, so the text sets it.
+  it("let the text, not the icon, set the baseline the Out label meets", () => {
+    for (const row of [".enhanced-error-title", ".error-output", ".output-note-line"]) {
+      const rule = css.match(new RegExp(`(?:^|\\n)\\${row} \\{([^}]*)\\}`))![1];
+      expect(rule, row).toMatch(/align-items: baseline/);
+    }
+  });
 });

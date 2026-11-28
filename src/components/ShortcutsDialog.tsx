@@ -27,6 +27,13 @@ const EDITOR_KEYS: { keys: Shortcut[]; label: MessageDescriptor }[] = [
     }),
   },
   {
+    keys: ["Tab"],
+    label: msg({
+      message: "At the caret between cells, open the + menu: a code or Markdown cell, or a next step for the result above",
+      comment: "Keyboard Shortcuts list: what Tab does at the caret between two cells",
+    }),
+  },
+  {
     keys: ["Escape"],
     label: msg({ message: "Leave the cell, or remove the caret between cells", comment: "Keyboard Shortcuts list: what Escape does" }),
   },

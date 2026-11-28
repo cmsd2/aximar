@@ -78,8 +78,7 @@ msgid "{current} of {total}"
 msgstr ""
 
 #. File type in the Save dialog when saving a plot. kind is the image format, SVG or PNG
-#. File type in the Save dialog when saving a plot. kind is the image format, SVG or PNG
-#: src/components/CellSuggestions.tsx src/components/PlotViewer.tsx
+#: src/lib/plot-save.ts
 msgid "{kind} Image"
 msgstr ""
 
@@ -120,20 +119,6 @@ msgid "# second"
 msgid_plural "# seconds"
 msgstr[0] ""
 msgstr[1] ""
-
-#. Button in the bar between cells: inserts a code cell there. max-length:12
-#. screen: cells--bracket-selection
-#. screen: editor--caret-bracket-style
-#: src/components/CellGap.tsx
-msgid "+ Code"
-msgstr ""
-
-#. Button in the bar between cells: inserts a markdown cell there. max-length:14
-#. screen: cells--bracket-selection
-#. screen: editor--caret-bracket-style
-#: src/components/CellGap.tsx
-msgid "+ Markdown"
-msgstr ""
 
 #. Command palette footer: the arrow keys move through the list
 #. screen: dialogs--command-palette-commands
@@ -253,6 +238,12 @@ msgstr ""
 #. screen: dialogs--settings-notebook
 #: src/components/settings/NotebookSection.tsx
 msgid "Argument help"
+msgstr ""
+
+#. Keyboard Shortcuts list: what Tab does at the caret between two cells
+#. screen: dialogs--keyboard-shortcuts
+#: src/components/ShortcutsDialog.tsx
+msgid "At the caret between cells, open the + menu: a code or Markdown cell, or a next step for the result above"
 msgstr ""
 
 #. Settings: theme button that follows the system's light or dark mode
@@ -514,6 +505,8 @@ msgstr ""
 
 #. Item in the menu of the + between cells: inserts a Maxima code cell. max-length:16
 #. screen: editor--insert-menu
+#. screen: outputs--next-steps-menu
+#. screen: outputs--suggestions-off
 #: src/components/CellGap.tsx
 msgid "Code"
 msgstr ""
@@ -528,11 +521,11 @@ msgstr ""
 #. screen: editor--cell-context-menu
 #. screen: editor--find-and-replace
 #. screen: editor--insert-menu
+#. screen: outputs--next-steps-menu
 #. screen: outputs--plotly-plot
 #. screen: outputs--reactive-controls
 #. screen: outputs--running-and-queued
 #. screen: outputs--silent-and-empty
-#. screen: outputs--suggestion-chips
 #. screen: outputs--suggestions-off
 #. screen: outputs--svg-plot
 #. screen: screens--drop-mixed
@@ -623,9 +616,9 @@ msgstr ""
 #. screen: editor--cell-context-menu
 #. screen: editor--find-and-replace
 #. screen: editor--insert-menu
+#. screen: outputs--next-steps-menu
 #. screen: outputs--running-and-queued
 #. screen: outputs--silent-and-empty
-#. screen: outputs--suggestion-chips
 #. screen: outputs--suggestions-off
 #. screen: screens--drop-mixed
 #. screen: screens--drop-notebooks
@@ -647,8 +640,8 @@ msgstr ""
 #. screen: editor--cell-context-menu
 #. screen: editor--find-and-replace
 #. screen: editor--insert-menu
+#. screen: outputs--next-steps-menu
 #. screen: outputs--running-and-queued
-#. screen: outputs--suggestion-chips
 #. screen: outputs--suggestions-off
 #. screen: screens--drop-mixed
 #. screen: screens--drop-notebooks
@@ -668,9 +661,9 @@ msgstr ""
 #. screen: editor--cell-context-menu
 #. screen: editor--find-and-replace
 #. screen: editor--insert-menu
+#. screen: outputs--next-steps-menu
 #. screen: outputs--running-and-queued
 #. screen: outputs--silent-and-empty
-#. screen: outputs--suggestion-chips
 #. screen: outputs--suggestions-off
 #. screen: screens--drop-mixed
 #. screen: screens--drop-notebooks
@@ -1031,6 +1024,13 @@ msgstr ""
 msgid "From an earlier session. Run the cell to update it."
 msgstr ""
 
+#. Heading in the + menu between cells, above the suggested next steps for the result above, such as Simplify. run is that result's run number, as in its Out [n] label. max-length:20
+#. screen: editor--insert-menu
+#. screen: outputs--next-steps-menu
+#: src/components/CellGap.tsx
+msgid "From Out [{run}]"
+msgstr ""
+
 #. Settings, Maxima section: under the found Maxima, where its path came from. envVar is an environment variable's name
 #: src/components/settings/MaximaSection.tsx
 msgid "From the {envVar} environment variable."
@@ -1039,6 +1039,11 @@ msgstr ""
 #. Settings, Maxima section: under the found Maxima, where its path came from
 #: src/components/settings/MaximaSection.tsx
 msgid "From the Maxima path setting."
+msgstr ""
+
+#. Heading in the + menu between cells, above the suggested next steps for the result above. max-length:24
+#: src/components/CellGap.tsx
+msgid "From the result above"
 msgstr ""
 
 #. Docs panel: note when there is no package of full documentation in the help's language. language is a language name
@@ -1188,11 +1193,11 @@ msgstr ""
 #. screen: editor--cell-context-menu
 #. screen: editor--find-and-replace
 #. screen: editor--insert-menu
+#. screen: outputs--next-steps-menu
 #. screen: outputs--plotly-plot
 #. screen: outputs--reactive-controls
 #. screen: outputs--running-and-queued
 #. screen: outputs--silent-and-empty
-#. screen: outputs--suggestion-chips
 #. screen: outputs--suggestions-off
 #. screen: outputs--svg-plot
 #. screen: screens--drop-mixed
@@ -1237,22 +1242,24 @@ msgid "Include plots"
 msgstr ""
 
 #. Tooltip of the + in the margin between two cells: opens a menu of cell types to insert there
+#. screen: cells--bracket-selection
 #. screen: cells--notebook
 #. screen: cells--print-and-tex
 #. screen: cells--selection
 #. screen: editor--argument-help
 #. screen: editor--caret-between-cells
+#. screen: editor--caret-bracket-style
 #. screen: editor--cell-context-menu
 #. screen: editor--completion
 #. screen: editor--find-and-replace
 #. screen: editor--insert-menu
 #. screen: editor--new-notebook
 #. screen: outputs--markdown
+#. screen: outputs--next-steps-menu
 #. screen: outputs--plotly-plot
 #. screen: outputs--reactive-controls
 #. screen: outputs--running-and-queued
 #. screen: outputs--silent-and-empty
-#. screen: outputs--suggestion-chips
 #. screen: outputs--suggestions-off
 #. screen: outputs--svg-plot
 #. screen: screens--drop-mixed
@@ -1263,6 +1270,30 @@ msgstr ""
 #. screen: screens--whole-window
 #: src/components/CellGap.tsx
 msgid "Insert a cell"
+msgstr ""
+
+#. Tooltip of the + between two cells when the result above has suggested next steps, such as Simplify
+#. screen: cells--bracket-selection
+#. screen: cells--notebook
+#. screen: cells--print-and-tex
+#. screen: cells--selection
+#. screen: editor--caret-between-cells
+#. screen: editor--caret-bracket-style
+#. screen: editor--cell-context-menu
+#. screen: editor--find-and-replace
+#. screen: editor--insert-menu
+#. screen: outputs--next-steps-menu
+#. screen: outputs--plotly-plot
+#. screen: outputs--reactive-controls
+#. screen: outputs--running-and-queued
+#. screen: outputs--silent-and-empty
+#. screen: outputs--svg-plot
+#. screen: screens--drop-mixed
+#. screen: screens--drop-notebooks
+#. screen: screens--drop-refused
+#. screen: screens--whole-window
+#: src/components/CellGap.tsx
+msgid "Insert a cell, or a next step for the result above"
 msgstr ""
 
 #. Maxima Not Found dialog, on an unknown system. siteUrl is Maxima's web site
@@ -1420,6 +1451,8 @@ msgstr ""
 
 #. Item in the menu of the + between cells: inserts a Markdown text cell. max-length:16
 #. screen: editor--insert-menu
+#. screen: outputs--next-steps-menu
+#. screen: outputs--suggestions-off
 #: src/components/CellGap.tsx
 msgid "Markdown"
 msgstr ""
@@ -1781,11 +1814,11 @@ msgstr ""
 #. screen: editor--cell-context-menu
 #. screen: editor--find-and-replace
 #. screen: editor--insert-menu
+#. screen: outputs--next-steps-menu
 #. screen: outputs--plotly-plot
 #. screen: outputs--reactive-controls
 #. screen: outputs--running-and-queued
 #. screen: outputs--silent-and-empty
-#. screen: outputs--suggestion-chips
 #. screen: outputs--suggestions-off
 #. screen: outputs--svg-plot
 #. screen: screens--drop-mixed
@@ -2040,11 +2073,11 @@ msgstr ""
 #. screen: editor--completion
 #. screen: editor--find-and-replace
 #. screen: editor--insert-menu
+#. screen: outputs--next-steps-menu
 #. screen: outputs--plotly-plot
 #. screen: outputs--reactive-controls
 #. screen: outputs--running-and-queued
 #. screen: outputs--silent-and-empty
-#. screen: outputs--suggestion-chips
 #. screen: outputs--suggestions-off
 #. screen: outputs--svg-plot
 #. screen: screens--drop-mixed
@@ -2100,6 +2133,14 @@ msgstr ""
 #. screen: outputs--plot-viewer-tab
 #: src/components/PlotViewer.tsx
 msgid "Save JSON"
+msgstr ""
+
+#. Tooltip of a button above a plot: saves it to a file. format is SVG, PNG or JSON
+#. screen: outputs--plotly-plot
+#. screen: outputs--reactive-controls
+#. screen: outputs--svg-plot
+#: src/components/CellOutput.tsx
+msgid "Save the plot as {format}"
 msgstr ""
 
 #. Command palette: placeholder of the search box; typing > lists only commands, and a backslash switches to the list of math symbols
@@ -2162,11 +2203,11 @@ msgstr ""
 #. screen: editor--find-and-replace
 #. screen: editor--insert-menu
 #. screen: outputs--markdown
+#. screen: outputs--next-steps-menu
 #. screen: outputs--plotly-plot
 #. screen: outputs--reactive-controls
 #. screen: outputs--running-and-queued
 #. screen: outputs--silent-and-empty
-#. screen: outputs--suggestion-chips
 #. screen: outputs--suggestions-off
 #. screen: outputs--svg-plot
 #. screen: screens--drop-mixed
@@ -2339,11 +2380,6 @@ msgstr ""
 #. screen: dialogs--settings-notebook
 #: src/components/settings/NotebookSection.tsx
 msgid "Suggestions under results"
-msgstr ""
-
-#. File type in the Save dialog when saving a plot as SVG
-#: src/components/CellSuggestions.tsx
-msgid "SVG Image"
 msgstr ""
 
 #. Command palette: list entry that opens the list of math symbols, such as Greek letters

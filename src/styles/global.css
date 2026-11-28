@@ -302,64 +302,22 @@
   padding-right: 48px;
 }
 
-/* Insert Bar */
+/* Bracket style's gap: a 24px band laid over the space between cells, with
+   the same line, + and caret as card style's */
 .insert-bar {
-  display: flex;
-  align-items: center;
-  gap: 8px;
   height: 24px;
   margin-top: -12px;
   margin-bottom: -6px;
   position: relative;
   z-index: 1;
-  opacity: 0;
-  transition: opacity 0.15s;
-}
-
-.cell-suggestions + .insert-bar {
-  margin-top: 0;
-}
-
-.insert-bar:hover {
-  opacity: 1;
-}
-
-.insert-bar-line {
-  flex: 1;
-  height: 1px;
-  background: var(--border-color);
-}
-
-.insert-bar-buttons {
-  display: flex;
-  gap: 4px;
-  flex-shrink: 0;
-}
-
-.insert-bar-btn {
-  padding: 2px 10px;
-  background: transparent;
-  border: 1px solid var(--border-color);
-  border-radius: 10px;
-  color: var(--text-secondary);
-  font-size: 11px;
-  cursor: pointer;
-  transition: background 0.15s, color 0.15s;
-  white-space: nowrap;
-}
-
-.insert-bar-btn:hover {
-  background: var(--accent);
-  color: var(--bg-primary);
-  border-color: var(--accent);
 }
 
 /* The gap between two cells in card style (CellGap): 8px, with a hit
    area a little taller that reaches over the cards' edges.  Hovering
    shows a grey line and a + in the left margin.  Clicking places a
    caret: the stretch of line under the In and Out labels turns the
-   accent colour and blinks.  Bracket
-   style draws the gap as the insert bar above. */
+   accent colour and blinks.  Bracket style's gap is the taller band
+   above, with its + at the line's left end, in the gutter. */
 .cell-gap:not(.insert-bar) {
   position: relative;
   height: var(--space-2);
@@ -402,15 +360,15 @@
   opacity: 1;
 }
 
-/* The caret: the stretch of the line under the In and Out labels, in the
-   accent colour, blinking on CodeMirror's 1.2s cycle.  It's the line's
-   own 1px and sits exactly on it.  Its right end is flush with the
-   labels: the gutter's 4px padding in from the code, past the card's 1px
-   border in card style. */
+/* The caret: a stretch of the line in the accent colour, blinking on
+   CodeMirror's 1.2s cycle.  It's the line's own 1px and sits exactly on
+   it.  Its left end is flush with the left edge of the input and output,
+   where the new cell's text will start: past the card's 1px border in
+   card style. */
 .cell-gap-caret {
   --caret-length: calc(var(--font-size-mono) * 2.4);
   position: absolute;
-  left: calc(var(--gutter-width) + 1px - var(--space-1) - var(--caret-length));
+  left: calc(var(--gutter-width) + 1px);
   top: 50%;
   z-index: 4;
   width: var(--caret-length);
@@ -420,11 +378,9 @@
   animation: cell-gap-blink 1.2s steps(1) infinite;
 }
 
-/* Bracket style's bar centres its 1px line by flexbox, half a pixel
-   above 50% */
+/* Bracket style has no card border to step over */
 .insert-bar .cell-gap-caret {
-  left: calc(var(--gutter-width) - var(--space-1) - var(--caret-length));
-  top: calc(50% - 0.5px);
+  left: var(--gutter-width);
 }
 
 @keyframes cell-gap-blink {
@@ -433,10 +389,6 @@
 
 @media (prefers-reduced-motion: reduce) {
   .cell-gap-caret { animation: none; }
-}
-
-.insert-bar.has-caret {
-  opacity: 1;
 }
 
 /* Below the last cell, room to scroll the last cell up the window, where
@@ -478,7 +430,7 @@
 
 .cell-gap-plus {
   position: absolute;
-  left: calc(-1 * var(--space-6));
+  left: calc(-1 * var(--space-4));
   top: 50%;
   transform: translateY(-50%);
   z-index: 4;
@@ -510,9 +462,43 @@
   border-color: var(--accent);
 }
 
+/* A gap with its menu open sits above the cells around it, which have
+   stacking layers of their own (bracket style's output area, a card's
+   ring), so the menu covers them */
+.cell-gap.menu-open {
+  z-index: 30;
+}
+
+/* Bracket style: the + sits near the line's left end, in the gutter */
+.insert-bar .cell-gap-plus,
+.insert-bar .cell-gap-menu {
+  left: var(--space-2);
+}
+
+/* One gap at a time shows its line and +: the one with its menu open,
+   else the one under the pointer, else the caret's */
+.notebook:has(.cell-gap.menu-open) .cell-gap:not(.menu-open) :is(.cell-gap-line, .cell-gap-plus),
+.notebook:not(:has(.cell-gap.menu-open)):has(.cell-gap:hover) .cell-gap:not(:hover) :is(.cell-gap-line, .cell-gap-plus) {
+  opacity: 0;
+}
+
+/* The heading over the suggestions in the + menu */
+.cell-gap-menu-heading {
+  margin-top: var(--space-1);
+  padding: var(--space-1) var(--space-3) var(--space-half);
+  border-top: 1px solid var(--border-color);
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+}
+
+.cell-gap-suggestion svg {
+  vertical-align: -2px;
+  color: var(--text-secondary);
+}
+
 .cell-gap-menu {
   position: absolute;
-  left: calc(-1 * var(--space-6));
+  left: calc(-1 * var(--space-4));
   top: calc(50% + var(--space-4));
   z-index: 20;
   min-width: 140px;
@@ -724,11 +710,14 @@
   overflow: visible;
 }
 
+/* No bottom padding: the 26px buttons then fit a one-line input (6px +
+   a 21px line + 6px), so they don't make its row taller than a
+   multi-line one's bottom margin */
 .cell-actions {
   display: flex;
   flex-direction: row;
   gap: 2px;
-  padding: 6px;
+  padding: 6px 6px 0;
   opacity: 0;
   transition: opacity 0.15s;
 }
@@ -831,6 +820,12 @@
   opacity: 1;
 }
 
+/* A Plotly chart has its own toolbar at the top right */
+.cell-output:has(.plotly-output) .copy-actions {
+  top: auto;
+  bottom: 6px;
+}
+
 .copy-btn {
   width: auto;
   min-width: 26px;
@@ -901,7 +896,7 @@
 
 .plot-viewer-toolbar {
   display: flex;
-  gap: 8px;
+  gap: var(--space-2);
   padding-bottom: 12px;
   flex-shrink: 0;
 }
@@ -1072,52 +1067,12 @@
 }
 
 /* Suggestion Chips */
-.cell-suggestions {
-  display: flex;
-  gap: 6px;
-  padding: 6px 12px 8px calc(var(--gutter-width) + 4px);
-  flex-wrap: wrap;
-  border-top: 1px solid var(--border-color);
-  background: rgba(0, 0, 0, 0.05);
-  margin-bottom: 8px;
-  margin-left: -16px;
-  margin-right: -16px;
-  padding-right: 16px;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme]) .cell-suggestions {
-    background: rgba(0, 0, 0, 0.15);
-  }
-}
-
-[data-theme="dark"] .cell-suggestions {
-  background: rgba(0, 0, 0, 0.15);
-}
-
-.suggestion-chip {
-  padding: 3px 10px;
-  background: var(--bg-input);
-  border: 1px solid var(--border-color);
-  border-radius: 12px;
-  color: var(--accent);
-  font-size: 12px;
-  cursor: pointer;
-  transition: background 0.15s, border-color 0.15s;
-  white-space: nowrap;
-}
-
-.suggestion-chip:hover {
-  background: var(--accent);
-  color: var(--bg-primary);
-  border-color: var(--accent);
-}
-
 /* An error Aximar can't explain: the icon, then Maxima's text */
 .error-output {
   flex: 1;
   display: flex;
-  align-items: flex-start;
+  /* Maxima's text sets the baseline, for the Out label */
+  align-items: baseline;
   gap: var(--space-1);
   padding: 12px 12px 12px 0;
 }
@@ -1135,7 +1090,12 @@
 }
 
 .error-output > .error-icon {
+  align-self: flex-start;
   margin-top: var(--space-half);
+}
+
+.enhanced-error-title > .error-icon {
+  align-self: center;
 }
 
 /* Command Palette */
@@ -1434,9 +1394,11 @@
   padding: 12px 12px 12px 0;
 }
 
+/* The text sets the row's baseline, which the Out label lines up with;
+   an icon first in a flex row would set it to the icon's bottom edge */
 .enhanced-error-title {
   display: flex;
-  align-items: center;
+  align-items: baseline;
   gap: var(--space-1);
   font-weight: 600;
   font-size: 14px;
@@ -1456,7 +1418,8 @@
 
 .output-note-line {
   display: flex;
-  align-items: flex-start;
+  /* The text sets the baseline, for the Out label */
+  align-items: baseline;
   gap: var(--space-1);
   font-size: 13px;
   color: var(--text-secondary);
@@ -1465,6 +1428,7 @@
 /* Level with the first line of the note's text */
 .output-note-icon {
   flex: none;
+  align-self: flex-start;
   margin-top: var(--space-half);
 }
 
@@ -2390,9 +2354,6 @@
   background: var(--error-color);
 }
 
-[data-cell-style="bracket"] .cell-suggestions {
-  padding-right: 20px;
-}
 
 [data-cell-style="bracket"] .markdown-cell {
   background: transparent;
@@ -2501,12 +2462,6 @@
 [data-cell-style="card"] .cell,
 :root:not([data-cell-style]) .cell {
   margin-bottom: 0;
-}
-
-/* The suggestion chips keep the 8px under their card the margin gave */
-[data-cell-style="card"] .cell + .cell-suggestions,
-:root:not([data-cell-style]) .cell + .cell-suggestions {
-  margin-top: var(--space-2);
 }
 
 /* Without the bracket, card style needs no wide right margin; the left
@@ -3433,7 +3388,6 @@
   .cell-gap-menu,
   .notebook-tail,
   .bracket-toggle,
-  .cell-suggestions,
   .cm-tooltip,
   .copy-actions {
     display: none !important;

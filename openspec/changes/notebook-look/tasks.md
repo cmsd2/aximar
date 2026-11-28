@@ -25,11 +25,13 @@
 
 ## 4. Suggestions (one PR)
 
-- [ ] 4.1 Render `CellSuggestions` inside the output area as "→ Label" text buttons lined up with the output, and remove the band and its styles; verify with a vitest test that the row sits inside `.cell-output-area`, and the Outputs "Suggestion chips" story in both styles and themes
-- [ ] 4.2 Keep the Settings switch working: verify with the existing "Suggestions off" story and its vitest test
+- [x] 4.1 Remove the band under results; move the suggestion logic into a `useCellSuggestions` hook that keeps only suggestions that insert a cell
+- [x] 4.2 Draw every gap in both styles as a line with one + near its left end; its menu lists Code, Markdown, then "From Out [n]" and the result above's suggestions; Tab at the caret opens it; only one gap shows its line and + at a time; the menu is opaque over the cells; the caret's left end lines up with the input and output; verify with vitest tests (`suggestions.test.tsx`, `cell-gap.test.tsx`) and the Outputs "Next Steps Menu" story in both styles
+- [x] 4.3 Move plot saving to the output's hover toolbar (SVG for a gnuplot plot; SVG, PNG and JSON for a Plotly chart, at the bottom right) through `lib/plot-save.ts`, shared with the plot viewer; verify with `plot-actions.test.tsx`
+- [x] 4.4 Keep the Settings switch working, and list Tab at the caret in Keyboard Shortcuts; verify with the "Suggestions Off" story and its vitest test
 
 ## 5. Docs and the gallery
 
-- [ ] 5.1 Update `docs/ui-audit.md` (items 8 to 11 and 22, under "Changed since") and `docs/design-library.md` if the quiet text button or the error header become shared parts; verify the links and anchors resolve
-- [ ] 5.2 Regenerate the gallery and catalogs (`npm run i18n:gallery`, `scripts/i18n-extract`), and check the cell stories in both styles and themes; verify `scripts/i18n-extract --check` passes
+- [x] 5.1 Update `docs/ui-audit.md` (items 8 to 11 and 22, under "Changed since") and `docs/design-library.md` if the quiet text button or the error header become shared parts; verify the links and anchors resolve
+- [x] 5.2 Regenerate the gallery and catalogs (`npm run i18n:gallery`, `scripts/i18n-extract`), and check the cell stories in both styles and themes; verify `scripts/i18n-extract --check` passes
 - [ ] 5.3 By hand in the app with Maxima: run `1/0;`, `frobnicate(1);`, `rat(0.5*x);`, `print("n =", 3)$`, a definition ending in `$`, and Run All over a slow cell, in bracket and card style

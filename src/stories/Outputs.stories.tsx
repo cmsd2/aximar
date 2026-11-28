@@ -177,22 +177,43 @@ const integrated: SyncCell[] = [
   },
 ];
 
-/** The suggestion chips under a result */
-export const SuggestionChips: StoryObj = {
+/** The gap's + menu: a code or Markdown cell, or a next step for the result above */
+export const NextStepsMenu: StoryObj = {
   loaders: [async () => seedNotebook(integrated)],
   render: () => (
     <>
       <StoryNotebook />
-      <WaitFor selector=".cell-suggestions" />
+      <WaitFor
+        selector=".cell-gap-menu .cell-gap-suggestion"
+        run={async () => {
+          const plus = async (): Promise<HTMLButtonElement> =>
+            document.querySelector<HTMLButtonElement>('[data-testid="gap-i1"] .cell-gap-plus') ??
+            new Promise((r) => setTimeout(() => r(plus()), 50));
+          (await plus()).click();
+        }}
+      />
     </>
   ),
 };
 
-/** The same result with suggestions turned off in Settings (issue #44) */
+/** The same menu with suggestions turned off in Settings (issue #44): cell types only */
 export const SuggestionsOff: StoryObj = {
   parameters: { showSuggestions: false },
-  loaders: SuggestionChips.loaders,
-  render: () => <StoryNotebook />,
+  loaders: NextStepsMenu.loaders,
+  render: () => (
+    <>
+      <StoryNotebook />
+      <WaitFor
+        selector=".cell-gap-menu"
+        run={async () => {
+          const plus = async (): Promise<HTMLButtonElement> =>
+            document.querySelector<HTMLButtonElement>('[data-testid="gap-i1"] .cell-gap-plus') ??
+            new Promise((r) => setTimeout(() => r(plus()), 50));
+          (await plus()).click();
+        }}
+      />
+    </>
+  ),
 };
 
 const silent: SyncCell[] = [

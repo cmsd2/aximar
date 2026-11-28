@@ -185,6 +185,30 @@ problems:
   a class where students should write each step themselves
   (cmsd2/aximar#44).  The chips also keep their 8px under a card, which
   the card spacing change above had taken away.
+- **A cell's output, in both styles** (the `notebook-look` change; items
+  8 to 11 and 22):
+  - Printed text is in the primary text colour (item 9).  In card style
+    the output well stays grey (item 8); bracket style has no well.
+  - A failed cell shows red once: its bracket or border.  The title is
+    in the normal text colour after a small red icon, the explanation is
+    secondary text, and the suggestion has a lightbulb and no box.  An
+    error Aximar can't explain shows Maxima's text in neutral monospace
+    under the same icon.  "Show raw error" reads "Show Maxima's error"
+    (item 10).
+  - Notes have the Tabler info icon, code in the code font, and a quiet
+    "Show Maxima's text" button right after their text, so a wrapped
+    note keeps it beside the words (item 11).  The code comes from
+    backticks in the catalog's templates, which translators keep and MCP
+    results carry.
+  - A running cell reads In [\*] with an accent bracket or border, and a
+    queued one reads In [·] (item 22).  A definition ending in `$` shows
+    no "(no output)".
+  - Nothing sits under a result for its suggestions.  The gap below it
+    has one + (both styles now draw gaps the same way), whose menu
+    offers Code, Markdown and, under "From Out [n]", the result's
+    next steps ("→ Simplify"); Tab at the caret opens it.  Saving a
+    plot moved to the output's hover toolbar (SVG, PNG, JSON).  The
+    plot viewer's export buttons use the shared `Button`.
 
 ## Menus and toolbars
 
@@ -308,6 +332,6 @@ variables, docs and log panels and the find bar share one header (29,
    a light and a dark value for each colour.  Then move the rules onto
    them.
 4. The notebook: one output style, quieter errors, notes with code
-   formatting.
+   formatting.  *Done;* see "Changed since".
 5. The toolbar, an icon set and the capitalisation rule: see "Menus and
    toolbars" above.
