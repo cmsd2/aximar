@@ -127,13 +127,14 @@ The check matches names in the cell text, so it warns about notebooks that use t
 
 In `run_all_cells`, a blocked cell stops the run with status `needs_trust`.
 
-## Available tools (24)
+## Available tools (30)
 
 ### Documentation
 
 - **search_functions(query, language?)** -- Search the Maxima function catalog by name or description. The catalog's ranked results come first, with a `score`; functions that installed packages match by name follow without one, marked `undocumented: true` when there are no docs for them. The query matches every installed language; each result's `description` is in `language` where there is a translation, and its `language` field names which.
 - **get_function_docs(name, language?)** -- Get full documentation for a Maxima function. For a function that only a package provides, it names every such package and how to load it. A misspelt name gets suggestions from the catalog and the packages. With `language` (a BCP 47 tag such as `es`), the result is in that language where there is a translation: `language` and `description_language` name the language of `full_docs` and `description`, `fallback_from` marks a function with nothing in that language, and `stale` with `english_signatures` marks a translation whose signatures differ from the English. Without `language`, both tools answer in English.
 - **complete_function(prefix)** -- Autocomplete a function name prefix. Each name appears once, naming every package that provides it.
+- **list_deprecated()** -- List Maxima functions that are deprecated, obsolete or superseded, with their replacements where there are any.
 
 These answer from the same core API as the desktop window (`catalog::queries`), so both find the same functions.
 
@@ -179,6 +180,15 @@ These answer from the same core API as the desktop window (`catalog::queries`), 
 
 - **get_cell_output_log(cell_id)** -- Raw Maxima I/O for a cell.
 - **get_server_log(stream?, limit?)** -- Server-wide output log.
+
+### Notebooks
+
+Each notebook has its own Maxima session, so variables and definitions in one don't reach another. Most tools take an optional `notebook_id` and act on the active notebook without one.
+
+- **list_notebooks()** -- List the open notebooks, with their IDs, titles, recorded paths and which is active.
+- **create_notebook()** -- Open a new notebook with its own Maxima session, and return its ID.
+- **close_notebook(notebook_id)** -- Close a notebook and stop its session. The last notebook can't be closed. In connected mode the window asks the user first when the notebook has unsaved changes.
+- **switch_notebook(notebook_id)** -- Make a notebook the active one.
 
 ### Notebook I/O
 

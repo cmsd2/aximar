@@ -15,17 +15,12 @@ The Settings window SHALL show a sidebar, headed by the window's title, listing 
 - AI assistants: MCP server switch, MCP server status line, one row per AI client, and an Advanced disclosure holding the listen address and the token.
 - Translation: translation preview, show sources.
 
-The Translation section SHALL appear only in pre-release builds. Every setting the window offers before this change SHALL appear in exactly one section.
+The Translation section SHALL appear in every build. Every setting the window offers before this change SHALL appear in exactly one section.
 
-#### Scenario: A release build lists five sections
+#### Scenario: Every build lists six sections
 
-- **WHEN** a release build without translator tools opens Settings
-- **THEN** the sidebar lists General, Notebook, Maxima, Printing and AI assistants, and no Translation section
-
-#### Scenario: A pre-release build adds Translation
-
-- **WHEN** a pre-release build opens Settings
-- **THEN** the sidebar ends with Translation, and choosing it shows the translation preview and show-sources rows
+- **WHEN** any build opens Settings
+- **THEN** the sidebar lists General, Notebook, Maxima, Printing, AI assistants and Translation, and choosing Translation shows the translation preview and show-sources rows
 
 #### Scenario: Choosing a section shows its settings
 

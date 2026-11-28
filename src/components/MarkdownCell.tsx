@@ -4,6 +4,7 @@ import { useLingui } from "@lingui/react/macro";
 import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
+import { remarkDisplayMath } from "../lib/remark-display-math";
 import type { Cell as CellType } from "../types/notebook";
 import { getActiveTabState, useActiveTab, useNotebookStore } from "../store/notebookStore";
 import { afterRun, gapBeside, goTo } from "../lib/cell-caret";
@@ -124,7 +125,7 @@ export function MarkdownCell({ cell, selectBracket }: MarkdownCellProps) {
           onDoubleClick={() => setEditing(true)}
         >
           {cell.input.trim() ? (
-            <ReactMarkdown remarkPlugins={[remarkGfm, remarkMath]} rehypePlugins={[rehypeKatex]}>
+            <ReactMarkdown remarkPlugins={[remarkGfm, remarkMath, remarkDisplayMath]} rehypePlugins={[rehypeKatex]}>
               {cell.input}
             </ReactMarkdown>
           ) : (

@@ -50,8 +50,8 @@ Each numbered group is one pull request, landing in order unless a group says ot
 
 ## 8. Translator tools and the Spanish catalog
 
-- [ ] 8.1 Add the preview loader to pre-release builds: a Tauri command reading a `.po`, run-time compilation in the window, a file watcher, and the menus following it; verify with a vitest test of compiling a loaded catalog and by hand with the "Live preview" scenario; verify a release build has no loader
-- [x] 8.2 Add show-sources mode to pre-release builds; verify with a vitest test that pointing at a string shows its source text, note and file
+- [x] 8.1 Add the preview loader, in every build: a Tauri command reading a `.po`, run-time compilation in the window, a file watcher, and the menus following it; verify with a vitest test of compiling a loaded catalog and by hand with the "Live preview" scenario (checked by hand on macOS, November 2026)
+- [x] 8.2 Add show-sources mode, in every build; verify with a vitest test that pointing at a string shows its source text, note and file
 - [x] 8.3 Set up Storybook (React with Vite), with a shared decorator that mocks Tauri's commands and a toolbar that switches language through Lingui, the pseudo-locale included. Add stories for the states that are hard to reach in a running app: each kind of error explanation, notes, questions, a timeout, the trust banner, Settings and the other dialogs. With Playwright over the static Storybook build, take a screenshot of every story in every language; in a tagging mode, record which entries each story renders and write `#. screen: <story>` comments into the template. Publish the static Storybook from CI as the gallery. Verify that every story has a screenshot in each language, and that the template gains screen comments
 - [x] 8.4 Create `locales/es.po` with `msginit` and `msgmerge --compendium` against Maxima's `es.po`, plus `locales/glossary.tbx` seeded from Maxima's Spanish terms and `locales/README.md` (tone, capitalisation, do-not-translate list, decimal points in code, how to preview); verify `msgfmt -c` passes and Spanish appears in the language picker
 

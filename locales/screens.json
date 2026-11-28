@@ -58,7 +58,6 @@
   ],
   "1njn7W": [
     "dialogs--settings",
-    "dialogs--settings-translation",
     "ui-segmentedcontrol--options"
   ],
   "1wTrMB": [
@@ -113,6 +112,7 @@
     "screens--drop-refused",
     "screens--first-run",
     "screens--maxima-not-found",
+    "screens--showcase",
     "screens--whole-window"
   ],
   "3JaK3G": [
@@ -172,12 +172,16 @@
   "6ThHWr": [
     "errors--all-explanations"
   ],
+  "6U5mLz": [
+    "dialogs--settings-notebook"
+  ],
   "6z9W13": [
     "screens--drop-mixed",
     "screens--drop-notebooks",
     "screens--drop-refused",
     "screens--first-run",
     "screens--maxima-not-found",
+    "screens--showcase",
     "screens--whole-window",
     "window--toolbar-and-tabs",
     "window--toolbar-panels-open",
@@ -195,9 +199,6 @@
   ],
   "7GW7bm": [
     "notes--all-notes"
-  ],
-  "7M0wgb": [
-    "dialogs--settings-notebook"
   ],
   "7V9N66": [
     "dialogs--settings-maxima",
@@ -222,6 +223,7 @@
     "dialogs--settings-notebook",
     "dialogs--settings-printing",
     "dialogs--settings-translation",
+    "dialogs--settings-translation-error",
     "ui-statusbox--all-tones"
   ],
   "83VjWE": [
@@ -229,7 +231,6 @@
   ],
   "88YXb4": [
     "dialogs--settings",
-    "dialogs--settings-translation",
     "ui-fields--rows"
   ],
   "8HXhaB": [
@@ -287,6 +288,7 @@
     "screens--drop-notebooks",
     "screens--drop-refused",
     "screens--first-run",
+    "screens--showcase",
     "screens--whole-window"
   ],
   "9wy0Qj": [
@@ -310,6 +312,10 @@
   "AdZgB2": [
     "cells--trust-banner-shown"
   ],
+  "B-A50v": [
+    "dialogs--settings-translation",
+    "dialogs--settings-translation-error"
+  ],
   "BEqAg8": [
     "cells--bracket-selection",
     "cells--notebook",
@@ -326,6 +332,7 @@
     "screens--drop-mixed",
     "screens--drop-notebooks",
     "screens--drop-refused",
+    "screens--showcase",
     "screens--whole-window"
   ],
   "BEuwx9": [
@@ -348,8 +355,7 @@
     "dialogs--settings-ai-assistants"
   ],
   "BkgIpt": [
-    "dialogs--settings",
-    "dialogs--settings-translation"
+    "dialogs--settings"
   ],
   "Bpglf1": [
     "dialogs--keyboard-shortcuts",
@@ -361,6 +367,10 @@
   ],
   "BtVGnB": [
     "editor--cell-context-menu"
+  ],
+  "C0Iz5N": [
+    "dialogs--settings-translation",
+    "dialogs--settings-translation-error"
   ],
   "C7zRQH": [
     "docs-panel--no-pack-yet",
@@ -428,8 +438,7 @@
     "errors--all-explanations"
   ],
   "FEr96N": [
-    "dialogs--settings",
-    "dialogs--settings-translation"
+    "dialogs--settings"
   ],
   "FOw3tu": [
     "screens--drop-mixed",
@@ -437,6 +446,7 @@
     "screens--drop-refused",
     "screens--first-run",
     "screens--maxima-not-found",
+    "screens--showcase",
     "screens--whole-window",
     "window--toolbar-and-tabs",
     "window--toolbar-panels-open",
@@ -447,7 +457,6 @@
   ],
   "FiijwZ": [
     "dialogs--settings",
-    "dialogs--settings-translation",
     "ui-fields--rows"
   ],
   "FkY3LZ": [
@@ -456,7 +465,8 @@
   "GGIY9v": [
     "outputs--plotly-plot",
     "outputs--reactive-controls",
-    "outputs--svg-plot"
+    "outputs--svg-plot",
+    "screens--showcase"
   ],
   "GMV4UW": [
     "dialogs--templates"
@@ -526,6 +536,7 @@
     "screens--drop-notebooks",
     "screens--drop-refused",
     "screens--first-run",
+    "screens--showcase",
     "screens--whole-window"
   ],
   "KnmLZH": [
@@ -609,6 +620,7 @@
     "screens--drop-refused",
     "screens--first-run",
     "screens--maxima-not-found",
+    "screens--showcase",
     "screens--whole-window"
   ],
   "N2N1Oe": [
@@ -616,6 +628,10 @@
   ],
   "N40H-G": [
     "editor--find-and-replace"
+  ],
+  "NAQc-b": [
+    "dialogs--settings-translation",
+    "dialogs--settings-translation-error"
   ],
   "NODndY": [
     "errors--all-explanations"
@@ -630,6 +646,7 @@
     "screens--drop-refused",
     "screens--first-run",
     "screens--maxima-not-found",
+    "screens--showcase",
     "screens--whole-window",
     "window--toolbar-and-tabs",
     "window--toolbar-panels-open",
@@ -664,8 +681,7 @@
     "errors--all-explanations"
   ],
   "PJPkgb": [
-    "dialogs--settings",
-    "dialogs--settings-translation"
+    "dialogs--settings"
   ],
   "PY-VZq": [
     "errors--all-explanations"
@@ -689,6 +705,7 @@
     "screens--drop-notebooks",
     "screens--drop-refused",
     "screens--first-run",
+    "screens--showcase",
     "screens--whole-window"
   ],
   "QAlcIj": [
@@ -713,6 +730,7 @@
     "screens--drop-notebooks",
     "screens--drop-refused",
     "screens--first-run",
+    "screens--showcase",
     "screens--whole-window"
   ],
   "QmVEVL": [
@@ -720,7 +738,6 @@
   ],
   "R9Khdg": [
     "dialogs--settings",
-    "dialogs--settings-translation",
     "ui-segmentedcontrol--options"
   ],
   "RPKyRE": [
@@ -771,6 +788,7 @@
     "screens--drop-refused",
     "screens--first-run",
     "screens--maxima-not-found",
+    "screens--showcase",
     "screens--whole-window"
   ],
   "T_3FBr": [
@@ -782,6 +800,7 @@
     "screens--drop-refused",
     "screens--first-run",
     "screens--maxima-not-found",
+    "screens--showcase",
     "screens--whole-window",
     "window--toolbar-and-tabs",
     "window--toolbar-panels-open",
@@ -796,7 +815,8 @@
     "dialogs--settings-maxima",
     "dialogs--settings-notebook",
     "dialogs--settings-printing",
-    "dialogs--settings-translation"
+    "dialogs--settings-translation",
+    "dialogs--settings-translation-error"
   ],
   "U09AZZ": [
     "cells--bracket-selection",
@@ -818,6 +838,7 @@
     "screens--drop-mixed",
     "screens--drop-notebooks",
     "screens--drop-refused",
+    "screens--showcase",
     "screens--whole-window"
   ],
   "UEulME": [
@@ -843,8 +864,7 @@
     "dialogs--settings-printing"
   ],
   "V-xeVI": [
-    "dialogs--settings",
-    "dialogs--settings-translation"
+    "dialogs--settings"
   ],
   "V8V5eO": [
     "dialogs--templates"
@@ -864,7 +884,8 @@
     "dialogs--settings-maxima",
     "dialogs--settings-notebook",
     "dialogs--settings-printing",
-    "dialogs--settings-translation"
+    "dialogs--settings-translation",
+    "dialogs--settings-translation-error"
   ],
   "WqheKN": [
     "dialogs--keyboard-shortcuts"
@@ -883,6 +904,9 @@
   ],
   "XegCkM": [
     "outputs--plot-viewer-tab"
+  ],
+  "XtFyIq": [
+    "dialogs--settings-notebook"
   ],
   "YOx3Dy": [
     "screens--drop-mixed",
@@ -941,11 +965,11 @@
     "screens--drop-mixed",
     "screens--drop-notebooks",
     "screens--drop-refused",
+    "screens--showcase",
     "screens--whole-window"
   ],
   "_pQZ9b": [
-    "dialogs--settings",
-    "dialogs--settings-translation"
+    "dialogs--settings"
   ],
   "a3bvlJ": [
     "errors--all-explanations"
@@ -987,6 +1011,7 @@
     "screens--drop-mixed",
     "screens--drop-notebooks",
     "screens--drop-refused",
+    "screens--showcase",
     "screens--whole-window"
   ],
   "b8NfeK": [
@@ -1013,9 +1038,6 @@
   "bXyAaS": [
     "errors--all-explanations"
   ],
-  "bbPDba": [
-    "dialogs--settings-notebook"
-  ],
   "beTiZe": [
     "errors--all-explanations"
   ],
@@ -1028,6 +1050,10 @@
   "cNH5On": [
     "errors--all-explanations"
   ],
+  "cTlTLF": [
+    "dialogs--settings-translation",
+    "dialogs--settings-translation-error"
+  ],
   "cW-T4V": [
     "dialogs--settings-notebook",
     "ui-segmentedcontrol--options"
@@ -1036,6 +1062,7 @@
     "screens--drop-mixed",
     "screens--drop-notebooks",
     "screens--drop-refused",
+    "screens--showcase",
     "screens--whole-window",
     "window--toolbar-and-tabs",
     "window--toolbar-panels-open"
@@ -1087,7 +1114,8 @@
     "dialogs--settings-maxima",
     "dialogs--settings-notebook",
     "dialogs--settings-printing",
-    "dialogs--settings-translation"
+    "dialogs--settings-translation",
+    "dialogs--settings-translation-error"
   ],
   "fhjAzF": [
     "errors--all-explanations"
@@ -1100,7 +1128,6 @@
   ],
   "gWhtwS": [
     "dialogs--settings",
-    "dialogs--settings-translation",
     "ui-segmentedcontrol--options"
   ],
   "ghhVXI": [
@@ -1112,6 +1139,7 @@
     "screens--drop-refused",
     "screens--first-run",
     "screens--maxima-not-found",
+    "screens--showcase",
     "screens--whole-window",
     "window--toolbar-and-tabs",
     "window--toolbar-panels-open",
@@ -1148,6 +1176,7 @@
     "screens--drop-mixed",
     "screens--drop-notebooks",
     "screens--drop-refused",
+    "screens--showcase",
     "screens--whole-window"
   ],
   "hef0ma": [
@@ -1191,7 +1220,8 @@
     "dialogs--settings-maxima",
     "dialogs--settings-notebook",
     "dialogs--settings-printing",
-    "dialogs--settings-translation"
+    "dialogs--settings-translation",
+    "dialogs--settings-translation-error"
   ],
   "jlgnOE": [
     "cells--bracket-selection",
@@ -1212,6 +1242,7 @@
     "screens--drop-mixed",
     "screens--drop-notebooks",
     "screens--drop-refused",
+    "screens--showcase",
     "screens--whole-window"
   ],
   "jpctdh": [
@@ -1226,12 +1257,15 @@
   "kVuW1V": [
     "errors--all-explanations"
   ],
+  "kdVWX0": [
+    "dialogs--settings-translation",
+    "dialogs--settings-translation-error"
+  ],
   "kkVIDM": [
     "errors--all-explanations"
   ],
   "koMHPM": [
-    "dialogs--settings",
-    "dialogs--settings-translation"
+    "dialogs--settings"
   ],
   "kpGa12": [
     "screens--drop-refused"
@@ -1266,8 +1300,7 @@
     "editor--cell-context-menu"
   ],
   "mar8r-": [
-    "dialogs--settings",
-    "dialogs--settings-translation"
+    "dialogs--settings"
   ],
   "mkPx6Y": [
     "dialogs--settings-notebook",
@@ -1336,6 +1369,7 @@
     "screens--drop-mixed",
     "screens--drop-notebooks",
     "screens--drop-refused",
+    "screens--showcase",
     "screens--whole-window"
   ],
   "pvY0_v": [
@@ -1343,7 +1377,6 @@
   ],
   "pvnfJD": [
     "dialogs--settings",
-    "dialogs--settings-translation",
     "ui-segmentedcontrol--options"
   ],
   "q3il6U": [
@@ -1351,8 +1384,7 @@
     "ui-fields--rows"
   ],
   "q4YdS8": [
-    "dialogs--settings",
-    "dialogs--settings-translation"
+    "dialogs--settings"
   ],
   "q9L_8j": [
     "errors--all-explanations"
@@ -1389,6 +1421,7 @@
     "screens--drop-refused",
     "screens--first-run",
     "screens--maxima-not-found",
+    "screens--showcase",
     "screens--whole-window",
     "window--toolbar-and-tabs",
     "window--toolbar-panels-open",
@@ -1407,6 +1440,7 @@
     "screens--drop-refused",
     "screens--first-run",
     "screens--maxima-not-found",
+    "screens--showcase",
     "screens--whole-window",
     "window--toolbar-and-tabs",
     "window--toolbar-panels-open",
@@ -1449,6 +1483,7 @@
     "screens--drop-refused",
     "screens--first-run",
     "screens--maxima-not-found",
+    "screens--showcase",
     "screens--whole-window",
     "window--toolbar-and-tabs",
     "window--toolbar-panels-open",
@@ -1467,8 +1502,7 @@
     "errors--all-explanations"
   ],
   "vXIe7J": [
-    "dialogs--settings",
-    "dialogs--settings-translation"
+    "dialogs--settings"
   ],
   "veEAmv": [
     "notes--all-notes"
@@ -1479,7 +1513,8 @@
     "dialogs--settings-maxima",
     "dialogs--settings-notebook",
     "dialogs--settings-printing",
-    "dialogs--settings-translation"
+    "dialogs--settings-translation",
+    "dialogs--settings-translation-error"
   ],
   "vidwyR": [
     "dialogs--settings",
@@ -1488,6 +1523,7 @@
     "dialogs--settings-notebook",
     "dialogs--settings-printing",
     "dialogs--settings-translation",
+    "dialogs--settings-translation-error",
     "panels--log-app"
   ],
   "vkCl46": [
@@ -1497,11 +1533,19 @@
     "errors--all-explanations"
   ],
   "w62D7B": [
-    "dialogs--settings",
-    "dialogs--settings-translation"
+    "dialogs--settings"
   ],
   "wCssdg": [
     "errors--all-explanations"
+  ],
+  "wFcvZJ": [
+    "dialogs--settings",
+    "dialogs--settings-ai-assistants",
+    "dialogs--settings-maxima",
+    "dialogs--settings-notebook",
+    "dialogs--settings-printing",
+    "dialogs--settings-translation",
+    "dialogs--settings-translation-error"
   ],
   "wJiiZ0": [
     "dialogs--keyboard-shortcuts",
@@ -1574,6 +1618,7 @@
     "dialogs--settings-notebook",
     "dialogs--settings-printing",
     "dialogs--settings-translation",
+    "dialogs--settings-translation-error",
     "ui-button--variants"
   ],
   "z1XfrD": [

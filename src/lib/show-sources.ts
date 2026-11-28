@@ -1,4 +1,4 @@
-// Show sources, for translators in pre-release builds: hold Alt and point
+// Show sources, for translators: hold Alt and point
 // at any translated text to see its English, context, note and source
 // file.
 //
@@ -50,7 +50,7 @@ export function showingSources(i18n: I18n): boolean {
 
 /**
  * Make `i18n` tag each string with its ID while sources are shown.  Called
- * once, before the window renders, in pre-release builds.
+ * once, before the window renders.
  */
 export function installSourceTags(i18n: I18n): void {
   const translate = i18n._.bind(i18n);

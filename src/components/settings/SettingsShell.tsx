@@ -7,7 +7,7 @@ import { getConfig, setConfig, type AppConfig } from "../../lib/config-client";
 import { applyConfig } from "../../lib/apply-config";
 import { useNotebookStore } from "../../store/notebookStore";
 import { useLogStore } from "../../store/logStore";
-import { availableSections, sectionFor, type SectionId } from "./sections";
+import { SECTIONS, sectionFor, type SectionId } from "./sections";
 
 export interface SettingsProps {
   onClose: () => void;
@@ -54,7 +54,7 @@ export function SettingsShell({ onClose, onSetVariablesOpen, initialSection, req
     [config, setTheme, setCellStyle, setAutocompleteMode, setShowSuggestions, onSetVariablesOpen, addLogEntry],
   );
 
-  const sections = availableSections();
+  const sections = SECTIONS;
   const loaded = config !== null;
 
   // Asked to open at a section while already open
@@ -113,7 +113,7 @@ export function SettingsShell({ onClose, onSetVariablesOpen, initialSection, req
                 aria-selected={s.id === current.id}
                 aria-controls="settings-page"
                 tabIndex={s.id === current.id ? 0 : -1}
-                className={`settings-tab${s.id === current.id ? " active" : ""}${s.preRelease ? " pre-release" : ""}`}
+                className={`settings-tab${s.id === current.id ? " active" : ""}`}
                 ref={(el) => {
                   if (el) tabs.current.set(s.id, el);
                   else tabs.current.delete(s.id);

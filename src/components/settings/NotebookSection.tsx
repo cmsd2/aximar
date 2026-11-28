@@ -114,12 +114,12 @@ export function NotebookSection({ config, update }: SectionProps) {
       <FieldRow
         divided
         label={t({
-          message: "Suggestions under results",
-          comment: "Settings: the label of the checkbox that shows the suggestion buttons (such as Integrate or Plot) under a cell's result",
+          message: "Suggested next steps",
+          comment: "Settings: the label of the checkbox that shows suggested next steps for a result (such as Integrate or Plot) in the + menu between cells",
         })}
         hint={t({
-          message: "Buttons under a result that suggest a next step, such as Integrate. Turn them off so students write each step themselves.",
-          comment: "Settings, Notebook section: hint under Suggestions under results. Integrate is one of the suggestion buttons' labels",
+          message: "Next steps for a result, such as Integrate, in the + menu between cells. Turn them off so students write each step themselves.",
+          comment: "Settings, Notebook section: hint under Suggested next steps. Integrate is one of the suggestions' labels",
         })}
       >
         {({ id, describedBy }) => (

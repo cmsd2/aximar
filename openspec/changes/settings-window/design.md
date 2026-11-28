@@ -39,17 +39,17 @@ A macOS app launched from Finder gets a short PATH (`/usr/bin:/bin:/usr/sbin:/sb
 - `SettingRow.tsx` (label, hint, control);
 - `ChoiceButtons.tsx` for the button groups that repeat today.
 
-`sections.ts` exports an ordered array of `{ id, label: MessageDescriptor, available: () => boolean, Component }`. Translation's `available` returns `TRANSLATOR_TOOLS`. The shell renders the sidebar from this array, so a new section needs one entry.
+`sections.ts` exports an ordered array of `{ id, label: MessageDescriptor, icon, Component }`. The shell renders the sidebar from this array, so a new section needs one entry. (Translation was first only in pre-release builds, greyed in the sidebar; the translator tools are now in every build, so every section always shows.)
 
 `SettingsModal.tsx` keeps its export name and re-exports the shell, so `App.tsx` and the stories change only to pass the section.
 
-The look follows the mockup the user accepted: a 170px sidebar headed by a small "Settings" title, a Tabler icon beside each section (`@tabler/icons-react`, imported per icon so the bundle holds only those used), a light highlight on the chosen section, and Translation greyed. The page has the section's name with a close button beside it, rows divided by thin lines, and a note at the bottom that changes apply at once. The frame is its own class, `.settings-window`, because the Export LaTeX dialog shares `.settings-modal` and its header, body and footer. Status shows in a `StatusBox` (`src/components/ui/`): a tinted box with an icon, a main line and an optional quieter line, in ok, warn, err, busy and info tones, with tint colours as theme tokens (`--success-bg`, `--warn-bg`, `--selected-bg`).
+The look follows the mockup the user accepted: a 170px sidebar headed by a small "Settings" title, a Tabler icon beside each section (`@tabler/icons-react`, imported per icon so the bundle holds only those used), and a light highlight on the chosen section. The page has the section's name with a close button beside it, rows divided by thin lines, and a note at the bottom that changes apply at once. The frame is its own class, `.settings-window`, because the Export LaTeX dialog shares `.settings-modal` and its header, body and footer. Status shows in a `StatusBox` (`src/components/ui/`): a tinted box with an icon, a main line and an optional quieter line, in ok, warn, err, busy and info tones, with tint colours as theme tokens (`--success-bg`, `--warn-bg`, `--selected-bg`).
 
 Alternative: keep one file and add headings. That keeps the 990-line file growing and gives no place for per-section state, such as the Maxima status or the AI client status. Rejected.
 
 ### 2. Section ids and the remembered section
 
-The ids are `general`, `notebook`, `maxima`, `printing`, `ai-assistants` and `translation`. `AppConfig` gains `settings_section: String` with a default of `general`. `get_config` returns it as stored. The window maps an unknown id, or one whose section isn't available, to `general`. Rust doesn't need the list of sections, so a pre-release build that saves `translation` doesn't make a release build's config invalid.
+The ids are `general`, `notebook`, `maxima`, `printing`, `ai-assistants` and `translation`. `AppConfig` gains `settings_section: String` with a default of `general`. `get_config` returns it as stored. The window maps an unknown id to `general`. Rust doesn't need the list of sections, so a section added or removed later doesn't make an older config invalid.
 
 Choosing a section in the sidebar calls `set_config({ settings_section })`. The config file already holds UI state such as `variables_open`, so this keeps one store.
 

@@ -20,7 +20,9 @@ const templates = [
 
 /**
  * Answers a story sets for itself, by command, ahead of the ones below.
- * A story's loader replaces them all, so one story's don't reach the next.
+ * A function is called with the command's arguments, so a story can fail
+ * a command by returning a rejected promise.  A story's loader replaces
+ * them all, so one story's don't reach the next.
  */
 export const storyAnswers: Record<string, unknown> = {};
 
@@ -33,7 +35,10 @@ export function installTauriMock(): void {
   mockWindows("main");
   mockIPC(
     (cmd, payload) => {
-      if (cmd in storyAnswers) return storyAnswers[cmd];
+      if (cmd in storyAnswers) {
+        const answer = storyAnswers[cmd];
+        return typeof answer === "function" ? answer(payload) : answer;
+      }
       const args = (payload ?? {}) as Record<string, string>;
       switch (cmd) {
         case "get_config":

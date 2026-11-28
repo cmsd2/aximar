@@ -30,7 +30,7 @@ import {
 import { getConfig } from "./lib/config-client";
 import { applyConfig } from "./lib/apply-config";
 import { activateLanguage } from "./lib/i18n";
-import { TRANSLATOR_TOOLS, applyPreview, type PreviewCatalog } from "./lib/translation-preview";
+import { applyPreview, setPreviewError, type PreviewCatalog } from "./lib/translation-preview";
 import { useNotebookStore, useActiveAnyTab } from "./store/notebookStore";
 import { mapSyncCells } from "./hooks/useNotebookEvents";
 import { PlotViewer } from "./components/PlotViewer";
@@ -99,16 +99,23 @@ function App() {
       .catch((e) => addLogEntry("error", `Failed to load config: ${e}`, "config"));
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // A translation file being previewed was loaded or saved (pre-release builds)
+  // A translation file being previewed was loaded or saved
   useEffect(() => {
-    if (!TRANSLATOR_TOOLS) return;
     const unlisten = listen<PreviewCatalog>("translation-preview", (event) => {
+      setPreviewError(null);
       void applyPreview(event.payload);
+    });
+    // A save that doesn't parse: the window keeps the last version that
+    // did, and says why in Settings and the log
+    const unlistenError = listen<string>("translation-preview-error", (event) => {
+      setPreviewError(event.payload);
+      addLogEntry("warning", event.payload, "translation");
     });
     return () => {
       unlisten.then((fn) => fn());
+      unlistenError.then((fn) => fn());
     };
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // The language setting changed, in this window or another
   useEffect(() => {

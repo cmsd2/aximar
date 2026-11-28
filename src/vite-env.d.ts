@@ -9,6 +9,4 @@ declare module "*.po" {
 interface ImportMetaEnv {
   /** `pseudo` for the pseudo-locale, in development builds only */
   readonly VITE_AXIMAR_LOCALE?: string;
-  /** `1` for a translators' pre-release build, with the translation preview */
-  readonly VITE_AXIMAR_TRANSLATOR_TOOLS?: string;
 }

@@ -210,6 +210,10 @@ problems:
     plot moved to the output's hover toolbar (SVG, PNG, JSON).  The
     plot viewer's export buttons use the shared `Button`.
 
+- **Display maths in Markdown** (item 20).  `$$…$$` written on one line
+  renders as display maths, as in Jupyter; before, only the form with the
+  dollars on lines of their own did (`lib/remark-display-math.ts`).
+
 ## Menus and toolbars
 
 Aximar's commands live in six places, each built on its own: the native

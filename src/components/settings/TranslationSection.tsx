@@ -1,8 +1,8 @@
-// Pre-release builds only: tools for translators.  See docs/i18n.md.
-import { useState } from "react";
+// Tools for translators.  See docs/i18n.md.
+import { useState, useSyncExternalStore } from "react";
 import { useLingui } from "@lingui/react/macro";
 import { open as openDialog } from "@tauri-apps/plugin-dialog";
-import { currentPreviewPath, startPreview, stopPreview } from "../../lib/translation-preview";
+import { currentPreviewError, currentPreviewPath, onPreviewError, startPreview, stopPreview } from "../../lib/translation-preview";
 import { setShowSources, showingSources } from "../../lib/show-sources";
 import { Button } from "../ui/Button";
 import { Checkbox } from "../ui/Checkbox";
@@ -22,7 +22,8 @@ export function TranslationSection({ config }: SectionProps) {
 function TranslationPreviewRow({ language }: { language: string }) {
   const { t } = useLingui();
   const [path, setPath] = useState<string | null>(currentPreviewPath());
-  const [error, setError] = useState<string | null>(null);
+  // From choosing the file, or from a later save
+  const error = useSyncExternalStore(onPreviewError, currentPreviewError);
 
   const load = async () => {
     const chosen = await openDialog({
@@ -38,9 +39,8 @@ function TranslationPreviewRow({ language }: { language: string }) {
     try {
       await startPreview(chosen);
       setPath(currentPreviewPath());
-      setError(null);
-    } catch (e) {
-      setError(String(e));
+    } catch {
+      // startPreview records why, for the row below
     }
   };
 
@@ -54,30 +54,38 @@ function TranslationPreviewRow({ language }: { language: string }) {
         divided
       label={t({
         message: "Translation preview",
-        comment: "Settings, pre-release builds: shows a translation file from disk in the window as the translator saves it",
+        comment: "Settings, Translation section: shows a translation file from disk in the window as the translator saves it",
       })}
       hint={t({
-        message: "Shows a .po file in the window and the menus, again each time you save it.",
-        comment: "Settings, Translation section: hint under Translation preview",
+        message: "Try out a translation: Aximar shows its window and menus with the text from a .po file, and updates them each time you save the file.",
+        comment: "Settings, Translation section: hint under Translation preview. A .po file is a translation file; keep .po as it is",
       })}
     >
       {({ id, describedBy }) => (
-        <div className="settings-claude-setup">
-          {path ? (
-            <>
-              <span className="settings-claude-status" title={path}>
-                {path.split(/[\\/]/).pop()}
-              </span>
-              <Button size="sm" id={id} aria-describedby={describedBy} onClick={() => void stop()}>
-                {t({ message: "Stop preview", comment: "Settings: stops showing the translation file, going back to the language setting" })}
+        <div className="settings-preview">
+          <div className="settings-claude-setup">
+            {path ? (
+              <>
+                <span className="settings-claude-status" title={path}>
+                  {path.split(/[\\/]/).pop()}
+                </span>
+                <Button size="sm" id={id} aria-describedby={describedBy} onClick={() => void stop()}>
+                  {t({ message: "Stop preview", comment: "Settings: stops showing the translation file, going back to the language setting" })}
+                </Button>
+              </>
+            ) : (
+              <Button size="sm" id={id} aria-describedby={describedBy} onClick={() => void load()}>
+                {t({ message: "Load translation file...", comment: "Settings, Translation section: chooses a .po file to show in the window" })}
               </Button>
-            </>
-          ) : (
-            <Button size="sm" id={id} aria-describedby={describedBy} onClick={() => void load()}>
-              {t({ message: "Load translation file...", comment: "Settings, pre-release builds: chooses a .po file to show in the window" })}
-            </Button>
+            )}
+          </div>
+          {/* Under the button, wrapping: a parse error names the file and can be long.
+              After a save that doesn't parse, the window keeps the last version that did */}
+          {error && (
+            <p className="settings-preview-error" role="alert">
+              {error}
+            </p>
           )}
-          {error && <span className="settings-claude-status settings-claude-warn">{error}</span>}
         </div>
       )}
     </FieldRow>
@@ -92,7 +100,7 @@ function ShowSourcesRow() {
         divided
       label={t({
         message: "Show sources",
-        comment: "Settings, pre-release builds: when on, holding Alt and pointing at text shows its English, note and source file",
+        comment: "Settings, Translation section: when on, holding Alt and pointing at text shows its English, note and source file",
       })}
       hint={t({
         message: "Hold Alt and point at text to see its English, note and source file",
