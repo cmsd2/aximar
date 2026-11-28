@@ -2014,14 +2014,6 @@
   color: var(--text-primary);
 }
 
-.settings-tab.pre-release .settings-tab-icon {
-  color: var(--text-placeholder);
-}
-
-.settings-tab.pre-release .settings-tab-label {
-  font-style: italic;
-}
-
 .settings-tab.active {
   background: var(--selected-bg);
   color: var(--text-primary);
@@ -3574,7 +3566,7 @@
 }
 
 
-/* Show sources, in pre-release builds (SourcesOverlay.tsx) */
+/* Show sources (SourcesOverlay.tsx) */
 .sources-overlay {
   position: fixed;
   z-index: 10000;

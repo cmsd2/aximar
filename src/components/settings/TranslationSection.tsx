@@ -1,4 +1,4 @@
-// Pre-release builds only: tools for translators.  See docs/i18n.md.
+// Tools for translators.  See docs/i18n.md.
 import { useState } from "react";
 import { useLingui } from "@lingui/react/macro";
 import { open as openDialog } from "@tauri-apps/plugin-dialog";
@@ -55,7 +55,7 @@ function TranslationPreviewRow({ language }: { language: string }) {
         divided
       label={t({
         message: "Translation preview",
-        comment: "Settings, pre-release builds: shows a translation file from disk in the window as the translator saves it",
+        comment: "Settings, Translation section: shows a translation file from disk in the window as the translator saves it",
       })}
       hint={t({
         message: "Shows a .po file in the window and the menus, again each time you save it.",
@@ -76,7 +76,7 @@ function TranslationPreviewRow({ language }: { language: string }) {
               </>
             ) : (
               <Button size="sm" id={id} aria-describedby={describedBy} onClick={() => void load()}>
-                {t({ message: "Load translation file...", comment: "Settings, pre-release builds: chooses a .po file to show in the window" })}
+                {t({ message: "Load translation file...", comment: "Settings, Translation section: chooses a .po file to show in the window" })}
               </Button>
             )}
           </div>
@@ -100,7 +100,7 @@ function ShowSourcesRow() {
         divided
       label={t({
         message: "Show sources",
-        comment: "Settings, pre-release builds: when on, holding Alt and pointing at text shows its English, note and source file",
+        comment: "Settings, Translation section: when on, holding Alt and pointing at text shows its English, note and source file",
       })}
       hint={t({
         message: "Hold Alt and point at text to see its English, note and source file",

@@ -2,15 +2,10 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { act } from "react";
 
-const flags = vi.hoisted(() => ({ tools: true }));
-
 vi.mock("@tauri-apps/api/core", () => ({ invoke: vi.fn() }));
 vi.mock("@tauri-apps/api/event", () => ({ listen: vi.fn(async () => () => {}) }));
 vi.mock("@tauri-apps/plugin-dialog", () => ({ open: vi.fn(), ask: vi.fn(), message: vi.fn() }));
 vi.mock("../../lib/translation-preview", () => ({
-  get TRANSLATOR_TOOLS() {
-    return flags.tools;
-  },
   currentPreviewPath: () => null,
   startPreview: vi.fn(),
   stopPreview: vi.fn(),
@@ -73,7 +68,6 @@ async function key(el: Element, k: string) {
 
 afterEach(() => {
   unmount();
-  flags.tools = true;
 });
 
 describe("the Settings sections", () => {
@@ -106,14 +100,9 @@ describe("the Settings sections", () => {
     }
   });
 
-  it("include Translation in pre-release builds only", async () => {
-    flags.tools = true;
-    let { container } = await open();
+  it("include Translation in every build", async () => {
+    const { container } = await open();
     expect(tabs(container)).toEqual(["General", "Notebook", "Maxima", "Printing", "AI assistants", "Translation"]);
-    unmount();
-    flags.tools = false;
-    ({ container } = await open());
-    expect(tabs(container)).toEqual(["General", "Notebook", "Maxima", "Printing", "AI assistants"]);
   });
 });
 
@@ -186,10 +175,9 @@ describe("the sidebar", () => {
   });
 
   it("jumps to the ends with Home and End", async () => {
-    flags.tools = false;
     const { container } = await open({}, "notebook");
     await key(container.querySelector('[role="tab"][aria-selected="true"]')!, "End");
-    expect(container.querySelector('[role="tab"][aria-selected="true"]')?.textContent).toBe("AI assistants");
+    expect(container.querySelector('[role="tab"][aria-selected="true"]')?.textContent).toBe("Translation");
     await key(document.activeElement!, "Home");
     expect(container.querySelector('[role="tab"][aria-selected="true"]')?.textContent).toBe("General");
   });
@@ -205,9 +193,8 @@ describe("the sidebar", () => {
     expect(container.querySelector(".settings-page")?.getAttribute("data-section")).toBe("printing");
   });
 
-  it("opens at General when the remembered section isn't in this build", async () => {
-    flags.tools = false;
-    const { container } = await open({ settings_section: "translation" });
+  it("opens at General when the remembered section is unknown", async () => {
+    const { container } = await open({ settings_section: "no-such-section" });
     expect(container.querySelector(".settings-page")?.getAttribute("data-section")).toBe("general");
   });
 });

@@ -9,7 +9,7 @@ interface Shown {
 }
 
 /**
- * Pre-release builds, while showing sources: holding Alt and pointing at
+ * While showing sources: holding Alt and pointing at
  * text shows where each string in it comes from
  */
 export function SourcesOverlay({ sources }: { sources: Map<string, Source> }) {

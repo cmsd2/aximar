@@ -1,9 +1,8 @@
 //! Translation preview, for translators: load a `.po` from disk, show it in
 //! the window and the menus, and show it again each time the file is saved.
 //!
-//! Only in pre-release builds: debug builds, and release builds made with
-//! the `translator-tools` feature.  Elsewhere the commands refuse, and the
-//! window offers no way to call them.  See docs/i18n.md.
+//! In every build, so a translator can check a translation in the app as
+//! released.  See docs/i18n.md.
 
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
@@ -15,9 +14,6 @@ use tokio_util::sync::CancellationToken;
 use aximar_core::error::AppError;
 
 use crate::i18n::Translations;
-
-/// Whether this build has the translator tools
-pub const ENABLED: bool = cfg!(any(debug_assertions, feature = "translator-tools"));
 
 /// One translated entry of a catalog
 #[derive(Debug, Clone, Serialize)]
@@ -108,11 +104,6 @@ pub async fn load_translation_preview(
     preview: State<'_, TranslationPreview>,
     path: String,
 ) -> Result<PreviewCatalog, AppError> {
-    if !ENABLED {
-        return Err(AppError::InvalidConfig(
-            "Translation preview is only in pre-release builds".into(),
-        ));
-    }
     let path = PathBuf::from(path);
     let (catalog, text) = read_catalog(&path)?;
     apply(&app, &catalog, &text);

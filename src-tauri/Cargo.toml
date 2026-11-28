@@ -36,11 +36,6 @@ fluent-langneg = "0.14"
 rspolib = "0.1.2"
 which = "8"
 
-[features]
-# The translation preview in release builds, for translators' pre-release
-# builds; debug builds always have it.  See docs/i18n.md.
-translator-tools = []
-
 # Builds menus, which macOS allows only on the main thread, so it runs as a
 # plain program rather than under the test harness's threads
 [[test]]

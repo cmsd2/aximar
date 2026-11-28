@@ -10,7 +10,7 @@ The Settings window is one flat list of about twenty rows in no order: language 
   - **Maxima**: backend, then only the fields for the chosen backend (Maxima path for Local; container engine and image for Docker; distro for WSL), a status line saying which Maxima Aximar found or why it found none, and the eval timeout.
   - **Printing**: print font size and the four margins.
   - **AI assistants**: the MCP server switch, a status line for the server, one row per client (Claude Code, Codex, Gemini CLI), and the listen address and token under an Advanced disclosure.
-  - **Translation**: only in pre-release builds, holding the existing translation preview and show-sources rows.
+  - **Translation**: the existing translation preview and show-sources rows, in every build.
 - Every field shows a one-line hint under its label.
 - Settings apply as soon as they change, as today. The footer keeps only a Close button.
 - Other parts of the window can open Settings at a given section. The Maxima Not Found dialog gains an Open Settings button that opens Maxima, and an MCP server that fails to bind its address reports it in the log with a link to AI assistants.

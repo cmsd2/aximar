@@ -192,6 +192,7 @@ msgstr ""
 #. screen: dialogs--settings-notebook
 #. screen: dialogs--settings-printing
 #. screen: dialogs--settings-translation
+#. screen: dialogs--settings-translation-error
 #. screen: panels--log-app
 #: src/components/settings/sections.ts
 msgid "AI assistants"
@@ -248,7 +249,6 @@ msgstr ""
 
 #. Settings: theme button that follows the system's light or dark mode
 #. screen: dialogs--settings
-#. screen: dialogs--settings-translation
 #. screen: ui-segmentedcontrol--options
 #: src/components/settings/GeneralSection.tsx
 msgid "Auto"
@@ -256,7 +256,6 @@ msgstr ""
 
 #. Settings, General section: hint under Theme
 #. screen: dialogs--settings
-#. screen: dialogs--settings-translation
 #: src/components/settings/GeneralSection.tsx
 msgid "Auto follows your system's light or dark mode."
 msgstr ""
@@ -388,6 +387,7 @@ msgstr ""
 #. screen: dialogs--settings-notebook
 #. screen: dialogs--settings-printing
 #. screen: dialogs--settings-translation
+#. screen: dialogs--settings-translation-error
 #. screen: ui-statusbox--all-tones
 #: src/components/settings/SettingsShell.tsx
 msgid "Changes apply as you make them."
@@ -440,6 +440,7 @@ msgstr ""
 #. screen: dialogs--settings-notebook
 #. screen: dialogs--settings-printing
 #. screen: dialogs--settings-translation
+#. screen: dialogs--settings-translation-error
 #. screen: ui-button--variants
 #: src/components/settings/SettingsShell.tsx src/hooks/useMaxima.ts
 msgid "Close"
@@ -525,6 +526,7 @@ msgstr ""
 #. screen: screens--drop-mixed
 #. screen: screens--drop-notebooks
 #. screen: screens--drop-refused
+#. screen: screens--showcase
 #. screen: screens--whole-window
 #: src/components/Cell.tsx
 msgid "Collapse output"
@@ -617,6 +619,7 @@ msgstr ""
 #. screen: screens--drop-mixed
 #. screen: screens--drop-notebooks
 #. screen: screens--drop-refused
+#. screen: screens--showcase
 #. screen: screens--whole-window
 #: src/commands/menu-model.ts src/components/CellOutput.tsx
 #: src/components/docs/DocsLanguageNotes.tsx
@@ -640,6 +643,7 @@ msgstr ""
 #. screen: screens--drop-mixed
 #. screen: screens--drop-notebooks
 #. screen: screens--drop-refused
+#. screen: screens--showcase
 #. screen: screens--whole-window
 #: src/components/CellOutput.tsx
 msgid "Copy LaTeX source"
@@ -662,6 +666,7 @@ msgstr ""
 #. screen: screens--drop-mixed
 #. screen: screens--drop-notebooks
 #. screen: screens--drop-refused
+#. screen: screens--showcase
 #. screen: screens--whole-window
 #: src/components/CellOutput.tsx
 msgid "Copy Maxima expression"
@@ -698,7 +703,6 @@ msgstr ""
 
 #. Settings: theme button for the dark theme
 #. screen: dialogs--settings
-#. screen: dialogs--settings-translation
 #. screen: ui-segmentedcontrol--options
 #: src/components/settings/GeneralSection.tsx
 msgid "Dark"
@@ -727,6 +731,7 @@ msgstr ""
 #. screen: screens--drop-notebooks
 #. screen: screens--drop-refused
 #. screen: screens--first-run
+#. screen: screens--showcase
 #. screen: screens--whole-window
 #: src/components/Cell.tsx src/components/MarkdownCell.tsx
 #: src/components/RawCell.tsx
@@ -769,6 +774,7 @@ msgstr ""
 #. screen: screens--drop-refused
 #. screen: screens--first-run
 #. screen: screens--maxima-not-found
+#. screen: screens--showcase
 #. screen: screens--whole-window
 #. screen: window--toolbar-and-tabs
 #. screen: window--toolbar-panels-open
@@ -832,6 +838,7 @@ msgstr ""
 #. screen: screens--drop-notebooks
 #. screen: screens--drop-refused
 #. screen: screens--first-run
+#. screen: screens--showcase
 #. screen: screens--whole-window
 #: src/components/MarkdownCell.tsx
 msgid "Edit markdown"
@@ -1069,6 +1076,7 @@ msgstr ""
 #. screen: dialogs--settings-notebook
 #. screen: dialogs--settings-printing
 #. screen: dialogs--settings-translation
+#. screen: dialogs--settings-translation-error
 #: src/components/settings/sections.ts
 msgid "General"
 msgstr ""
@@ -1087,7 +1095,6 @@ msgstr ""
 
 #. Settings: the label of the menu that chooses the language of the docs panel's help
 #. screen: dialogs--settings
-#. screen: dialogs--settings-translation
 #: src/components/settings/HelpLanguageRow.tsx
 msgid "Help language"
 msgstr ""
@@ -1141,6 +1148,8 @@ msgid "Hint shows the arguments, Snippet inserts them, Active hint follows the c
 msgstr ""
 
 #. Tooltip of the Show sources checkbox in Settings
+#. screen: dialogs--settings-translation
+#. screen: dialogs--settings-translation-error
 #: src/components/settings/TranslationSection.tsx
 msgid "Hold Alt and point at text to see its English, note and source file"
 msgstr ""
@@ -1197,6 +1206,7 @@ msgstr ""
 #. screen: screens--drop-mixed
 #. screen: screens--drop-notebooks
 #. screen: screens--drop-refused
+#. screen: screens--showcase
 #. screen: screens--whole-window
 #: src/components/Cell.tsx
 msgid "In [{execNum}]"
@@ -1261,6 +1271,7 @@ msgstr ""
 #. screen: screens--drop-refused
 #. screen: screens--first-run
 #. screen: screens--maxima-not-found
+#. screen: screens--showcase
 #. screen: screens--whole-window
 #: src/components/CellGap.tsx
 msgid "Insert a cell"
@@ -1285,6 +1296,7 @@ msgstr ""
 #. screen: screens--drop-mixed
 #. screen: screens--drop-notebooks
 #. screen: screens--drop-refused
+#. screen: screens--showcase
 #. screen: screens--whole-window
 #: src/components/CellGap.tsx
 msgid "Insert a cell, or a next step for the result above"
@@ -1319,6 +1331,7 @@ msgstr ""
 #. screen: screens--drop-refused
 #. screen: screens--first-run
 #. screen: screens--maxima-not-found
+#. screen: screens--showcase
 #. screen: screens--whole-window
 #. screen: window--toolbar-and-tabs
 #. screen: window--toolbar-panels-open
@@ -1347,7 +1360,6 @@ msgstr ""
 
 #. Settings: the label of the language picker
 #. screen: dialogs--settings
-#. screen: dialogs--settings-translation
 #: src/components/settings/GeneralSection.tsx
 msgid "Language"
 msgstr ""
@@ -1389,14 +1401,12 @@ msgstr ""
 
 #. Settings, General section: the label of the row that opens the open-source licences
 #. screen: dialogs--settings
-#. screen: dialogs--settings-translation
 #: src/components/settings/GeneralSection.tsx
 msgid "Licences"
 msgstr ""
 
 #. Settings: theme button for the light theme
 #. screen: dialogs--settings
-#. screen: dialogs--settings-translation
 #. screen: ui-segmentedcontrol--options
 #: src/components/settings/GeneralSection.tsx
 msgid "Light"
@@ -1408,7 +1418,9 @@ msgstr ""
 msgid "Listening on {address}."
 msgstr ""
 
-#. Settings, pre-release builds: chooses a .po file to show in the window
+#. Settings, Translation section: chooses a .po file to show in the window
+#. screen: dialogs--settings-translation
+#. screen: dialogs--settings-translation-error
 #: src/components/settings/TranslationSection.tsx
 msgid "Load translation file..."
 msgstr ""
@@ -1430,6 +1442,7 @@ msgstr ""
 #. screen: screens--drop-refused
 #. screen: screens--first-run
 #. screen: screens--maxima-not-found
+#. screen: screens--showcase
 #. screen: screens--whole-window
 #. screen: window--toolbar-and-tabs
 #. screen: window--toolbar-panels-open
@@ -1476,6 +1489,7 @@ msgstr ""
 #. screen: dialogs--settings-notebook
 #. screen: dialogs--settings-printing
 #. screen: dialogs--settings-translation
+#. screen: dialogs--settings-translation-error
 #: src/components/settings/sections.ts
 msgid "Maxima"
 msgstr ""
@@ -1565,6 +1579,7 @@ msgstr ""
 #. screen: screens--drop-notebooks
 #. screen: screens--drop-refused
 #. screen: screens--first-run
+#. screen: screens--showcase
 #. screen: screens--whole-window
 #: src/components/Cell.tsx
 msgid "Move cell down"
@@ -1586,6 +1601,7 @@ msgstr ""
 #. screen: screens--drop-notebooks
 #. screen: screens--drop-refused
 #. screen: screens--first-run
+#. screen: screens--showcase
 #. screen: screens--whole-window
 #: src/components/Cell.tsx
 msgid "Move cell up"
@@ -1670,6 +1686,7 @@ msgstr ""
 #. screen: screens--drop-refused
 #. screen: screens--first-run
 #. screen: screens--maxima-not-found
+#. screen: screens--showcase
 #. screen: screens--whole-window
 #. screen: window--toolbar-and-tabs
 #. screen: window--toolbar-panels-open
@@ -1697,6 +1714,7 @@ msgid "Next Match (Enter)"
 msgstr ""
 
 #. Settings, Notebook section: hint under Suggested next steps. Integrate is one of the suggestions' labels
+#. screen: dialogs--settings-notebook
 #: src/components/settings/NotebookSection.tsx
 msgid "Next steps for a result, such as Integrate, in the + menu between cells. Turn them off so students write each step themselves."
 msgstr ""
@@ -1772,6 +1790,7 @@ msgstr ""
 #. screen: dialogs--settings-notebook
 #. screen: dialogs--settings-printing
 #. screen: dialogs--settings-translation
+#. screen: dialogs--settings-translation-error
 #: src/components/settings/sections.ts
 msgid "Notebook"
 msgstr ""
@@ -1823,6 +1842,7 @@ msgstr ""
 #. screen: screens--drop-mixed
 #. screen: screens--drop-notebooks
 #. screen: screens--drop-refused
+#. screen: screens--showcase
 #. screen: screens--whole-window
 #: src/components/Cell.tsx
 msgid "Out [{execNum}]"
@@ -1852,7 +1872,6 @@ msgstr ""
 
 #. Settings: theme button for a light theme on warm off-white, like paper
 #. screen: dialogs--settings
-#. screen: dialogs--settings-translation
 #. screen: ui-segmentedcontrol--options
 #: src/components/settings/GeneralSection.tsx
 msgid "Paper"
@@ -1917,6 +1936,7 @@ msgstr ""
 #. screen: dialogs--settings-notebook
 #. screen: dialogs--settings-printing
 #. screen: dialogs--settings-translation
+#. screen: dialogs--settings-translation-error
 #: src/components/settings/sections.ts
 msgid "Printing"
 msgstr ""
@@ -1946,6 +1966,7 @@ msgstr ""
 #. screen: screens--drop-mixed
 #. screen: screens--drop-notebooks
 #. screen: screens--drop-refused
+#. screen: screens--showcase
 #. screen: screens--whole-window
 #. screen: window--toolbar-and-tabs
 #. screen: window--toolbar-panels-open
@@ -2017,6 +2038,7 @@ msgstr ""
 #. screen: screens--drop-refused
 #. screen: screens--first-run
 #. screen: screens--maxima-not-found
+#. screen: screens--showcase
 #. screen: screens--whole-window
 #. screen: window--toolbar-and-tabs
 #. screen: window--toolbar-panels-open
@@ -2045,6 +2067,7 @@ msgstr ""
 #. screen: screens--drop-refused
 #. screen: screens--first-run
 #. screen: screens--maxima-not-found
+#. screen: screens--showcase
 #. screen: screens--whole-window
 #. screen: window--toolbar-and-tabs
 #. screen: window--toolbar-panels-open
@@ -2084,6 +2107,7 @@ msgstr ""
 #. screen: screens--drop-refused
 #. screen: screens--first-run
 #. screen: screens--maxima-not-found
+#. screen: screens--showcase
 #. screen: screens--whole-window
 #: src/components/Cell.tsx
 msgid "Run cell (Shift+Enter)"
@@ -2103,7 +2127,6 @@ msgstr ""
 
 #. Settings: the first choice for Help language; the help follows the Language setting above it. max-length:32
 #. screen: dialogs--settings
-#. screen: dialogs--settings-translation
 #: src/components/settings/HelpLanguageRow.tsx
 msgid "Same as Aximar's language"
 msgstr ""
@@ -2138,6 +2161,7 @@ msgstr ""
 #. screen: outputs--plotly-plot
 #. screen: outputs--reactive-controls
 #. screen: outputs--svg-plot
+#. screen: screens--showcase
 #: src/components/CellOutput.tsx
 msgid "Save the plot as {format}"
 msgstr ""
@@ -2214,6 +2238,7 @@ msgstr ""
 #. screen: screens--drop-refused
 #. screen: screens--first-run
 #. screen: screens--maxima-not-found
+#. screen: screens--showcase
 #. screen: screens--whole-window
 #: src/components/Notebook.tsx
 msgid "Select cell (Shift+click for a range, Cmd+click to add)"
@@ -2251,6 +2276,7 @@ msgstr ""
 #. screen: dialogs--settings-notebook
 #. screen: dialogs--settings-printing
 #. screen: dialogs--settings-translation
+#. screen: dialogs--settings-translation-error
 #: src/components/settings/SettingsShell.tsx
 msgid "Settings"
 msgstr ""
@@ -2262,6 +2288,7 @@ msgstr ""
 #. screen: screens--drop-refused
 #. screen: screens--first-run
 #. screen: screens--maxima-not-found
+#. screen: screens--showcase
 #. screen: screens--whole-window
 #. screen: window--toolbar-and-tabs
 #. screen: window--toolbar-panels-open
@@ -2277,7 +2304,6 @@ msgstr ""
 
 #. Settings button: opens a window listing the open-source code and fonts Aximar uses, with their licences
 #. screen: dialogs--settings
-#. screen: dialogs--settings-translation
 #: src/components/settings/GeneralSection.tsx
 msgid "Show licences"
 msgstr ""
@@ -2316,20 +2342,23 @@ msgstr ""
 msgid "Show original"
 msgstr ""
 
-#. Settings, pre-release builds: when on, holding Alt and pointing at text shows its English, note and source file
+#. Settings, Translation section: when on, holding Alt and pointing at text shows its English, note and source file
+#. screen: dialogs--settings-translation
+#. screen: dialogs--settings-translation-error
 #: src/components/settings/TranslationSection.tsx
 msgid "Show sources"
 msgstr ""
 
 #. Settings, General section: hint under Variable panel open by default
 #. screen: dialogs--settings
-#. screen: dialogs--settings-translation
 #. screen: ui-fields--rows
 #: src/components/settings/GeneralSection.tsx
 msgid "Show the variable panel when Aximar starts."
 msgstr ""
 
 #. Settings, Translation section: hint under Translation preview
+#. screen: dialogs--settings-translation
+#. screen: dialogs--settings-translation-error
 #: src/components/settings/TranslationSection.tsx
 msgid "Shows a .po file in the window and the menus, again each time you save it."
 msgstr ""
@@ -2376,6 +2405,7 @@ msgid "Stopped"
 msgstr ""
 
 #. Settings: the label of the checkbox that shows suggested next steps for a result (such as Integrate or Plot) in the + menu between cells
+#. screen: dialogs--settings-notebook
 #: src/components/settings/NotebookSection.tsx
 msgid "Suggested next steps"
 msgstr ""
@@ -2417,14 +2447,12 @@ msgstr ""
 
 #. Settings, General section: hint under Help language
 #. screen: dialogs--settings
-#. screen: dialogs--settings-translation
 #: src/components/settings/HelpLanguageRow.tsx
 msgid "The language of function help in the docs panel. Where a function has no help in it, the English shows."
 msgstr ""
 
 #. Settings, General section: hint under Language
 #. screen: dialogs--settings
-#. screen: dialogs--settings-translation
 #: src/components/settings/GeneralSection.tsx
 msgid "The language of the window, the menus and Maxima's messages."
 msgstr ""
@@ -2436,7 +2464,6 @@ msgstr ""
 
 #. Settings, General section: hint under Licences
 #. screen: dialogs--settings
-#. screen: dialogs--settings-translation
 #: src/components/settings/GeneralSection.tsx
 msgid "The open-source software and fonts Aximar uses, and their licences."
 msgstr ""
@@ -2467,7 +2494,6 @@ msgstr ""
 
 #. Settings: the label of the theme buttons
 #. screen: dialogs--settings
-#. screen: dialogs--settings-translation
 #: src/components/settings/GeneralSection.tsx
 msgid "Theme"
 msgstr ""
@@ -2502,7 +2528,14 @@ msgstr ""
 msgid "Top"
 msgstr ""
 
-#. Settings sidebar, pre-release builds: tools for translators. max-length:16
+#. Settings sidebar: tools for translators. max-length:16
+#. screen: dialogs--settings
+#. screen: dialogs--settings-ai-assistants
+#. screen: dialogs--settings-maxima
+#. screen: dialogs--settings-notebook
+#. screen: dialogs--settings-printing
+#. screen: dialogs--settings-translation
+#. screen: dialogs--settings-translation-error
 #: src/components/settings/sections.ts
 msgid "Translation"
 msgstr ""
@@ -2512,7 +2545,9 @@ msgstr ""
 msgid "Translation file"
 msgstr ""
 
-#. Settings, pre-release builds: shows a translation file from disk in the window as the translator saves it
+#. Settings, Translation section: shows a translation file from disk in the window as the translator saves it
+#. screen: dialogs--settings-translation
+#. screen: dialogs--settings-translation-error
 #: src/components/settings/TranslationSection.tsx
 msgid "Translation preview"
 msgstr ""
@@ -2556,7 +2591,6 @@ msgstr ""
 
 #. Settings: the label of the checkbox that opens the variable panel when Aximar starts
 #. screen: dialogs--settings
-#. screen: dialogs--settings-translation
 #. screen: ui-fields--rows
 #: src/components/settings/GeneralSection.tsx
 msgid "Variable panel open by default"
@@ -2569,6 +2603,7 @@ msgstr ""
 #. screen: screens--drop-refused
 #. screen: screens--first-run
 #. screen: screens--maxima-not-found
+#. screen: screens--showcase
 #. screen: screens--whole-window
 #. screen: window--toolbar-and-tabs
 #. screen: window--toolbar-panels-open

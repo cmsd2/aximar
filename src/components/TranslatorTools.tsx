@@ -4,7 +4,7 @@ import { showingSources, type Source } from "../lib/show-sources";
 import { loadSources } from "../lib/translation-preview";
 import { SourcesOverlay } from "./SourcesOverlay";
 
-/** Pre-release builds: the show-sources overlay, with the template loaded on first use */
+/** The show-sources overlay, with the template loaded on first use */
 export function TranslatorTools() {
   const { i18n } = useLingui();
   const [sources, setSources] = useState<Map<string, Source> | null>(null);

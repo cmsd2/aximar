@@ -17,7 +17,7 @@ This change was planned as `friendly-maxima-messages` (no tasks done), which gav
 - **The window uses Lingui**; Rust marks strings with `msg!` and `msg_ctx!` macros, and `xgettext` extracts them. One script builds the template and merges each language, with Maxima's own catalog suggesting translations for new strings.
 - **A language setting**, defaulting to the system language. Changing it switches the window, the menus, Maxima's translated errors and the help without a restart. The `AXIMAR_LANGUAGE` variable from #108 goes.
 - **Spanish help summaries**: catalog-gen builds an index from Maxima's Spanish manual, with English for symbols it lacks.
-- **Translator tools**: a pre-release setting that loads a `.po` from disk and reloads it on save, a show-sources mode, a Storybook gallery of the window's states in every language, its screenshots tagged with their strings, a glossary and a translator guide. An `es.po` seeded from Maxima's Spanish is ready for #44's translator.
+- **Translator tools**: a setting, in every build, that loads a `.po` from disk and reloads it on save, a show-sources mode, a Storybook gallery of the window's states in every language, its screenshots tagged with their strings, a glossary and a translator guide. An `es.po` seeded from Maxima's Spanish is ready for #44's translator.
 - **CI checks** that the template is current, that `msgfmt -c` passes, and that translations keep their placeholders and length limits.
 
 **Friendly messages** (from `friendly-maxima-messages`)

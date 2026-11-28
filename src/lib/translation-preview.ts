@@ -1,19 +1,12 @@
 // Translation preview, for translators: a .po read from disk by the
 // backend (translation_preview.rs), compiled here and shown in place of
-// the built-in catalog.  Only in pre-release builds.
+// the built-in catalog.  In every build: see docs/i18n.md.
 import type { Messages } from "@lingui/core";
 import { invoke } from "@tauri-apps/api/core";
 import { compileMessage } from "@lingui/message-utils/compileMessage";
 import { generateMessageId } from "@lingui/message-utils/generateMessageId";
 import { englishMessages, i18n, setLanguageOverride } from "./i18n";
 import { parseTemplate, setShowSources, showingSources, type Source } from "./show-sources";
-
-/**
- * Whether this build offers the translator tools: development builds, and
- * builds made with VITE_AXIMAR_TRANSLATOR_TOOLS=1 (see docs/i18n.md)
- */
-export const TRANSLATOR_TOOLS =
-  import.meta.env.DEV || import.meta.env.VITE_AXIMAR_TRANSLATOR_TOOLS === "1";
 
 /** One translated entry, as the backend reads it */
 export interface PreviewEntry {

@@ -147,7 +147,7 @@ Open Settings from the toolbar, or with Cmd+, (Ctrl+, on Windows and Linux). A s
 - **Maxima**: backend (Local, Docker or WSL) and its fields, the evaluation timeout, and a line saying which Maxima Aximar runs and where it found it
 - **Printing**: print font size and margins (mm)
 - **AI assistants**: the MCP server, whether it is listening, and setup for Claude Code, Codex and Gemini CLI (see [Connected mode](#connected-mode-recommended)); the address and token sit under Advanced
-- **Translation**: in pre-release builds only, tools for translators (see [docs/i18n.md](docs/i18n.md))
+- **Translation**: tools for translators: load a `.po` file and see it in the window as you save it, and show where each string comes from (see [docs/i18n.md](docs/i18n.md))
 
 The Maxima Not Found dialog has an Open Settings button that goes to the Maxima section, and a log entry about the MCP server failing to start links to AI assistants.
 

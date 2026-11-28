@@ -30,7 +30,7 @@ import {
 import { getConfig } from "./lib/config-client";
 import { applyConfig } from "./lib/apply-config";
 import { activateLanguage } from "./lib/i18n";
-import { TRANSLATOR_TOOLS, applyPreview, type PreviewCatalog } from "./lib/translation-preview";
+import { applyPreview, type PreviewCatalog } from "./lib/translation-preview";
 import { useNotebookStore, useActiveAnyTab } from "./store/notebookStore";
 import { mapSyncCells } from "./hooks/useNotebookEvents";
 import { PlotViewer } from "./components/PlotViewer";
@@ -99,9 +99,8 @@ function App() {
       .catch((e) => addLogEntry("error", `Failed to load config: ${e}`, "config"));
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // A translation file being previewed was loaded or saved (pre-release builds)
+  // A translation file being previewed was loaded or saved
   useEffect(() => {
-    if (!TRANSLATOR_TOOLS) return;
     const unlisten = listen<PreviewCatalog>("translation-preview", (event) => {
       void applyPreview(event.payload);
     });

@@ -108,11 +108,11 @@ Help summaries SHALL show in the user's language when Maxima's manual for that l
 
 ### Requirement: Translators can preview their work
 
-Pre-release builds SHALL let the user load a translation file from disk for any language, and SHALL apply it again each time the file changes, without a restart. They SHALL offer a mode in which pointing at any translatable text shows its source text, context, translator note and source location. Release builds SHALL offer neither.
+Every build SHALL let the user load a translation file from disk for any language, and SHALL apply it again each time the file changes, without a restart. Every build SHALL offer a mode in which pointing at any translatable text shows its source text, context, translator note and source location. A file that doesn't parse SHALL show its error in Settings without changing the window's language.
 
 #### Scenario: Live preview
 
-- **WHEN** a translator loads `es.po` in a pre-release build, changes the translation of "Run all" in an editor and saves
+- **WHEN** a translator loads `es.po` in a released Aximar, changes the translation of "Run all" in an editor and saves
 - **THEN** the toolbar SHALL show the new text
 
 #### Scenario: Show sources
