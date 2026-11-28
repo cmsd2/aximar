@@ -58,8 +58,8 @@ function TranslationPreviewRow({ language }: { language: string }) {
         comment: "Settings, Translation section: shows a translation file from disk in the window as the translator saves it",
       })}
       hint={t({
-        message: "Shows a .po file in the window and the menus, again each time you save it.",
-        comment: "Settings, Translation section: hint under Translation preview",
+        message: "Try out a translation: Aximar shows its window and menus with the text from a .po file, and updates them each time you save the file.",
+        comment: "Settings, Translation section: hint under Translation preview. A .po file is a translation file; keep .po as it is",
       })}
     >
       {({ id, describedBy }) => (

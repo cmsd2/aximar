@@ -2356,13 +2356,6 @@ msgstr ""
 msgid "Show the variable panel when Aximar starts."
 msgstr ""
 
-#. Settings, Translation section: hint under Translation preview
-#. screen: dialogs--settings-translation
-#. screen: dialogs--settings-translation-error
-#: src/components/settings/TranslationSection.tsx
-msgid "Shows a .po file in the window and the menus, again each time you save it."
-msgstr ""
-
 #. Settings: argument help button; completing a function inserts its arguments as placeholders to fill in
 #. screen: dialogs--settings-notebook
 #. screen: ui-segmentedcontrol--options
@@ -2556,6 +2549,13 @@ msgstr ""
 #. screen: cells--trust-banner-shown
 #: src/components/TrustBanner.tsx
 msgid "Trust Notebook"
+msgstr ""
+
+#. Settings, Translation section: hint under Translation preview. A .po file is a translation file; keep .po as it is
+#. screen: dialogs--settings-translation
+#. screen: dialogs--settings-translation-error
+#: src/components/settings/TranslationSection.tsx
+msgid "Try out a translation: Aximar shows its window and menus with the text from a .po file, and updates them each time you save the file."
 msgstr ""
 
 #. Command palette: placeholder of the search box while it lists math symbols; \alpha and the others are LaTeX names and stay as they are

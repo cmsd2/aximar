@@ -629,6 +629,10 @@
   "N40H-G": [
     "editor--find-and-replace"
   ],
+  "NAQc-b": [
+    "dialogs--settings-translation",
+    "dialogs--settings-translation-error"
+  ],
   "NODndY": [
     "errors--all-explanations"
   ],
@@ -1490,10 +1494,6 @@
   ],
   "vB68nd": [
     "errors--all-explanations"
-  ],
-  "vIN-9S": [
-    "dialogs--settings-translation",
-    "dialogs--settings-translation-error"
   ],
   "vM-QdZ": [
     "dialogs--settings-maxima"
