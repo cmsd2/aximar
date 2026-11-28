@@ -35,6 +35,7 @@ sys-locale = "0.3"
 fluent-langneg = "0.14"
 rspolib = "0.1.2"
 which = "8"
+notify-debouncer-mini = "0.8"
 
 # Builds menus, which macOS allows only on the main thread, so it runs as a
 # plain program rather than under the test harness's threads
