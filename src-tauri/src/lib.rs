@@ -51,6 +51,9 @@ pub fn run() {
             commands::window::open_main_window(app.handle())?;
             let language = commands::config::read_language(app.handle());
             menu::setup_menu(app, &language)?;
+            if let Some(window) = app.get_webview_window("main") {
+                commands::system_chrome::watch(&window);
+            }
             i18n::set_docs_language(&commands::config::read_docs_language(app.handle()));
             let state = app.state::<AppState>();
             let handle = app.handle().clone();
@@ -184,6 +187,7 @@ pub fn run() {
             commands::window::get_initial_file_args,
             commands::window::take_pending_opens,
             commands::window::open_licences,
+            commands::system_chrome::get_system_chrome,
             commands::translation_preview::load_translation_preview,
             commands::translation_preview::stop_translation_preview,
         ])

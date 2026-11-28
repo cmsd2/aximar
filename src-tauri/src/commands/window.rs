@@ -20,9 +20,10 @@ pub async fn create_window(app: AppHandle, notebook_id: Option<String>) -> Resul
         .title("Aximar")
         .inner_size(1200.0, 800.0)
         .min_inner_size(800.0, 600.0);
-    notebook_window(builder)
+    let window = notebook_window(builder)
         .build()
         .map_err(|e| format!("Failed to create window: {e}"))?;
+    crate::commands::system_chrome::watch(&window);
 
     Ok(label)
 }

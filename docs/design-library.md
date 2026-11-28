@@ -47,6 +47,22 @@ query, `:root:not([data-theme])`, so it leaves Light and Paper alone.
 | Errors | `--error-color`, on `--bg-primary` or `--error-bg` |
 | Running | `--running-color` |
 | Behind dialogs | `--overlay-bg` |
+| The tab bar and toolbar under the title bar | `--chrome-bg`, `--chrome-border` |
+
+`--chrome-bg` and `--chrome-border` are `--bg-secondary` and
+`--border-color` unless the desktop gives its own. On Linux the system
+draws the title bar and the GTK menu bar in the desktop theme's colours,
+right above the tabs. The backend reads that menu bar's background, its
+background while another window is active, and the theme's border colour
+(`src-tauri/src/commands/system_chrome.rs`). `useSystemChrome` then sets
+the two tokens, so the frame, menus, tabs and toolbar read as one band. It
+uses the colours only when they are as light or dark as the page, and never
+in Paper or Night; otherwise the tokens keep the app's own colours. Auto follows the
+system's light or dark, and the backend sends new colours when the desktop
+theme changes. `--font-ui` takes the desktop's interface font on Linux, such
+as Noto Sans on KDE or Cantarell on GNOME. macOS and Windows send nothing.
+Text on the chrome stays `--text-primary` and `--text-secondary`: on
+Breeze's `#dee0e2`, `--text-secondary` is 4.5:1.
 
 Text in `--accent` goes on `--bg-primary` or `--bg-input` only: on
 `--bg-secondary` and `--bg-cell` the light accent falls below 4.5:1.

@@ -20,9 +20,11 @@ the icon looks a fifth too small on the taskbar. The Windows copies crop
 the canvas to the tile and have no shadow. Most Windows icons are bare
 shapes that reach the edges, and next to them the pale tile reads as
 background, so the Windows copies also enlarge the ball to nearly fill
-the tile. `icon.ico` and the
-`Square*Logo.png` tiles are made from them; everything else uses the
-macOS drawings.
+the tile. Linux draws icons edge to edge too, so the Windows copies make
+`icon.ico`, the `Square*Logo.png` tiles, and the PNGs Linux uses:
+`icon.png` and the sizes `tauri.conf.json` lists, which a Linux package
+installs in the hicolor theme. The first PNG in that list is also the
+window's icon. Only `icon.icns` uses the macOS drawings.
 
 ## Rebuilding the icons
 
@@ -42,7 +44,14 @@ not committed.
 
 The same steps run on Windows, except that `icon.icns` keeps the version
 `tauri icon` made, since rebuilding it needs macOS's `iconutil`. To change
-only the Windows files, skip `tauri icon` and the `rm`: `small_sizes.py`
-rebuilds `icon.ico` and the tiles on its own. If `render.mjs` can't find
+only the Windows and Linux files, skip `tauri icon` and the `rm`:
+`small_sizes.py` rebuilds `icon.ico`, the tiles and the Linux PNGs on its
+own.
+
+On Linux, Plasma and GNOME on Wayland don't use the window's icon. They
+find the app's `.desktop` file by its app id, which is the program name,
+`aximar`. A package installs one. A build run from the checkout has none,
+so it shows a generic icon until you add one (see
+docs/building-on-fedora.md). If `render.mjs` can't find
 Playwright's Chromium, launch Edge instead with
 `chromium.launch({ channel: "msedge" })`.

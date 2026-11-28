@@ -4,9 +4,11 @@ tauri icon scales one image to every size; at 32 px and below the faded
 back edges of the full ball blur into noise, so the small sizes use the
 front half only.
 
-Windows draws icons edge to edge, so icon.ico and the Square*Logo tiles
-come from the *_win drawings, cropped to the tile with no shadow.  The
-macOS drawings' margin would make them look too small on the taskbar.
+Windows and Linux draw icons edge to edge, so icon.ico, the Square*Logo
+tiles and the PNGs Linux uses come from the *_win drawings, cropped to the
+tile with no shadow.  The macOS drawings' margin would make them look too
+small on the taskbar.  Linux's PNGs are the window's icon (the first PNG
+in tauri.conf.json's list) and the sizes a package installs in hicolor.
 
 Needs Pillow.  icon.icns needs iconutil, so it is only rebuilt on macOS.
 """
@@ -34,7 +36,9 @@ def at(n, drawings=mac):
     return (small if n <= 64 else big).resize((n, n), Image.LANCZOS)
 
 
-at(32).save(os.path.join(icons, "32x32.png"))
+linux = {"32x32.png": 32, "64x64.png": 64, "128x128.png": 128, "128x128@2x.png": 256, "256x256.png": 256, "icon.png": 512}
+for name, n in linux.items():
+    at(n, win).save(os.path.join(icons, name))
 
 tiles = {f"Square{n}x{n}Logo.png": n for n in (30, 44, 71, 89, 107, 142, 150, 284, 310)}
 tiles["StoreLogo.png"] = 50
