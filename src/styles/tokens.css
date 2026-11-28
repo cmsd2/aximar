@@ -4,6 +4,9 @@
    --font-size-mono and --markdown-indent, live in global.css. */
 
 :root {
+  /* Native parts, such as scrollbars, drawn to match the theme */
+  color-scheme: light;
+
   /* Colours: light theme (the default) */
   --bg-primary: #ffffff;
   --bg-secondary: #f5f5f7;
@@ -64,40 +67,89 @@
 
   /* Behind dialogs */
   --overlay-bg: rgba(0, 0, 0, 0.4);
+
+  /* The title bar the page draws on Windows (src/lib/window-frame.ts), at
+     Windows 11's sizes, with its red close button in every theme */
+  --title-bar-height: 40px;
+  --caption-button-width: 46px;
+  --caption-glyph-size: 10px;
+  --caption-close-bg: #c42b1c;
+  --caption-close-text: #ffffff;
+  --radius-flyout: 8px;
 }
 
-/* Auto dark: applies when the OS prefers dark and the user hasn't chosen
-   a theme (Auto removes the data-theme attribute) */
+/* Windows 11's own type, where the page draws the window's frame */
+[data-platform="windows"] {
+  --font-ui: "Segoe UI Variable Text", "Segoe UI", sans-serif;
+}
+
+/* Dark: neutral greys, as Windows 11 and macOS draw their own dark mode.
+   Auto uses it when the system prefers dark (Auto removes the data-theme
+   attribute) */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme]) {
-    --bg-primary: #1e1e2e;
-    --bg-secondary: #282840;
-    --bg-cell: #2a2a3e;
-    --bg-input: #1a1a2e;
-    --text-primary: #cdd6f4;
-    --text-secondary: #a6adc8;
-    --text-placeholder: #6c7086;
-    --border-color: #45475a;
-    --accent: #89b4fa;
-    --accent-hover: #74c7ec;
-    --error-color: #f38ba8;
-    --error-bg: #2e1a1e;
-    --success-color: #a6e3a1;
-    --success-bg: #1f2e26;
-    --success-text: #a6e3a1;
-    --running-color: #f9e2af;
-    --warn-bg: #2f2b1f;
-    --selected-bg: #35354f;
+    color-scheme: dark;
+    --bg-primary: #202020;
+    --bg-secondary: #2b2b2b;
+    --bg-cell: #272727;
+    --bg-input: #1a1a1a;
+    --text-primary: #e6e6e6;
+    --text-secondary: #ababab;
+    --text-placeholder: #737373;
+    --border-color: #3f3f3f;
+    --accent: #6cb8f6;
+    --accent-hover: #8ac7f8;
+    --error-color: #f28b82;
+    --error-bg: #351e1c;
+    --success-color: #81c995;
+    --success-bg: #1d2b21;
+    --success-text: #8fd0a1;
+    --running-color: #f2cc60;
+    --warn-bg: #30291a;
+    --selected-bg: #3a3a3a;
     --warning-color: #e5a00d;
-    --warning-text: #f9e2af;
-    --syntax-builtin: #f9e2af;
-    --syntax-string: #a6e3a1;
-    --syntax-number: #cba6f7;
+    --warning-text: #f2cc60;
+    --syntax-builtin: #e5c07b;
+    --syntax-string: #98c379;
+    --syntax-number: #c39ae0;
+    --caption-close-bg: #c42b1c;
+    --caption-close-text: #ffffff;
   }
 }
 
-/* Manual dark override */
+/* Dark, chosen */
 [data-theme="dark"] {
+  color-scheme: dark;
+  --bg-primary: #202020;
+  --bg-secondary: #2b2b2b;
+  --bg-cell: #272727;
+  --bg-input: #1a1a1a;
+  --text-primary: #e6e6e6;
+  --text-secondary: #ababab;
+  --text-placeholder: #737373;
+  --border-color: #3f3f3f;
+  --accent: #6cb8f6;
+  --accent-hover: #8ac7f8;
+  --error-color: #f28b82;
+  --error-bg: #351e1c;
+  --success-color: #81c995;
+  --success-bg: #1d2b21;
+  --success-text: #8fd0a1;
+  --running-color: #f2cc60;
+  --warn-bg: #30291a;
+  --selected-bg: #3a3a3a;
+  --warning-color: #e5a00d;
+  --warning-text: #f2cc60;
+  --syntax-builtin: #e5c07b;
+  --syntax-string: #98c379;
+  --syntax-number: #c39ae0;
+  --caption-close-bg: #c42b1c;
+  --caption-close-text: #ffffff;
+}
+
+/* Night: dark tinted violet, with pastel accents */
+[data-theme="night"] {
+  color-scheme: dark;
   --bg-primary: #1e1e2e;
   --bg-secondary: #282840;
   --bg-cell: #2a2a3e;
@@ -121,6 +173,8 @@
   --syntax-builtin: #f9e2af;
   --syntax-string: #a6e3a1;
   --syntax-number: #cba6f7;
+  --caption-close-bg: #c42b1c;
+  --caption-close-text: #ffffff;
 }
 
 /* Paper: warm off-white, ink text, for long reading in daylight */
@@ -148,6 +202,8 @@
   --syntax-builtin: #7f5c08;
   --syntax-string: #2c6e3f;
   --syntax-number: #7d3c98;
+  --caption-close-bg: #c42b1c;
+  --caption-close-text: #ffffff;
 }
 
 /* Print: always the light palette, whatever the theme */

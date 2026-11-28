@@ -19,13 +19,15 @@ All in `src/styles/tokens.css`, and nowhere else. Variables the app sets
 while it runs, such as `--font-size-mono` and `--markdown-indent`, live
 in `global.css` and aren't tokens.
 
-There are three colour palettes. Light sits in `:root`; Paper (warm
-off-white with ink text) under `[data-theme="paper"]`; Dark under
-`[data-theme="dark"]` and again under `prefers-color-scheme: dark` for
-Auto, which removes the `data-theme` attribute. Every colour token needs
-a value in each block, and a rule that changes in dark mode uses
-`:root:not([data-theme])` inside the media query, so it leaves Light and
-Paper alone.
+There are four colour palettes. Light sits in `:root`; Paper (warm
+off-white with ink text) under `[data-theme="paper"]`; Dark (neutral
+greys, like the system's own dark mode) under `[data-theme="dark"]` and again under
+`prefers-color-scheme: dark` for Auto, which removes the `data-theme`
+attribute; and Night (tinted violet, with pastel accents)
+under `[data-theme="night"]`. Every colour token needs a value in each
+block, and a rule that changes in dark mode is written for
+`[data-theme="dark"]`, `[data-theme="night"]` and, inside the media
+query, `:root:not([data-theme])`, so it leaves Light and Paper alone.
 
 ### Colour
 
@@ -109,6 +111,38 @@ styles are in `src/styles/ui.css`, with `ui-` class names.
 To add a part: write it in `src/components/ui/` with its rules in
 `ui.css` (tokens only), give it a story in `src/stories/ui/` tagged
 `themes`, list it in the table above, and test what it does.
+
+## Native parts
+
+Each theme sets `color-scheme` in `tokens.css`, so the parts the webview
+draws itself, such as scrollbars and their tracks, are dark in the dark
+themes.
+
+## The window's frame on Windows
+
+On Windows the page draws the title bar and the menu bar, as Windows 11's
+own apps do (`src/lib/window-frame.ts`). The system's menu bar is the
+Win32 kind, in the system's menu font, colour and spacing, and its title
+bar sat above a separate row of tabs. The window is made without the
+system's frame (`notebook_window` in `src-tauri/src/commands/window.rs`):
+
+- `TitleBar`: the app's icon, the tabs, and `WindowControls` (minimise,
+  maximise or restore, close, in Segoe Fluent Icons at Windows 11's 46px).
+  The space between the tabs moves the window; a double click maximises it.
+- `MenuBar`: built from the same model as the native menu bar elsewhere
+  (`menuModel`), on the left of the row the toolbar is in. It never takes
+  the keyboard's focus, as a native menu doesn't, so Undo, Cut and Copy act
+  where the keyboard was. Alt highlights File; Alt and a menu's first
+  letter opens it; the arrows, Enter and Escape work in it.
+
+Two shades, as on Windows 11: the title bar is `--bg-secondary`, and the
+active tab, the menu and tool row, the notebook, and the bars and panels
+around it (find, variables, docs, log, status, shortcut hints) are
+`--bg-primary`, with borders between them. The
+UI font there is Segoe UI Variable (`[data-platform="windows"]` in
+`tokens.css`). The `--title-bar-height`, `--caption-*` and
+`--radius-flyout` tokens are Windows 11's sizes and its close button's
+red.
 
 ## Icon buttons
 

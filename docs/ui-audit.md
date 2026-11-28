@@ -301,7 +301,10 @@ neither wry nor Tauri passes them to the menu. So on Windows the page
 runs the menu's shortcuts itself (`useMenuBar.ts`), in the capture
 phase, before the cell editor sees them, as the menu takes them first on
 macOS. Should the menu also report one, its event is ignored. Linux,
-where GTK's accelerators get the key first, is still to check.
+where GTK's accelerators get the key first, is still to check. Windows
+has since lost the native menu bar altogether: the page draws the title
+bar, with the tabs in it, and the menu bar (docs/design-library.md, "The
+window's frame on Windows").
 
 ### Proposal
 

@@ -1,6 +1,7 @@
 // The window's side of the native menu bar: it sends the menu on load and
 // when the language changes, the items' state when it has focus and that
-// state changes, and runs the command a chosen item names
+// state changes, and runs the command a chosen item names.  On Windows the
+// page draws the menu bar instead (components/MenuBar.tsx), and nothing is sent.
 import { useEffect, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
@@ -8,14 +9,17 @@ import { i18n } from "../lib/i18n";
 import { readCommandState, shortcutCommand } from "./registry";
 import { menuModel, menuState, type ItemState } from "./menu-model";
 import { currentPlatform } from "./shortcut";
+import { drawsWindowFrame } from "../lib/window-frame";
 import { useCommandState, useRunCommand } from "./useCommands";
 
-/** Send the whole menu bar, in the window's language */
-export function sendMenu(): Promise<void> {
+/** Send the whole menu bar, in the window's language, unless the page draws it */
+export async function sendMenu(): Promise<void> {
+  if (drawsWindowFrame()) return;
   return invoke("set_menu", { model: menuModel(i18n, readCommandState(), currentPlatform()) });
 }
 
-function sendState(states: ItemState[]): Promise<void> {
+async function sendState(states: ItemState[]): Promise<void> {
+  if (drawsWindowFrame()) return;
   return invoke("set_menu_state", { states });
 }
 

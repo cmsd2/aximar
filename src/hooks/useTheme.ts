@@ -9,7 +9,7 @@ export function useTheme() {
   // Load saved theme from backend on mount
   useEffect(() => {
     invoke<string>("get_theme").then((saved) => {
-      if (saved === "light" || saved === "paper" || saved === "dark" || saved === "auto") {
+      if (saved === "light" || saved === "paper" || saved === "dark" || saved === "night" || saved === "auto") {
         setTheme(saved as Theme);
       }
     });

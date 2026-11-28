@@ -1,6 +1,6 @@
 use aximar_core::msg;
 use std::sync::atomic::{AtomicU32, Ordering};
-use tauri::{AppHandle, Manager, WebviewUrl, WebviewWindowBuilder};
+use tauri::{AppHandle, Manager, Runtime, WebviewUrl, WebviewWindowBuilder};
 
 use crate::state::AppState;
 
@@ -16,14 +16,49 @@ pub async fn create_window(app: AppHandle, notebook_id: Option<String>) -> Resul
         None => WebviewUrl::App("index.html".into()),
     };
 
-    WebviewWindowBuilder::new(&app, &label, url)
+    let builder = WebviewWindowBuilder::new(&app, &label, url)
         .title("Aximar")
         .inner_size(1200.0, 800.0)
-        .min_inner_size(800.0, 600.0)
+        .min_inner_size(800.0, 600.0);
+    notebook_window(builder)
         .build()
         .map_err(|e| format!("Failed to create window: {e}"))?;
 
     Ok(label)
+}
+
+/// A notebook window in the platform's style.  On Windows the page draws
+/// the title bar, with the tabs in it, and the menu bar
+/// (`src/components/TitleBar.tsx`), as Windows 11's own apps do: the
+/// system's menu bar can't take the window's fonts or colours.  The page's
+/// Edit > Paste reads the clipboard, which WebView2 asks the user about
+/// unless the window allows it.
+pub fn notebook_window<'a, R: Runtime, M: Manager<R>>(
+    builder: WebviewWindowBuilder<'a, R, M>,
+) -> WebviewWindowBuilder<'a, R, M> {
+    #[cfg(windows)]
+    {
+        builder.decorations(false).enable_clipboard_access()
+    }
+    #[cfg(not(windows))]
+    {
+        builder
+    }
+}
+
+/// Open the main window, which tauri.conf.json describes but doesn't create
+pub fn open_main_window<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<()> {
+    let config = app
+        .config()
+        .app
+        .windows
+        .iter()
+        .find(|w| w.label == "main")
+        .cloned();
+    if let Some(config) = config {
+        notebook_window(WebviewWindowBuilder::from_config(app, &config)?).build()?;
+    }
+    Ok(())
 }
 
 /// Return the file paths passed as CLI arguments on initial launch.

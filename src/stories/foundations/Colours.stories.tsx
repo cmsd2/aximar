@@ -23,7 +23,7 @@ function Swatch({ value }: { value: string }) {
   );
 }
 
-/** Every colour token, with its light, paper, dark and print values */
+/** Every colour token, with its light, paper, dark, night and print values */
 export const Tokens: StoryObj = {
   render: () => (
     <div style={page}>
@@ -38,6 +38,7 @@ export const Tokens: StoryObj = {
             <th style={headCell}>Light</th>
             <th style={headCell}>Paper</th>
             <th style={headCell}>Dark</th>
+            <th style={headCell}>Night</th>
             <th style={headCell}>Print</th>
           </tr>
         </thead>
@@ -64,6 +65,7 @@ export const Tokens: StoryObj = {
               </td>
               <td style={cell}>{tokens.paper.get(name) && <Swatch value={tokens.paper.get(name)!} />}</td>
               <td style={cell}>{tokens.dark.get(name) && <Swatch value={tokens.dark.get(name)!} />}</td>
+              <td style={cell}>{tokens.night.get(name) && <Swatch value={tokens.night.get(name)!} />}</td>
               <td style={cell}>{tokens.print.get(name) && <Swatch value={tokens.print.get(name)!} />}</td>
             </tr>
           ))}
@@ -111,6 +113,7 @@ export const Contrast: StoryObj = {
             <th style={headCell}>Light</th>
             <th style={headCell}>Paper</th>
             <th style={headCell}>Dark</th>
+            <th style={headCell}>Night</th>
             <th style={headCell}>Exempt</th>
           </tr>
         </thead>
@@ -119,6 +122,7 @@ export const Contrast: StoryObj = {
             const light = [tokens.light.get(text)!, tokens.light.get(background)!];
             const paper = [tokens.paper.get(text)!, tokens.paper.get(background)!];
             const dark = [tokens.dark.get(text)!, tokens.dark.get(background)!];
+            const night = [tokens.night.get(text)!, tokens.night.get(background)!];
             return (
               <tr key={`${text} ${background}`}>
                 <td style={cell}>
@@ -135,6 +139,9 @@ export const Contrast: StoryObj = {
                 </td>
                 <td style={cell}>
                   <Ratio text={dark[0]} background={dark[1]} value={contrast(dark[0], dark[1])} />
+                </td>
+                <td style={cell}>
+                  <Ratio text={night[0]} background={night[1]} value={contrast(night[0], night[1])} />
                 </td>
                 <td style={{ ...cell, color: "var(--text-secondary)", fontSize: "var(--text-sm)" }}>{exempt ?? ""}</td>
               </tr>
