@@ -4,9 +4,9 @@ A modern, cross-platform desktop GUI and tooling suite for the [Maxima](https://
 
 The GUI is built with [Tauri v2](https://tauri.app/) (Rust backend) and React + TypeScript (frontend). The shared `aximar-core` library powers all components — GUI, MCP server, and debugger.
 
-![Aximar screenshot — 2D plot rendered inline](assets/screenshot-2d-plot.png)
+![Aximar in the paper theme: a notebook that builds the alternating group A5 and draws its Cayley graph, the truncated icosahedron](assets/screenshot-a5.png)
 
-See the [vector calculus example](assets/vc.pdf) for a Stokes' theorem verification notebook.
+The notebook in the screenshot is [assets/a5-cayley.macnb](assets/a5-cayley.macnb); it needs the `permutations` and `ax-plots` packages (`mxpm install permutations ax-plots`). See the [vector calculus example](assets/vc.pdf) for a Stokes' theorem verification notebook.
 
 ## Features
 

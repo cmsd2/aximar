@@ -121,7 +121,7 @@ export const Showcase: StoryObj = {
   ],
   render: () => (
     <>
-      <Window height={1040} />
+      <Window height={1160} />
       <WaitFor selector=".plotly-output .main-svg" />
     </>
   ),
