@@ -304,7 +304,10 @@ macOS. Should the menu also report one, its event is ignored. Linux,
 where GTK's accelerators get the key first, is still to check. Windows
 has since lost the native menu bar altogether: the page draws the title
 bar, with the tabs in it, and the menu bar (docs/design-library.md, "The
-window's frame on Windows").
+window's frame on Windows"). So, by default, has Linux ("The window's
+frame on Linux"), where the page runs the shortcuts the same way. Only
+with Use the system title bar do GTK's accelerators still take them, and
+that case is still to check.
 
 ### Proposal
 

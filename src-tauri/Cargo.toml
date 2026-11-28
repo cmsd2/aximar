@@ -37,6 +37,11 @@ rspolib = "0.1.2"
 which = "8"
 notify-debouncer-mini = "0.8"
 
+# Reads the desktop theme's colours for the window's chrome
+# (src/commands/system_chrome.rs); the version Tauri itself uses
+[target.'cfg(target_os = "linux")'.dependencies]
+gtk = "0.18"
+
 # Builds menus, which macOS allows only on the main thread, so it runs as a
 # plain program rather than under the test harness's threads
 [[test]]

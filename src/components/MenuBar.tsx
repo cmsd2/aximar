@@ -61,7 +61,7 @@ function systemAction(which: Predefined): (() => void) | null {
     case "maximize":
       return () => void getCurrentWindow().toggleMaximize();
     default:
-      // The rest are macOS's application menu, which Windows has none of
+      // The rest are macOS's application menu, which Windows and Linux have none of
       return null;
   }
 }
@@ -118,7 +118,7 @@ function nextEnabled(entries: Entry[], from: number, step: 1 | -1): number {
 }
 
 /**
- * The menu bar the page draws on Windows (lib/window-frame.ts), from the
+ * The menu bar the page draws on Windows and Linux (lib/window-frame.ts), from the
  * same model as the native one elsewhere.  It never takes the keyboard's
  * focus, as a native menu doesn't: Undo, Cut and Copy act where the
  * keyboard was.  Alt alone highlights the first menu, Alt and a menu's

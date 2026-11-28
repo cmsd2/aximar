@@ -34,8 +34,8 @@
   align-items: center;
   gap: 2px;
   padding: 4px 8px 0;
-  background: var(--bg-secondary, #f0f0f0);
-  border-bottom: 1px solid var(--border-color, #ddd);
+  background: var(--chrome-bg);
+  border-bottom: 1px solid var(--chrome-border);
   overflow-x: auto;
   flex-shrink: 0;
   -webkit-app-region: drag;
@@ -137,7 +137,8 @@
   display: flex;
   align-items: stretch;
   height: var(--title-bar-height);
-  background: var(--bg-secondary);
+  /* On Linux the desktop's title bar colour (useSystemChrome) */
+  background: var(--chrome-title-bg);
   flex-shrink: 0;
   user-select: none;
 }
@@ -288,10 +289,70 @@
   color: var(--text-placeholder);
 }
 
+/* The title bar's ends on Linux: the icon and the buttons, on the side and
+   in the order the desktop lays them out (TitleBar.tsx).  The tabs are
+   Windows', in the desktop's title bar colour. */
+.title-bar-end {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.title-bar-end.is-end {
+  padding-right: var(--space-2);
+}
+
+.linux-window-controls {
+  align-items: center;
+  gap: var(--space-1);
+  padding: 0 var(--space-1);
+}
+
+.linux-window-control {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--space-6);
+  height: var(--space-6);
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: none;
+  color: var(--text-primary);
+  cursor: default;
+}
+
+/* Breeze: bare glyphs, a tint behind one on hover, red behind close */
+.linux-window-controls.is-kde .linux-window-control:hover {
+  background: color-mix(in srgb, currentColor 12%, transparent);
+}
+
+.linux-window-controls.is-kde .linux-window-control.window-close:hover {
+  background: var(--caption-close-bg);
+  color: var(--caption-close-text);
+}
+
+/* Adwaita and the rest: each glyph on a faint circle, darker on hover */
+.linux-window-controls:not(.is-kde) .linux-window-control {
+  background: color-mix(in srgb, currentColor 8%, transparent);
+}
+
+.linux-window-controls:not(.is-kde) .linux-window-control:hover {
+  background: color-mix(in srgb, currentColor 16%, transparent);
+}
+
+.linux-window-control:active {
+  background: color-mix(in srgb, currentColor 24%, transparent);
+}
+
+.title-bar.is-inactive .linux-window-control {
+  color: var(--text-placeholder);
+}
+
 /* The bars and panels around the notebook take the window's colour too,
    as the menu and tool row does, with borders between them: the title
    bar's shade stays the title bar's */
-[data-platform="windows"] :is(
+[data-frame="page"] :is(
   .variable-panel,
   .find-bar,
   .ui-panel-header,
@@ -460,8 +521,8 @@
   align-items: center;
   justify-content: space-between;
   padding: 8px 16px;
-  background: var(--bg-secondary);
-  border-bottom: 1px solid var(--border-color);
+  background: var(--chrome-bg);
+  border-bottom: 1px solid var(--chrome-border);
   flex-shrink: 0;
 }
 

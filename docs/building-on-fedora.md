@@ -59,3 +59,33 @@ NO_STRIP=true npm run tauri build
 This is an environmental workaround (recent Fedora libraries + the old bundled
 `linuxdeploy`), not a project setting, so it is not baked into the repo. If you only need
 the `.rpm`/`.deb` you can ignore the AppImage failure entirely.
+
+## 3. The icon when running from the checkout
+
+On Wayland, Plasma and GNOME don't use the icon the window carries. They
+find the app's `.desktop` file by its app id, which for Aximar is the program
+name, `aximar`. The `.rpm` and `.deb` install `Aximar.desktop` with
+`StartupWMClass=aximar` and the icons in the hicolor theme, so an installed
+build shows its icon. A build run from `target/` has no desktop file and
+shows a generic one. To fix that for your user, add
+`~/.local/share/applications/aximar.desktop`:
+
+```ini
+[Desktop Entry]
+Type=Application
+Name=Aximar
+Exec=/path/to/aximar/target/release/aximar %F
+Icon=/path/to/aximar/src-tauri/icons/icon.png
+StartupWMClass=aximar
+```
+
+## 4. The window's chrome
+
+By default the page draws the title bar, with the tabs in it, and the menu
+bar, as Firefox does. GTK still draws the window's shadow and resize edges.
+The title bar takes KWin's title bar colour on KDE, and the buttons follow
+the desktop's layout and look. Settings > General > Use the system title
+bar keeps the desktop's own title bar and GTK menu bar instead, from the
+next start. Then the tab bar and toolbar take the menu bar's colours.
+Either way the interface takes the desktop's font. See "The window's frame
+on Linux" and "Colour" in [design-library.md](design-library.md).

@@ -48,6 +48,8 @@ pub fn run() {
             }
         })
         .setup(|app| {
+            // Who draws the title bar and the menu bar, before either exists
+            commands::window::choose_frame(app.handle());
             commands::window::open_main_window(app.handle())?;
             let language = commands::config::read_language(app.handle());
             menu::setup_menu(app, &language)?;
@@ -184,6 +186,7 @@ pub fn run() {
             commands::window::get_initial_file_args,
             commands::window::take_pending_opens,
             commands::window::open_licences,
+            commands::system_chrome::get_system_chrome,
             commands::translation_preview::load_translation_preview,
             commands::translation_preview::stop_translation_preview,
         ])

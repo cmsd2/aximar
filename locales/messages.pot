@@ -1347,6 +1347,11 @@ msgstr ""
 msgid "Jupyter Notebook"
 msgstr ""
 
+#. Settings, General section, Linux only: hint under Use the system title bar
+#: src/components/settings/GeneralSection.tsx
+msgid "Keep the desktop's title bar and menu bar, with the tabs below them. Takes effect when Aximar restarts."
+msgstr ""
+
 #. Help menu item: lists every keyboard shortcut. max-length:30
 #. Title of the dialog that lists every keyboard shortcut
 #. screen: dialogs--keyboard-shortcuts
@@ -2606,6 +2611,11 @@ msgstr ""
 #. screen: window--toolbar-running
 #: src/lib/tab-title.ts
 msgid "Untitled"
+msgstr ""
+
+#. Settings, Linux only: the label of the checkbox that keeps the desktop's own title bar and menu bar instead of the tabs in the title bar
+#: src/components/settings/GeneralSection.tsx
+msgid "Use the system title bar"
 msgstr ""
 
 #. Settings: the label of the checkbox that opens the variable panel when Aximar starts

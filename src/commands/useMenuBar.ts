@@ -1,7 +1,8 @@
 // The window's side of the native menu bar: it sends the menu on load and
 // when the language changes, the items' state when it has focus and that
-// state changes, and runs the command a chosen item names.  On Windows the
-// page draws the menu bar instead (components/MenuBar.tsx), and nothing is sent.
+// state changes, and runs the command a chosen item names.  Where the page
+// draws the menu bar instead (components/MenuBar.tsx, lib/window-frame.ts),
+// on Windows and by default on Linux, nothing is sent.
 import { useEffect, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
@@ -75,11 +76,13 @@ export function useMenuBar(): void {
   }, []);
 
   // On Windows a key pressed in the page never reaches the menu's
-  // accelerators: WebView2 takes the keyboard in its own process.  The
-  // page runs the menu's shortcuts itself, before the cell editor sees
-  // them, as the menu takes them first on macOS and Linux.
+  // accelerators: WebView2 takes the keyboard in its own process.  On
+  // Linux, where the page draws the menu bar, there is no native menu to
+  // take them.  Either way the page runs the menu's shortcuts itself,
+  // before the cell editor sees them, as the menu takes them first on
+  // macOS and on Linux with the system's menu bar.
   useEffect(() => {
-    if (currentPlatform() !== "windows") return;
+    if (!drawsMenuBar()) return;
     const onKey = (e: KeyboardEvent) => {
       const c = shortcutCommand(e);
       if (!c) return;

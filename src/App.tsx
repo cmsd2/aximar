@@ -19,6 +19,7 @@ import { ShortcutsDialog } from "./components/ShortcutsDialog";
 import { useMaxima } from "./hooks/useMaxima";
 import { useNotebookEvents } from "./hooks/useNotebookEvents";
 import { useTheme } from "./hooks/useTheme";
+import { useSystemChrome } from "./hooks/useSystemChrome";
 import {
   nbGetState,
   nbLoadTemplate,
@@ -53,6 +54,7 @@ function App() {
   // The menu bar, built from the command list, and its commands
   useMenuBar();
   useTheme();
+  useSystemChrome();
   useNotebookEvents();
   const paletteOpen = useUiStore((s) => s.paletteOpen);
   const paletteQuery = useUiStore((s) => s.paletteQuery);
