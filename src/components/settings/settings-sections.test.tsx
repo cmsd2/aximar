@@ -7,6 +7,8 @@ vi.mock("@tauri-apps/api/event", () => ({ listen: vi.fn(async () => () => {}) })
 vi.mock("@tauri-apps/plugin-dialog", () => ({ open: vi.fn(), ask: vi.fn(), message: vi.fn() }));
 vi.mock("../../lib/translation-preview", () => ({
   currentPreviewPath: () => null,
+  currentPreviewError: () => null,
+  onPreviewError: () => () => {},
   startPreview: vi.fn(),
   stopPreview: vi.fn(),
 }));

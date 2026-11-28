@@ -146,7 +146,12 @@ async fn watch(app: AppHandle, path: PathBuf, token: CancellationToken) {
             last = now;
             match read_catalog(&path) {
                 Ok((catalog, text)) => apply(&app, &catalog, &text),
-                Err(e) => tracing::warn!("translation preview: {e}"),
+                // The window keeps the last version that loaded, and says why
+                // this one didn't
+                Err(e) => {
+                    tracing::warn!("translation preview: {e}");
+                    let _ = app.emit("translation-preview-error", e.to_string());
+                }
             }
         }
     }

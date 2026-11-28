@@ -87,16 +87,50 @@ export function currentPreviewPath(): string | null {
   return previewPath;
 }
 
+/**
+ * Why the file last failed to load, or null: when it was chosen, or on a
+ * save, when the window keeps the last version that loaded.  Kept while
+ * Settings is closed, like the path.
+ */
+let previewError: string | null = null;
+const errorListeners = new Set<() => void>();
+
+export function currentPreviewError(): string | null {
+  return previewError;
+}
+
+/** Call `listener` whenever the error changes; returns the unsubscribe */
+export function onPreviewError(listener: () => void): () => void {
+  errorListeners.add(listener);
+  return () => errorListeners.delete(listener);
+}
+
+/**
+ * Record why `path` failed to load, or clear it with null.  The message
+ * names the file, not its whole path: the translator chose it.
+ */
+export function setPreviewError(message: string | null, path: string | null = previewPath): void {
+  previewError = message && path ? message.split(path).join(path.split(/[\\/]/).pop() ?? path) : message;
+  for (const listener of errorListeners) listener();
+}
+
 /** Load a .po from disk and keep showing it as it's saved */
 export async function startPreview(path: string): Promise<void> {
-  const catalog = await invoke<PreviewCatalog>("load_translation_preview", { path });
-  previewPath = catalog.path;
-  await applyPreview(catalog);
+  try {
+    const catalog = await invoke<PreviewCatalog>("load_translation_preview", { path });
+    previewPath = catalog.path;
+    setPreviewError(null);
+    await applyPreview(catalog);
+  } catch (e) {
+    setPreviewError(String(e), path);
+    throw e;
+  }
 }
 
 /** Stop previewing and go back to `language`, the setting */
 export async function stopPreview(language: string): Promise<void> {
   await invoke("stop_translation_preview");
   previewPath = null;
+  setPreviewError(null);
   await setLanguageOverride(false, language);
 }

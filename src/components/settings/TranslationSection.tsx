@@ -1,8 +1,8 @@
 // Tools for translators.  See docs/i18n.md.
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { useLingui } from "@lingui/react/macro";
 import { open as openDialog } from "@tauri-apps/plugin-dialog";
-import { currentPreviewPath, startPreview, stopPreview } from "../../lib/translation-preview";
+import { currentPreviewError, currentPreviewPath, onPreviewError, startPreview, stopPreview } from "../../lib/translation-preview";
 import { setShowSources, showingSources } from "../../lib/show-sources";
 import { Button } from "../ui/Button";
 import { Checkbox } from "../ui/Checkbox";
@@ -22,7 +22,8 @@ export function TranslationSection({ config }: SectionProps) {
 function TranslationPreviewRow({ language }: { language: string }) {
   const { t } = useLingui();
   const [path, setPath] = useState<string | null>(currentPreviewPath());
-  const [error, setError] = useState<string | null>(null);
+  // From choosing the file, or from a later save
+  const error = useSyncExternalStore(onPreviewError, currentPreviewError);
 
   const load = async () => {
     const chosen = await openDialog({
@@ -38,10 +39,8 @@ function TranslationPreviewRow({ language }: { language: string }) {
     try {
       await startPreview(chosen);
       setPath(currentPreviewPath());
-      setError(null);
-    } catch (e) {
-      // The file was just chosen: its name is enough to say which one
-      setError(String(e).split(chosen).join(chosen.split(/[\\/]/).pop() ?? chosen));
+    } catch {
+      // startPreview records why, for the row below
     }
   };
 
@@ -80,7 +79,8 @@ function TranslationPreviewRow({ language }: { language: string }) {
               </Button>
             )}
           </div>
-          {/* Under the button, wrapping: a parse error names the file and can be long */}
+          {/* Under the button, wrapping: a parse error names the file and can be long.
+              After a save that doesn't parse, the window keeps the last version that did */}
           {error && (
             <p className="settings-preview-error" role="alert">
               {error}

@@ -1,7 +1,20 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
+
+const invoke = vi.hoisted(() => vi.fn());
+vi.mock("@tauri-apps/api/core", () => ({ invoke }));
+
 import { generateMessageId } from "@lingui/message-utils/generateMessageId";
 import { i18n, setLanguageOverride } from "./i18n";
-import { applyPreview, compilePreview, type PreviewCatalog } from "./translation-preview";
+import {
+  applyPreview,
+  compilePreview,
+  currentPreviewError,
+  onPreviewError,
+  setPreviewError,
+  startPreview,
+  stopPreview,
+  type PreviewCatalog,
+} from "./translation-preview";
 
 const icu = "{count, plural, one {# cell} other {# cells}}";
 const catalog: PreviewCatalog = {
@@ -69,5 +82,33 @@ describe("a loaded catalog", () => {
   it("skips plurals it can't map to the language's plural rules", () => {
     const messages = compilePreview({ ...catalog, plural_forms: "nplurals=3; plural=(n%10==1 ? 0 : 1);" });
     expect(messages).not.toHaveProperty(generateMessageId(icu));
+  });
+});
+
+describe("a file that doesn't load", () => {
+  const broken = "/Users/translator/work/es.po isn't a valid catalog: syntax error at line 12";
+
+  it("says why when it's chosen, naming the file rather than its path", async () => {
+    invoke.mockRejectedValueOnce(broken);
+    const heard = vi.fn();
+    const stop = onPreviewError(heard);
+    await expect(startPreview("/Users/translator/work/es.po")).rejects.toBe(broken);
+    expect(currentPreviewError()).toBe("es.po isn't a valid catalog: syntax error at line 12");
+    expect(heard).toHaveBeenCalled();
+    stop();
+  });
+
+  it("says why after a save, until one loads or the preview stops", async () => {
+    invoke.mockResolvedValueOnce({ ...catalog, path: "/Users/translator/work/es.po" });
+    await startPreview("/Users/translator/work/es.po");
+    expect(currentPreviewError()).toBeNull();
+
+    // The backend's message for a save that doesn't parse
+    setPreviewError(broken);
+    expect(currentPreviewError()).toBe("es.po isn't a valid catalog: syntax error at line 12");
+
+    invoke.mockResolvedValueOnce(null);
+    await stopPreview("en");
+    expect(currentPreviewError()).toBeNull();
   });
 });
