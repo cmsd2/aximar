@@ -42,6 +42,11 @@ pub fn run() {
         .manage(AppState::new())
         .manage(commands::translation_preview::TranslationPreview::default())
         .manage(menu::MenuItems::default())
+        .on_window_event(|window, event| {
+            if let tauri::WindowEvent::Focused(true) = event {
+                menu::note_focus(window.label());
+            }
+        })
         .setup(|app| {
             let language = commands::config::read_language(app.handle());
             menu::setup_menu(app, &language)?;
