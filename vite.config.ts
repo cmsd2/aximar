@@ -40,8 +40,11 @@ export default defineConfig(async () => ({
         }
       : undefined,
     watch: {
-      // 3. tell Vite to ignore watching `src-tauri`
-      ignored: ["**/src-tauri/**"],
+      // 3. tell Vite to ignore watching `src-tauri`, and Cargo's `target`,
+      // which holds tens of thousands of files.  macOS tells Vite of
+      // changes cheaply; on Windows, watching it made the first page load
+      // of `tauri dev` take over 20 seconds instead of 2.
+      ignored: ["**/src-tauri/**", "**/target/**"],
     },
   },
 }));
