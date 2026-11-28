@@ -7,6 +7,8 @@ see the `v*` releases on GitHub.
 
 ## [Unreleased]
 
+## [0.7.0] — 2026-11-28
+
 ### aximar-mcp and maxima-dap
 
 - **Errors are recognised under any locale**: Maxima translates its error
@@ -100,6 +102,14 @@ see the `v*` releases on GitHub.
   VS Code's display language, then English. A regional locale such as
   `es-ES` falls back to `es`. Spanish summaries are built in, so a Spanish
   editor shows them above the English documentation.
+
+### Release archives
+
+- **Licence notices for the Rust crates**: each archive carries
+  `THIRD-PARTY-RUST.html` beside the binaries, with the licence of every
+  crate the tools link and a link to each crate's source.
+  [docs/licences.md](docs/licences.md) says how it's built. maxima-lsp now
+  declares its licence, GPL-3.0-or-later, as the repository does.
 
 ## [0.6.2] — 2026-11-25
 
@@ -508,6 +518,7 @@ Initial standalone release of the Maxima language tools.
 - Dangerous function safety gates
 - Structured JSON startup output for VS Code integration
 
+[0.7.0]: https://github.com/cmsd2/aximar/releases/tag/tools-v0.7.0
 [0.6.2]: https://github.com/cmsd2/aximar/releases/tag/tools-v0.6.2
 [0.6.1]: https://github.com/cmsd2/aximar/releases/tag/tools-v0.6.1
 [0.6.0]: https://github.com/cmsd2/aximar/releases/tag/tools-v0.6.0
