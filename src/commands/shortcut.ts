@@ -107,10 +107,23 @@ export function formatShortcut(s: Shortcut, platform: Platform = currentPlatform
   return out.join("+");
 }
 
-/** Whether a key press is this shortcut, on this platform */
+const PUNCTUATION_CODES: Record<string, string> = {
+  ".": "Period",
+  "/": "Slash",
+  ",": "Comma",
+  "[": "BracketLeft",
+  "]": "BracketRight",
+};
+
+/**
+ * Whether a key press is this shortcut, on this platform.  The key is
+ * matched by what it types or, for punctuation, by where it is, as a menu
+ * accelerator is: Shift turns "]" into "}".  Letters go by what they type,
+ * so Ctrl+Z on an AZERTY keyboard is Undo, not the key where QWERTY has Z.
+ */
 export function matches(
   s: Shortcut,
-  e: Pick<KeyboardEvent, "key" | "metaKey" | "ctrlKey" | "altKey" | "shiftKey">,
+  e: Pick<KeyboardEvent, "key" | "metaKey" | "ctrlKey" | "altKey" | "shiftKey"> & { code?: string },
   platform: Platform = currentPlatform(),
 ): boolean {
   const { mods, key } = parse(s);
@@ -118,5 +131,6 @@ export function matches(
   const wantCtrl = mods.has("Ctrl") || (platform !== "macos" && mods.has("Mod"));
   if (e.metaKey !== wantMeta || e.ctrlKey !== wantCtrl) return false;
   if (e.altKey !== mods.has("Alt") || e.shiftKey !== mods.has("Shift")) return false;
-  return e.key.toLowerCase() === key.toLowerCase();
+  if (e.key.toLowerCase() === key.toLowerCase()) return true;
+  return key in PUNCTUATION_CODES && e.code === PUNCTUATION_CODES[key];
 }

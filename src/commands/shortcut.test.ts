@@ -39,6 +39,17 @@ describe("shortcuts", () => {
     expect(matches("Ctrl+Shift+Tab", key("Tab", { ctrlKey: true }), "macos")).toBe(false);
   });
 
+  it("matches punctuation by its key, letters by what they type", () => {
+    // Shift+] types "}"
+    const shifted = { ...key("}", { ctrlKey: true, shiftKey: true }), code: "BracketRight" };
+    expect(matches("Mod+Shift+]", shifted, "windows")).toBe(true);
+    expect(matches("Mod+Shift+[", shifted, "windows")).toBe(false);
+    // On AZERTY the key that types "z" is where QWERTY has W
+    const azertyZ = { ...key("z", { ctrlKey: true }), code: "KeyW" };
+    expect(matches("Mod+Z", azertyZ, "windows")).toBe(true);
+    expect(matches("Mod+W", azertyZ, "windows")).toBe(false);
+  });
+
   it("refuses an unknown modifier", () => {
     expect(() => formatShortcut("Cmd+W", "macos")).toThrow(/Unknown modifier/);
   });
